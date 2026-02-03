@@ -158,6 +158,18 @@ export const mockAuthService = {
     return session?.user || null;
   },
 
+  // Get all users
+  async getAllUsers(): Promise<User[]> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return Object.values(mockUsers).map((u) => u.user);
+  },
+
+  // Get user by ID
+  async getUserById(id: string): Promise<User | null> {
+    const user = Object.values(mockUsers).find((u) => u.user.id === id);
+    return user ? user.user : null;
+  },
+
   // Get mock credentials for display
   getMockCredentials() {
     return [

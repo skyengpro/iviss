@@ -40,72 +40,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Mock users data
-const mockUsers = [
-  {
-    id: "USR-001",
-    name: "Jean Dupont",
-    email: "jean.dupont@police.gov",
-    role: "Agent",
-    organization: "Brigade Alpha",
-    status: "active" as const,
-    lastActive: "2 min ago",
-    controlsToday: 12,
-  },
-  {
-    id: "USR-002",
-    name: "Marie Martin",
-    email: "marie.martin@police.gov",
-    role: "Supervisor",
-    organization: "Brigade Alpha",
-    status: "active" as const,
-    lastActive: "5 min ago",
-    controlsToday: 0,
-  },
-  {
-    id: "USR-003",
-    name: "Pierre Bernard",
-    email: "pierre.bernard@customs.gov",
-    role: "Agent",
-    organization: "Customs Unit B",
-    status: "active" as const,
-    lastActive: "1 hour ago",
-    controlsToday: 8,
-  },
-  {
-    id: "USR-004",
-    name: "Sophie Leroy",
-    email: "sophie.leroy@police.gov",
-    role: "Organization Admin",
-    organization: "National Police HQ",
-    status: "active" as const,
-    lastActive: "3 hours ago",
-    controlsToday: 0,
-  },
-  {
-    id: "USR-005",
-    name: "François Moreau",
-    email: "francois.moreau@police.gov",
-    role: "Agent",
-    organization: "Brigade Beta",
-    status: "inactive" as const,
-    lastActive: "2 days ago",
-    controlsToday: 0,
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { mockAuthService, User } from "@/services/mockAuth";
 
 const roleColors: Record<string, "default" | "primary" | "secondary" | "destructive" | "outline"> = {
-  "Super Admin": "destructive",
-  "Organization Admin": "default",
-  Supervisor: "secondary",
-  Agent: "outline",
-  Operator: "outline",
+  admin: "destructive",
+  supervisor: "secondary",
+  agent: "outline",
 };
 
 export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => mockAuthService.getAllUsers()
+  });
+
+  const filteredUsers = users.filter((user: User) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.organization.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "active" ? user.isActive : !user.isActive);
+
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   return (
     <BackOfficeLayout
@@ -167,7 +132,7 @@ export default function UserManagement() {
           <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div className="rounded-lg bg-muted p-4">
               <p className="text-sm text-muted-foreground">Total Users</p>
-              <p className="text-2xl font-bold">156</p>
+              <p className="text-2xl font-bold">{users.length}</p>
             </div>
             <div className="rounded-lg bg-status-valid/10 p-4">
               <p className="text-sm text-muted-foreground">Active Now</p>
@@ -198,98 +163,105 @@ export default function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockUsers.map((user) => (
-                  <TableRow key={user.id} className="group">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-primary text-primary-foreground">
-                            {user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                        {user.role}
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.organization}</TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        variant={user.status === "active" ? "valid" : "pending"}
-                        size="sm"
-                      >
-                        {user.status}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {user.lastActive}
-                    </TableCell>
-                    <TableCell>
-                      {user.controlsToday > 0 ? (
-                        <span className="font-medium">{user.controlsToday}</span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="opacity-0 group-hover:opacity-100"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit User
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Key className="mr-2 h-4 w-4" />
-                            Reset Password
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Manage Permissions
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {user.status === "active" ? (
-                            <DropdownMenuItem className="text-status-warning">
-                              <UserX className="mr-2 h-4 w-4" />
-                              Deactivate
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem className="text-status-valid">
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Activate
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      Loading users...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user: User) => (
+                    <TableRow key={user.id} className="group">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback className="bg-primary text-primary-foreground">
+                              {user.avatarInitials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-muted-foreground" />
+                          {user.role}
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.organization}</TableCell>
+                      <TableCell>
+                        <StatusBadge
+                          variant={user.isActive ? "valid" : "pending"}
+                          size="sm"
+                        >
+                          {user.isActive ? "active" : "inactive"}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        Today
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">0</span>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Key className="mr-2 h-4 w-4" />
+                              Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Shield className="mr-2 h-4 w-4" />
+                              Manage Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {user.isActive ? (
+                              <DropdownMenuItem className="text-status-warning">
+                                <UserX className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="text-status-valid">
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Activate
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      No users found.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

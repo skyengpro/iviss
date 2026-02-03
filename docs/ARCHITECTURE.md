@@ -27,15 +27,21 @@
 src/
 ├── components/           # Reusable UI components
 │   ├── layout/           # Page layouts (Mobile, BackOffice)
+│   ├── mobile/           # Modularized mobile-specific components (scan, vehicle)
+│   ├── shared/           # Cross-platform shared components
 │   ├── ui/               # shadcn/ui atomic components (51 files)
 │   └── vehicle/          # Domain-specific components
 ├── contexts/             # React Context (AuthContext)
-├── hooks/                # Custom hooks
+├── hooks/                # Custom hooks (usePlateScanner, useLogControl)
 ├── lib/                  # Utility libraries (cn helper)
 ├── pages/                # Page components
 │   ├── auth/             # Login
 │   ├── backoffice/       # Admin dashboard, controls, users
-│   └── mobile/           # Agent mobile interface
+│   └── mobile/           # Agent mobile interface (composed of sub-components)
+├── router/               # Three-tier routing setup
+│   ├── AppRouter.tsx     # Orchestration layer
+│   ├── ProtectedRoute.tsx # Access control layer
+│   └── routes.ts         # Pure data definition layer
 ├── services/             # Mock API services
 ├── test/                 # Test setup & tests
 └── utils/                # Utility functions (imageProcessor)
@@ -52,17 +58,17 @@ src/
 │                              │                                  │
 │                        AuthProvider                             │
 │                              │                                  │
-│              ┌───────────────┼───────────────┐                  │
-│              ▼               ▼               ▼                  │
-│         /login         /mobile/*       /backoffice/*            │
-│           │                 │                │                  │
-│         Login         MobileLayout    BackOfficeLayout          │
-│                            │                │                   │
-│                    ┌───────┴───────┐   ┌────┴────┐              │
-│                    │ MobileHeader  │   │ Sidebar │              │
-│                    │ MobileNav     │   │ Header  │              │
-│                    │ {children}    │   │{children}│             │
-│                    └───────────────┘   └─────────┘              │
+│                        AppRouter                                │
+│                              │                                  │
+│              ┌───────────────┴───────────────┐                  │
+│              ▼                               ▼                  │
+│        Public Routes                 Protected Routes           │
+│           (Login)                   (ProtectedRoute)            │
+│              │                 ┌─────────────┼─────────────┐    │
+│            Login               ▼             ▼             ▼    │
+│                         /mobile/*      /backoffice/*      ...   │
+│                                │             │                  │
+│                          MobileLayout  BackOfficeLayout         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -113,9 +119,10 @@ admin:      /backoffice/* (full access)
 ```
 
 **Components**:
-- `AuthProvider` - Context wrapper
-- `useAuth()` - Hook for auth state
-- `RequireAuth` - Route guard HOC
+- `AuthProvider` - Context wrapper providing auth state
+- `useAuth()` - Hook for component-level access to auth session
+- `ProtectedRoute` - Router-level wrapper for role-based access control
+- `RequireAuth` - Internal component logic for authentication enforcement
 
 ---
 

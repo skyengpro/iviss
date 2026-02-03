@@ -173,6 +173,10 @@ export interface ControlStats {
   thisMonth: number;
   alerts: number;
   violations: number;
+  // Aliases for dashboard
+  todayControls: number;
+  activeAlerts: number;
+  totalVehicles: number;
 }
 
 export const mockControlService = {
@@ -223,7 +227,7 @@ export const mockControlService = {
     await new Promise((resolve) => setTimeout(resolve, 300));
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     return mockControls.filter((c) => c.agentId === agentId && c.timestamp >= today);
   },
 
@@ -276,7 +280,7 @@ export const mockControlService = {
   // Add action to control
   async addAction(controlId: string, action: ControlAction): Promise<boolean> {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    
+
     const control = mockControls.find((c) => c.id === controlId);
     if (control) {
       control.actions.push(action);
@@ -309,6 +313,10 @@ export const mockControlService = {
       thisMonth: controls.filter((c) => c.timestamp >= startOfMonth).length,
       alerts: controls.filter((c) => c.status === 'critical').length,
       violations: controls.filter((c) => c.status === 'warning' || c.status === 'critical').length,
+      // Dashboard aliases
+      todayControls: controls.filter((c) => c.timestamp >= startOfDay).length,
+      activeAlerts: controls.filter((c) => c.status === 'critical').length,
+      totalVehicles: controls.length,
     };
   },
 

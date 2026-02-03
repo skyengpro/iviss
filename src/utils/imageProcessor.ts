@@ -49,9 +49,6 @@ export class ImageProcessor {
                     // Return as base64
                     const result = canvas.toDataURL('image/jpeg', 0.95);
 
-                    // Debug: log the processed image
-                    console.log('Preprocessed image (copy to new tab to view):', result.substring(0, 100) + '...');
-
                     resolve(result);
                 } catch (error) {
                     reject(error);
@@ -135,8 +132,6 @@ export class ImageProcessor {
                 threshold = i;
             }
         }
-
-        console.log('Calculated threshold:', threshold);
 
         // Apply threshold
         for (let i = 0; i < data.length; i += 4) {
