@@ -1,0 +1,121 @@
+import { useNavigate } from "react-router-dom";
+import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface MobileSidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={onClose}
+      />
+
+      {/* Sidebar panel */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 h-full w-80 bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 ease-out",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {/* Header */}
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary">
+              <Shield className="h-6 w-6 text-sidebar-primary-foreground" />
+            </div>
+            <div>
+              <p className="font-bold">IVISS</p>
+              <p className="text-xs text-sidebar-foreground/70">Front Office</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* User info */}
+        <div className="border-b border-sidebar-border p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sidebar-accent">
+              <User className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold">Agent Dupont</p>
+              <p className="text-sm text-sidebar-foreground/70">Brigade Alpha</p>
+            </div>
+            <div className="h-2 w-2 rounded-full bg-status-valid" title="Online" />
+          </div>
+        </div>
+
+        {/* Menu items */}
+        <nav className="flex-1 p-4 space-y-1">
+          <SidebarLink icon={FileText} label="My Controls Today" badge="12" />
+          <SidebarLink icon={HelpCircle} label="Help & Support" />
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-sidebar-border p-4">
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </Button>
+          <p className="mt-4 text-center text-xs text-sidebar-foreground/50">
+            IVISS v1.0.0 • © 2024
+          </p>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function SidebarLink({
+  icon: Icon,
+  label,
+  badge,
+}: {
+  icon: React.ElementType;
+  label: string;
+  badge?: string;
+}) {
+  return (
+    <button className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
+      <Icon className="h-5 w-5" />
+      <span className="flex-1">{label}</span>
+      {badge && (
+        <span className="rounded-full bg-sidebar-primary px-2 py-0.5 text-xs font-medium text-sidebar-primary-foreground">
+          {badge}
+        </span>
+      )}
+      <ChevronRight className="h-4 w-4 opacity-50" />
+    </button>
+  );
+}
