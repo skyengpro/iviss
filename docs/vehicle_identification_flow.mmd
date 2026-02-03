@@ -1,0 +1,59 @@
+sequenceDiagram
+    autonumber
+
+    participant Agent as Control Agent (Android App)
+    participant OCR as OCR / AI Engine
+    participant IVISS as IVISS Web Service
+    participant EXTDB as External Vehicle DB (PostgreSQL 9.4)
+    participant PARTNER as Partner APIs (Police, Insurance, Customs, etc.)
+    participant MAINDB as IVISS Main DB (PostgreSQL)
+    participant ADMIN as Back-Office Admin / Supervisor
+
+    %% --- Control initiation ---
+    Agent->>Agent: Start vehicle control
+    Agent->>Agent: Choose input method\n(Manual / Photo / Continuous Scan)
+
+    %% --- Plate acquisition ---
+    alt Manual entry
+        Agent->>IVISS: Send plate number
+    else Photo or Continuous scan
+        Agent->>OCR: Capture plate image
+        OCR->>OCR: Image processing & OCR
+        OCR->>Agent: Extracted plate number + confidence
+        Agent->>IVISS: Send normalized plate number
+    end
+
+    %% --- Vehicle lookup ---
+    IVISS->>EXTDB: Query vehicle by plate number
+    alt Vehicle found
+        EXTDB->>IVISS: Vehicle & registration data\n(chassis, owner, gray card, etc.)
+
+        %% --- Status checks ---
+        IVISS->>PARTNER: Check wanted / insurance /\ninspection / customs status
+        PARTNER->>IVISS: Status responses
+
+        %% --- Control result ---
+        IVISS->>MAINDB: Save control record\n(user, phone, time, position, status)
+        IVISS->>Agent: Display vehicle info & alerts\n(based on user rights)
+
+    else Vehicle not found
+        EXTDB-->>IVISS: No record found
+        IVISS->>Agent: Request gray card capture
+
+        %% --- Gray card capture ---
+        Agent->>Agent: Film both sides of gray card
+        Agent->>IVISS: Upload images + metadata
+        IVISS->>MAINDB: Store pending registration data
+        IVISS->>Agent: Acknowledge submission
+    end
+
+    %% --- Back-office processing ---
+    ADMIN->>IVISS: Access back-office dashboard
+    ADMIN->>IVISS: Review pending gray cards
+    ADMIN->>EXTDB: Validate & update vehicle data
+    ADMIN->>MAINDB: Log validation & audit trail
+
+    %% --- Supervision & reporting ---
+    ADMIN->>IVISS: View controls, statistics, reports
+    IVISS->>MAINDB: Retrieve logs, audits, KPIs
+    MAINDB->>ADMIN: Dashboards & exports

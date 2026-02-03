@@ -1,0 +1,43 @@
+flowchart LR
+
+    %% --- Front Office ---
+    Agent[Control Agent]
+    Mobile[Android App]
+    OCR[OCR / AI Engine]
+
+    %% --- Core ---
+    WS[IVISS Web Service]
+    EXTDB[External Vehicle DB]
+    MAINDB[IVISS Main DB]
+
+    %% --- Partners ---
+    API[Partner APIs]
+
+    %% --- Back Office ---
+    Admin[Admin / Supervisor]
+    Dashboard[Back-Office Dashboard]
+
+    %% --- Flow ---
+    Agent --> Mobile
+    Mobile -->|Plate input / Image| OCR
+    OCR -->|Extracted plate| Mobile
+    Mobile -->|Plate number| WS
+
+    WS -->|Query| EXTDB
+    EXTDB -->|Vehicle data / Not found| WS
+
+    WS -->|Status checks| API
+    API -->|Legal status| WS
+
+    WS -->|Save control| MAINDB
+    WS -->|Result & alerts| Mobile
+
+    %% --- Gray card fallback ---
+    Mobile -->|Gray card images| WS
+    WS -->|Store pending data| MAINDB
+
+    %% --- Back office operations ---
+    Admin --> Dashboard
+    Dashboard --> WS
+    WS --> MAINDB
+    WS --> EXTDB

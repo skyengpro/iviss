@@ -1,0 +1,55 @@
+graph TD
+
+    %% --- System Root ---
+    IVISS[IVISS System]
+
+    %% --- Applications ---
+    IVISS --> FO[Front Office Android App]
+    IVISS --> BO[Back Office Web or Client App]
+    IVISS --> WS[IVISS Web Service]
+
+    %% --- Front Office ---
+    FO --> AGENT[Control Agent]
+    AGENT --> PLATE[License Plate Input]
+    PLATE --> MANUAL[Manual Entry]
+    PLATE --> PHOTO[Photo Capture]
+    PLATE --> CONT[Continuous Scan]
+    PHOTO --> OCR[OCR AI Engine]
+    CONT --> OCR
+
+    %% --- Web Service Core ---
+    WS --> AUTH[Authentication and RBAC]
+    WS --> CTRL[Control Management]
+    WS --> STATUS[Vehicle Status Engine]
+    WS --> AUDIT[Audit and Logging]
+
+    %% --- Databases ---
+    WS --> EXTDB[External Vehicle Database PostgreSQL 9.4]
+    WS --> MAINDB[IVISS Main Database PostgreSQL]
+
+    %% --- Main DB Entities ---
+    MAINDB --> VEHICLE[Vehicle]
+    MAINDB --> REG[Registration - Gray Card]
+    MAINDB --> OWNER[Owner]
+    MAINDB --> CONTROL[Control]
+    MAINDB --> USER[User]
+    MAINDB --> ORG[Organization]
+    MAINDB --> PHONE[Phone]
+    MAINDB --> POS[Position]
+    MAINDB --> LOG[Audit Log]
+
+    %% --- Partner Systems ---
+    WS --> PARTNERS[Partner Organization APIs]
+    PARTNERS --> POLICE[Police Wanted Vehicles]
+    PARTNERS --> INS[Insurance Systems]
+    PARTNERS --> TECH[Technical Inspection]
+    PARTNERS --> CUST[Customs Systems]
+
+    %% --- Back Office Roles ---
+    BO --> ADMIN[Administrator]
+    BO --> SUP[Supervisor]
+    BO --> MON[Monitoring Operator]
+
+    %% --- Organization Hierarchy ---
+    ORG --> SUBORG[Sub Organizations]
+    SUBORG --> USERS[Agents and Supervisors]
