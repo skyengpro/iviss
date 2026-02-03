@@ -81,7 +81,11 @@ function generateIMEI(): string {
 }
 
 function generateToken(): string {
-  return 'tok_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return (
+    'tok_' +
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
 }
 
 // Storage keys
@@ -89,7 +93,10 @@ const SESSION_KEY = 'iviss_session';
 
 export const mockAuthService = {
   // Authenticate user
-  async login(username: string, password: string): Promise<{ success: boolean; session?: AuthSession; error?: string }> {
+  async login(
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; session?: AuthSession; error?: string }> {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -104,7 +111,10 @@ export const mockAuthService = {
     }
 
     if (!userRecord.user.isActive) {
-      return { success: false, error: 'This account has been deactivated. Contact your administrator.' };
+      return {
+        success: false,
+        error: 'This account has been deactivated. Contact your administrator.',
+      };
     }
 
     const session: AuthSession = {

@@ -11,9 +11,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "frontend/src/*"
-      ]
+      "@/*": ["frontend/src/*"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,

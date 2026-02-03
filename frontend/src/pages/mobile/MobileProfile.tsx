@@ -1,6 +1,6 @@
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   User,
   Shield,
@@ -10,13 +10,13 @@ import {
   ChevronRight,
   HelpCircle,
   FileText,
-  Settings
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { mockControlService } from "@/services/mockControls";
+  Settings,
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { mockControlService } from '@/services/mockControls';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
 
 export default function MobileProfile() {
   const { user, logout } = useAuth();
@@ -24,8 +24,9 @@ export default function MobileProfile() {
 
   const { data: todayControls = [] } = useQuery({
     queryKey: ['today-controls', user?.id],
-    queryFn: () => user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () =>
+      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
+    enabled: !!user,
   });
 
   const handleLogout = async () => {
@@ -65,7 +66,11 @@ export default function MobileProfile() {
           <InfoRow icon={User} label="Badge ID" value={user.badgeId} />
           <InfoRow icon={Shield} label="Role" value={user.role} />
           <InfoRow icon={Building2} label="Organization" value={user.organization} />
-          <InfoRow icon={Smartphone} label="Phone IMEI" value={user.phoneIMEI.slice(0, 8) + '...'} />
+          <InfoRow
+            icon={Smartphone}
+            label="Phone IMEI"
+            value={user.phoneIMEI.slice(0, 8) + '...'}
+          />
         </section>
 
         {/* Quick Links */}
@@ -76,7 +81,11 @@ export default function MobileProfile() {
             </h3>
           </div>
 
-          <MenuLink icon={FileText} label="My Controls Today" badge={String(todayControls.length)} />
+          <MenuLink
+            icon={FileText}
+            label="My Controls Today"
+            badge={String(todayControls.length)}
+          />
           <MenuLink icon={HelpCircle} label="Help & Support" />
           <MenuLink icon={Settings} label="Settings" />
         </section>
@@ -104,7 +113,7 @@ export default function MobileProfile() {
 function InfoRow({
   icon: Icon,
   label,
-  value
+  value,
 }: {
   icon: React.ElementType;
   label: string;
@@ -124,7 +133,7 @@ function InfoRow({
 function MenuLink({
   icon: Icon,
   label,
-  badge
+  badge,
 }: {
   icon: React.ElementType;
   label: string;

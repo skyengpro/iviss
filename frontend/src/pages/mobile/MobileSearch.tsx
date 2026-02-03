@@ -1,32 +1,32 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { PlateInput } from "@/components/vehicle/PlateInput";
-import { Button } from "@/components/ui/button";
-import { Camera, History } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { PlateInput } from '@/components/vehicle/PlateInput';
+import { Button } from '@/components/ui/button';
+import { Camera, History } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockControlService } from "@/services/mockControls";
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { mockControlService } from '@/services/mockControls';
 
 export default function MobileSearch() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [plateNumber, setPlateNumber] = useState("");
+  const [plateNumber, setPlateNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch recent controls for the agent to show as "recent searches"
   const { data: recentControls = [] } = useQuery({
     queryKey: ['recent-controls', user?.id],
-    queryFn: () => user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () => (user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([])),
+    enabled: !!user,
   });
 
   // Check if plate was passed from scan
   useEffect(() => {
-    const plateFromScan = searchParams.get("plate");
+    const plateFromScan = searchParams.get('plate');
     if (plateFromScan) {
       setPlateNumber(plateFromScan);
       // Auto-search
@@ -44,7 +44,7 @@ export default function MobileSearch() {
     navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
   };
 
-  const recentSearches = ["AB-123-CD", "XY-789-ZW", "EF-456-GH"];
+  const recentSearches = ['AB-123-CD', 'XY-789-ZW', 'EF-456-GH'];
 
   return (
     <MobileLayout title="Search Vehicle">
@@ -109,8 +109,8 @@ export default function MobileSearch() {
         {/* Help text */}
         <div className="rounded-lg bg-muted/50 p-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Enter at least 4 characters of the plate number to search.
-            The system will query all national databases.
+            Enter at least 4 characters of the plate number to search. The system will query all
+            national databases.
           </p>
         </div>
       </div>

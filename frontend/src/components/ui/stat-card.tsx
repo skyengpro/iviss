@@ -1,23 +1,23 @@
-import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
+import { cva, type VariantProps } from 'class-variance-authority';
 
 const statCardVariants = cva(
-  "relative overflow-hidden rounded-xl p-6 transition-all duration-300 card-elevated",
+  'relative overflow-hidden rounded-xl p-6 transition-all duration-300 card-elevated',
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground border border-border",
-        primary: "bg-primary text-primary-foreground",
-        accent: "bg-accent text-accent-foreground",
-        valid: "bg-status-valid text-status-valid-foreground",
-        warning: "bg-status-warning text-status-warning-foreground",
-        critical: "bg-status-critical text-status-critical-foreground",
-        gradient: "bg-gradient-to-br from-primary to-navy-600 text-primary-foreground",
+        default: 'bg-card text-card-foreground border border-border',
+        primary: 'bg-primary text-primary-foreground',
+        accent: 'bg-accent text-accent-foreground',
+        valid: 'bg-status-valid text-status-valid-foreground',
+        warning: 'bg-status-warning text-status-warning-foreground',
+        critical: 'bg-status-critical text-status-critical-foreground',
+        gradient: 'bg-gradient-to-br from-primary to-navy-600 text-primary-foreground',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
   }
 );
@@ -62,21 +62,19 @@ export function StatCard({
 
         <div className="mt-4">
           <p className="text-3xl font-bold tracking-tight">{value}</p>
-          
+
           <div className="mt-2 flex items-center gap-2">
             {trend && (
               <span
                 className={cn(
-                  "text-xs font-medium",
-                  trend.isPositive ? "text-green-400" : "text-red-400"
+                  'text-xs font-medium',
+                  trend.isPositive ? 'text-green-400' : 'text-red-400'
                 )}
               >
-                {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+                {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
               </span>
             )}
-            {subtitle && (
-              <span className="text-xs opacity-70">{subtitle}</span>
-            )}
+            {subtitle && <span className="text-xs opacity-70">{subtitle}</span>}
           </div>
         </div>
       </div>
