@@ -1,28 +1,28 @@
-import { useState, useRef, useCallback } from "react";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import Webcam from "react-webcam";
+import { useState, useRef, useCallback } from 'react';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import Webcam from 'react-webcam';
 
-import { usePlateScanner, DetectedPlate } from "@/hooks/usePlateScanner";
-import { ScanViewfinder } from "@/components/mobile/scan/ScanViewfinder";
-import { ScanTopControls } from "@/components/mobile/scan/ScanTopControls";
-import { ScanDetectionsList } from "@/components/mobile/scan/ScanDetectionsList";
-import { ScanResultCard } from "@/components/mobile/scan/ScanResultCard";
-import { ScanActionButtons } from "@/components/mobile/scan/ScanActionButtons";
+import { usePlateScanner, DetectedPlate } from '@/hooks/usePlateScanner';
+import { ScanViewfinder } from '@/components/mobile/scan/ScanViewfinder';
+import { ScanTopControls } from '@/components/mobile/scan/ScanTopControls';
+import { ScanDetectionsList } from '@/components/mobile/scan/ScanDetectionsList';
+import { ScanResultCard } from '@/components/mobile/scan/ScanResultCard';
+import { ScanActionButtons } from '@/components/mobile/scan/ScanActionButtons';
 
-type ScanMode = "photo" | "live";
+type ScanMode = 'photo' | 'live';
 
 export default function MobileScan() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const initialMode = (searchParams.get("mode") as ScanMode) || "photo";
+  const initialMode = (searchParams.get('mode') as ScanMode) || 'photo';
 
   const [mode, setMode] = useState<ScanMode>(initialMode);
   const [flashOn, setFlashOn] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
   const [detectedPlate, setDetectedPlate] = useState<DetectedPlate | null>(null);
-  const [editedPlate, setEditedPlate] = useState("");
+  const [editedPlate, setEditedPlate] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
   const webcamRef = useRef<Webcam>(null);
@@ -39,7 +39,7 @@ export default function MobileScan() {
     stopLiveScan,
   } = usePlateScanner({
     onCriticalDetection: (plate) => setDetectedPlate(plate),
-    initialUseDemoData: true
+    initialUseDemoData: true,
   });
 
   const handleCapture = async () => {
@@ -56,25 +56,25 @@ export default function MobileScan() {
           const detection: DetectedPlate = {
             plateNumber: result.plateNumber,
             confidence: result.confidence,
-            status: (result as any).status || 'valid',
+            status: result.status,
           };
           setDetectedPlate(detection);
           setEditedPlate(result.plateNumber);
         } else {
           setDetectedPlate({
-            plateNumber: "NO PLATE DETECTED",
+            plateNumber: 'NO PLATE DETECTED',
             confidence: 0,
-            status: 'warning'
+            status: 'warning',
           });
-          setEditedPlate("");
+          setEditedPlate('');
         }
       } catch (e) {
         setDetectedPlate({
-          plateNumber: "OCR ERROR",
+          plateNumber: 'OCR ERROR',
           confidence: 0,
-          status: 'warning'
+          status: 'warning',
         });
-        setEditedPlate("");
+        setEditedPlate('');
       }
     }
 
@@ -98,7 +98,7 @@ export default function MobileScan() {
 
   const handleRetry = () => {
     setDetectedPlate(null);
-    setEditedPlate("");
+    setEditedPlate('');
     setIsEditing(false);
   };
 
@@ -111,7 +111,6 @@ export default function MobileScan() {
   return (
     <MobileLayout title="Scan Plate" hideNavigation>
       <div className="relative flex h-[calc(100dvh-4rem)] flex-col bg-black overflow-hidden">
-
         <ScanViewfinder
           webcamRef={webcamRef}
           facingMode={facingMode}
@@ -123,17 +122,16 @@ export default function MobileScan() {
         <ScanTopControls
           onClose={() => navigate(-1)}
           onToggleFlash={() => setFlashOn(!flashOn)}
-          onToggleFacingMode={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}
+          onToggleFacingMode={() =>
+            setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
+          }
           flashOn={flashOn}
           facingMode={facingMode}
           useDemoData={useDemoData}
           onToggleDemoData={setUseDemoData}
         />
 
-        <ScanDetectionsList
-          detections={liveDetections}
-          onPlateClick={handleLivePlateClick}
-        />
+        <ScanDetectionsList detections={liveDetections} onPlateClick={handleLivePlateClick} />
 
         {detectedPlate && (
           <ScanResultCard

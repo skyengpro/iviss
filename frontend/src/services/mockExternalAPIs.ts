@@ -55,13 +55,16 @@ export interface AggregatedVehicleStatus {
 }
 
 // Mock data lookup table
-const mockAPIData: Record<string, {
-  insurance: InsuranceResult;
-  police: PoliceResult;
-  customs: CustomsResult;
-  technical: TechnicalInspectionResult;
-}> = {
-  'AB123CD': {
+const mockAPIData: Record<
+  string,
+  {
+    insurance: InsuranceResult;
+    police: PoliceResult;
+    customs: CustomsResult;
+    technical: TechnicalInspectionResult;
+  }
+> = {
+  AB123CD: {
     insurance: {
       status: 'valid',
       provider: 'AXA France',
@@ -79,7 +82,7 @@ const mockAPIData: Record<string, {
       notes: 'Inspection expires in 2 months',
     },
   },
-  'XY789ZW': {
+  XY789ZW: {
     insurance: {
       status: 'critical',
       provider: 'Allianz',
@@ -96,7 +99,7 @@ const mockAPIData: Record<string, {
       mileage: 62000,
     },
   },
-  'EF456GH': {
+  EF456GH: {
     insurance: {
       status: 'valid',
       provider: 'MAIF',
@@ -119,7 +122,7 @@ const mockAPIData: Record<string, {
       mileage: 78000,
     },
   },
-  'LT345AB': {
+  LT345AB: {
     insurance: {
       status: 'valid',
       provider: 'Allianz',
@@ -141,7 +144,7 @@ const mockAPIData: Record<string, {
       mileage: 25000,
     },
   },
-  'MN567OP': {
+  MN567OP: {
     insurance: {
       status: 'valid',
       provider: 'GMF',
@@ -158,7 +161,7 @@ const mockAPIData: Record<string, {
       mileage: 15000,
     },
   },
-  'QR890ST': {
+  QR890ST: {
     insurance: {
       status: 'valid',
       provider: 'MACIF',
@@ -258,7 +261,9 @@ export const mockExternalAPIService = {
   },
 
   // Query Technical Inspection API
-  async checkTechnicalInspection(plateNumber: string): Promise<APIResponse<TechnicalInspectionResult>> {
+  async checkTechnicalInspection(
+    plateNumber: string
+  ): Promise<APIResponse<TechnicalInspectionResult>> {
     const startTime = Date.now();
     await randomDelay(200, 500);
 
@@ -293,7 +298,11 @@ export const mockExternalAPIService = {
     ]);
 
     const insurance = insuranceRes.data || { status: 'unknown' as APIStatus };
-    const police = policeRes.data || { status: 'unknown' as APIStatus, isWanted: false, isStolen: false };
+    const police = policeRes.data || {
+      status: 'unknown' as APIStatus,
+      isWanted: false,
+      isStolen: false,
+    };
     const customs = customsRes.data || { status: 'unknown' as APIStatus, isCleared: true };
     const technicalInspection = technicalRes.data || { status: 'unknown' as APIStatus };
 

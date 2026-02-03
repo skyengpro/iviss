@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
 import {
   Camera,
   Keyboard,
@@ -11,26 +11,27 @@ import {
   AlertTriangle,
   ArrowRight,
   MapPin,
-  Clock
-} from "lucide-react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockControlService, ControlRecord } from "@/services/mockControls";
+  Clock,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { mockControlService, ControlRecord } from '@/services/mockControls';
 
 export default function MobileDashboard() {
   const { user } = useAuth();
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['mobile-stats', user?.organizationId],
-    queryFn: () => user ? mockControlService.getStats(user.organizationId) : null,
-    enabled: !!user
+    queryFn: () => (user ? mockControlService.getStats(user.organizationId) : null),
+    enabled: !!user,
   });
 
   const { data: recentControls = [], isLoading: controlsLoading } = useQuery({
     queryKey: ['recent-controls', user?.id],
-    queryFn: () => user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () =>
+      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
+    enabled: !!user,
   });
 
   const isLoading = statsLoading || controlsLoading;
@@ -67,22 +68,14 @@ export default function MobileDashboard() {
             New Control
           </h2>
           <div className="grid grid-cols-3 gap-3">
-            <QuickActionButton
-              icon={Keyboard}
-              label="Manual Entry"
-              href="/mobile/search"
-            />
+            <QuickActionButton icon={Keyboard} label="Manual Entry" href="/mobile/search" />
             <QuickActionButton
               icon={Camera}
               label="Photo Scan"
               href="/mobile/scan?mode=photo"
               primary
             />
-            <QuickActionButton
-              icon={Radio}
-              label="Live Scan"
-              href="/mobile/scan?mode=live"
-            />
+            <QuickActionButton icon={Radio} label="Live Scan" href="/mobile/scan?mode=live" />
           </div>
         </section>
 
@@ -94,17 +87,17 @@ export default function MobileDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               title="Controls"
-              value={isLoading ? "-" : String(stats?.today || 0)}
+              value={isLoading ? '-' : String(stats?.today || 0)}
               subtitle="Today"
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
               title="Alerts"
-              value={isLoading ? "-" : String(stats?.alerts || 0)}
+              value={isLoading ? '-' : String(stats?.alerts || 0)}
               subtitle="Flagged vehicles"
               icon={AlertTriangle}
-              variant={(stats?.alerts || 0) > 0 ? "critical" : "default"}
+              variant={(stats?.alerts || 0) > 0 ? 'critical' : 'default'}
             />
           </div>
         </section>
@@ -121,7 +114,9 @@ export default function MobileDashboard() {
                 <p className="text-xs text-muted-foreground">GPS Active</p>
               </div>
             </div>
-            <StatusBadge variant="valid" size="sm">Online</StatusBadge>
+            <StatusBadge variant="valid" size="sm">
+              Online
+            </StatusBadge>
           </div>
           <div className="mt-3 rounded-lg bg-muted p-3">
             <p className="text-sm font-medium">Highway A1, KM 42</p>
@@ -147,11 +142,14 @@ export default function MobileDashboard() {
           ) : recentControls.length > 0 ? (
             <div className="space-y-2">
               {recentControls.map((control) => (
-                <Link key={control.id} to={`/mobile/vehicle/${encodeURIComponent(control.plateNumber)}`}>
+                <Link
+                  key={control.id}
+                  to={`/mobile/vehicle/${encodeURIComponent(control.plateNumber)}`}
+                >
                   <RecentControlItem
                     plate={control.plateNumber}
                     time={formatTimeAgo(control.timestamp)}
-                    status={control.status as "valid" | "warning" | "critical"}
+                    status={control.status as 'valid' | 'warning' | 'critical'}
                   />
                 </Link>
               ))}
@@ -184,10 +182,11 @@ function QuickActionButton({
   return (
     <Link to={href}>
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${primary
-          ? "bg-accent text-accent-foreground shadow-lg"
-          : "bg-card border border-border hover:bg-muted"
-          }`}
+        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
+          primary
+            ? 'bg-accent text-accent-foreground shadow-lg'
+            : 'bg-card border border-border hover:bg-muted'
+        }`}
       >
         <Icon className="h-6 w-6" />
         <span className="text-xs font-medium">{label}</span>
@@ -203,18 +202,19 @@ function RecentControlItem({
 }: {
   plate: string;
   time: string;
-  status: "valid" | "warning" | "critical";
+  status: 'valid' | 'warning' | 'critical';
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 rounded-full ${status === "valid"
-            ? "bg-status-valid"
-            : status === "warning"
-              ? "bg-status-warning"
-              : "bg-status-critical"
-            }`}
+          className={`h-2 w-2 rounded-full ${
+            status === 'valid'
+              ? 'bg-status-valid'
+              : status === 'warning'
+                ? 'bg-status-warning'
+                : 'bg-status-critical'
+          }`}
         />
         <div>
           <p className="font-mono font-semibold tracking-wider">{plate}</p>

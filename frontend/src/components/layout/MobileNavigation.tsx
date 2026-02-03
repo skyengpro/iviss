@@ -1,19 +1,13 @@
-import { Link, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  Camera, 
-  Search, 
-  ClipboardList, 
-  Settings 
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Camera, Search, ClipboardList, Settings } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: "/mobile", icon: Home, label: "Home" },
-  { href: "/mobile/scan", icon: Camera, label: "Scan" },
-  { href: "/mobile/search", icon: Search, label: "Search" },
-  { href: "/mobile/history", icon: ClipboardList, label: "History" },
-  { href: "/mobile/settings", icon: Settings, label: "Settings" },
+  { href: '/mobile', icon: Home, label: 'Home' },
+  { href: '/mobile/scan', icon: Camera, label: 'Scan' },
+  { href: '/mobile/search', icon: Search, label: 'Search' },
+  { href: '/mobile/history', icon: ClipboardList, label: 'History' },
+  { href: '/mobile/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function MobileNavigation() {
@@ -29,22 +23,20 @@ export function MobileNavigation() {
               key={item.href}
               to={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-all duration-200 touch-target",
-                isActive
-                  ? "text-accent"
-                  : "text-muted-foreground hover:text-foreground"
+                'flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-all duration-200 touch-target',
+                isActive ? 'text-accent' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <div
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
-                  isActive && "bg-accent/10"
+                  'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200',
+                  isActive && 'bg-accent/10'
                 )}
               >
                 <item.icon
                   className={cn(
-                    "h-5 w-5 transition-transform duration-200",
-                    isActive && "scale-110"
+                    'h-5 w-5 transition-transform duration-200',
+                    isActive && 'scale-110'
                   )}
                 />
               </div>

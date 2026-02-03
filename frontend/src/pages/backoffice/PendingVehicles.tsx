@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { 
+import { useState, useEffect } from 'react';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import {
   CheckCircle,
   XCircle,
   FileText,
@@ -11,10 +11,10 @@ import {
   MapPin,
   Clock,
   Eye,
-  AlertCircle
-} from "lucide-react";
-import { mockVehicleService, PendingVehicle } from "@/services/mockVehicles";
-import { toast } from "@/hooks/use-toast";
+  AlertCircle,
+} from 'lucide-react';
+import { mockVehicleService, PendingVehicle } from '@/services/mockVehicles';
+import { toast } from '@/hooks/use-toast';
 
 export default function PendingVehicles() {
   const [pendingVehicles, setPendingVehicles] = useState<PendingVehicle[]>([]);
@@ -39,17 +39,17 @@ export default function PendingVehicles() {
 
   const handleReview = async (id: string, decision: 'approved' | 'rejected') => {
     setIsProcessing(true);
-    
+
     try {
       await mockVehicleService.reviewPendingVehicle(id, decision);
-      
+
       toast({
         title: decision === 'approved' ? 'Vehicle Approved' : 'Vehicle Rejected',
         description: `The vehicle has been ${decision}.`,
       });
 
       // Remove from list
-      setPendingVehicles(prev => prev.filter(v => v.id !== id));
+      setPendingVehicles((prev) => prev.filter((v) => v.id !== id));
       setSelectedVehicle(null);
     } catch (error) {
       toast({
@@ -66,7 +66,7 @@ export default function PendingVehicles() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
+
     if (diffHours < 1) return 'Less than an hour ago';
     if (diffHours < 24) return `${diffHours} hours ago`;
     return date.toLocaleDateString();
@@ -95,9 +95,7 @@ export default function PendingVehicles() {
               ) : pendingVehicles.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="mx-auto h-12 w-12 text-status-valid" />
-                  <p className="mt-4 text-muted-foreground">
-                    No pending validations
-                  </p>
+                  <p className="mt-4 text-muted-foreground">No pending validations</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -254,9 +252,7 @@ export default function PendingVehicles() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <FileText className="h-16 w-16 text-muted-foreground/30" />
-                <p className="mt-4 text-muted-foreground">
-                  Select a pending submission to review
-                </p>
+                <p className="mt-4 text-muted-foreground">Select a pending submission to review</p>
               </CardContent>
             </Card>
           )}

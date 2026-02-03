@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -12,30 +12,25 @@ import {
   LogOut,
   Bell,
   HelpCircle,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const mainNavItems = [
-  { href: "/backoffice", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/backoffice/controls", icon: ClipboardList, label: "Control History" },
-  { href: "/backoffice/vehicles", icon: Car, label: "Vehicle Database" },
-  { href: "/backoffice/validation", icon: FileSearch, label: "Pending Validation" },
+  { href: '/backoffice', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/backoffice/controls', icon: ClipboardList, label: 'Control History' },
+  { href: '/backoffice/vehicles', icon: Car, label: 'Vehicle Database' },
+  { href: '/backoffice/validation', icon: FileSearch, label: 'Pending Validation' },
 ];
 
 const adminNavItems = [
-  { href: "/backoffice/users", icon: Users, label: "User Management" },
-  { href: "/backoffice/organizations", icon: Building2, label: "Organizations" },
-  { href: "/backoffice/audit", icon: Shield, label: "Audit Logs" },
-  { href: "/backoffice/settings", icon: Settings, label: "Settings" },
+  { href: '/backoffice/users', icon: Users, label: 'User Management' },
+  { href: '/backoffice/organizations', icon: Building2, label: 'Organizations' },
+  { href: '/backoffice/audit', icon: Shield, label: 'Audit Logs' },
+  { href: '/backoffice/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function BackOfficeSidebar() {
@@ -46,7 +41,7 @@ export function BackOfficeSidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate('/login');
   };
 
   return (
@@ -89,8 +84,8 @@ export function BackOfficeSidebar() {
               Administration
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  adminOpen && "rotate-180"
+                  'h-4 w-4 transition-transform duration-200',
+                  adminOpen && 'rotate-180'
                 )}
               />
             </button>
@@ -164,10 +159,10 @@ function NavLink({
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
         isActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       )}
     >
       <Icon className="h-5 w-5" />
