@@ -3,59 +3,49 @@ import { MobileLayout } from "@/components/layout/MobileLayout";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Camera, 
-  Keyboard, 
-  Radio, 
-  ClipboardCheck, 
+import {
+  Camera,
+  Keyboard,
+  Radio,
+  ClipboardCheck,
   AlertTriangle,
   ArrowRight,
   MapPin,
   Clock
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { mockControlService, ControlRecord } from "@/services/mockControls";
 
 export default function MobileDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ today: 0, alerts: 0 });
-  const [recentControls, setRecentControls] = useState<ControlRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      
-      try {
-        const [statsData, controlsData] = await Promise.all([
-          mockControlService.getStats(user.organizationId),
-          mockControlService.getTodayControlsByAgent(user.id),
-        ]);
-        
-        setStats({ today: statsData.today, alerts: statsData.alerts });
-        setRecentControls(controlsData.slice(0, 3));
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['mobile-stats', user?.organizationId],
+    queryFn: () => user ? mockControlService.getStats(user.organizationId) : null,
+    enabled: !!user
+  });
 
-    loadData();
-  }, [user]);
+  const { data: recentControls = [], isLoading: controlsLoading } = useQuery({
+    queryKey: ['recent-controls', user?.id],
+    queryFn: () => user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
+    enabled: !!user
+  });
+
+  const isLoading = statsLoading || controlsLoading;
 
   const formatTimeAgo = (date: Date) => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} min ago`;
-    
+
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -104,17 +94,17 @@ export default function MobileDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               title="Controls"
-              value={isLoading ? "-" : String(stats.today)}
+              value={isLoading ? "-" : String(stats?.today || 0)}
               subtitle="Today"
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
               title="Alerts"
-              value={isLoading ? "-" : String(stats.alerts)}
+              value={isLoading ? "-" : String(stats?.alerts || 0)}
               subtitle="Flagged vehicles"
               icon={AlertTriangle}
-              variant={stats.alerts > 0 ? "critical" : "default"}
+              variant={(stats?.alerts || 0) > 0 ? "critical" : "default"}
             />
           </div>
         </section>
@@ -149,7 +139,7 @@ export default function MobileDashboard() {
               View all
             </Link>
           </div>
-          
+
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -194,11 +184,10 @@ function QuickActionButton({
   return (
     <Link to={href}>
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
-          primary
-            ? "bg-accent text-accent-foreground shadow-lg"
-            : "bg-card border border-border hover:bg-muted"
-        }`}
+        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${primary
+          ? "bg-accent text-accent-foreground shadow-lg"
+          : "bg-card border border-border hover:bg-muted"
+          }`}
       >
         <Icon className="h-6 w-6" />
         <span className="text-xs font-medium">{label}</span>
@@ -220,13 +209,12 @@ function RecentControlItem({
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 rounded-full ${
-            status === "valid"
-              ? "bg-status-valid"
-              : status === "warning"
+          className={`h-2 w-2 rounded-full ${status === "valid"
+            ? "bg-status-valid"
+            : status === "warning"
               ? "bg-status-warning"
               : "bg-status-critical"
-          }`}
+            }`}
         />
         <div>
           <p className="font-mono font-semibold tracking-wider">{plate}</p>

@@ -1,11 +1,11 @@
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { 
-  User, 
-  Shield, 
-  Smartphone, 
-  Building2, 
+import {
+  User,
+  Shield,
+  Smartphone,
+  Building2,
   LogOut,
   ChevronRight,
   HelpCircle,
@@ -14,10 +14,19 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { mockControlService } from "@/services/mockControls";
+
+import { useQuery } from "@tanstack/react-query";
 
 export default function MobileProfile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const { data: todayControls = [] } = useQuery({
+    queryKey: ['today-controls', user?.id],
+    queryFn: () => user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
+    enabled: !!user
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -52,7 +61,7 @@ export default function MobileProfile() {
               Account Information
             </h3>
           </div>
-          
+
           <InfoRow icon={User} label="Badge ID" value={user.badgeId} />
           <InfoRow icon={Shield} label="Role" value={user.role} />
           <InfoRow icon={Building2} label="Organization" value={user.organization} />
@@ -66,8 +75,8 @@ export default function MobileProfile() {
               Quick Actions
             </h3>
           </div>
-          
-          <MenuLink icon={FileText} label="My Controls Today" badge="12" />
+
+          <MenuLink icon={FileText} label="My Controls Today" badge={String(todayControls.length)} />
           <MenuLink icon={HelpCircle} label="Help & Support" />
           <MenuLink icon={Settings} label="Settings" />
         </section>
@@ -92,14 +101,14 @@ export default function MobileProfile() {
   );
 }
 
-function InfoRow({ 
-  icon: Icon, 
-  label, 
-  value 
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: string; 
+function InfoRow({
+  icon: Icon,
+  label,
+  value
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0">
@@ -112,13 +121,13 @@ function InfoRow({
   );
 }
 
-function MenuLink({ 
-  icon: Icon, 
-  label, 
-  badge 
-}: { 
-  icon: React.ElementType; 
-  label: string; 
+function MenuLink({
+  icon: Icon,
+  label,
+  badge
+}: {
+  icon: React.ElementType;
+  label: string;
   badge?: string;
 }) {
   return (

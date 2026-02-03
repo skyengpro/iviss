@@ -15,41 +15,25 @@ import {
 } from "lucide-react";
 
 // Mock data for charts and lists
-const recentAlerts = [
-  {
-    id: "1",
-    plate: "AB-123-CD",
-    type: "Wanted Vehicle",
-    location: "Highway A1, KM 42",
-    time: "5 min ago",
-    agent: "Agent Dupont",
-  },
-  {
-    id: "2",
-    plate: "XY-789-ZW",
-    type: "Expired Insurance",
-    location: "Rue de Paris",
-    time: "12 min ago",
-    agent: "Agent Martin",
-  },
-  {
-    id: "3",
-    plate: "EF-456-GH",
-    type: "Stolen Vehicle",
-    location: "Border Checkpoint",
-    time: "25 min ago",
-    agent: "Agent Bernard",
-  },
-];
-
-const topAgents = [
-  { name: "Agent Dupont", controls: 45, alerts: 3 },
-  { name: "Agent Martin", controls: 38, alerts: 2 },
-  { name: "Agent Bernard", controls: 32, alerts: 5 },
-  { name: "Agent Leroy", controls: 28, alerts: 1 },
-];
+import { useQuery } from "@tanstack/react-query";
+import { mockControlService } from "@/services/mockControls";
+import { mockAuthService } from "@/services/mockAuth";
 
 export default function BackOfficeDashboard() {
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => mockControlService.getStats()
+  });
+
+  const { data: recentAlerts = [], isLoading: alertsLoading } = useQuery({
+    queryKey: ['recent-alerts'],
+    queryFn: () => mockControlService.getRecentAlerts(5)
+  });
+
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => mockAuthService.getAllUsers()
+  });
   return (
     <BackOfficeLayout
       title="Dashboard"
@@ -66,31 +50,30 @@ export default function BackOfficeDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Today's Controls"
-            value="1,284"
-            subtitle="↑ 12% from yesterday"
+            value={stats?.todayControls.toString() || "0"}
+            subtitle="Total controls processed"
             icon={ClipboardCheck}
             variant="gradient"
-            trend={{ value: 12, isPositive: true }}
           />
           <StatCard
             title="Active Alerts"
-            value="23"
+            value={stats?.activeAlerts.toString() || "0"}
             subtitle="Requires immediate action"
             icon={AlertTriangle}
             variant="critical"
           />
           <StatCard
-            title="Agents Online"
-            value="156"
-            subtitle="Across 12 organizations"
-            icon={Users}
+            title="Vehicles Scanned"
+            value={stats?.totalVehicles.toString() || "0"}
+            subtitle="Historical scanned volume"
+            icon={Car}
             variant="default"
           />
           <StatCard
-            title="Vehicles Flagged"
-            value="8"
-            subtitle="New flags today"
-            icon={Car}
+            title="Online Agents"
+            value={users.filter(u => u.isActive).length.toString()}
+            subtitle="Currently active"
+            icon={Users}
             variant="warning"
           />
         </div>
@@ -145,17 +128,17 @@ export default function BackOfficeDashboard() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono font-semibold tracking-wider">
-                        {alert.plate}
+                        {alert.plateNumber}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {alert.time}
+                        {new Date(alert.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
                     <p className="mt-0.5 text-sm font-medium text-status-critical">
-                      {alert.type}
+                      {alert.notes || 'Critical Alert'}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {alert.location} • {alert.agent}
+                      {alert.location.address} • {alert.agentName}
                     </p>
                   </div>
                 </div>
@@ -193,23 +176,23 @@ export default function BackOfficeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topAgents.map((agent, index) => (
+                {users.slice(0, 4).map((user, index) => (
                   <div
-                    key={agent.name}
+                    key={user.id}
                     className="flex items-center gap-4"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{agent.name}</p>
+                      <p className="font-medium truncate">{user.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {agent.controls} controls
+                        {user.organization}
                       </p>
                     </div>
-                    {agent.alerts > 0 && (
-                      <StatusBadge variant="critical" size="sm">
-                        {agent.alerts} alerts
+                    {user.isActive && (
+                      <StatusBadge variant="valid" size="sm">
+                        Online
                       </StatusBadge>
                     )}
                   </div>
@@ -246,13 +229,12 @@ export default function BackOfficeDashboard() {
                   className="flex items-center gap-4 rounded-lg bg-muted/50 p-3"
                 >
                   <div
-                    className={`h-2 w-2 rounded-full ${
-                      item.status === "valid"
-                        ? "bg-status-valid"
-                        : item.status === "warning"
+                    className={`h-2 w-2 rounded-full ${item.status === "valid"
+                      ? "bg-status-valid"
+                      : item.status === "warning"
                         ? "bg-status-warning"
                         : "bg-status-critical"
-                    }`}
+                      }`}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">

@@ -6,11 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Camera, History } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { mockControlService } from "@/services/mockControls";
+
 export default function MobileSearch() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [plateNumber, setPlateNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch recent controls for the agent to show as "recent searches"
+  const { data: recentControls = [] } = useQuery({
+    queryKey: ['recent-controls', user?.id],
+    queryFn: () => user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([]),
+    enabled: !!user
+  });
 
   // Check if plate was passed from scan
   useEffect(() => {
@@ -27,7 +39,7 @@ export default function MobileSearch() {
     if (searchPlate.length < 4) return;
 
     setIsLoading(true);
-    
+
     // Navigate to result page
     navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
   };
@@ -67,24 +79,30 @@ export default function MobileSearch() {
         {/* Recent searches */}
         <section>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Recent Searches
+            Recent Activity
           </h3>
           <div className="space-y-2">
-            {recentSearches.map((plate) => (
-              <button
-                key={plate}
-                onClick={() => {
-                  setPlateNumber(plate);
-                  handleSearch(plate);
-                }}
-                className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted active:scale-[0.98]"
-              >
-                <span className="font-mono font-semibold tracking-wider">
-                  {plate}
-                </span>
-                <span className="text-xs text-muted-foreground">Tap to search</span>
-              </button>
-            ))}
+            {recentControls.length > 0 ? (
+              recentControls.map((control) => (
+                <button
+                  key={control.id}
+                  onClick={() => {
+                    setPlateNumber(control.plateNumber);
+                    handleSearch(control.plateNumber);
+                  }}
+                  className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted active:scale-[0.98]"
+                >
+                  <span className="font-mono font-semibold tracking-wider">
+                    {control.plateNumber}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Tap to search</span>
+                </button>
+              ))
+            ) : (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No recent activity found.
+              </p>
+            )}
           </div>
         </section>
 

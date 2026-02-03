@@ -30,74 +30,29 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-// Mock control data
-const mockControls = [
-  {
-    id: "CTR-001",
-    plateNumber: "AB-123-CD",
-    vehicleBrand: "Renault",
-    vehicleModel: "Clio",
-    status: "valid" as const,
-    agentName: "Agent Dupont",
-    organization: "Brigade Alpha",
-    location: "Highway A1, KM 42",
-    timestamp: "2024-01-15 10:30:00",
-    gpsCoords: "48.8566, 2.3522",
-  },
-  {
-    id: "CTR-002",
-    plateNumber: "XY-789-ZW",
-    vehicleBrand: "Peugeot",
-    vehicleModel: "308",
-    status: "warning" as const,
-    agentName: "Agent Martin",
-    organization: "Brigade Beta",
-    location: "Rue de Paris, Checkpoint 3",
-    timestamp: "2024-01-15 09:45:00",
-    gpsCoords: "48.8744, 2.3526",
-  },
-  {
-    id: "CTR-003",
-    plateNumber: "EF-456-GH",
-    vehicleBrand: "BMW",
-    vehicleModel: "X3",
-    status: "critical" as const,
-    agentName: "Agent Bernard",
-    organization: "Brigade Alpha",
-    location: "Border Checkpoint Alpha",
-    timestamp: "2024-01-15 08:15:00",
-    gpsCoords: "48.8534, 2.3488",
-  },
-  {
-    id: "CTR-004",
-    plateNumber: "JK-321-LM",
-    vehicleBrand: "Volkswagen",
-    vehicleModel: "Golf",
-    status: "valid" as const,
-    agentName: "Agent Leroy",
-    organization: "Brigade Gamma",
-    location: "Highway A6, KM 15",
-    timestamp: "2024-01-14 16:20:00",
-    gpsCoords: "48.8456, 2.3789",
-  },
-  {
-    id: "CTR-005",
-    plateNumber: "NO-654-PQ",
-    vehicleBrand: "Toyota",
-    vehicleModel: "Yaris",
-    status: "valid" as const,
-    agentName: "Agent Dupont",
-    organization: "Brigade Alpha",
-    location: "Highway A1, KM 42",
-    timestamp: "2024-01-14 14:10:00",
-    gpsCoords: "48.8566, 2.3522",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { mockControlService, ControlStatus } from "@/services/mockControls";
 
 export default function ControlHistory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [organizationFilter, setOrganizationFilter] = useState("all");
+
+  const { data: controls = [], isLoading } = useQuery({
+    queryKey: ['controls', 'all', statusFilter, organizationFilter],
+    queryFn: () => mockControlService.getAllControls({
+      status: statusFilter !== 'all' ? statusFilter as ControlStatus : undefined,
+      organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
+    })
+  });
+
+  const filteredControls = controls.filter((control) => {
+    return (
+      control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      control.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      control.location.address.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   return (
     <BackOfficeLayout
@@ -176,13 +131,18 @@ export default function ControlHistory() {
           {/* Results summary */}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">5</span> of{" "}
-              <span className="font-semibold text-foreground">1,284</span> controls
+              Showing <span className="font-semibold text-foreground">{filteredControls.length}</span> controls
             </p>
             <div className="flex gap-2">
-              <StatusBadge variant="valid" size="sm">Valid: 982</StatusBadge>
-              <StatusBadge variant="warning" size="sm">Warning: 256</StatusBadge>
-              <StatusBadge variant="critical" size="sm">Critical: 46</StatusBadge>
+              <StatusBadge variant="valid" size="sm">
+                Valid: {filteredControls.filter(c => c.status === 'valid').length}
+              </StatusBadge>
+              <StatusBadge variant="warning" size="sm">
+                Warning: {filteredControls.filter(c => c.status === 'warning').length}
+              </StatusBadge>
+              <StatusBadge variant="critical" size="sm">
+                Critical: {filteredControls.filter(c => c.status === 'critical').length}
+              </StatusBadge>
             </div>
           </div>
 
@@ -203,43 +163,60 @@ export default function ControlHistory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockControls.map((control) => (
-                  <TableRow key={control.id} className="group">
-                    <TableCell className="font-mono text-sm">
-                      {control.id}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono font-semibold tracking-wider">
-                        {control.plateNumber}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {control.vehicleBrand} {control.vehicleModel}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge variant={control.status} size="sm">
-                        {control.status}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell>{control.agentName}</TableCell>
-                    <TableCell>{control.organization}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {control.location}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {control.timestamp}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="opacity-0 group-hover:opacity-100"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Loading controls...
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filteredControls.length > 0 ? (
+                  filteredControls.map((control) => (
+                    <TableRow key={control.id} className="group">
+                      <TableCell className="font-mono text-sm">
+                        {control.id}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono font-semibold tracking-wider">
+                          {control.plateNumber}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        Vehicle Info
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant={control.status} size="sm">
+                          {control.status}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell>{control.agentName}</TableCell>
+                      <TableCell>{control.organizationName}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {control.location.address}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {control.timestamp.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                      No controls found matching your filters.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
