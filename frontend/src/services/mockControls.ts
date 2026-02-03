@@ -61,7 +61,13 @@ const mockControls: ControlRecord[] = [
       wantedStatus: 'valid',
       customsStatus: 'valid',
     },
-    actions: [{ type: 'check', description: 'Routine control', timestamp: new Date(Date.now() - 10 * 60 * 1000) }],
+    actions: [
+      {
+        type: 'check',
+        description: 'Routine control',
+        timestamp: new Date(Date.now() - 10 * 60 * 1000),
+      },
+    ],
   },
   {
     id: 'ctrl_002',
@@ -85,10 +91,19 @@ const mockControls: ControlRecord[] = [
       customsStatus: 'valid',
     },
     actions: [
-      { type: 'check', description: 'Random control', timestamp: new Date(Date.now() - 25 * 60 * 1000) },
-      { type: 'citation', description: 'Citation issued for expired insurance', timestamp: new Date(Date.now() - 20 * 60 * 1000) },
+      {
+        type: 'check',
+        description: 'Random control',
+        timestamp: new Date(Date.now() - 25 * 60 * 1000),
+      },
+      {
+        type: 'citation',
+        description: 'Citation issued for expired insurance',
+        timestamp: new Date(Date.now() - 20 * 60 * 1000),
+      },
     ],
-    notes: 'Driver issued citation for expired insurance. Vehicle allowed to proceed to nearest garage.',
+    notes:
+      'Driver issued citation for expired insurance. Vehicle allowed to proceed to nearest garage.',
   },
   {
     id: 'ctrl_003',
@@ -112,9 +127,21 @@ const mockControls: ControlRecord[] = [
       customsStatus: 'valid',
     },
     actions: [
-      { type: 'check', description: 'Live scan detection', timestamp: new Date(Date.now() - 60 * 60 * 1000) },
-      { type: 'flag', description: 'Vehicle flagged as STOLEN', timestamp: new Date(Date.now() - 58 * 60 * 1000) },
-      { type: 'impound', description: 'Vehicle impounded. Driver detained.', timestamp: new Date(Date.now() - 55 * 60 * 1000) },
+      {
+        type: 'check',
+        description: 'Live scan detection',
+        timestamp: new Date(Date.now() - 60 * 60 * 1000),
+      },
+      {
+        type: 'flag',
+        description: 'Vehicle flagged as STOLEN',
+        timestamp: new Date(Date.now() - 58 * 60 * 1000),
+      },
+      {
+        type: 'impound',
+        description: 'Vehicle impounded. Driver detained.',
+        timestamp: new Date(Date.now() - 55 * 60 * 1000),
+      },
     ],
     notes: 'STOLEN VEHICLE - Reported stolen on 15/01/2024. Driver detained for questioning.',
   },
@@ -138,7 +165,13 @@ const mockControls: ControlRecord[] = [
       wantedStatus: 'valid',
       customsStatus: 'warning',
     },
-    actions: [{ type: 'check', description: 'Document verification', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) }],
+    actions: [
+      {
+        type: 'check',
+        description: 'Document verification',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      },
+    ],
     notes: 'Customs documents pending review. Driver advised to contact customs office.',
   },
   {
@@ -151,7 +184,7 @@ const mockControls: ControlRecord[] = [
     organizationName: 'Transport Authority - Lyon',
     phoneIMEI: '456789012345678',
     timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    location: { address: 'Place Bellecour, Lyon', latitude: 45.7578, longitude: 4.8320 },
+    location: { address: 'Place Bellecour, Lyon', latitude: 45.7578, longitude: 4.832 },
     status: 'valid',
     identificationMode: 'photo',
     confidence: 91,
@@ -162,7 +195,13 @@ const mockControls: ControlRecord[] = [
       wantedStatus: 'valid',
       customsStatus: 'valid',
     },
-    actions: [{ type: 'check', description: 'Routine traffic control', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000) }],
+    actions: [
+      {
+        type: 'check',
+        description: 'Routine traffic control',
+        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      },
+    ],
   },
 ];
 
@@ -303,7 +342,7 @@ export const mockControlService = {
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    let controls = organizationId
+    const controls = organizationId
       ? mockControls.filter((c) => c.organizationId === organizationId)
       : mockControls;
 

@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { 
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import {
   ArrowLeft,
   Car,
   User,
@@ -15,9 +15,9 @@ import {
   CheckCircle,
   AlertTriangle,
   AlertCircle,
-  Download
-} from "lucide-react";
-import { mockControlService, ControlRecord } from "@/services/mockControls";
+  Download,
+} from 'lucide-react';
+import { mockControlService, ControlRecord } from '@/services/mockControls';
 
 export default function ControlDetail() {
   const { controlId } = useParams<{ controlId: string }>();
@@ -28,7 +28,7 @@ export default function ControlDetail() {
   useEffect(() => {
     const loadControl = async () => {
       if (!controlId) return;
-      
+
       try {
         const data = await mockControlService.getControlById(controlId);
         setControl(data);
@@ -92,11 +92,7 @@ export default function ControlDetail() {
       }
     >
       <div className="space-y-6">
-        <Button
-          variant="ghost"
-          className="gap-2"
-          onClick={() => navigate('/backoffice/controls')}
-        >
+        <Button variant="ghost" className="gap-2" onClick={() => navigate('/backoffice/controls')}>
           <ArrowLeft className="h-4 w-4" />
           Back to Controls
         </Button>
@@ -119,8 +115,14 @@ export default function ControlDetail() {
                   </p>
                 </div>
               </div>
-              <StatusBadge 
-                variant={control.status === 'valid' ? 'valid' : control.status === 'warning' ? 'warning' : 'critical'} 
+              <StatusBadge
+                variant={
+                  control.status === 'valid'
+                    ? 'valid'
+                    : control.status === 'warning'
+                      ? 'warning'
+                      : 'critical'
+                }
                 size="lg"
               >
                 {control.status.toUpperCase()}
@@ -139,26 +141,14 @@ export default function ControlDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <InfoRow 
-                icon={Clock} 
-                label="Date & Time" 
-                value={control.timestamp.toLocaleString()} 
+              <InfoRow
+                icon={Clock}
+                label="Date & Time"
+                value={control.timestamp.toLocaleString()}
               />
-              <InfoRow 
-                icon={MapPin} 
-                label="Location" 
-                value={control.location.address} 
-              />
-              <InfoRow 
-                icon={User} 
-                label="Agent" 
-                value={control.agentName} 
-              />
-              <InfoRow 
-                icon={Smartphone} 
-                label="Device IMEI" 
-                value={control.phoneIMEI} 
-              />
+              <InfoRow icon={MapPin} label="Location" value={control.location.address} />
+              <InfoRow icon={User} label="Agent" value={control.agentName} />
+              <InfoRow icon={Smartphone} label="Device IMEI" value={control.phoneIMEI} />
             </CardContent>
           </Card>
 
@@ -168,29 +158,29 @@ export default function ControlDetail() {
               <CardTitle>Verification Results</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <ResultRow 
-                label="Registration" 
-                status={control.results.registration} 
+              <ResultRow
+                label="Registration"
+                status={control.results.registration}
                 icon={getStatusIcon(control.results.registration)}
               />
-              <ResultRow 
-                label="Insurance" 
-                status={control.results.insurance} 
+              <ResultRow
+                label="Insurance"
+                status={control.results.insurance}
                 icon={getStatusIcon(control.results.insurance)}
               />
-              <ResultRow 
-                label="Technical Inspection" 
-                status={control.results.technicalInspection} 
+              <ResultRow
+                label="Technical Inspection"
+                status={control.results.technicalInspection}
                 icon={getStatusIcon(control.results.technicalInspection)}
               />
-              <ResultRow 
-                label="Wanted Status" 
-                status={control.results.wantedStatus} 
+              <ResultRow
+                label="Wanted Status"
+                status={control.results.wantedStatus}
                 icon={getStatusIcon(control.results.wantedStatus)}
               />
-              <ResultRow 
-                label="Customs" 
-                status={control.results.customsStatus} 
+              <ResultRow
+                label="Customs"
+                status={control.results.customsStatus}
                 icon={getStatusIcon(control.results.customsStatus)}
               />
             </CardContent>
@@ -243,14 +233,14 @@ export default function ControlDetail() {
   );
 }
 
-function InfoRow({ 
-  icon: Icon, 
-  label, 
-  value 
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: string; 
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -263,13 +253,13 @@ function InfoRow({
   );
 }
 
-function ResultRow({ 
-  label, 
-  status, 
-  icon 
-}: { 
-  label: string; 
-  status: string; 
+function ResultRow({
+  label,
+  status,
+  icon,
+}: {
+  label: string;
+  status: string;
   icon: React.ReactNode;
 }) {
   return (
@@ -277,8 +267,8 @@ function ResultRow({
       <span className="font-medium">{label}</span>
       <div className="flex items-center gap-2">
         {icon}
-        <StatusBadge 
-          variant={status === 'valid' ? 'valid' : status === 'warning' ? 'warning' : 'critical'} 
+        <StatusBadge
+          variant={status === 'valid' ? 'valid' : status === 'warning' ? 'warning' : 'critical'}
           size="sm"
         >
           {status.toUpperCase()}
