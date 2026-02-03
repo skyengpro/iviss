@@ -1,33 +1,46 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { Clock, ArrowLeft } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { mockVehicleService, Vehicle } from "@/services/mockVehicles";
-import { mockExternalAPIService } from "@/services/mockExternalAPIs";
+import { useParams, useNavigate } from 'react-router-dom';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { Clock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { mockVehicleService, Vehicle } from '@/services/mockVehicles';
+import { mockExternalAPIService } from '@/services/mockExternalAPIs';
 
-import { useLogControl } from "@/hooks/useLogControl";
-import { VehicleHeader } from "@/components/mobile/vehicle/VehicleHeader";
-import { VehicleStatusGrid } from "@/components/mobile/vehicle/VehicleStatusGrid";
-import { VehicleActionFooter } from "@/components/mobile/vehicle/VehicleActionFooter";
-import { VehicleLoadingState, VehicleErrorState } from "@/components/mobile/vehicle/VehicleStates";
-import { VehicleNotFound } from "@/components/mobile/vehicle/VehicleNotFound";
+import { useLogControl } from '@/hooks/useLogControl';
+import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';
+import { VehicleStatusGrid } from '@/components/mobile/vehicle/VehicleStatusGrid';
+import { VehicleActionFooter } from '@/components/mobile/vehicle/VehicleActionFooter';
+import { VehicleLoadingState, VehicleErrorState } from '@/components/mobile/vehicle/VehicleStates';
+import { VehicleNotFound } from '@/components/mobile/vehicle/VehicleNotFound';
 
 export default function MobileVehicleResult() {
   const { plateNumber } = useParams<{ plateNumber: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: vehicleData, isLoading: vehicleLoading, error: vehicleError, refetch: refetchVehicle } = useQuery({
+  const {
+    data: vehicleData,
+    isLoading: vehicleLoading,
+    error: vehicleError,
+    refetch: refetchVehicle,
+  } = useQuery({
     queryKey: ['vehicle', plateNumber],
-    queryFn: () => plateNumber ? mockVehicleService.searchByPlate(plateNumber) : Promise.resolve({ found: false } as { found: boolean; vehicle?: Vehicle | null }),
-    enabled: !!plateNumber
+    queryFn: () =>
+      plateNumber
+        ? mockVehicleService.searchByPlate(plateNumber)
+        : Promise.resolve({ found: false } as { found: boolean; vehicle?: Vehicle | null }),
+    enabled: !!plateNumber,
   });
 
-  const { data: apiStatus, isLoading: apiLoading, refetch: refetchApi } = useQuery({
+  const {
+    data: apiStatus,
+    isLoading: apiLoading,
+    refetch: refetchApi,
+  } = useQuery({
     queryKey: ['api-status', plateNumber],
-    queryFn: () => plateNumber ? mockExternalAPIService.checkAllSystems(plateNumber) : Promise.resolve(null),
-    enabled: !!plateNumber
+    queryFn: () =>
+      plateNumber ? mockExternalAPIService.checkAllSystems(plateNumber) : Promise.resolve(null),
+    enabled: !!plateNumber,
   });
 
   const { isLoggingControl, controlLogged, logControl } = useLogControl();

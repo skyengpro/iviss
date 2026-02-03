@@ -1,16 +1,8 @@
-import { StatusBadge } from "@/components/ui/status-badge";
-import { cn } from "@/lib/utils";
-import { 
-  Car, 
-  User, 
-  Calendar, 
-  FileCheck, 
-  Shield, 
-  AlertTriangle,
-  ChevronRight 
-} from "lucide-react";
+import { StatusBadge } from '@/components/ui/status-badge';
+import { cn } from '@/lib/utils';
+import { Car, User, Calendar, FileCheck, Shield, AlertTriangle, ChevronRight } from 'lucide-react';
 
-export type VehicleStatus = "valid" | "warning" | "critical" | "pending";
+export type VehicleStatus = 'valid' | 'warning' | 'critical' | 'pending';
 
 interface VehicleInfo {
   plateNumber: string;
@@ -53,32 +45,32 @@ interface VehicleStatusCardProps {
 }
 
 const statusLabels: Record<VehicleStatus, string> = {
-  valid: "Valid",
-  warning: "Warning",
-  critical: "Alert",
-  pending: "Pending",
+  valid: 'Valid',
+  warning: 'Warning',
+  critical: 'Alert',
+  pending: 'Pending',
 };
 
 export function VehicleStatusCard({ vehicle, className, onClick }: VehicleStatusCardProps) {
   // Determine overall status
   const getOverallStatus = (): VehicleStatus => {
-    if (vehicle.wantedStatus.status === "critical") return "critical";
-    if (vehicle.customsStatus.status === "critical") return "critical";
+    if (vehicle.wantedStatus.status === 'critical') return 'critical';
+    if (vehicle.customsStatus.status === 'critical') return 'critical';
     if (
-      vehicle.registration.status === "warning" ||
-      vehicle.insurance.status === "warning" ||
-      vehicle.technicalInspection.status === "warning"
+      vehicle.registration.status === 'warning' ||
+      vehicle.insurance.status === 'warning' ||
+      vehicle.technicalInspection.status === 'warning'
     ) {
-      return "warning";
+      return 'warning';
     }
     if (
-      vehicle.registration.status === "pending" ||
-      vehicle.insurance.status === "pending" ||
-      vehicle.technicalInspection.status === "pending"
+      vehicle.registration.status === 'pending' ||
+      vehicle.insurance.status === 'pending' ||
+      vehicle.technicalInspection.status === 'pending'
     ) {
-      return "pending";
+      return 'pending';
     }
-    return "valid";
+    return 'valid';
   };
 
   const overallStatus = getOverallStatus();
@@ -86,10 +78,10 @@ export function VehicleStatusCard({ vehicle, className, onClick }: VehicleStatus
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-4 transition-all duration-200 card-elevated",
-        overallStatus === "critical" && "border-status-critical/50 ring-2 ring-status-critical/20",
-        overallStatus === "warning" && "border-status-warning/50",
-        onClick && "cursor-pointer active:scale-[0.98]",
+        'rounded-xl border bg-card p-4 transition-all duration-200 card-elevated',
+        overallStatus === 'critical' && 'border-status-critical/50 ring-2 ring-status-critical/20',
+        overallStatus === 'warning' && 'border-status-warning/50',
+        onClick && 'cursor-pointer active:scale-[0.98]',
         className
       )}
       onClick={onClick}
@@ -99,11 +91,11 @@ export function VehicleStatusCard({ vehicle, className, onClick }: VehicleStatus
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-lg",
-              overallStatus === "critical" && "bg-status-critical/10 text-status-critical",
-              overallStatus === "warning" && "bg-status-warning/10 text-status-warning",
-              overallStatus === "valid" && "bg-status-valid/10 text-status-valid",
-              overallStatus === "pending" && "bg-muted text-muted-foreground"
+              'flex h-12 w-12 items-center justify-center rounded-lg',
+              overallStatus === 'critical' && 'bg-status-critical/10 text-status-critical',
+              overallStatus === 'warning' && 'bg-status-warning/10 text-status-warning',
+              overallStatus === 'valid' && 'bg-status-valid/10 text-status-valid',
+              overallStatus === 'pending' && 'bg-muted text-muted-foreground'
             )}
           >
             <Car className="h-6 w-6" />
@@ -121,13 +113,13 @@ export function VehicleStatusCard({ vehicle, className, onClick }: VehicleStatus
       </div>
 
       {/* Critical alert */}
-      {overallStatus === "critical" && (
+      {overallStatus === 'critical' && (
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-status-critical/10 p-3 text-status-critical">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">
-            {vehicle.wantedStatus.status === "critical"
-              ? vehicle.wantedStatus.reason || "Vehicle is flagged - Contact dispatch immediately"
-              : vehicle.customsStatus.notes || "Customs clearance issue detected"}
+            {vehicle.wantedStatus.status === 'critical'
+              ? vehicle.wantedStatus.reason || 'Vehicle is flagged - Contact dispatch immediately'
+              : vehicle.customsStatus.notes || 'Customs clearance issue detected'}
           </p>
         </div>
       )}
@@ -191,20 +183,20 @@ function StatusItem({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-lg p-2",
-        status === "valid" && "bg-status-valid/10",
-        status === "warning" && "bg-status-warning/10",
-        status === "critical" && "bg-status-critical/10",
-        status === "pending" && "bg-muted"
+        'flex items-center gap-2 rounded-lg p-2',
+        status === 'valid' && 'bg-status-valid/10',
+        status === 'warning' && 'bg-status-warning/10',
+        status === 'critical' && 'bg-status-critical/10',
+        status === 'pending' && 'bg-muted'
       )}
     >
       <Icon
         className={cn(
-          "h-4 w-4",
-          status === "valid" && "text-status-valid",
-          status === "warning" && "text-status-warning",
-          status === "critical" && "text-status-critical",
-          status === "pending" && "text-muted-foreground"
+          'h-4 w-4',
+          status === 'valid' && 'text-status-valid',
+          status === 'warning' && 'text-status-warning',
+          status === 'critical' && 'text-status-critical',
+          status === 'pending' && 'text-muted-foreground'
         )}
       />
       <div className="min-w-0 flex-1">

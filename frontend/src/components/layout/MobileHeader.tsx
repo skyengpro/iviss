@@ -1,6 +1,6 @@
-import { Menu, Bell, User, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Menu, Bell, User, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -8,14 +8,9 @@ interface MobileHeaderProps {
   className?: string;
 }
 
-export function MobileHeader({ onMenuClick, title = "IVISS", className }: MobileHeaderProps) {
+export function MobileHeader({ onMenuClick, title = 'IVISS', className }: MobileHeaderProps) {
   return (
-    <header
-      className={cn(
-        "fixed left-0 right-0 top-0 z-50 header-gradient",
-        className
-      )}
-    >
+    <header className={cn('fixed left-0 right-0 top-0 z-50 header-gradient', className)}>
       <div className="flex h-16 items-center justify-between px-4">
         {/* Menu button */}
         <Button
@@ -32,9 +27,7 @@ export function MobileHeader({ onMenuClick, title = "IVISS", className }: Mobile
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
             <Shield className="h-5 w-5 text-accent-foreground" />
           </div>
-          <span className="text-lg font-bold text-primary-foreground tracking-wide">
-            {title}
-          </span>
+          <span className="text-lg font-bold text-primary-foreground tracking-wide">{title}</span>
         </div>
 
         {/* Right actions */}

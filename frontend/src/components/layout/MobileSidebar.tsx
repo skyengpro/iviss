@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom";
-import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from 'react-router-dom';
+import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MobileSidebarProps {
   open: boolean;
@@ -15,7 +15,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate('/login');
     onClose();
   };
 
@@ -24,8 +24,8 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
       {/* Overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
-          open ? "opacity-100" : "pointer-events-none opacity-0"
+          'fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300',
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
         onClick={onClose}
       />
@@ -33,8 +33,8 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
       {/* Sidebar panel */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-full w-80 bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 ease-out",
-          open ? "translate-x-0" : "-translate-x-full"
+          'fixed left-0 top-0 z-50 h-full w-80 bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 ease-out',
+          open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Header */}

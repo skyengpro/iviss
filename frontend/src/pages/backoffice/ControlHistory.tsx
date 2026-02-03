@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -10,15 +10,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Search,
   Filter,
@@ -28,22 +28,23 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { useQuery } from "@tanstack/react-query";
-import { mockControlService, ControlStatus } from "@/services/mockControls";
+import { useQuery } from '@tanstack/react-query';
+import { mockControlService, ControlStatus } from '@/services/mockControls';
 
 export default function ControlHistory() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [organizationFilter, setOrganizationFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [organizationFilter, setOrganizationFilter] = useState('all');
 
   const { data: controls = [], isLoading } = useQuery({
     queryKey: ['controls', 'all', statusFilter, organizationFilter],
-    queryFn: () => mockControlService.getAllControls({
-      status: statusFilter !== 'all' ? statusFilter as ControlStatus : undefined,
-      organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
-    })
+    queryFn: () =>
+      mockControlService.getAllControls({
+        status: statusFilter !== 'all' ? (statusFilter as ControlStatus) : undefined,
+        organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
+      }),
   });
 
   const filteredControls = controls.filter((control) => {
@@ -99,10 +100,7 @@ export default function ControlHistory() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={organizationFilter}
-                onValueChange={setOrganizationFilter}
-              >
+              <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Organization" />
                 </SelectTrigger>
@@ -131,17 +129,19 @@ export default function ControlHistory() {
           {/* Results summary */}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filteredControls.length}</span> controls
+              Showing{' '}
+              <span className="font-semibold text-foreground">{filteredControls.length}</span>{' '}
+              controls
             </p>
             <div className="flex gap-2">
               <StatusBadge variant="valid" size="sm">
-                Valid: {filteredControls.filter(c => c.status === 'valid').length}
+                Valid: {filteredControls.filter((c) => c.status === 'valid').length}
               </StatusBadge>
               <StatusBadge variant="warning" size="sm">
-                Warning: {filteredControls.filter(c => c.status === 'warning').length}
+                Warning: {filteredControls.filter((c) => c.status === 'warning').length}
               </StatusBadge>
               <StatusBadge variant="critical" size="sm">
-                Critical: {filteredControls.filter(c => c.status === 'critical').length}
+                Critical: {filteredControls.filter((c) => c.status === 'critical').length}
               </StatusBadge>
             </div>
           </div>
@@ -175,17 +175,13 @@ export default function ControlHistory() {
                 ) : filteredControls.length > 0 ? (
                   filteredControls.map((control) => (
                     <TableRow key={control.id} className="group">
-                      <TableCell className="font-mono text-sm">
-                        {control.id}
-                      </TableCell>
+                      <TableCell className="font-mono text-sm">{control.id}</TableCell>
                       <TableCell>
                         <span className="font-mono font-semibold tracking-wider">
                           {control.plateNumber}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        Vehicle Info
-                      </TableCell>
+                      <TableCell>Vehicle Info</TableCell>
                       <TableCell>
                         <StatusBadge variant={control.status} size="sm">
                           {control.status}
@@ -223,9 +219,7 @@ export default function ControlHistory() {
 
           {/* Pagination */}
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Page 1 of 129
-            </p>
+            <p className="text-sm text-muted-foreground">Page 1 of 129</p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled>
                 <ChevronLeft className="h-4 w-4" />
