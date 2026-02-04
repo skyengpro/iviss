@@ -30,7 +30,7 @@ export default function ControlDetail() {
   useEffect(() => {
     const loadControl = async () => {
       if (!controlId) return;
-      
+
       try {
         const data = await mockControlService.getControlById(controlId);
         setControl(data);
@@ -101,11 +101,7 @@ export default function ControlDetail() {
       }
     >
       <div className="space-y-6">
-        <Button
-          variant="ghost"
-          className="gap-2"
-          onClick={() => navigate('/backoffice/controls')}
-        >
+        <Button variant="ghost" className="gap-2" onClick={() => navigate('/backoffice/controls')}>
           <ArrowLeft className="h-4 w-4" />
           {t('backOfficeControlDetail.backToControls')}
         </Button>
@@ -128,8 +124,14 @@ export default function ControlDetail() {
                   </p>
                 </div>
               </div>
-              <StatusBadge 
-                variant={control.status === 'valid' ? 'valid' : control.status === 'warning' ? 'warning' : 'critical'} 
+              <StatusBadge
+                variant={
+                  control.status === 'valid'
+                    ? 'valid'
+                    : control.status === 'warning'
+                      ? 'warning'
+                      : 'critical'
+                }
                 size="lg"
               >
                 {t(`mobileHistory.${control.status}`)}
@@ -252,14 +254,14 @@ export default function ControlDetail() {
   );
 }
 
-function InfoRow({ 
-  icon: Icon, 
-  label, 
-  value 
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: string; 
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -272,13 +274,13 @@ function InfoRow({
   );
 }
 
-function ResultRow({ 
-  label, 
-  status, 
-  icon 
-}: { 
-  label: string; 
-  status: string; 
+function ResultRow({
+  label,
+  status,
+  icon,
+}: {
+  label: string;
+  status: string;
   icon: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -287,8 +289,8 @@ function ResultRow({
       <span className="font-medium">{label}</span>
       <div className="flex items-center gap-2">
         {icon}
-        <StatusBadge 
-          variant={status === 'valid' ? 'valid' : status === 'warning' ? 'warning' : 'critical'} 
+        <StatusBadge
+          variant={status === 'valid' ? 'valid' : status === 'warning' ? 'warning' : 'critical'}
           size="sm"
         >
           {t(`mobileHistory.${status}`)}

@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { AggregatedVehicleStatus, Translatable } from "@/services/mockExternalAPIs";
 
 interface VehicleStatusGridProps {
-    apiStatus: AggregatedVehicleStatus;
+  apiStatus: AggregatedVehicleStatus;
 }
 
 export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus }) => {
@@ -45,12 +45,12 @@ export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus 
 };
 
 function StatusCard({
-    title,
-    status,
-    provider,
-    expiryDate,
-    notes,
-    isAlert,
+  title,
+  status,
+  provider,
+  expiryDate,
+  notes,
+  isAlert,
 }: {
     title: string;
     status: 'valid' | 'warning' | 'critical' | 'unknown';
@@ -82,29 +82,29 @@ function StatusCard({
         }
     };
 
-    const getBorderColor = () => {
-        switch (status) {
-            case 'valid':
-                return 'border-status-valid/30';
-            case 'warning':
-                return 'border-status-warning/30';
-            case 'critical':
-                return 'border-status-critical/30';
-            default:
-                return 'border-border';
-        }
-    };
+  const getBorderColor = () => {
+    switch (status) {
+      case 'valid':
+        return 'border-status-valid/30';
+      case 'warning':
+        return 'border-status-warning/30';
+      case 'critical':
+        return 'border-status-critical/30';
+      default:
+        return 'border-border';
+    }
+  };
 
-    const getBgColor = () => {
-        switch (status) {
-            case 'critical':
-                return 'bg-status-critical/5';
-            case 'warning':
-                return 'bg-status-warning/5';
-            default:
-                return 'bg-card';
-        }
-    };
+  const getBgColor = () => {
+    switch (status) {
+      case 'critical':
+        return 'bg-status-critical/5';
+      case 'warning':
+        return 'bg-status-warning/5';
+      default:
+        return 'bg-card';
+    }
+  };
 
     return (
         <div className={`rounded-xl border ${getBorderColor()} ${getBgColor()} p-4 ${isAlert ? 'animate-pulse-status' : ''}`}>

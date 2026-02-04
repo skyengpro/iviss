@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface VehicleNotFoundProps {
-    plateNumber?: string;
+  plateNumber?: string;
 }
 
 export const VehicleNotFound: React.FC<VehicleNotFoundProps> = ({ plateNumber }) => {
@@ -54,4 +54,4 @@ export const VehicleNotFound: React.FC<VehicleNotFoundProps> = ({ plateNumber })
             </div>
         </div>
     );
-};
+}

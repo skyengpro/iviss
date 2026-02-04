@@ -23,14 +23,15 @@ export default function MobileDashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['mobile-stats', user?.organizationId],
-    queryFn: () => user ? mockControlService.getStats(user.organizationId) : null,
-    enabled: !!user
+    queryFn: () => (user ? mockControlService.getStats(user.organizationId) : null),
+    enabled: !!user,
   });
 
   const { data: recentControls = [], isLoading: controlsLoading } = useQuery({
     queryKey: ['recent-controls', user?.id],
-    queryFn: () => user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () =>
+      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
+    enabled: !!user,
   });
 
   const isLoading = statsLoading || controlsLoading;
@@ -104,7 +105,7 @@ export default function MobileDashboard() {
               value={isLoading ? "-" : String(stats?.alerts || 0)}
               subtitle={t('mobileDashboard.flaggedVehicles')}
               icon={AlertTriangle}
-              variant={(stats?.alerts || 0) > 0 ? "critical" : "default"}
+              variant={(stats?.alerts || 0) > 0 ? 'critical' : 'default'}
             />
           </div>
         </section>
@@ -147,11 +148,14 @@ export default function MobileDashboard() {
           ) : recentControls.length > 0 ? (
             <div className="space-y-2">
               {recentControls.map((control) => (
-                <Link key={control.id} to={`/mobile/vehicle/${encodeURIComponent(control.plateNumber)}`}>
+                <Link
+                  key={control.id}
+                  to={`/mobile/vehicle/${encodeURIComponent(control.plateNumber)}`}
+                >
                   <RecentControlItem
                     plate={control.plateNumber}
                     time={formatTimeAgo(control.timestamp)}
-                    status={control.status as "valid" | "warning" | "critical"}
+                    status={control.status as 'valid' | 'warning' | 'critical'}
                   />
                 </Link>
               ))}
@@ -185,8 +189,8 @@ function QuickActionButton({
     <Link to={href}>
       <div
         className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${primary
-          ? "bg-accent text-accent-foreground shadow-lg"
-          : "bg-card border border-border hover:bg-muted"
+            ? 'bg-accent text-accent-foreground shadow-lg'
+            : 'bg-card border border-border hover:bg-muted'
           }`}
       >
         <Icon className="h-6 w-6" />
@@ -203,17 +207,17 @@ function RecentControlItem({
 }: {
   plate: string;
   time: string;
-  status: "valid" | "warning" | "critical";
+  status: 'valid' | 'warning' | 'critical';
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 rounded-full ${status === "valid"
-            ? "bg-status-valid"
-            : status === "warning"
-              ? "bg-status-warning"
-              : "bg-status-critical"
+          className={`h-2 w-2 rounded-full ${status === 'valid'
+              ? 'bg-status-valid'
+              : status === 'warning'
+                ? 'bg-status-warning'
+                : 'bg-status-critical'
             }`}
         />
         <div>

@@ -62,7 +62,13 @@ const mockControls: ControlRecord[] = [
       wantedStatus: 'valid',
       customsStatus: 'valid',
     },
-    actions: [{ type: 'check', description: 'Routine control', timestamp: new Date(Date.now() - 10 * 60 * 1000) }],
+    actions: [
+      {
+        type: 'check',
+        description: 'Routine control',
+        timestamp: new Date(Date.now() - 10 * 60 * 1000),
+      },
+    ],
   },
   {
     id: 'ctrl_002',
@@ -86,8 +92,16 @@ const mockControls: ControlRecord[] = [
       customsStatus: 'valid',
     },
     actions: [
-      { type: 'check', description: 'Random control', timestamp: new Date(Date.now() - 25 * 60 * 1000) },
-      { type: 'citation', description: 'Citation issued for expired insurance', timestamp: new Date(Date.now() - 20 * 60 * 1000) },
+      {
+        type: 'check',
+        description: 'Random control',
+        timestamp: new Date(Date.now() - 25 * 60 * 1000),
+      },
+      {
+        type: 'citation',
+        description: 'Citation issued for expired insurance',
+        timestamp: new Date(Date.now() - 20 * 60 * 1000),
+      },
     ],
     notes: { key: 'mockControls.notes.expiredInsurance' },
   },
@@ -113,9 +127,21 @@ const mockControls: ControlRecord[] = [
       customsStatus: 'valid',
     },
     actions: [
-      { type: 'check', description: 'Live scan detection', timestamp: new Date(Date.now() - 60 * 60 * 1000) },
-      { type: 'flag', description: 'Vehicle flagged as STOLEN', timestamp: new Date(Date.now() - 58 * 60 * 1000) },
-      { type: 'impound', description: 'Vehicle impounded. Driver detained.', timestamp: new Date(Date.now() - 55 * 60 * 1000) },
+      {
+        type: 'check',
+        description: 'Live scan detection',
+        timestamp: new Date(Date.now() - 60 * 60 * 1000),
+      },
+      {
+        type: 'flag',
+        description: 'Vehicle flagged as STOLEN',
+        timestamp: new Date(Date.now() - 58 * 60 * 1000),
+      },
+      {
+        type: 'impound',
+        description: 'Vehicle impounded. Driver detained.',
+        timestamp: new Date(Date.now() - 55 * 60 * 1000),
+      },
     ],
     notes: { key: 'mockControls.notes.stolenVehicle', params: { date: '15/01/2024' } },
   },
@@ -139,7 +165,13 @@ const mockControls: ControlRecord[] = [
       wantedStatus: 'valid',
       customsStatus: 'warning',
     },
-    actions: [{ type: 'check', description: 'Document verification', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) }],
+    actions: [
+      {
+        type: 'check',
+        description: 'Document verification',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      },
+    ],
     notes: 'Customs documents pending review. Driver advised to contact customs office.',
   },
   {
@@ -163,7 +195,13 @@ const mockControls: ControlRecord[] = [
       wantedStatus: 'valid',
       customsStatus: 'valid',
     },
-    actions: [{ type: 'check', description: 'Routine traffic control', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000) }],
+    actions: [
+      {
+        type: 'check',
+        description: 'Routine traffic control',
+        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      },
+    ],
   },
 ];
 

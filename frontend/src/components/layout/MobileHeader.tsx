@@ -21,14 +21,8 @@ export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileH
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
-
   return (
-    <header
-      className={cn(
-        "fixed left-0 right-0 top-0 z-50 header-gradient",
-        className
-      )}
-    >
+    <header className={cn('fixed left-0 right-0 top-0 z-50 header-gradient', className)}>
       <div className="flex h-16 items-center justify-between px-4">
         {/* Menu button */}
         <Button

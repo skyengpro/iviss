@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { MobileHeader } from "./MobileHeader";
-import { MobileNavigation } from "./MobileNavigation";
-import { MobileSidebar } from "./MobileSidebar";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { MobileHeader } from './MobileHeader';
+import { MobileNavigation } from './MobileNavigation';
+import { MobileSidebar } from './MobileSidebar';
+import { cn } from '@/lib/utils';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -22,18 +22,10 @@ export function MobileLayout({
   return (
     <div className="min-h-screen bg-background">
       <MobileHeader title={title} onMenuClick={() => setSidebarOpen(true)} />
-      
+
       <MobileSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main
-        className={cn(
-          "pt-16 pb-20",
-          hideNavigation && "pb-4",
-          className
-        )}
-      >
-        {children}
-      </main>
+      <main className={cn('pt-16 pb-20', hideNavigation && 'pb-4', className)}>{children}</main>
 
       {!hideNavigation && <MobileNavigation />}
     </div>

@@ -1,6 +1,6 @@
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   User,
   Shield,
@@ -25,8 +25,9 @@ export default function MobileProfile() {
 
   const { data: todayControls = [] } = useQuery({
     queryKey: ['today-controls', user?.id],
-    queryFn: () => user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () =>
+      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
+    enabled: !!user,
   });
 
   const handleLogout = async () => {
@@ -105,7 +106,7 @@ export default function MobileProfile() {
 function InfoRow({
   icon: Icon,
   label,
-  value
+  value,
 }: {
   icon: React.ElementType;
   label: string;
@@ -125,7 +126,7 @@ function InfoRow({
 function MenuLink({
   icon: Icon,
   label,
-  badge
+  badge,
 }: {
   icon: React.ElementType;
   label: string;

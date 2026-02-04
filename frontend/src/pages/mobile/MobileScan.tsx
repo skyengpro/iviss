@@ -10,7 +10,7 @@ import { ScanDetectionsList } from "@/components/mobile/scan/ScanDetectionsList"
 import { ScanResultCard } from "@/components/mobile/scan/ScanResultCard";
 import { ScanActionButtons } from "@/components/mobile/scan/ScanActionButtons";
 
-type ScanMode = "photo" | "live";
+type ScanMode = 'photo' | 'live';
 
 export default function MobileScan() {
   const [searchParams] = useSearchParams();
@@ -20,10 +20,10 @@ export default function MobileScan() {
 
   const [mode, setMode] = useState<ScanMode>(initialMode);
   const [flashOn, setFlashOn] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
   const [detectedPlate, setDetectedPlate] = useState<DetectedPlate | null>(null);
-  const [editedPlate, setEditedPlate] = useState("");
+  const [editedPlate, setEditedPlate] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
   const webcamRef = useRef<Webcam>(null);
@@ -40,7 +40,7 @@ export default function MobileScan() {
     stopLiveScan,
   } = usePlateScanner({
     onCriticalDetection: (plate) => setDetectedPlate(plate),
-    initialUseDemoData: true
+    initialUseDemoData: true,
   });
 
   const handleCapture = async () => {
@@ -65,18 +65,18 @@ export default function MobileScan() {
           setDetectedPlate({
             plateNumber: t('mobileScan.noPlateDetected'),
             confidence: 0,
-            status: 'warning'
+            status: 'warning',
           });
-          setEditedPlate("");
+          setEditedPlate('');
         }
       } catch (e: unknown) {
         console.error("Error during plate capture:", e);
         setDetectedPlate({
           plateNumber: t('mobileScan.ocrError'),
           confidence: 0,
-          status: 'warning'
+          status: 'warning',
         });
-        setEditedPlate("");
+        setEditedPlate('');
       }
     }
 
@@ -100,7 +100,7 @@ export default function MobileScan() {
 
   const handleRetry = () => {
     setDetectedPlate(null);
-    setEditedPlate("");
+    setEditedPlate('');
     setIsEditing(false);
   };
 
@@ -113,7 +113,6 @@ export default function MobileScan() {
   return (
     <MobileLayout title={t('mobileScan.title')} hideNavigation>
       <div className="relative flex h-[calc(100dvh-4rem)] flex-col bg-black overflow-hidden">
-
         <ScanViewfinder
           webcamRef={webcamRef}
           facingMode={facingMode}
@@ -125,17 +124,16 @@ export default function MobileScan() {
         <ScanTopControls
           onClose={() => navigate(-1)}
           onToggleFlash={() => setFlashOn(!flashOn)}
-          onToggleFacingMode={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}
+          onToggleFacingMode={() =>
+            setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
+          }
           flashOn={flashOn}
           facingMode={facingMode}
           useDemoData={useDemoData}
           onToggleDemoData={setUseDemoData}
         />
 
-        <ScanDetectionsList
-          detections={liveDetections}
-          onPlateClick={handleLivePlateClick}
-        />
+        <ScanDetectionsList detections={liveDetections} onPlateClick={handleLivePlateClick} />
 
         {detectedPlate && (
           <ScanResultCard

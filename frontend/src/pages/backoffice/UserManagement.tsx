@@ -11,16 +11,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Search,
   Plus,
@@ -31,7 +31,7 @@ import {
   Key,
   Edit,
   Trash2,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,16 +39,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
-import { useQuery } from "@tanstack/react-query";
-import { mockAuthService, User } from "@/services/mockAuth";
+import { useQuery } from '@tanstack/react-query';
+import { mockAuthService, User } from '@/services/mockAuth';
 
-const roleColors: Record<string, "default" | "primary" | "secondary" | "destructive" | "outline"> = {
-  admin: "destructive",
-  supervisor: "secondary",
-  agent: "outline",
-};
+const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
+  {
+    admin: 'destructive',
+    supervisor: 'secondary',
+    agent: 'outline',
+  };
 
 export default function UserManagement() {
   const { t } = useTranslation();
@@ -58,7 +59,7 @@ export default function UserManagement() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => mockAuthService.getAllUsers()
+    queryFn: () => mockAuthService.getAllUsers(),
   });
 
   const filteredUsers = users.filter((user: User) => {
@@ -67,9 +68,9 @@ export default function UserManagement() {
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.organization.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "active" ? user.isActive : !user.isActive);
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesStatus =
+      statusFilter === 'all' || (statusFilter === 'active' ? user.isActive : !user.isActive);
 
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -183,9 +184,7 @@ export default function UserManagement() {
                           </Avatar>
                           <div>
                             <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {user.email}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
                           </div>
                         </div>
                       </TableCell>

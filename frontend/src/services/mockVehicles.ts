@@ -53,7 +53,11 @@ const mockVehicles: Vehicle[] = [
     },
     registration: { status: 'valid', expiryDate: 'Dec 2025' },
     insurance: { status: 'valid', provider: 'AXA France', expiryDate: 'Jun 2024' },
-    technicalInspection: { status: 'warning', expiryDate: 'Mar 2024', notes: 'Expires in 2 months' },
+    technicalInspection: {
+      status: 'warning',
+      expiryDate: 'Mar 2024',
+      notes: 'Expires in 2 months',
+    },
     wantedStatus: { status: 'valid' },
     customsStatus: { status: 'valid' },
   },
@@ -189,7 +193,7 @@ const pendingVehicles: PendingVehicle[] = [
     frontImageUrl: '/placeholder.svg',
     backImageUrl: '/placeholder.svg',
     status: 'pending',
-    notes: { key: 'mockVehicles.notes.foreignPlates' },
+    notes: { key: 'mockControls.notes.expiredInsurance' },
   },
   {
     id: 'pend_002',
@@ -294,7 +298,11 @@ export const mockVehicleService = {
   },
 
   // Simulate live scan detection
-  async simulateLiveScan(): Promise<{ plateNumber: string; confidence: number; status: VehicleStatus }> {
+  async simulateLiveScan(): Promise<{
+    plateNumber: string;
+    confidence: number;
+    status: VehicleStatus;
+  }> {
     await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 2000));
 
     const randomVehicle = mockVehicles[Math.floor(Math.random() * mockVehicles.length)];
