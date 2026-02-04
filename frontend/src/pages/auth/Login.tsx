@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Shield, Eye, EyeOff, Smartphone, Monitor, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 
 type AppType = "mobile" | "backoffice";
 
 export default function Login() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, user, getMockCredentials } = useAuth();
@@ -28,7 +30,7 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const from = (location.state as any)?.from;
+      const from = (location.state as { from: Location })?.from;
       if (from) {
         navigate(from);
       } else if (user.role === 'admin') {
@@ -49,7 +51,7 @@ export default function Login() {
     if (result.success) {
       // Navigation handled by useEffect
     } else {
-      setError(result.error || "Login failed");
+      setError(result.error || t('login.loginFailed'));
     }
 
     setIsLoading(false);
@@ -77,18 +79,18 @@ export default function Login() {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent shadow-lg">
             <Shield className="h-8 w-8 text-accent-foreground" />
           </div>
-          <h1 className="mt-3 text-2xl font-bold text-white tracking-wide">IVISS</h1>
+          <h1 className="mt-3 text-2xl font-bold text-white tracking-wide">{t('login.title')}</h1>
           <p className="mt-1 text-xs text-white/60 px-4">
-            Intelligent Vehicle Identification & Status System
+            {t('login.subtitle')}
           </p>
         </div>
 
         <Card className="border-0 shadow-2xl glass card-elevated">
 
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+            <CardTitle className="text-2xl text-center">{t('login.signIn')}</CardTitle>
             <CardDescription className="text-center">
-              Access your {appType === "mobile" ? "Mobile Agent" : "Back Office"} account
+              {t('login.description', { appType: appType === "mobile" ? t('login.mobileAgent') : t('login.backOffice') })}
             </CardDescription>
           </CardHeader>
 
@@ -106,7 +108,7 @@ export default function Login() {
                 )}
               >
                 <Smartphone className="h-4 w-4" />
-                Mobile Agent
+                {t('login.mobileAgent')}
               </button>
               <button
                 type="button"
@@ -119,7 +121,7 @@ export default function Login() {
                 )}
               >
                 <Monitor className="h-4 w-4" />
-                Back Office
+                {t('login.backOffice')}
               </button>
             </div>
 
@@ -132,9 +134,9 @@ export default function Login() {
               >
                 <span className="flex items-center gap-2">
                   <Info className="h-4 w-4" />
-                  Demo Credentials
+                  {t('login.demoCredentials')}
                 </span>
-                <span className="text-xs opacity-70">{showCredentials ? 'Hide' : 'Show'}</span>
+                <span className="text-xs opacity-70">{showCredentials ? t('login.hide') : t('login.show')}</span>
               </button>
 
 
@@ -153,7 +155,7 @@ export default function Login() {
                           {cred.username} / {cred.password}
                         </span>
                       </div>
-                      <span className="text-xs text-accent">Use</span>
+                      <span className="text-xs text-accent">{t('login.use')}</span>
                     </button>
                   ))}
                 </div>
@@ -168,7 +170,7 @@ export default function Login() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">{t('login.username')}</Label>
                 <Input
                   id="username"
                   type="text"
@@ -181,7 +183,7 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('login.password')}</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -214,24 +216,24 @@ export default function Login() {
                 {isLoading ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 ) : (
-                  "Sign In"
+                  t('login.signIn')
                 )}
               </Button>
             </form>
 
             <div className="mt-4 text-center">
-              <a
-                href="#"
+              <button
+                type="button"
                 className="text-sm text-muted-foreground hover:text-accent"
               >
-                Forgot your password?
-              </a>
+                {t('login.forgotPassword')}
+              </button>
             </div>
 
             {/* Security notice */}
             <div className="mt-4 rounded-lg bg-muted/30 p-2.5 text-center text-[10px] leading-tight text-muted-foreground/80">
               <Shield className="inline h-3 w-3 mr-1 opacity-70" />
-              Secured government system. Unauthorized access prohibited.
+              {t('login.securityNotice')}
             </div>
 
           </CardContent>
@@ -239,7 +241,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="mt-4 text-center text-[10px] text-white/30">
-          © 2024 IVISS - National Vehicle Control System
+          {t('login.footer')}
         </p>
 
       </div>

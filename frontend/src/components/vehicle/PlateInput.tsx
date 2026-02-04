@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useState, useRef } from "react";
 import { Search, X, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,8 @@ export function PlateInput({
   isLoading,
   className,
   placeholder = "Enter plate number",
-}: PlateInputProps) {
+}: Readonly<PlateInputProps>) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -107,7 +109,7 @@ export function PlateInput({
       {/* Validation hint */}
       {value.length > 0 && value.length < 4 && (
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Enter at least 4 characters
+          {t('mobileSearch.helpTextShort', { count: 4 })}
         </p>
       )}
     </div>

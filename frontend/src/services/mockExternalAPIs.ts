@@ -16,7 +16,7 @@ export interface InsuranceResult {
   policyNumber?: string;
   expiryDate?: string;
   coverageType?: string;
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface PoliceResult {
@@ -25,7 +25,7 @@ export interface PoliceResult {
   isStolen: boolean;
   reportDate?: string;
   reportNumber?: string;
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface CustomsResult {
@@ -33,8 +33,10 @@ export interface CustomsResult {
   isCleared: boolean;
   importDate?: string;
   declarationNumber?: string;
-  notes?: string;
+  notes?: Translatable;
 }
+
+export type Translatable = string | { key: string; params: Record<string, any> };
 
 export interface TechnicalInspectionResult {
   status: APIStatus;
@@ -42,7 +44,7 @@ export interface TechnicalInspectionResult {
   expiryDate?: string;
   mileage?: number;
   defects?: string[];
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface AggregatedVehicleStatus {
@@ -76,7 +78,7 @@ const mockAPIData: Record<string, {
       lastInspectionDate: 'Mar 2022',
       expiryDate: 'Mar 2024',
       mileage: 45000,
-      notes: 'Inspection expires in 2 months',
+      notes: { key: 'vehicleResult.inspectionExpiresIn', params: { count: 2, unit: 'months' } },
     },
   },
   'XY789ZW': {
@@ -173,7 +175,7 @@ const mockAPIData: Record<string, {
       expiryDate: 'Nov 2023',
       mileage: 95000,
       defects: ['Brake pads worn', 'Tire tread low'],
-      notes: 'INSPECTION EXPIRED - Vehicle should not be on road',
+      notes: { key: 'vehicleResult.inspectionExpired' },
     },
   },
 };

@@ -15,12 +15,13 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { mockControlService } from "@/services/mockControls";
-
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
 export default function MobileProfile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { data: todayControls = [] } = useQuery({
     queryKey: ['today-controls', user?.id],
@@ -36,7 +37,7 @@ export default function MobileProfile() {
   if (!user) return null;
 
   return (
-    <MobileLayout title="Profile">
+    <MobileLayout title={t('mobileProfile.title')}>
       <div className="p-4 space-y-6">
         {/* Profile Header */}
         <div className="rounded-xl bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
@@ -48,7 +49,7 @@ export default function MobileProfile() {
               <h2 className="text-xl font-bold">{user.name}</h2>
               <p className="text-sm opacity-80">{user.role.toUpperCase()}</p>
               <StatusBadge variant="valid" size="sm" className="mt-1">
-                Active
+                {t('mobileProfile.activeStatus')}
               </StatusBadge>
             </div>
           </div>
@@ -58,27 +59,27 @@ export default function MobileProfile() {
         <section className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Account Information
+              {t('mobileProfile.accountInfo')}
             </h3>
           </div>
 
-          <InfoRow icon={User} label="Badge ID" value={user.badgeId} />
-          <InfoRow icon={Shield} label="Role" value={user.role} />
-          <InfoRow icon={Building2} label="Organization" value={user.organization} />
-          <InfoRow icon={Smartphone} label="Phone IMEI" value={user.phoneIMEI.slice(0, 8) + '...'} />
+          <InfoRow icon={User} label={t('mobileProfile.badgeId')} value={user.badgeId} />
+          <InfoRow icon={Shield} label={t('mobileProfile.role')} value={user.role} />
+          <InfoRow icon={Building2} label={t('mobileProfile.organization')} value={user.organization} />
+          <InfoRow icon={Smartphone} label={t('mobileProfile.phoneImei')} value={user.phoneIMEI.slice(0, 8) + '...'} />
         </section>
 
         {/* Quick Links */}
         <section className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Quick Actions
+              {t('mobileProfile.quickActions')}
             </h3>
           </div>
 
-          <MenuLink icon={FileText} label="My Controls Today" badge={String(todayControls.length)} />
-          <MenuLink icon={HelpCircle} label="Help & Support" />
-          <MenuLink icon={Settings} label="Settings" />
+          <MenuLink icon={FileText} label={t('mobileProfile.myControlsToday')} badge={String(todayControls.length)} />
+          <MenuLink icon={HelpCircle} label={t('mobileProfile.helpSupport')} />
+          <MenuLink icon={Settings} label={t('mobileProfile.settings')} />
         </section>
 
         {/* Logout */}
@@ -88,13 +89,13 @@ export default function MobileProfile() {
           onClick={handleLogout}
         >
           <LogOut className="h-5 w-5" />
-          Sign Out
+          {t('mobileProfile.signOut')}
         </Button>
 
         {/* App Info */}
         <div className="text-center text-xs text-muted-foreground">
-          <p>IVISS Mobile v1.0.0</p>
-          <p className="mt-1">© 2024 National Vehicle Control System</p>
+          <p>{t('mobileProfile.appVersion')}</p>
+          <p className="mt-1">{t('mobileProfile.footer')}</p>
         </div>
       </div>
     </MobileLayout>
