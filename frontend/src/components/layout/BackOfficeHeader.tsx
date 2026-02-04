@@ -37,7 +37,7 @@ export function BackOfficeHeader({ title, subtitle, actions, className }: BackOf
         {/* Global search */}
         <div className="relative hidden lg:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search vehicles, agents, controls..." className="w-80 pl-9" />
+          <Input placeholder={t('backOfficeHeader.searchPlaceholder')} className="w-80 pl-9" />
         </div>
 
         {/* Language Switcher */}

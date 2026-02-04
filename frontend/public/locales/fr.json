@@ -382,7 +382,8 @@
     "settings": "Paramètres"
   },
   "backOfficeHeader": {
-    "nationalPoliceHQ": "Direction Générale de la Police Nationale"
+    "nationalPoliceHQ": "Direction Générale de la Police Nationale",
+    "searchPlaceholder": "Rechercher véhicules, agents, contrôles..."
   },
   "mockControls": {
     "notes": {
