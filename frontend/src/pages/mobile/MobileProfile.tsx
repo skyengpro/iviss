@@ -10,13 +10,13 @@ import {
   ChevronRight,
   HelpCircle,
   FileText,
-  Settings
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { mockControlService } from "@/services/mockControls";
-import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+  Settings,
+} from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useNavigate } from 'react-router-dom';
+import { mockControlService } from '@/services/mockControls';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 
 export default function MobileProfile() {
   const { user, logout } = useAuth();
@@ -66,8 +66,16 @@ export default function MobileProfile() {
 
           <InfoRow icon={User} label={t('mobileProfile.badgeId')} value={user.badgeId} />
           <InfoRow icon={Shield} label={t('mobileProfile.role')} value={user.role} />
-          <InfoRow icon={Building2} label={t('mobileProfile.organization')} value={user.organization} />
-          <InfoRow icon={Smartphone} label={t('mobileProfile.phoneImei')} value={user.phoneIMEI.slice(0, 8) + '...'} />
+          <InfoRow
+            icon={Building2}
+            label={t('mobileProfile.organization')}
+            value={user.organization}
+          />
+          <InfoRow
+            icon={Smartphone}
+            label={t('mobileProfile.phoneImei')}
+            value={user.phoneIMEI.slice(0, 8) + '...'}
+          />
         </section>
 
         {/* Quick Links */}
@@ -78,7 +86,11 @@ export default function MobileProfile() {
             </h3>
           </div>
 
-          <MenuLink icon={FileText} label={t('mobileProfile.myControlsToday')} badge={String(todayControls.length)} />
+          <MenuLink
+            icon={FileText}
+            label={t('mobileProfile.myControlsToday')}
+            badge={String(todayControls.length)}
+          />
           <MenuLink icon={HelpCircle} label={t('mobileProfile.helpSupport')} />
           <MenuLink icon={Settings} label={t('mobileProfile.settings')} />
         </section>

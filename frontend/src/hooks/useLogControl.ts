@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { mockControlService } from "@/services/mockControls";
-import { toast } from "@/hooks/use-toast";
-import { User } from "@/services/mockAuth";
-import { Vehicle } from "@/services/mockVehicles";
-import { AggregatedVehicleStatus } from "@/services/mockExternalAPIs";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { mockControlService } from '@/services/mockControls';
+import { toast } from '@/hooks/use-toast';
+import { User } from '@/services/mockAuth';
+import { Vehicle } from '@/services/mockVehicles';
+import { AggregatedVehicleStatus } from '@/services/mockExternalAPIs';
 
 export function useLogControl() {
-    const { t } = useTranslation();
-    const [isLoggingControl, setIsLoggingControl] = useState(false);
-    const [controlLogged, setControlLogged] = useState(false);
+  const { t } = useTranslation();
+  const [isLoggingControl, setIsLoggingControl] = useState(false);
+  const [controlLogged, setControlLogged] = useState(false);
 
   const logControl = async (
     user: User,
@@ -51,23 +51,23 @@ export function useLogControl() {
         },
       });
 
-            setControlLogged(true);
-            toast({
-                title: t('logControl.successTitle'),
-                description: t('logControl.successDescription', { plateNumber }),
-            });
-            return true;
-        } catch (error) {
-            toast({
-                title: t('logControl.errorTitle'),
-                description: t('logControl.errorDescription'),
-                variant: "destructive",
-            });
-            return false;
-        } finally {
-            setIsLoggingControl(false);
-        }
-    };
+      setControlLogged(true);
+      toast({
+        title: t('logControl.successTitle'),
+        description: t('logControl.successDescription', { plateNumber }),
+      });
+      return true;
+    } catch (error) {
+      toast({
+        title: t('logControl.errorTitle'),
+        description: t('logControl.errorDescription'),
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsLoggingControl(false);
+    }
+  };
 
   return {
     isLoggingControl,

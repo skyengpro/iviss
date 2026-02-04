@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -36,9 +36,9 @@ import { mockControlService, ControlStatus } from '@/services/mockControls';
 
 export default function ControlHistory() {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [organizationFilter, setOrganizationFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [organizationFilter, setOrganizationFilter] = useState('all');
 
   const { data: controls = [], isLoading } = useQuery({
     queryKey: ['controls', 'all', statusFilter, organizationFilter],
@@ -107,10 +107,16 @@ export default function ControlHistory() {
                   <SelectValue placeholder={t('backOfficeControlHistory.organization')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('backOfficeControlHistory.allOrganizations')}</SelectItem>
-                  <SelectItem value="alpha">{t('backOfficeControlHistory.brigadeAlpha')}</SelectItem>
+                  <SelectItem value="all">
+                    {t('backOfficeControlHistory.allOrganizations')}
+                  </SelectItem>
+                  <SelectItem value="alpha">
+                    {t('backOfficeControlHistory.brigadeAlpha')}
+                  </SelectItem>
                   <SelectItem value="beta">{t('backOfficeControlHistory.brigadeBeta')}</SelectItem>
-                  <SelectItem value="gamma">{t('backOfficeControlHistory.brigadeGamma')}</SelectItem>
+                  <SelectItem value="gamma">
+                    {t('backOfficeControlHistory.brigadeGamma')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -135,13 +141,19 @@ export default function ControlHistory() {
             </p>
             <div className="flex gap-2">
               <StatusBadge variant="valid" size="sm">
-                {t('backOfficeControlHistory.validCount', { count: filteredControls.filter(c => c.status === 'valid').length })}
+                {t('backOfficeControlHistory.validCount', {
+                  count: filteredControls.filter((c) => c.status === 'valid').length,
+                })}
               </StatusBadge>
               <StatusBadge variant="warning" size="sm">
-                {t('backOfficeControlHistory.warningCount', { count: filteredControls.filter(c => c.status === 'warning').length })}
+                {t('backOfficeControlHistory.warningCount', {
+                  count: filteredControls.filter((c) => c.status === 'warning').length,
+                })}
               </StatusBadge>
               <StatusBadge variant="critical" size="sm">
-                {t('backOfficeControlHistory.criticalCount', { count: filteredControls.filter(c => c.status === 'critical').length })}
+                {t('backOfficeControlHistory.criticalCount', {
+                  count: filteredControls.filter((c) => c.status === 'critical').length,
+                })}
               </StatusBadge>
             </div>
           </div>
@@ -159,7 +171,9 @@ export default function ControlHistory() {
                   <TableHead>{t('backOfficeControlHistory.organization')}</TableHead>
                   <TableHead>{t('backOfficeControlHistory.location')}</TableHead>
                   <TableHead>{t('backOfficeControlHistory.dateTime')}</TableHead>
-                  <TableHead className="w-[80px]">{t('backOfficeControlHistory.actions')}</TableHead>
+                  <TableHead className="w-[80px]">
+                    {t('backOfficeControlHistory.actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -181,9 +195,7 @@ export default function ControlHistory() {
                           {control.plateNumber}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        {t('backOfficeControlHistory.vehicle')}
-                      </TableCell>
+                      <TableCell>{t('backOfficeControlHistory.vehicle')}</TableCell>
                       <TableCell>
                         <StatusBadge variant={control.status} size="sm">
                           {t(`backOfficeControlHistory.${control.status}`)}

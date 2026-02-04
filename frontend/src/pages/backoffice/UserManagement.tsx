@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -53,9 +53,9 @@ const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destruct
 
 export default function UserManagement() {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -108,9 +108,15 @@ export default function UserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('backOfficeUserManagement.allRoles')}</SelectItem>
-                  <SelectItem value="super_admin">{t('backOfficeUserManagement.super_admin')}</SelectItem>
-                  <SelectItem value="org_admin">{t('backOfficeUserManagement.org_admin')}</SelectItem>
-                  <SelectItem value="supervisor">{t('backOfficeUserManagement.supervisor')}</SelectItem>
+                  <SelectItem value="super_admin">
+                    {t('backOfficeUserManagement.super_admin')}
+                  </SelectItem>
+                  <SelectItem value="org_admin">
+                    {t('backOfficeUserManagement.org_admin')}
+                  </SelectItem>
+                  <SelectItem value="supervisor">
+                    {t('backOfficeUserManagement.supervisor')}
+                  </SelectItem>
                   <SelectItem value="agent">{t('backOfficeUserManagement.agent')}</SelectItem>
                   <SelectItem value="operator">{t('backOfficeUserManagement.operator')}</SelectItem>
                 </SelectContent>
@@ -134,19 +140,27 @@ export default function UserManagement() {
           {/* Stats */}
           <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">{t('backOfficeUserManagement.totalUsers')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.totalUsers')}
+              </p>
               <p className="text-2xl font-bold">{users.length}</p>
             </div>
             <div className="rounded-lg bg-status-valid/10 p-4">
-              <p className="text-sm text-muted-foreground">{t('backOfficeUserManagement.activeNow')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.activeNow')}
+              </p>
               <p className="text-2xl font-bold text-status-valid">89</p>
             </div>
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">{t('backOfficeUserManagement.supervisors')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.supervisors')}
+              </p>
               <p className="text-2xl font-bold">12</p>
             </div>
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">{t('backOfficeUserManagement.organizations')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.organizations')}
+              </p>
               <p className="text-2xl font-bold">8</p>
             </div>
           </div>
@@ -162,7 +176,9 @@ export default function UserManagement() {
                   <TableHead>{t('backOfficeUserManagement.status')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.lastActive')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.controlsToday')}</TableHead>
-                  <TableHead className="w-[80px]">{t('backOfficeUserManagement.actions')}</TableHead>
+                  <TableHead className="w-[80px]">
+                    {t('backOfficeUserManagement.actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,11 +212,10 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell>{user.organization}</TableCell>
                       <TableCell>
-                        <StatusBadge
-                          variant={user.isActive ? "valid" : "pending"}
-                          size="sm"
-                        >
-                          {user.isActive ? t('backOfficeUserManagement.active') : t('backOfficeUserManagement.inactive')}
+                        <StatusBadge variant={user.isActive ? 'valid' : 'pending'} size="sm">
+                          {user.isActive
+                            ? t('backOfficeUserManagement.active')
+                            : t('backOfficeUserManagement.inactive')}
                         </StatusBadge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -221,7 +236,9 @@ export default function UserManagement() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t('backOfficeUserManagement.actions')}</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                              {t('backOfficeUserManagement.actions')}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem>
                               <Edit className="mr-2 h-4 w-4" />

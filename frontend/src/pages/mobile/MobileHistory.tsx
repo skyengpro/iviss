@@ -1,30 +1,22 @@
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Filter,
-  Calendar,
-  MapPin,
-  Clock,
-  ChevronRight,
-  Download
-} from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { mockControlService, ControlRecord, Translatable } from "@/services/mockControls";
-import { useAuth } from "@/contexts/AuthContext";
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, Filter, Calendar, MapPin, Clock, ChevronRight, Download } from 'lucide-react';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { mockControlService, ControlRecord, Translatable } from '@/services/mockControls';
+import { useAuth } from '@/hooks/use-auth';
 
 type FilterStatus = 'all' | 'valid' | 'warning' | 'critical';
 
 export default function MobileHistory() {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
 
   const { data: controls = [], isLoading } = useQuery<ControlRecord[]>({
     queryKey: ['controls', user?.id],
@@ -32,7 +24,7 @@ export default function MobileHistory() {
     enabled: !!user,
   });
 
-    const renderNotes = (notes: Translatable): string => {
+  const renderNotes = (notes: Translatable): string => {
     if (!notes) return '';
     if (typeof notes === 'string') {
       return notes;
@@ -54,8 +46,8 @@ export default function MobileHistory() {
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleTimeString(i18n.language, {
-      hour: "2-digit",
-      minute: "2-digit",
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -71,8 +63,8 @@ export default function MobileHistory() {
       return t('mobileHistory.yesterday');
     }
     return date.toLocaleDateString(i18n.language, {
-      month: "short",
-      day: "numeric",
+      month: 'short',
+      day: 'numeric',
     });
   };
 
@@ -123,28 +115,26 @@ export default function MobileHistory() {
 
             {/* Status filter pills */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {(["all", "valid", "warning", "critical"] as FilterStatus[]).map(
-                (status) => (
-                  <button
-                    key={status}
-                    onClick={() => setFilterStatus(status)}
-                    className={cn(
-                      "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                      filterStatus === status
-                        ? status === "all"
-                          ? "bg-primary text-primary-foreground"
-                          : status === "valid"
-                            ? "bg-status-valid text-status-valid-foreground"
-                            : status === "warning"
-                              ? "bg-status-warning text-status-warning-foreground"
-                              : "bg-status-critical text-status-critical-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    {t(`mobileHistory.${status}`)}
-                  </button>
-                )
-              )}
+              {(['all', 'valid', 'warning', 'critical'] as FilterStatus[]).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={cn(
+                    'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                    filterStatus === status
+                      ? status === 'all'
+                        ? 'bg-primary text-primary-foreground'
+                        : status === 'valid'
+                          ? 'bg-status-valid text-status-valid-foreground'
+                          : status === 'warning'
+                            ? 'bg-status-warning text-status-warning-foreground'
+                            : 'bg-status-critical text-status-critical-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  )}
+                >
+                  {t(`mobileHistory.${status}`)}
+                </button>
+              ))}
             </div>
 
             {/* Summary */}
@@ -164,7 +154,12 @@ export default function MobileHistory() {
                   </div>
                   <div className="space-y-2">
                     {controls.map((control) => (
-                      <ControlItem key={control.id} control={control} formatTime={formatTime} renderNotes={renderNotes} />
+                      <ControlItem
+                        key={control.id}
+                        control={control}
+                        formatTime={formatTime}
+                        renderNotes={renderNotes}
+                      />
                     ))}
                   </div>
                 </div>
@@ -190,7 +185,7 @@ function ControlItem({
   formatTime,
   renderNotes,
 }: {
-    control: ControlRecord;
+  control: ControlRecord;
   formatTime: (isoString: string) => string;
   renderNotes: (notes: Translatable) => string;
 }) {
@@ -215,7 +210,7 @@ function ControlItem({
             {t(`mobileHistory.${control.status}`)}
           </StatusBadge>
         </div>
-                {control.notes && (
+        {control.notes && (
           <p className="mt-1 text-sm text-muted-foreground truncate">
             {renderNotes(control.notes)}
           </p>

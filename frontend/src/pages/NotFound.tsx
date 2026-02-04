@@ -1,6 +1,6 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const NotFound = () => {
   const location = useLocation();

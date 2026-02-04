@@ -1,6 +1,6 @@
-import * as React from "react";
-import * as RechartsPrimitive from "recharts";
-import { useTranslation } from "react-i18next";
+import * as React from 'react';
+import * as RechartsPrimitive from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,7 @@ function useChart() {
   const context = React.useContext(ChartContext);
 
   if (!context) {
-    throw new Error(t("errors.useChart"));
+    throw new Error(t('errors.useChart'));
   }
 
   return context;

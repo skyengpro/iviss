@@ -1,4 +1,4 @@
-import { TFunction } from "i18next";
+import { TFunction } from 'i18next';
 
 /**
  * Image preprocessing utilities for license plate OCR
@@ -67,7 +67,7 @@ export class ImageProcessor {
   private static convertToGrayscale(data: Uint8ClampedArray): void {
     for (let i = 0; i < data.length; i += 4) {
       const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      data[i] = gray;     // R
+      data[i] = gray; // R
       data[i + 1] = gray; // G
       data[i + 2] = gray; // B
       // Alpha channel (i+3) unchanged
@@ -179,7 +179,11 @@ export class ImageProcessor {
    * Scale image to optimal size for OCR
    * Tesseract works best with images around 300 DPI
    */
-  static async scaleImage(imageSrc: string, t: TFunction, targetWidth: number = 800): Promise<string> {
+  static async scaleImage(
+    imageSrc: string,
+    t: TFunction,
+    targetWidth: number = 800
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {

@@ -1,13 +1,13 @@
-import { Menu, Bell, User, Shield, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
+import { Menu, Bell, User, Shield, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -40,7 +40,7 @@ export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileH
             <Shield className="h-5 w-5 text-accent-foreground" />
           </div>
           <span className="text-lg font-bold text-primary-foreground tracking-wide">
-            {title ? t(title) : "IVISS"}
+            {title ? t(title) : 'IVISS'}
           </span>
         </div>
 

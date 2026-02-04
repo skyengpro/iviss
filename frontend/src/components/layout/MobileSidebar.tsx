@@ -1,9 +1,9 @@
-import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 interface MobileSidebarProps {
   open: boolean;
@@ -70,7 +70,10 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               <p className="font-semibold">Agent Dupont</p>
               <p className="text-sm text-sidebar-foreground/70">Brigade Alpha</p>
             </div>
-            <div className="h-2 w-2 rounded-full bg-status-valid" title={t('mobileSidebar.online')} />
+            <div
+              className="h-2 w-2 rounded-full bg-status-valid"
+              title={t('mobileSidebar.online')}
+            />
           </div>
         </div>
 
