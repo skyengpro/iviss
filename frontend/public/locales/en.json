@@ -380,7 +380,8 @@
     "settings": "Settings"
   },
   "backOfficeHeader": {
-    "nationalPoliceHQ": "National Police HQ"
+    "nationalPoliceHQ": "National Police HQ",
+    "searchPlaceholder": "Search vehicles, agents, controls..."
   },
   "mockControls": {
     "notes": {
