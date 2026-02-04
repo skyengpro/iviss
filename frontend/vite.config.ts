@@ -26,17 +26,22 @@ export default defineConfig(({ mode }) => ({
         display: 'standalone',
         icons: [
           {
-            src: 'pwa-512x512.png',
-            sizes: '1024x1024',
-            type: 'image/png',
-            purpose: 'any',
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
           },
           {
             src: 'pwa-512x512.png',
-            sizes: '1024x1024',
+            sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable',
+            purpose: 'any'
           },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
         ],
       },
       workbox: {
