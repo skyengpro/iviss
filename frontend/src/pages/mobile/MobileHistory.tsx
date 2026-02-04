@@ -18,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { mockControlService, ControlRecord, Translatable } from "@/services/mockControls";
 import { useAuth } from "@/contexts/AuthContext";
 
-type FilterStatus = "all" | "valid" | "warning" | "critical";
+type FilterStatus = 'all' | 'valid' | 'warning' | 'critical';
 
 export default function MobileHistory() {
   const { user } = useAuth();
@@ -28,8 +28,8 @@ export default function MobileHistory() {
 
   const { data: controls = [], isLoading } = useQuery<ControlRecord[]>({
     queryKey: ['controls', user?.id],
-    queryFn: () => user ? mockControlService.getControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () => (user ? mockControlService.getControlsByAgent(user.id) : Promise.resolve([])),
+    enabled: !!user,
   });
 
     const renderNotes = (notes: Translatable): string => {
@@ -46,8 +46,7 @@ export default function MobileHistory() {
       control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (noteString && noteString.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesFilter =
-      filterStatus === "all" || control.status === filterStatus;
+    const matchesFilter = filterStatus === 'all' || control.status === filterStatus;
 
     return matchesSearch && matchesFilter;
   });
@@ -78,14 +77,17 @@ export default function MobileHistory() {
   };
 
   // Group controls by date
-  const groupedControls = filteredControls.reduce((groups, control) => {
-    const dateKey = formatDate(control.timestamp.toISOString());
-    if (!groups[dateKey]) {
-      groups[dateKey] = [];
-    }
-    groups[dateKey].push(control);
-    return groups;
-  }, {} as Record<string, ControlRecord[]>);
+  const groupedControls = filteredControls.reduce(
+    (groups, control) => {
+      const dateKey = formatDate(control.timestamp.toISOString());
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(control);
+      return groups;
+    },
+    {} as Record<string, ControlRecord[]>
+  );
 
   return (
     <MobileLayout title={t('mobileHistory.title')}>
@@ -158,9 +160,7 @@ export default function MobileHistory() {
                 <div key={date}>
                   <div className="mb-2 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold text-muted-foreground">
-                      {date}
-                    </span>
+                    <span className="text-sm font-semibold text-muted-foreground">{date}</span>
                   </div>
                   <div className="space-y-2">
                     {controls.map((control) => (
@@ -200,19 +200,17 @@ function ControlItem({
       {/* Status indicator */}
       <div
         className={cn(
-          "h-12 w-1 rounded-full",
-          control.status === "valid" && "bg-status-valid",
-          control.status === "warning" && "bg-status-warning",
-          control.status === "critical" && "bg-status-critical"
+          'h-12 w-1 rounded-full',
+          control.status === 'valid' && 'bg-status-valid',
+          control.status === 'warning' && 'bg-status-warning',
+          control.status === 'critical' && 'bg-status-critical'
         )}
       />
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <p className="font-mono text-lg font-bold tracking-wider">
-            {control.plateNumber}
-          </p>
+          <p className="font-mono text-lg font-bold tracking-wider">{control.plateNumber}</p>
           <StatusBadge variant={control.status} size="sm" showIcon={false}>
             {t(`mobileHistory.${control.status}`)}
           </StatusBadge>

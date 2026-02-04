@@ -11,15 +11,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Search,
   Filter,
@@ -29,10 +29,10 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { useQuery } from "@tanstack/react-query";
-import { mockControlService, ControlStatus } from "@/services/mockControls";
+import { useQuery } from '@tanstack/react-query';
+import { mockControlService, ControlStatus } from '@/services/mockControls';
 
 export default function ControlHistory() {
   const { t } = useTranslation();
@@ -42,10 +42,11 @@ export default function ControlHistory() {
 
   const { data: controls = [], isLoading } = useQuery({
     queryKey: ['controls', 'all', statusFilter, organizationFilter],
-    queryFn: () => mockControlService.getAllControls({
-      status: statusFilter !== 'all' ? statusFilter as ControlStatus : undefined,
-      organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
-    })
+    queryFn: () =>
+      mockControlService.getAllControls({
+        status: statusFilter !== 'all' ? (statusFilter as ControlStatus) : undefined,
+        organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
+      }),
   });
 
   const filteredControls = controls.filter((control) => {
@@ -101,10 +102,7 @@ export default function ControlHistory() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={organizationFilter}
-                onValueChange={setOrganizationFilter}
-              >
+              <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder={t('backOfficeControlHistory.organization')} />
                 </SelectTrigger>
@@ -177,9 +175,7 @@ export default function ControlHistory() {
                 ) : filteredControls.length > 0 ? (
                   filteredControls.map((control) => (
                     <TableRow key={control.id} className="group">
-                      <TableCell className="font-mono text-sm">
-                        {control.id}
-                      </TableCell>
+                      <TableCell className="font-mono text-sm">{control.id}</TableCell>
                       <TableCell>
                         <span className="font-mono font-semibold tracking-wider">
                           {control.plateNumber}

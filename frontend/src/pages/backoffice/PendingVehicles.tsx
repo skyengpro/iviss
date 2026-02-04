@@ -41,10 +41,10 @@ export default function PendingVehicles() {
 
   const handleReview = async (id: string, decision: 'approved' | 'rejected') => {
     setIsProcessing(true);
-    
+
     try {
       await mockVehicleService.reviewPendingVehicle(id, decision);
-      
+
       toast({
         title: t(decision === 'approved' ? 'backOfficePendingVehicles.toastVehicleApproved' : 'backOfficePendingVehicles.toastVehicleRejected'),
         description: t('backOfficePendingVehicles.toastVehicleProcessed', { 
@@ -53,7 +53,7 @@ export default function PendingVehicles() {
       });
 
       // Remove from list
-      setPendingVehicles(prev => prev.filter(v => v.id !== id));
+      setPendingVehicles((prev) => prev.filter((v) => v.id !== id));
       setSelectedVehicle(null);
     } catch (error) {
       toast({

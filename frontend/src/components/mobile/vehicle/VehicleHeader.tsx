@@ -5,8 +5,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Vehicle } from "@/services/mockVehicles";
 
 interface VehicleHeaderProps {
-    vehicle: Vehicle;
-    overallStatus: 'valid' | 'warning' | 'critical';
+  vehicle: Vehicle;
+  overallStatus: 'valid' | 'warning' | 'critical';
 }
 
 export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallStatus }) => {
@@ -63,23 +63,23 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallSt
 };
 
 function DetailItem({
-    icon: Icon,
-    label,
-    value,
-    fullWidth
+  icon: Icon,
+  label,
+  value,
+  fullWidth,
 }: {
-    icon: React.ElementType;
-    label: string;
-    value: string;
-    fullWidth?: boolean;
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  fullWidth?: boolean;
 }) {
-    return (
-        <div className={`flex items-start gap-2 ${fullWidth ? '' : ''}`}>
-            <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div>
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="font-medium">{value}</p>
-            </div>
-        </div>
-    );
+  return (
+    <div className={`flex items-start gap-2 ${fullWidth ? '' : ''}`}>
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="font-medium">{value}</p>
+      </div>
+    </div>
+  );
 }

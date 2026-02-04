@@ -6,16 +6,16 @@ import { PlateInput } from "@/components/vehicle/PlateInput";
 import { Button } from "@/components/ui/button";
 import { Camera, History } from "lucide-react";
 
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockControlService } from "@/services/mockControls";
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { mockControlService } from '@/services/mockControls';
 
 export default function MobileSearch() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [plateNumber, setPlateNumber] = useState("");
+  const [plateNumber, setPlateNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = useCallback(async (plate?: string) => {
@@ -31,13 +31,13 @@ export default function MobileSearch() {
   // Fetch recent controls for the agent to show as "recent searches"
   const { data: recentControls = [] } = useQuery({
     queryKey: ['recent-controls', user?.id],
-    queryFn: () => user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () => (user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([])),
+    enabled: !!user,
   });
 
   // Check if plate was passed from scan
   useEffect(() => {
-    const plateFromScan = searchParams.get("plate");
+    const plateFromScan = searchParams.get('plate');
     if (plateFromScan) {
       setPlateNumber(plateFromScan);
       // Auto-search

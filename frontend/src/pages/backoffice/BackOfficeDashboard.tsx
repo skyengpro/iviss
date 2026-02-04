@@ -13,7 +13,7 @@ import {
   MapPin,
   ArrowUpRight,
   Clock,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Mock data for charts and lists
 import { useQuery } from "@tanstack/react-query";
@@ -24,17 +24,17 @@ export default function BackOfficeDashboard() {
   const { t } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: () => mockControlService.getStats()
+    queryFn: () => mockControlService.getStats(),
   });
 
   const { data: recentAlerts = [], isLoading: alertsLoading } = useQuery({
     queryKey: ['recent-alerts'],
-    queryFn: () => mockControlService.getRecentAlerts(5)
+    queryFn: () => mockControlService.getRecentAlerts(5),
   });
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => mockAuthService.getAllUsers()
+    queryFn: () => mockAuthService.getAllUsers(),
   });
 
   const renderNotes = (notes: Translatable) => {
@@ -187,18 +187,13 @@ export default function BackOfficeDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {users.slice(0, 4).map((user, index) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center gap-4"
-                  >
+                  <div key={user.id} className="flex items-center gap-4">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{user.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {user.organization}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{user.organization}</p>
                     </div>
                     {user.isActive && (
                       <StatusBadge variant="valid" size="sm">
@@ -234,27 +229,23 @@ export default function BackOfficeDashboard() {
                 { agent: "Agent Bernard", action: t('backOfficeDashboard.vehicleFlagged'), plate: "EF-456-GH", status: "critical", time: t('backOfficeDashboard.minutesAgo', { count: 5 }) },
                 { agent: "Agent Leroy", action: t('backOfficeDashboard.controlCompleted'), plate: "JK-321-LM", status: "valid", time: t('backOfficeDashboard.minutesAgo', { count: 8 }) },
               ].map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 rounded-lg bg-muted/50 p-3"
-                >
+                <div key={index} className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
                   <div
-                    className={`h-2 w-2 rounded-full ${item.status === "valid"
-                      ? "bg-status-valid"
-                      : item.status === "warning"
-                        ? "bg-status-warning"
-                        : "bg-status-critical"
-                      }`}
+                    className={`h-2 w-2 rounded-full ${
+                      item.status === 'valid'
+                        ? 'bg-status-valid'
+                        : item.status === 'warning'
+                          ? 'bg-status-warning'
+                          : 'bg-status-critical'
+                    }`}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">
                       <span className="font-medium">{item.agent}</span>
-                      {" • "}
+                      {' • '}
                       <span className="text-muted-foreground">{item.action}</span>
                     </p>
-                    <p className="font-mono text-sm font-semibold tracking-wider">
-                      {item.plate}
-                    </p>
+                    <p className="font-mono text-sm font-semibold tracking-wider">{item.plate}</p>
                   </div>
                   <span className="text-xs text-muted-foreground">{item.time}</span>
                 </div>

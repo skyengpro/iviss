@@ -22,9 +22,8 @@ export default function MobileCarteGrise() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
-  
   const plateNumber = searchParams.get('plate') || '';
-  
+
   const [step, setStep] = useState<CaptureStep>('front');
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
@@ -34,7 +33,7 @@ export default function MobileCarteGrise() {
   const handleCapture = (side: 'front' | 'back') => {
     // Simulate capture
     const mockImage = '/placeholder.svg';
-    
+
     if (side === 'front') {
       setFrontImage(mockImage);
       setStep('back');
@@ -60,7 +59,7 @@ export default function MobileCarteGrise() {
       });
 
       setStep('submitted');
-      
+
       toast({
         title: t('mobileCarteGrise.toastSuccessTitle'),
         description: t('mobileCarteGrise.toastSuccessDescription'),
@@ -90,9 +89,9 @@ export default function MobileCarteGrise() {
           <p className="mt-4 text-sm text-muted-foreground">
             {t('mobileCarteGrise.status')} <span className="text-status-pending font-medium">{t('mobileCarteGrise.pendingValidation')}</span>
           </p>
-          
+
           <div className="mt-8 w-full space-y-2">
-            <Button 
+            <Button
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
               onClick={() => navigate('/mobile')}
             >
@@ -178,7 +177,6 @@ export default function MobileCarteGrise() {
         {step === 'review' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">{t('mobileCarteGrise.reviewSubmission')}</h2>
-            
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg border border-border overflow-hidden">
                 <div className="bg-muted p-2 text-center text-xs font-medium">{t('mobileCarteGrise.stepFront')}</div>
@@ -225,25 +223,31 @@ export default function MobileCarteGrise() {
   );
 }
 
-function StepIndicator({ 
-  number, 
-  label, 
-  active, 
-  completed 
-}: { 
-  number: number; 
-  label: string; 
+function StepIndicator({
+  number,
+  label,
+  active,
+  completed,
+}: {
+  number: number;
+  label: string;
   active: boolean;
   completed: boolean;
 }) {
   return (
     <div className="flex flex-col items-center">
-      <div className={`
+      <div
+        className={`
         flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold
-        ${completed ? 'bg-status-valid text-status-valid-foreground' : 
-          active ? 'bg-accent text-accent-foreground' : 
-          'bg-muted text-muted-foreground'}
-      `}>
+        ${
+          completed
+            ? 'bg-status-valid text-status-valid-foreground'
+            : active
+              ? 'bg-accent text-accent-foreground'
+              : 'bg-muted text-muted-foreground'
+        }
+      `}
+      >
         {completed ? <CheckCircle className="h-4 w-4" /> : number}
       </div>
       <p className={`mt-1 text-xs ${active ? 'text-foreground' : 'text-muted-foreground'}`}>

@@ -7,8 +7,8 @@ const NotFound = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
+    console.error(t('404Error'), t('attemptedToAccess'), location.pathname);
+  }, [location.pathname, t]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">

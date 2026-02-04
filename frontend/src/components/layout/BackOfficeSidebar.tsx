@@ -13,17 +13,12 @@ import {
   LogOut,
   Bell,
   HelpCircle,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function BackOfficeSidebar() {
   const { t } = useTranslation();
@@ -48,7 +43,7 @@ export function BackOfficeSidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate('/login');
   };
 
   return (
@@ -91,8 +86,8 @@ export function BackOfficeSidebar() {
               {t('backOfficeSidebar.administration')}
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  adminOpen && "rotate-180"
+                  'h-4 w-4 transition-transform duration-200',
+                  adminOpen && 'rotate-180'
                 )}
               />
             </button>
@@ -166,10 +161,10 @@ function NavLink({
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
         isActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       )}
     >
       <Icon className="h-5 w-5" />

@@ -6,23 +6,23 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 interface ScanTopControlsProps {
-    onClose: () => void;
-    onToggleFlash: () => void;
-    onToggleFacingMode: () => void;
-    flashOn: boolean;
-    facingMode: "user" | "environment";
-    useDemoData: boolean;
-    onToggleDemoData: (val: boolean) => void;
+  onClose: () => void;
+  onToggleFlash: () => void;
+  onToggleFacingMode: () => void;
+  flashOn: boolean;
+  facingMode: 'user' | 'environment';
+  useDemoData: boolean;
+  onToggleDemoData: (val: boolean) => void;
 }
 
 export const ScanTopControls: React.FC<ScanTopControlsProps> = ({
-    onClose,
-    onToggleFlash,
-    onToggleFacingMode,
-    flashOn,
-    facingMode,
-    useDemoData,
-    onToggleDemoData,
+  onClose,
+  onToggleFlash,
+  onToggleFacingMode,
+  flashOn,
+  facingMode,
+  useDemoData,
+  onToggleDemoData,
 }) => {
     const { t } = useTranslation();
     return (
@@ -47,31 +47,31 @@ export const ScanTopControls: React.FC<ScanTopControlsProps> = ({
                         onCheckedChange={onToggleDemoData}
                         className="scale-75 data-[state=checked]:bg-accent"
                     />
-                </div>
-
-                <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onToggleFlash}
-                        disabled // Flash implementation with generic webcam is complex
-                        className={cn(
-                            "text-white hover:bg-white/20 opacity-50 cursor-not-allowed",
-                            flashOn && "bg-white/20"
-                        )}
-                    >
-                        <Flashlight className="h-5 w-5" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onToggleFacingMode}
-                        className="text-white hover:bg-white/20"
-                    >
-                        <SwitchCamera className="h-5 w-5" />
-                    </Button>
-                </div>
-            </div>
         </div>
-    );
+
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleFlash}
+            disabled // Flash implementation with generic webcam is complex
+            className={cn(
+              'text-white hover:bg-white/20 opacity-50 cursor-not-allowed',
+              flashOn && 'bg-white/20'
+            )}
+          >
+            <Flashlight className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleFacingMode}
+            className="text-white hover:bg-white/20"
+          >
+            <SwitchCamera className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };

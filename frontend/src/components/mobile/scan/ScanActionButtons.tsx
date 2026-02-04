@@ -4,23 +4,23 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 interface ScanActionButtonsProps {
-    mode: "photo" | "live";
-    onModeChange: (mode: "photo" | "live") => void;
-    liveScanActive: boolean;
-    onToggleLiveScan: () => void;
-    onCapture: () => void;
-    isScanning: boolean;
-    hasResult: boolean;
+  mode: 'photo' | 'live';
+  onModeChange: (mode: 'photo' | 'live') => void;
+  liveScanActive: boolean;
+  onToggleLiveScan: () => void;
+  onCapture: () => void;
+  isScanning: boolean;
+  hasResult: boolean;
 }
 
 export const ScanActionButtons: React.FC<ScanActionButtonsProps> = ({
-    mode,
-    onModeChange,
-    liveScanActive,
-    onToggleLiveScan,
-    onCapture,
-    isScanning,
-    hasResult,
+  mode,
+  onModeChange,
+  liveScanActive,
+  onToggleLiveScan,
+  onCapture,
+  isScanning,
+  hasResult,
 }) => {
     const { t } = useTranslation();
     if (hasResult) return null;
