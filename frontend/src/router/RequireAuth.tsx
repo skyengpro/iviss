@@ -3,7 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/services/mockAuth';
 import { useAuth } from '@/hooks/use-auth';
 
-export function RequireAuth({ children, allowedRoles }: { children: ReactNode; allowedRoles?: UserRole[] }) {
+export function RequireAuth({
+  children,
+  allowedRoles,
+}: {
+  children: ReactNode;
+  allowedRoles?: UserRole[];
+}) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

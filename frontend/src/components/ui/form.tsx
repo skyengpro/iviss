@@ -1,20 +1,10 @@
 import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
-import {
-  Controller,
-  ControllerProps,
-  FieldPath,
-  FieldValues,
-  FormProvider,
-} from 'react-hook-form';
+import { Controller, ControllerProps, FieldPath, FieldValues, FormProvider } from 'react-hook-form';
 
 import { cn } from '@/lib/utils';
-import {
-  FormFieldContext,
-  FormItemContext,
-  useFormField,
-} from '@/hooks/use-form-field';
+import { FormFieldContext, FormItemContext, useFormField } from '@/hooks/use-form-field';
 import { Label } from '@/components/ui/label';
 
 const Form = FormProvider;
@@ -121,13 +111,4 @@ const FormMessage = React.forwardRef<
 });
 FormMessage.displayName = 'FormMessage';
 
-export {
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField,
-};
-
+export { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };
