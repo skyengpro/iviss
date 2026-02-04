@@ -14,9 +14,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Gitleaks Scan
+        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact
 
   frontend_install:
     name: Frontend Install
