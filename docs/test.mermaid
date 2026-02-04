@@ -1,0 +1,41 @@
+sequenceDiagram
+    actor Member as Admin Member
+    participant Web as Web Back-Office
+    participant Router as Router/Firewall
+    participant GW as API Gateway
+    participant WS as WebService
+    participant DB as PostgreSQL (Internal)
+  
+    Member->>Web: Fill form: first_name, last_name, phone_imei
+    Web->>Router: POST /organizations/{org_id}/members/{member_id}/agents<br/>(Authorization: Bearer {token})
+    Router->>GW: Forward
+    Note over GW: Extract & verify JWT
+    Note over GW: Extract member_id from token claims
+    GW->>WS: Authenticated request + claims
+  
+    Note over WS: Assert caller.id == member_id (ownership)
+  
+    alt Ownership Failed
+        WS-->>GW: 403 Forbidden
+        GW-->>Router: 403
+        Router-->>Web: 403
+        Web-->>Member: Error: Cannot manage other member's agents
+    else Ownership Success
+        Note over WS: Check phone_imei uniqueness
+        WS->>DB: SELECT COUNT(*) FROM agents WHERE phone_imei = ?
+        DB-->>WS: count = 0
+      
+        alt IMEI Duplicate
+            WS-->>GW: 409 Conflict
+            GW-->>Router: 409
+            Router-->>Web: 409
+            Web-->>Member: Error: IMEI already registered
+        else IMEI Unique
+            WS->>DB: INSERT INTO agents (org_id, managed_by, ...)
+            DB-->>WS: New agent record
+            WS-->>GW: 201 Created + Agent JSON
+            GW-->>Router: 201
+            Router-->>Web: 201
+            Web-->>Member: Success: Agent assigned
+        end
+    end
