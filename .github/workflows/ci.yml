@@ -128,3 +128,52 @@ jobs:
         with:
           name: coverage-report
           path: frontend/coverage
+
+  backend_build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build
+        run: cargo build --verbose
+        working-directory: iviss-backend
+
+  backend_test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    needs: [backend_build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Test
+        run: cargo test --verbose
+        working-directory: iviss-backend
+
+  backend_fmt:
+    name: Backend Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Check Format
+        run: cargo fmt -- --check
+        working-directory: iviss-backend
+
+  backend_clippy:
+    name: Backend Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+      - name: Lint
+        run: cargo clippy
+        working-directory: iviss-backend
