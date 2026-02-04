@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { 
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import {
   ArrowLeft,
   Car,
   User,
@@ -16,9 +16,9 @@ import {
   CheckCircle,
   AlertTriangle,
   AlertCircle,
-  Download
-} from "lucide-react";
-import { mockControlService, ControlRecord, Translatable } from "@/services/mockControls";
+  Download,
+} from 'lucide-react';
+import { mockControlService, ControlRecord, Translatable } from '@/services/mockControls';
 
 export default function ControlDetail() {
   const { controlId } = useParams<{ controlId: string }>();
@@ -119,8 +119,11 @@ export default function ControlDetail() {
                     {control.plateNumber}
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    {t('backOfficeControlDetail.identificationMode', { mode: control.identificationMode.toUpperCase() })}
-                    {control.confidence && ` • ${t('backOfficeControlDetail.confidence', { percent: control.confidence })}`}
+                    {t('backOfficeControlDetail.identificationMode', {
+                      mode: control.identificationMode.toUpperCase(),
+                    })}
+                    {control.confidence &&
+                      ` • ${t('backOfficeControlDetail.confidence', { percent: control.confidence })}`}
                   </p>
                 </div>
               </div>
@@ -150,25 +153,25 @@ export default function ControlDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <InfoRow 
-                icon={Clock} 
-                label={t('backOfficeControlDetail.dateTime')} 
-                value={control.timestamp.toLocaleString()} 
+              <InfoRow
+                icon={Clock}
+                label={t('backOfficeControlDetail.dateTime')}
+                value={control.timestamp.toLocaleString()}
               />
-              <InfoRow 
-                icon={MapPin} 
-                label={t('backOfficeControlDetail.location')} 
-                value={control.location.address} 
+              <InfoRow
+                icon={MapPin}
+                label={t('backOfficeControlDetail.location')}
+                value={control.location.address}
               />
-              <InfoRow 
-                icon={User} 
-                label={t('backOfficeControlDetail.agent')} 
-                value={control.agentName} 
+              <InfoRow
+                icon={User}
+                label={t('backOfficeControlDetail.agent')}
+                value={control.agentName}
               />
-              <InfoRow 
-                icon={Smartphone} 
-                label={t('backOfficeControlDetail.deviceImei')} 
-                value={control.phoneIMEI} 
+              <InfoRow
+                icon={Smartphone}
+                label={t('backOfficeControlDetail.deviceImei')}
+                value={control.phoneIMEI}
               />
             </CardContent>
           </Card>
@@ -179,29 +182,29 @@ export default function ControlDetail() {
               <CardTitle>{t('backOfficeControlDetail.verificationResults')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <ResultRow 
-                label={t('backOfficeControlDetail.registration')} 
-                status={control.results.registration} 
+              <ResultRow
+                label={t('backOfficeControlDetail.registration')}
+                status={control.results.registration}
                 icon={getStatusIcon(control.results.registration)}
               />
-              <ResultRow 
-                label={t('backOfficeControlDetail.insurance')} 
-                status={control.results.insurance} 
+              <ResultRow
+                label={t('backOfficeControlDetail.insurance')}
+                status={control.results.insurance}
                 icon={getStatusIcon(control.results.insurance)}
               />
-              <ResultRow 
-                label={t('backOfficeControlDetail.technicalInspection')} 
-                status={control.results.technicalInspection} 
+              <ResultRow
+                label={t('backOfficeControlDetail.technicalInspection')}
+                status={control.results.technicalInspection}
                 icon={getStatusIcon(control.results.technicalInspection)}
               />
-              <ResultRow 
-                label={t('backOfficeControlDetail.wantedStatus')} 
-                status={control.results.wantedStatus} 
+              <ResultRow
+                label={t('backOfficeControlDetail.wantedStatus')}
+                status={control.results.wantedStatus}
                 icon={getStatusIcon(control.results.wantedStatus)}
               />
-              <ResultRow 
-                label={t('backOfficeControlDetail.customs')} 
-                status={control.results.customsStatus} 
+              <ResultRow
+                label={t('backOfficeControlDetail.customs')}
+                status={control.results.customsStatus}
                 icon={getStatusIcon(control.results.customsStatus)}
               />
             </CardContent>

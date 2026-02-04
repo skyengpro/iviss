@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Eye, EyeOff, Smartphone, Monitor, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
-import { useTranslation } from "react-i18next";
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Shield, Eye, EyeOff, Smartphone, Monitor, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+import { useTranslation } from 'react-i18next';
 
 type AppType = 'mobile' | 'backoffice';
 
@@ -82,16 +82,16 @@ export default function Login() {
             <Shield className="h-8 w-8 text-accent-foreground" />
           </div>
           <h1 className="mt-3 text-2xl font-bold text-white tracking-wide">{t('login.title')}</h1>
-          <p className="mt-1 text-xs text-white/60 px-4">
-            {t('login.subtitle')}
-          </p>
+          <p className="mt-1 text-xs text-white/60 px-4">{t('login.subtitle')}</p>
         </div>
 
         <Card className="border-0 shadow-2xl glass card-elevated">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center">{t('login.signIn')}</CardTitle>
             <CardDescription className="text-center">
-              {t('login.description', { appType: appType === "mobile" ? t('login.mobileAgent') : t('login.backOffice') })}
+              {t('login.description', {
+                appType: appType === 'mobile' ? t('login.mobileAgent') : t('login.backOffice'),
+              })}
             </CardDescription>
           </CardHeader>
 
@@ -137,7 +137,9 @@ export default function Login() {
                   <Info className="h-4 w-4" />
                   {t('login.demoCredentials')}
                 </span>
-                <span className="text-xs opacity-70">{showCredentials ? t('login.hide') : t('login.show')}</span>
+                <span className="text-xs opacity-70">
+                  {showCredentials ? t('login.hide') : t('login.show')}
+                </span>
               </button>
 
               {showCredentials && (
@@ -220,10 +222,7 @@ export default function Login() {
             </form>
 
             <div className="mt-4 text-center">
-              <button
-                type="button"
-                className="text-sm text-muted-foreground hover:text-accent"
-              >
+              <button type="button" className="text-sm text-muted-foreground hover:text-accent">
                 {t('login.forgotPassword')}
               </button>
             </div>
@@ -237,9 +236,7 @@ export default function Login() {
         </Card>
 
         {/* Footer */}
-        <p className="mt-4 text-center text-[10px] text-white/30">
-          {t('login.footer')}
-        </p>
+        <p className="mt-4 text-center text-[10px] text-white/30">{t('login.footer')}</p>
       </div>
     </div>
   );

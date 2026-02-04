@@ -1,14 +1,14 @@
-import { useState, useRef, useCallback } from "react";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import Webcam from "react-webcam";
-import { useTranslation } from "react-i18next";
-import { usePlateScanner, DetectedPlate } from "@/hooks/usePlateScanner";
-import { ScanViewfinder } from "@/components/mobile/scan/ScanViewfinder";
-import { ScanTopControls } from "@/components/mobile/scan/ScanTopControls";
-import { ScanDetectionsList } from "@/components/mobile/scan/ScanDetectionsList";
-import { ScanResultCard } from "@/components/mobile/scan/ScanResultCard";
-import { ScanActionButtons } from "@/components/mobile/scan/ScanActionButtons";
+import { useState, useRef, useCallback } from 'react';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import Webcam from 'react-webcam';
+import { useTranslation } from 'react-i18next';
+import { usePlateScanner, DetectedPlate } from '@/hooks/usePlateScanner';
+import { ScanViewfinder } from '@/components/mobile/scan/ScanViewfinder';
+import { ScanTopControls } from '@/components/mobile/scan/ScanTopControls';
+import { ScanDetectionsList } from '@/components/mobile/scan/ScanDetectionsList';
+import { ScanResultCard } from '@/components/mobile/scan/ScanResultCard';
+import { ScanActionButtons } from '@/components/mobile/scan/ScanActionButtons';
 
 type ScanMode = 'photo' | 'live';
 
@@ -16,7 +16,7 @@ export default function MobileScan() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const initialMode = (searchParams.get("mode") as ScanMode) || "photo";
+  const initialMode = (searchParams.get('mode') as ScanMode) || 'photo';
 
   const [mode, setMode] = useState<ScanMode>(initialMode);
   const [flashOn, setFlashOn] = useState(false);
@@ -70,7 +70,7 @@ export default function MobileScan() {
           setEditedPlate('');
         }
       } catch (e: unknown) {
-        console.error("Error during plate capture:", e);
+        console.error('Error during plate capture:', e);
         setDetectedPlate({
           plateNumber: t('mobileScan.ocrError'),
           confidence: 0,

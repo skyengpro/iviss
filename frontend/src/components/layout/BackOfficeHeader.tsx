@@ -1,14 +1,14 @@
-import { Bell, Search, ChevronDown, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
+import { Bell, Search, ChevronDown, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
 interface BackOfficeHeaderProps {
   title?: string;
@@ -17,12 +17,7 @@ interface BackOfficeHeaderProps {
   className?: string;
 }
 
-export function BackOfficeHeader({
-  title,
-  subtitle,
-  actions,
-  className,
-}: BackOfficeHeaderProps) {
+export function BackOfficeHeader({ title, subtitle, actions, className }: BackOfficeHeaderProps) {
   const { t, i18n } = useTranslation();
   return (
     <header
@@ -53,12 +48,8 @@ export function BackOfficeHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => i18n.changeLanguage("en")}>
-              English
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => i18n.changeLanguage("fr")}>
-              Français
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => i18n.changeLanguage('en')}>English</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => i18n.changeLanguage('fr')}>Français</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

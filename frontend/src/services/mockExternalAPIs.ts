@@ -10,7 +10,7 @@ export interface APIResponse<T> {
   responseTime: number;
 }
 
-export type Translatable = string | { key: string; params?: Record<string, any> };
+export type Translatable = string | { key: string; params?: Record<string, string | number> };
 
 export interface InsuranceResult {
   status: APIStatus;

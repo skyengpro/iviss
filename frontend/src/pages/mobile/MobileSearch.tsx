@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { PlateInput } from "@/components/vehicle/PlateInput";
-import { Button } from "@/components/ui/button";
-import { Camera, History } from "lucide-react";
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { PlateInput } from '@/components/vehicle/PlateInput';
+import { Button } from '@/components/ui/button';
+import { Camera, History } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { mockControlService } from '@/services/mockControls';
 
 export default function MobileSearch() {
@@ -18,15 +18,18 @@ export default function MobileSearch() {
   const [plateNumber, setPlateNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSearch = useCallback(async (plate?: string) => {
-    const searchPlate = plate || plateNumber;
-    if (searchPlate.length < 4) return;
+  const handleSearch = useCallback(
+    async (plate?: string) => {
+      const searchPlate = plate || plateNumber;
+      if (searchPlate.length < 4) return;
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    // Navigate to result page
-    navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
-  }, [navigate, plateNumber]);
+      // Navigate to result page
+      navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
+    },
+    [navigate, plateNumber]
+  );
 
   // Fetch recent controls for the agent to show as "recent searches"
   const { data: recentControls = [] } = useQuery({
@@ -94,7 +97,9 @@ export default function MobileSearch() {
                   <span className="font-mono font-semibold tracking-wider">
                     {control.plateNumber}
                   </span>
-                  <span className="text-xs text-muted-foreground">{t('mobileSearch.tapToSearch')}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('mobileSearch.tapToSearch')}
+                  </span>
                 </button>
               ))
             ) : (
@@ -107,9 +112,7 @@ export default function MobileSearch() {
 
         {/* Help text */}
         <div className="rounded-lg bg-muted/50 p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            {t('mobileSearch.helpText')}
-          </p>
+          <p className="text-sm text-muted-foreground">{t('mobileSearch.helpText')}</p>
         </div>
       </div>
     </MobileLayout>

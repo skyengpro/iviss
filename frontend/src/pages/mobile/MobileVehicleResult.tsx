@@ -1,11 +1,11 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { Clock, ArrowLeft } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { mockVehicleService, Vehicle } from "@/services/mockVehicles";
-import { mockExternalAPIService } from "@/services/mockExternalAPIs";
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { Clock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
+import { mockVehicleService, Vehicle } from '@/services/mockVehicles';
+import { mockExternalAPIService } from '@/services/mockExternalAPIs';
 
 import { useLogControl } from '@/hooks/useLogControl';
 import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';

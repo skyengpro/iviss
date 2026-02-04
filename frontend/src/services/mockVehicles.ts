@@ -169,7 +169,7 @@ const mockVehicles: Vehicle[] = [
 ];
 
 // Pending vehicle submissions (from agents in the field)
-import { Translatable } from "./mockControls";
+import { Translatable } from './mockControls';
 
 export interface PendingVehicle {
   id: string;

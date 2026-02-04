@@ -1,9 +1,9 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { DetectedPlate } from "@/hooks/usePlateScanner";
-import { useTranslation } from "react-i18next";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { DetectedPlate } from '@/hooks/usePlateScanner';
+import { useTranslation } from 'react-i18next';
 
 interface ScanResultCardProps {
   detectedPlate: DetectedPlate;

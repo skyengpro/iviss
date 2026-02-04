@@ -1,9 +1,9 @@
-import { useTranslation } from "react-i18next";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from 'react-i18next';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ClipboardCheck,
   AlertTriangle,
@@ -16,9 +16,9 @@ import {
 } from 'lucide-react';
 
 // Mock data for charts and lists
-import { useQuery } from "@tanstack/react-query";
-import { mockControlService, Translatable } from "@/services/mockControls";
-import { mockAuthService } from "@/services/mockAuth";
+import { useQuery } from '@tanstack/react-query';
+import { mockControlService, Translatable } from '@/services/mockControls';
+import { mockAuthService } from '@/services/mockAuth';
 
 export default function BackOfficeDashboard() {
   const { t } = useTranslation();
@@ -60,28 +60,28 @@ export default function BackOfficeDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title={t('backOfficeDashboard.todayControls')}
-            value={stats?.todayControls.toString() || "0"}
+            value={stats?.todayControls.toString() || '0'}
             subtitle={t('backOfficeDashboard.totalControlsProcessed')}
             icon={ClipboardCheck}
             variant="gradient"
           />
           <StatCard
             title={t('backOfficeDashboard.activeAlerts')}
-            value={stats?.activeAlerts.toString() || "0"}
+            value={stats?.activeAlerts.toString() || '0'}
             subtitle={t('backOfficeDashboard.requiresImmediateAction')}
             icon={AlertTriangle}
             variant="critical"
           />
           <StatCard
             title={t('backOfficeDashboard.vehiclesScanned')}
-            value={stats?.totalVehicles.toString() || "0"}
+            value={stats?.totalVehicles.toString() || '0'}
             subtitle={t('backOfficeDashboard.historicalScannedVolume')}
             icon={Car}
             variant="default"
           />
           <StatCard
             title={t('backOfficeDashboard.onlineAgents')}
-            value={users.filter(u => u.isActive).length.toString()}
+            value={users.filter((u) => u.isActive).length.toString()}
             subtitle={t('backOfficeDashboard.currentlyActive')}
             icon={Users}
             variant="warning"
@@ -99,7 +99,9 @@ export default function BackOfficeDashboard() {
               </CardTitle>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-status-valid" />
-                <span className="text-sm text-muted-foreground">{t('backOfficeDashboard.live')}</span>
+                <span className="text-sm text-muted-foreground">
+                  {t('backOfficeDashboard.live')}
+                </span>
               </div>
             </CardHeader>
             <CardContent>
@@ -224,10 +226,34 @@ export default function BackOfficeDashboard() {
           <CardContent>
             <div className="space-y-3">
               {[
-                { agent: "Agent Dupont", action: t('backOfficeDashboard.controlCompleted'), plate: "AB-123-CD", status: "valid", time: t('backOfficeDashboard.justNow') },
-                { agent: "Agent Martin", action: t('backOfficeDashboard.alertTriggered'), plate: "XY-789-ZW", status: "warning", time: t('backOfficeDashboard.minutesAgo', { count: 2 }) },
-                { agent: "Agent Bernard", action: t('backOfficeDashboard.vehicleFlagged'), plate: "EF-456-GH", status: "critical", time: t('backOfficeDashboard.minutesAgo', { count: 5 }) },
-                { agent: "Agent Leroy", action: t('backOfficeDashboard.controlCompleted'), plate: "JK-321-LM", status: "valid", time: t('backOfficeDashboard.minutesAgo', { count: 8 }) },
+                {
+                  agent: 'Agent Dupont',
+                  action: t('backOfficeDashboard.controlCompleted'),
+                  plate: 'AB-123-CD',
+                  status: 'valid',
+                  time: t('backOfficeDashboard.justNow'),
+                },
+                {
+                  agent: 'Agent Martin',
+                  action: t('backOfficeDashboard.alertTriggered'),
+                  plate: 'XY-789-ZW',
+                  status: 'warning',
+                  time: t('backOfficeDashboard.minutesAgo', { count: 2 }),
+                },
+                {
+                  agent: 'Agent Bernard',
+                  action: t('backOfficeDashboard.vehicleFlagged'),
+                  plate: 'EF-456-GH',
+                  status: 'critical',
+                  time: t('backOfficeDashboard.minutesAgo', { count: 5 }),
+                },
+                {
+                  agent: 'Agent Leroy',
+                  action: t('backOfficeDashboard.controlCompleted'),
+                  plate: 'JK-321-LM',
+                  status: 'valid',
+                  time: t('backOfficeDashboard.minutesAgo', { count: 8 }),
+                },
               ].map((item, index) => (
                 <div key={index} className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
                   <div

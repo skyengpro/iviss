@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { 
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import {
   CheckCircle,
   XCircle,
   FileText,
@@ -12,10 +12,10 @@ import {
   MapPin,
   Clock,
   Eye,
-  AlertCircle
-} from "lucide-react";
-import { mockVehicleService, PendingVehicle, Translatable } from "@/services/mockVehicles";
-import { toast } from "@/hooks/use-toast";
+  AlertCircle,
+} from 'lucide-react';
+import { mockVehicleService, PendingVehicle, Translatable } from '@/services/mockVehicles';
+import { toast } from '@/hooks/use-toast';
 
 export default function PendingVehicles() {
   const { t } = useTranslation();
@@ -46,10 +46,14 @@ export default function PendingVehicles() {
       await mockVehicleService.reviewPendingVehicle(id, decision);
 
       toast({
-        title: t(decision === 'approved' ? 'backOfficePendingVehicles.toastVehicleApproved' : 'backOfficePendingVehicles.toastVehicleRejected'),
-        description: t('backOfficePendingVehicles.toastVehicleProcessed', { 
-        decision: t(`backOfficePendingVehicles.${decision}`) 
-      }),
+        title: t(
+          decision === 'approved'
+            ? 'backOfficePendingVehicles.toastVehicleApproved'
+            : 'backOfficePendingVehicles.toastVehicleRejected'
+        ),
+        description: t('backOfficePendingVehicles.toastVehicleProcessed', {
+          decision: t(`backOfficePendingVehicles.${decision}`),
+        }),
       });
 
       // Remove from list
@@ -70,7 +74,7 @@ export default function PendingVehicles() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
+
     if (diffHours < 1) return t('backOfficePendingVehicles.lessThanHourAgo');
     if (diffHours < 24) return t('backOfficePendingVehicles.hoursAgo', { count: diffHours });
     return date.toLocaleDateString();
@@ -175,21 +179,27 @@ export default function PendingVehicles() {
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">{t('backOfficePendingVehicles.submittedBy')}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('backOfficePendingVehicles.submittedBy')}
+                      </p>
                       <p className="font-medium">{selectedVehicle.submittedBy}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">{t('backOfficePendingVehicles.submittedAt')}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('backOfficePendingVehicles.submittedAt')}
+                      </p>
                       <p className="font-medium">{selectedVehicle.submittedAt.toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 sm:col-span-2">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">{t('backOfficePendingVehicles.location')}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('backOfficePendingVehicles.location')}
+                      </p>
                       <p className="font-medium">{selectedVehicle.location}</p>
                     </div>
                   </div>
@@ -197,7 +207,9 @@ export default function PendingVehicles() {
 
                 {/* Documents */}
                 <div>
-                  <h4 className="text-sm font-semibold mb-3">{t('backOfficePendingVehicles.capturedDocuments')}</h4>
+                  <h4 className="text-sm font-semibold mb-3">
+                    {t('backOfficePendingVehicles.capturedDocuments')}
+                  </h4>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="rounded-lg border border-border overflow-hidden">
                       <div className="bg-muted px-3 py-2 text-sm font-medium">
@@ -233,7 +245,9 @@ export default function PendingVehicles() {
                 {/* Notes */}
                 {selectedVehicle.notes && (
                   <div>
-                    <h4 className="text-sm font-semibold mb-2">{t('backOfficePendingVehicles.agentNotes')}</h4>
+                    <h4 className="text-sm font-semibold mb-2">
+                      {t('backOfficePendingVehicles.agentNotes')}
+                    </h4>
                     <p className="text-muted-foreground rounded-lg bg-muted/50 p-3">
                       {renderNotes(selectedVehicle.notes)}
                     </p>

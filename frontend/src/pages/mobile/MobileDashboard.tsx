@@ -1,7 +1,7 @@
-import { useTranslation } from "react-i18next";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { useTranslation } from 'react-i18next';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   Camera,
   Keyboard,
@@ -10,12 +10,12 @@ import {
   AlertTriangle,
   ArrowRight,
   MapPin,
-  Clock
-} from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockControlService } from "@/services/mockControls";
+  Clock,
+} from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
+import { mockControlService } from '@/services/mockControls';
 
 export default function MobileDashboard() {
   const { user } = useAuth();
@@ -95,14 +95,14 @@ export default function MobileDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               title={t('mobileDashboard.controls')}
-              value={isLoading ? "-" : String(stats?.today || 0)}
+              value={isLoading ? '-' : String(stats?.today || 0)}
               subtitle={t('mobileDashboard.today')}
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
               title={t('mobileDashboard.alerts')}
-              value={isLoading ? "-" : String(stats?.alerts || 0)}
+              value={isLoading ? '-' : String(stats?.alerts || 0)}
               subtitle={t('mobileDashboard.flaggedVehicles')}
               icon={AlertTriangle}
               variant={(stats?.alerts || 0) > 0 ? 'critical' : 'default'}
@@ -122,7 +122,9 @@ export default function MobileDashboard() {
                 <p className="text-xs text-muted-foreground">{t('mobileDashboard.gpsActive')}</p>
               </div>
             </div>
-            <StatusBadge variant="valid" size="sm">{t('mobileDashboard.online')}</StatusBadge>
+            <StatusBadge variant="valid" size="sm">
+              {t('mobileDashboard.online')}
+            </StatusBadge>
           </div>
           <div className="mt-3 rounded-lg bg-muted p-3">
             <p className="text-sm font-medium">Highway A1, KM 42</p>
@@ -188,10 +190,11 @@ function QuickActionButton({
   return (
     <Link to={href}>
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${primary
+        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
+          primary
             ? 'bg-accent text-accent-foreground shadow-lg'
             : 'bg-card border border-border hover:bg-muted'
-          }`}
+        }`}
       >
         <Icon className="h-6 w-6" />
         <span className="text-xs font-medium">{label}</span>
@@ -213,12 +216,13 @@ function RecentControlItem({
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 rounded-full ${status === 'valid'
+          className={`h-2 w-2 rounded-full ${
+            status === 'valid'
               ? 'bg-status-valid'
               : status === 'warning'
                 ? 'bg-status-warning'
                 : 'bg-status-critical'
-            }`}
+          }`}
         />
         <div>
           <p className="font-mono font-semibold tracking-wider">{plate}</p>

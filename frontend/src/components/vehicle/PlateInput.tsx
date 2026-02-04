@@ -1,8 +1,8 @@
-import { useTranslation } from "react-i18next";
-import { useState, useRef } from "react";
-import { Search, X, Keyboard } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useTranslation } from 'react-i18next';
+import { useState, useRef } from 'react';
+import { Search, X, Keyboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface PlateInputProps {
   value: string;
@@ -19,7 +19,7 @@ export function PlateInput({
   onSubmit,
   isLoading,
   className,
-  placeholder = "Enter plate number",
+  placeholder = 'Enter plate number',
 }: Readonly<PlateInputProps>) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);

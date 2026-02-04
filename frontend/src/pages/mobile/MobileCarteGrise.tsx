@@ -1,19 +1,13 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Camera, 
-  ArrowLeft, 
-  CheckCircle,
-  Upload,
-  FileText
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockVehicleService } from "@/services/mockVehicles";
-import { toast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Camera, ArrowLeft, CheckCircle, Upload, FileText } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { mockVehicleService } from '@/services/mockVehicles';
+import { toast } from '@/hooks/use-toast';
 
 type CaptureStep = 'front' | 'back' | 'review' | 'submitted';
 
@@ -68,7 +62,7 @@ export default function MobileCarteGrise() {
       toast({
         title: t('mobileCarteGrise.toastErrorTitle'),
         description: t('mobileCarteGrise.toastErrorDescription'),
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -87,7 +81,10 @@ export default function MobileCarteGrise() {
             {t('mobileCarteGrise.submissionMessage', { plateNumber })}
           </p>
           <p className="mt-4 text-sm text-muted-foreground">
-            {t('mobileCarteGrise.status')} <span className="text-status-pending font-medium">{t('mobileCarteGrise.pendingValidation')}</span>
+            {t('mobileCarteGrise.status')}{' '}
+            <span className="text-status-pending font-medium">
+              {t('mobileCarteGrise.pendingValidation')}
+            </span>
           </p>
 
           <div className="mt-8 w-full space-y-2">
@@ -97,11 +94,7 @@ export default function MobileCarteGrise() {
             >
               {t('mobileCarteGrise.returnToDashboard')}
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => navigate('/mobile/search')}
-            >
+            <Button variant="outline" className="w-full" onClick={() => navigate('/mobile/search')}>
               {t('mobileCarteGrise.newSearch')}
             </Button>
           </div>
@@ -127,31 +120,33 @@ export default function MobileCarteGrise() {
 
         {/* Header */}
         <div className="rounded-xl bg-muted p-4">
-          <p className="text-sm text-muted-foreground">{t('mobileCarteGrise.registeringVehicle')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('mobileCarteGrise.registeringVehicle')}
+          </p>
           <p className="text-lg font-mono font-bold tracking-widest">{plateNumber}</p>
         </div>
 
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2">
-          <StepIndicator 
-            number={1} 
-            label={t('mobileCarteGrise.stepFront')} 
-            active={step === 'front'} 
-            completed={frontImage !== null} 
+          <StepIndicator
+            number={1}
+            label={t('mobileCarteGrise.stepFront')}
+            active={step === 'front'}
+            completed={frontImage !== null}
           />
           <div className="w-8 h-0.5 bg-border" />
-          <StepIndicator 
-            number={2} 
-            label={t('mobileCarteGrise.stepBack')} 
-            active={step === 'back'} 
-            completed={backImage !== null} 
+          <StepIndicator
+            number={2}
+            label={t('mobileCarteGrise.stepBack')}
+            active={step === 'back'}
+            completed={backImage !== null}
           />
           <div className="w-8 h-0.5 bg-border" />
-          <StepIndicator 
-            number={3} 
-            label={t('mobileCarteGrise.stepReview')} 
-            active={step === 'review'} 
-            completed={false} 
+          <StepIndicator
+            number={3}
+            label={t('mobileCarteGrise.stepReview')}
+            active={step === 'review'}
+            completed={false}
           />
         </div>
 
@@ -179,13 +174,17 @@ export default function MobileCarteGrise() {
             <h2 className="text-lg font-semibold">{t('mobileCarteGrise.reviewSubmission')}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg border border-border overflow-hidden">
-                <div className="bg-muted p-2 text-center text-xs font-medium">{t('mobileCarteGrise.stepFront')}</div>
+                <div className="bg-muted p-2 text-center text-xs font-medium">
+                  {t('mobileCarteGrise.stepFront')}
+                </div>
                 <div className="aspect-[3/4] bg-muted flex items-center justify-center">
                   <FileText className="h-12 w-12 text-muted-foreground/50" />
                 </div>
               </div>
               <div className="rounded-lg border border-border overflow-hidden">
-                <div className="bg-muted p-2 text-center text-xs font-medium">{t('mobileCarteGrise.stepBack')}</div>
+                <div className="bg-muted p-2 text-center text-xs font-medium">
+                  {t('mobileCarteGrise.stepBack')}
+                </div>
                 <div className="aspect-[3/4] bg-muted flex items-center justify-center">
                   <FileText className="h-12 w-12 text-muted-foreground/50" />
                 </div>

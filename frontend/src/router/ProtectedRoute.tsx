@@ -1,5 +1,6 @@
 import React from 'react';
-import { RequireAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
+import { RequireAuth } from '@/router/RequireAuth';
 import { UserRole } from '@/services/mockAuth';
 
 interface ProtectedRouteProps {

@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 export function BackOfficeSidebar() {
   const { t } = useTranslation();
@@ -28,17 +28,29 @@ export function BackOfficeSidebar() {
   const { logout } = useAuth();
 
   const mainNavItems = [
-    { href: "/backoffice", icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
-    { href: "/backoffice/controls", icon: ClipboardList, label: t('backOfficeSidebar.controlHistory') },
-    { href: "/backoffice/vehicles", icon: Car, label: t('backOfficeSidebar.vehicleDatabase') },
-    { href: "/backoffice/validation", icon: FileSearch, label: t('backOfficeSidebar.pendingValidation') },
+    { href: '/backoffice', icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
+    {
+      href: '/backoffice/controls',
+      icon: ClipboardList,
+      label: t('backOfficeSidebar.controlHistory'),
+    },
+    { href: '/backoffice/vehicles', icon: Car, label: t('backOfficeSidebar.vehicleDatabase') },
+    {
+      href: '/backoffice/validation',
+      icon: FileSearch,
+      label: t('backOfficeSidebar.pendingValidation'),
+    },
   ];
 
   const adminNavItems = [
-    { href: "/backoffice/users", icon: Users, label: t('backOfficeSidebar.userManagement') },
-    { href: "/backoffice/organizations", icon: Building2, label: t('backOfficeSidebar.organizations') },
-    { href: "/backoffice/audit", icon: Shield, label: t('backOfficeSidebar.auditLogs') },
-    { href: "/backoffice/settings", icon: Settings, label: t('backOfficeSidebar.settings') },
+    { href: '/backoffice/users', icon: Users, label: t('backOfficeSidebar.userManagement') },
+    {
+      href: '/backoffice/organizations',
+      icon: Building2,
+      label: t('backOfficeSidebar.organizations'),
+    },
+    { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
+    { href: '/backoffice/settings', icon: Settings, label: t('backOfficeSidebar.settings') },
   ];
 
   const handleLogout = async () => {
@@ -114,7 +126,9 @@ export function BackOfficeSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-medium">{t('backOfficeSidebar.adminUser')}</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">{t('backOfficeSidebar.superAdmin')}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">
+              {t('backOfficeSidebar.superAdmin')}
+            </p>
           </div>
         </div>
         <div className="mt-3 flex gap-2">
