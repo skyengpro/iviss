@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Flashlight, SwitchCamera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface ScanTopControlsProps {
     onClose: () => void;
@@ -23,6 +24,7 @@ export const ScanTopControls: React.FC<ScanTopControlsProps> = ({
     useDemoData,
     onToggleDemoData,
 }) => {
+    const { t } = useTranslation();
     return (
         <div className="absolute left-0 right-0 top-0 flex items-center justify-between p-4 z-20">
             <Button
@@ -37,7 +39,7 @@ export const ScanTopControls: React.FC<ScanTopControlsProps> = ({
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-sm">
                     <Label htmlFor="demo-mode" className="text-[10px] font-bold text-white uppercase tracking-wider cursor-pointer">
-                        Demo Data
+                        {t('mobileScan.demoData')}
                     </Label>
                     <Switch
                         id="demo-mode"

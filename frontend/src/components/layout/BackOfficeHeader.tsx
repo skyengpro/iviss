@@ -1,7 +1,14 @@
-import { Bell, Search, ChevronDown } from "lucide-react";
+import { Bell, Search, ChevronDown, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface BackOfficeHeaderProps {
   title?: string;
@@ -16,6 +23,7 @@ export function BackOfficeHeader({
   actions,
   className,
 }: BackOfficeHeaderProps) {
+  const { t, i18n } = useTranslation();
   return (
     <header
       className={cn(
@@ -44,6 +52,23 @@ export function BackOfficeHeader({
           />
         </div>
 
+        {/* Language Switcher */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Globe className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => i18n.changeLanguage("en")}>
+              English
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => i18n.changeLanguage("fr")}>
+              Français
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -55,7 +80,7 @@ export function BackOfficeHeader({
 
         {/* Organization selector */}
         <Button variant="outline" className="hidden md:flex gap-2">
-          <span className="max-w-32 truncate">National Police HQ</span>
+          <span className="max-w-32 truncate">{t('backOfficeHeader.nationalPoliceHQ')}</span>
           <ChevronDown className="h-4 w-4" />
         </Button>
       </div>

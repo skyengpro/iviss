@@ -1,6 +1,13 @@
-import { Menu, Bell, User, Shield } from "lucide-react";
+import { Menu, Bell, User, Shield, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -8,7 +15,13 @@ interface MobileHeaderProps {
   className?: string;
 }
 
-export function MobileHeader({ onMenuClick, title = "IVISS", className }: MobileHeaderProps) {
+export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileHeaderProps>) {
+  const { t, i18n } = useTranslation();
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
+
   return (
     <header
       className={cn(
@@ -33,12 +46,28 @@ export function MobileHeader({ onMenuClick, title = "IVISS", className }: Mobile
             <Shield className="h-5 w-5 text-accent-foreground" />
           </div>
           <span className="text-lg font-bold text-primary-foreground tracking-wide">
-            {title}
+            {title ? t(title) : "IVISS"}
           </span>
         </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="touch-target text-primary-foreground hover:bg-white/10"
+              >
+                <Globe className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => changeLanguage('en')}>English</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => changeLanguage('fr')}>Français</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             variant="ghost"
             size="icon"

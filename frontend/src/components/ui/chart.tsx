@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -20,10 +21,11 @@ type ChartContextProps = {
 const ChartContext = React.createContext<ChartContextProps | null>(null);
 
 function useChart() {
+  const { t } = useTranslation();
   const context = React.useContext(ChartContext);
 
   if (!context) {
-    throw new Error("useChart must be used within a <ChartContainer />");
+    throw new Error(t("errors.useChart"));
   }
 
   return context;

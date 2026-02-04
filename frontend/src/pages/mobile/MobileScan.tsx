@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
-
+import { useTranslation } from "react-i18next";
 import { usePlateScanner, DetectedPlate } from "@/hooks/usePlateScanner";
 import { ScanViewfinder } from "@/components/mobile/scan/ScanViewfinder";
 import { ScanTopControls } from "@/components/mobile/scan/ScanTopControls";
@@ -15,6 +15,7 @@ type ScanMode = "photo" | "live";
 export default function MobileScan() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const initialMode = (searchParams.get("mode") as ScanMode) || "photo";
 
   const [mode, setMode] = useState<ScanMode>(initialMode);
@@ -56,21 +57,22 @@ export default function MobileScan() {
           const detection: DetectedPlate = {
             plateNumber: result.plateNumber,
             confidence: result.confidence,
-            status: (result as any).status || 'valid',
+            status: result.status || 'valid',
           };
           setDetectedPlate(detection);
           setEditedPlate(result.plateNumber);
         } else {
           setDetectedPlate({
-            plateNumber: "NO PLATE DETECTED",
+            plateNumber: t('mobileScan.noPlateDetected'),
             confidence: 0,
             status: 'warning'
           });
           setEditedPlate("");
         }
-      } catch (e) {
+      } catch (e: unknown) {
+        console.error("Error during plate capture:", e);
         setDetectedPlate({
-          plateNumber: "OCR ERROR",
+          plateNumber: t('mobileScan.ocrError'),
           confidence: 0,
           status: 'warning'
         });
@@ -109,7 +111,7 @@ export default function MobileScan() {
   };
 
   return (
-    <MobileLayout title="Scan Plate" hideNavigation>
+    <MobileLayout title={t('mobileScan.title')} hideNavigation>
       <div className="relative flex h-[calc(100dvh-4rem)] flex-col bg-black overflow-hidden">
 
         <ScanViewfinder

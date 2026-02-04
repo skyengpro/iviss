@@ -12,7 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "frontend/src/*"
+        "src/*"
       ]
     },
     "noImplicitAny": false,

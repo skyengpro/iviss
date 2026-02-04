@@ -1,43 +1,42 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AlertCircle, CheckCircle, AlertTriangle, Clock } from "lucide-react";
-import { AggregatedVehicleStatus } from "@/services/mockExternalAPIs";
+import { AggregatedVehicleStatus, Translatable } from "@/services/mockExternalAPIs";
 
 interface VehicleStatusGridProps {
     apiStatus: AggregatedVehicleStatus;
 }
 
 export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus }) => {
+    const { t } = useTranslation();
     return (
         <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Legal Status
+                {t('vehicleResult.legalStatus')}
             </h3>
 
             <StatusCard
-                title="Insurance"
+                title={t('vehicleResult.insurance')}
                 status={apiStatus.insurance.status}
                 provider={apiStatus.insurance.provider}
                 expiryDate={apiStatus.insurance.expiryDate}
                 notes={apiStatus.insurance.notes}
             />
-
             <StatusCard
-                title="Technical Inspection"
+                title={t('vehicleResult.technicalInspection')}
                 status={apiStatus.technicalInspection.status}
                 expiryDate={apiStatus.technicalInspection.expiryDate}
                 notes={apiStatus.technicalInspection.notes}
             />
-
             <StatusCard
-                title="Wanted Status"
+                title={t('vehicleResult.wantedStatus')}
                 status={apiStatus.police.status}
                 notes={apiStatus.police.notes}
                 isAlert={apiStatus.police.isWanted || apiStatus.police.isStolen}
             />
-
             <StatusCard
-                title="Customs Clearance"
+                title={t('vehicleResult.customsClearance')}
                 status={apiStatus.customs.status}
                 notes={apiStatus.customs.notes}
             />
@@ -57,9 +56,19 @@ function StatusCard({
     status: 'valid' | 'warning' | 'critical' | 'unknown';
     provider?: string;
     expiryDate?: string;
-    notes?: string;
+    notes?: Translatable;
     isAlert?: boolean;
 }) {
+    const { t } = useTranslation();
+
+    const renderNotes = () => {
+        if (!notes) return null;
+        if (typeof notes === 'string') {
+            return notes;
+        }
+        return t(notes.key, notes.params) as string;
+    };
+
     const getStatusIcon = () => {
         switch (status) {
             case 'valid':
@@ -105,16 +114,16 @@ function StatusCard({
                     <div>
                         <p className="font-semibold">{title}</p>
                         {provider && <p className="text-sm text-muted-foreground">{provider}</p>}
-                        {expiryDate && <p className="text-sm text-muted-foreground">Expires: {expiryDate}</p>}
+                        {expiryDate && <p className="text-sm text-muted-foreground">{t('vehicleResult.expires', { date: expiryDate })}</p>}
                     </div>
                 </div>
                 <StatusBadge variant={status === 'unknown' ? 'pending' : status} size="sm">
-                    {status.toUpperCase()}
+                    {t(`mobileHistory.${status}`)}
                 </StatusBadge>
             </div>
             {notes && (
                 <p className={`mt-2 text-sm ${status === 'critical' ? 'text-status-critical font-medium' : 'text-muted-foreground'}`}>
-                    {notes}
+                    {renderNotes()}
                 </p>
             )}
         </div>

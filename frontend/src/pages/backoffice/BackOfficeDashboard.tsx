@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -16,10 +17,11 @@ import {
 
 // Mock data for charts and lists
 import { useQuery } from "@tanstack/react-query";
-import { mockControlService } from "@/services/mockControls";
+import { mockControlService, Translatable } from "@/services/mockControls";
 import { mockAuthService } from "@/services/mockAuth";
 
 export default function BackOfficeDashboard() {
+  const { t } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => mockControlService.getStats()
@@ -34,14 +36,22 @@ export default function BackOfficeDashboard() {
     queryKey: ['users'],
     queryFn: () => mockAuthService.getAllUsers()
   });
+
+  const renderNotes = (notes: Translatable) => {
+    if (!notes) return null;
+    if (typeof notes === 'string') {
+      return notes;
+    }
+    return t(notes.key, notes.params);
+  };
   return (
     <BackOfficeLayout
-      title="Dashboard"
-      subtitle="Overview of control activities"
+      title={t('backOfficeDashboard.title')}
+      subtitle={t('backOfficeDashboard.subtitle')}
       actions={
         <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
           <TrendingUp className="h-4 w-4" />
-          Generate Report
+          {t('backOfficeDashboard.generateReport')}
         </Button>
       }
     >
@@ -49,30 +59,30 @@ export default function BackOfficeDashboard() {
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            title="Today's Controls"
+            title={t('backOfficeDashboard.todayControls')}
             value={stats?.todayControls.toString() || "0"}
-            subtitle="Total controls processed"
+            subtitle={t('backOfficeDashboard.totalControlsProcessed')}
             icon={ClipboardCheck}
             variant="gradient"
           />
           <StatCard
-            title="Active Alerts"
+            title={t('backOfficeDashboard.activeAlerts')}
             value={stats?.activeAlerts.toString() || "0"}
-            subtitle="Requires immediate action"
+            subtitle={t('backOfficeDashboard.requiresImmediateAction')}
             icon={AlertTriangle}
             variant="critical"
           />
           <StatCard
-            title="Vehicles Scanned"
+            title={t('backOfficeDashboard.vehiclesScanned')}
             value={stats?.totalVehicles.toString() || "0"}
-            subtitle="Historical scanned volume"
+            subtitle={t('backOfficeDashboard.historicalScannedVolume')}
             icon={Car}
             variant="default"
           />
           <StatCard
-            title="Online Agents"
+            title={t('backOfficeDashboard.onlineAgents')}
             value={users.filter(u => u.isActive).length.toString()}
-            subtitle="Currently active"
+            subtitle={t('backOfficeDashboard.currentlyActive')}
             icon={Users}
             variant="warning"
           />
@@ -85,11 +95,11 @@ export default function BackOfficeDashboard() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-accent" />
-                Live Control Map
+                {t('backOfficeDashboard.liveControlMap')}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-status-valid" />
-                <span className="text-sm text-muted-foreground">Live</span>
+                <span className="text-sm text-muted-foreground">{t('backOfficeDashboard.live')}</span>
               </div>
             </CardHeader>
             <CardContent>
@@ -97,10 +107,10 @@ export default function BackOfficeDashboard() {
                 <div className="text-center">
                   <MapPin className="mx-auto h-12 w-12 text-muted-foreground/50" />
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Interactive map showing live control positions
+                    {t('backOfficeDashboard.mapPlaceholder')}
                   </p>
                   <Button variant="outline" className="mt-4">
-                    Enable Live View
+                    {t('backOfficeDashboard.enableLiveView')}
                   </Button>
                 </div>
               </div>
@@ -112,10 +122,10 @@ export default function BackOfficeDashboard() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-status-critical" />
-                Recent Alerts
+                {t('backOfficeDashboard.recentAlerts')}
               </CardTitle>
               <Button variant="ghost" size="sm" className="gap-1">
-                View all <ArrowUpRight className="h-3 w-3" />
+                {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -135,7 +145,7 @@ export default function BackOfficeDashboard() {
                       </span>
                     </div>
                     <p className="mt-0.5 text-sm font-medium text-status-critical">
-                      {alert.notes || 'Critical Alert'}
+                      {renderNotes(alert.notes) || t('backOfficeDashboard.criticalAlert')}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {alert.location.address} • {alert.agentName}
@@ -152,14 +162,14 @@ export default function BackOfficeDashboard() {
           {/* Activity Chart Placeholder */}
           <Card>
             <CardHeader>
-              <CardTitle>Control Activity (24h)</CardTitle>
+              <CardTitle>{t('backOfficeDashboard.controlActivity24h')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex h-[200px] items-center justify-center rounded-lg bg-muted">
                 <div className="text-center">
                   <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground/50" />
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Activity chart visualization
+                    {t('backOfficeDashboard.activityChartPlaceholder')}
                   </p>
                 </div>
               </div>
@@ -169,9 +179,9 @@ export default function BackOfficeDashboard() {
           {/* Top Performing Agents */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Top Agents Today</CardTitle>
+              <CardTitle>{t('backOfficeDashboard.topAgentsToday')}</CardTitle>
               <Button variant="ghost" size="sm" className="gap-1">
-                View all <ArrowUpRight className="h-3 w-3" />
+                {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
               </Button>
             </CardHeader>
             <CardContent>
@@ -192,7 +202,7 @@ export default function BackOfficeDashboard() {
                     </div>
                     {user.isActive && (
                       <StatusBadge variant="valid" size="sm">
-                        Online
+                        {t('backOfficeDashboard.online')}
                       </StatusBadge>
                     )}
                   </div>
@@ -207,22 +217,22 @@ export default function BackOfficeDashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-accent" />
-              Real-time Activity Feed
+              {t('backOfficeDashboard.realTimeActivityFeed')}
             </CardTitle>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-status-valid" />
               <span className="text-sm text-muted-foreground">
-                Auto-updating
+                {t('backOfficeDashboard.autoUpdating')}
               </span>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {[
-                { agent: "Agent Dupont", action: "Control completed", plate: "AB-123-CD", status: "valid", time: "Just now" },
-                { agent: "Agent Martin", action: "Alert triggered", plate: "XY-789-ZW", status: "warning", time: "2 min ago" },
-                { agent: "Agent Bernard", action: "Vehicle flagged", plate: "EF-456-GH", status: "critical", time: "5 min ago" },
-                { agent: "Agent Leroy", action: "Control completed", plate: "JK-321-LM", status: "valid", time: "8 min ago" },
+                { agent: "Agent Dupont", action: t('backOfficeDashboard.controlCompleted'), plate: "AB-123-CD", status: "valid", time: t('backOfficeDashboard.justNow') },
+                { agent: "Agent Martin", action: t('backOfficeDashboard.alertTriggered'), plate: "XY-789-ZW", status: "warning", time: t('backOfficeDashboard.minutesAgo', { count: 2 }) },
+                { agent: "Agent Bernard", action: t('backOfficeDashboard.vehicleFlagged'), plate: "EF-456-GH", status: "critical", time: t('backOfficeDashboard.minutesAgo', { count: 5 }) },
+                { agent: "Agent Leroy", action: t('backOfficeDashboard.controlCompleted'), plate: "JK-321-LM", status: "valid", time: t('backOfficeDashboard.minutesAgo', { count: 8 }) },
               ].map((item, index) => (
                 <div
                   key={index}

@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
 import {
   Camera,
   Keyboard,
@@ -13,13 +12,14 @@ import {
   MapPin,
   Clock
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockControlService, ControlRecord } from "@/services/mockControls";
+import { mockControlService } from "@/services/mockControls";
 
 export default function MobileDashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['mobile-stats', user?.organizationId],
@@ -38,24 +38,24 @@ export default function MobileDashboard() {
   const formatTimeAgo = (date: Date) => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
+    const diffMins = Math.round(diffMs / 60000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffMins < 1) return t('mobileDashboard.justNow');
+    if (diffMins < 60) return t('mobileDashboard.minutesAgo', { count: diffMins });
 
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    const diffHours = Math.round(diffMins / 60);
+    if (diffHours < 24) return t('mobileDashboard.hoursAgo', { count: diffHours });
 
     return date.toLocaleDateString();
   };
 
   return (
-    <MobileLayout title="IVISS">
+    <MobileLayout title="titles.dashboard">
       <div className="p-4 space-y-6">
         {/* Welcome message */}
         {user && (
           <div className="rounded-xl bg-gradient-to-r from-primary to-primary/80 p-4 text-primary-foreground">
-            <p className="text-sm opacity-80">Welcome back,</p>
+            <p className="text-sm opacity-80">{t('mobileDashboard.welcome')}</p>
             <p className="text-lg font-semibold">{user.name}</p>
             <p className="text-xs opacity-70 mt-1">{user.organization}</p>
           </div>
@@ -64,23 +64,23 @@ export default function MobileDashboard() {
         {/* Quick Actions */}
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            New Control
+            {t('mobileDashboard.newControl')}
           </h2>
           <div className="grid grid-cols-3 gap-3">
             <QuickActionButton
               icon={Keyboard}
-              label="Manual Entry"
+              label={t('mobileDashboard.manualEntry')}
               href="/mobile/search"
             />
             <QuickActionButton
               icon={Camera}
-              label="Photo Scan"
+              label={t('mobileDashboard.photoScan')}
               href="/mobile/scan?mode=photo"
               primary
             />
             <QuickActionButton
               icon={Radio}
-              label="Live Scan"
+              label={t('mobileDashboard.liveScan')}
               href="/mobile/scan?mode=live"
             />
           </div>
@@ -89,20 +89,20 @@ export default function MobileDashboard() {
         {/* Today's Stats */}
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Today's Activity
+            {t('mobileDashboard.todaysActivity')}
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <StatCard
-              title="Controls"
+              title={t('mobileDashboard.controls')}
               value={isLoading ? "-" : String(stats?.today || 0)}
-              subtitle="Today"
+              subtitle={t('mobileDashboard.today')}
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
-              title="Alerts"
+              title={t('mobileDashboard.alerts')}
               value={isLoading ? "-" : String(stats?.alerts || 0)}
-              subtitle="Flagged vehicles"
+              subtitle={t('mobileDashboard.flaggedVehicles')}
               icon={AlertTriangle}
               variant={(stats?.alerts || 0) > 0 ? "critical" : "default"}
             />
@@ -117,11 +117,11 @@ export default function MobileDashboard() {
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium">Current Location</p>
-                <p className="text-xs text-muted-foreground">GPS Active</p>
+                <p className="text-sm font-medium">{t('mobileDashboard.currentLocation')}</p>
+                <p className="text-xs text-muted-foreground">{t('mobileDashboard.gpsActive')}</p>
               </div>
             </div>
-            <StatusBadge variant="valid" size="sm">Online</StatusBadge>
+            <StatusBadge variant="valid" size="sm">{t('mobileDashboard.online')}</StatusBadge>
           </div>
           <div className="mt-3 rounded-lg bg-muted p-3">
             <p className="text-sm font-medium">Highway A1, KM 42</p>
@@ -133,10 +133,10 @@ export default function MobileDashboard() {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Recent Controls
+              {t('mobileDashboard.recentControls')}
             </h2>
             <Link to="/mobile/history" className="text-sm text-accent">
-              View all
+              {t('mobileDashboard.viewAll')}
             </Link>
           </div>
 
@@ -160,7 +160,7 @@ export default function MobileDashboard() {
             <div className="rounded-lg border border-dashed border-border p-6 text-center">
               <ClipboardCheck className="mx-auto h-8 w-8 text-muted-foreground/50" />
               <p className="mt-2 text-sm text-muted-foreground">
-                No controls today. Start a new control above.
+                {t('mobileDashboard.noControls')}
               </p>
             </div>
           )}
