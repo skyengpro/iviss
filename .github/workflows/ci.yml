@@ -121,7 +121,7 @@ jobs:
           path: frontend/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
       - name: Unit tests
-        run: npm run test:unit
+        run: npm run coverage
         working-directory: frontend
       - name: Upload coverage Report
         uses: actions/upload-artifact@v4
