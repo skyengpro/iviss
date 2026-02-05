@@ -3,11 +3,11 @@ import Webcam from 'react-webcam';
 import { cn } from '@/lib/utils';
 
 interface ScanViewfinderProps {
-  webcamRef: React.RefObject<Webcam>;
-  facingMode: 'user' | 'environment';
-  isScanning: boolean;
-  mode: 'photo' | 'live';
-  liveScanActive: boolean;
+  readonly webcamRef: React.RefObject<Webcam>;
+  readonly facingMode: 'user' | 'environment';
+  readonly isScanning: boolean;
+  readonly mode: 'photo' | 'live';
+  readonly liveScanActive: boolean;
 }
 
 export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({

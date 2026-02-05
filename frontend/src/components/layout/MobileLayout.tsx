@@ -5,10 +5,10 @@ import { MobileSidebar } from './MobileSidebar';
 import { cn } from '@/lib/utils';
 
 interface MobileLayoutProps {
-  children: React.ReactNode;
-  title?: string;
-  className?: string;
-  hideNavigation?: boolean;
+  readonly children: React.ReactNode;
+  readonly title?: string;
+  readonly className?: string;
+  readonly hideNavigation?: boolean;
 }
 
 export function MobileLayout({

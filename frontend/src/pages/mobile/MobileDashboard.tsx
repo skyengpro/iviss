@@ -12,7 +12,7 @@ import {
   MapPin,
   Clock,
 } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { mockControlService } from '@/services/mockControls';

@@ -10,9 +10,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface MobileHeaderProps {
-  onMenuClick: () => void;
-  title?: string;
-  className?: string;
+  readonly onMenuClick: () => void;
+  readonly title?: string;
+  readonly className?: string;
 }
 
 export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileHeaderProps>) {

@@ -6,13 +6,13 @@ import { DetectedPlate } from '@/hooks/usePlateScanner';
 import { useTranslation } from 'react-i18next';
 
 interface ScanResultCardProps {
-  detectedPlate: DetectedPlate;
-  isEditing: boolean;
-  editedPlate: string;
-  onEditToggle: () => void;
-  onEditChange: (value: string) => void;
-  onRetry: () => void;
-  onConfirm: () => void;
+  readonly detectedPlate: DetectedPlate;
+  readonly isEditing: boolean;
+  readonly editedPlate: string;
+  readonly onEditToggle: () => void;
+  readonly onEditChange: (value: string) => void;
+  readonly onRetry: () => void;
+  readonly onConfirm: () => void;
 }
 
 export const ScanResultCard: React.FC<ScanResultCardProps> = ({

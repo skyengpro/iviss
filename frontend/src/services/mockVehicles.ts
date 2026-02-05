@@ -212,9 +212,9 @@ export const mockVehicleService = {
   async searchByPlate(plateNumber: string): Promise<{ found: boolean; vehicle?: Vehicle }> {
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    const normalizedPlate = plateNumber.toUpperCase().replace(/[-\s]/g, '');
+    const normalizedPlate = plateNumber.toUpperCase().replaceAll(/[-\s]/g, '');
     const vehicle = mockVehicles.find(
-      (v) => v.plateNumber.replace(/-/g, '').toUpperCase() === normalizedPlate
+      (v) => v.plateNumber.replaceAll('-', '').toUpperCase() === normalizedPlate
     );
 
     if (vehicle) {
@@ -310,13 +310,11 @@ export const mockVehicleService = {
 
     if (randomVehicle.wantedStatus.status === 'critical') {
       status = 'critical';
-    } else {
-      if (
-        randomVehicle.insurance.status === 'critical' ||
-        randomVehicle.technicalInspection.status === 'critical'
-      ) {
-        status = 'warning';
-      }
+    } else if (
+      randomVehicle.insurance.status === 'critical' ||
+      randomVehicle.technicalInspection.status === 'critical'
+    ) {
+      status = 'warning';
     }
 
     return {

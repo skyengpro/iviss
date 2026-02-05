@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Plus, CheckCircle } from 'lucide-react';
 
 interface VehicleActionFooterProps {
-  controlLogged: boolean;
-  isLoggingControl: boolean;
-  onLogControl: () => void;
-  onNewSearch: () => void;
+  readonly controlLogged: boolean;
+  readonly isLoggingControl: boolean;
+  readonly onLogControl: () => void;
+  readonly onNewSearch: () => void;
 }
 
 export const VehicleActionFooter: React.FC<VehicleActionFooterProps> = ({

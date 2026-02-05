@@ -5,8 +5,8 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Vehicle } from '@/services/mockVehicles';
 
 interface VehicleHeaderProps {
-  vehicle: Vehicle;
-  overallStatus: 'valid' | 'warning' | 'critical';
+  readonly vehicle: Vehicle;
+  readonly overallStatus: 'valid' | 'warning' | 'critical';
 }
 
 export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallStatus }) => {

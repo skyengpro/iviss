@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface PlateInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  isLoading?: boolean;
-  className?: string;
-  placeholder?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly onSubmit: () => void;
+  readonly isLoading?: boolean;
+  readonly className?: string;
+  readonly placeholder?: string;
 }
 
 export function PlateInput({

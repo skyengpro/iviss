@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { AggregatedVehicleStatus, Translatable } from '@/services/mockExternalAPIs';
 
 interface VehicleStatusGridProps {
-  apiStatus: AggregatedVehicleStatus;
+  readonly apiStatus: AggregatedVehicleStatus;
 }
 
 export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus }) => {

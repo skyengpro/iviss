@@ -53,7 +53,7 @@ export class ImageProcessor {
 
           resolve(result);
         } catch (error) {
-          reject(new Error(t('errors.imageProcessing')));
+          reject(new Error(t('errors.imageProcessing'), { cause: error }));
         }
       };
       img.onerror = () => reject(new Error(t('errors.imageLoad')));
@@ -165,7 +165,7 @@ export class ImageProcessor {
 
     // Cameroon plate format: 2 letters + 3 digits + 2 letters
     const regex = /^([A-Z]{2})(\d{3})([A-Z]{2})$/;
-    const match = cleaned.match(regex);
+    const match = regex.exec(cleaned);
 
     if (match) {
       // Format as: XX ### XX

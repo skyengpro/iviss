@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 interface ScanTopControlsProps {
-  onClose: () => void;
-  onToggleFlash: () => void;
-  onToggleFacingMode: () => void;
-  flashOn: boolean;
-  facingMode: 'user' | 'environment';
-  useDemoData: boolean;
-  onToggleDemoData: (val: boolean) => void;
+  readonly onClose: () => void;
+  readonly onToggleFlash: () => void;
+  readonly onToggleFacingMode: () => void;
+  readonly flashOn: boolean;
+  readonly facingMode: 'user' | 'environment';
+  readonly useDemoData: boolean;
+  readonly onToggleDemoData: (val: boolean) => void;
 }
 
 export const ScanTopControls: React.FC<ScanTopControlsProps> = ({

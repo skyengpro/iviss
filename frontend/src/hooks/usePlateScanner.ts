@@ -49,8 +49,8 @@ export interface DetectedPlate {
 }
 
 interface UsePlateScannerProps {
-  onCriticalDetection?: (plate: DetectedPlate) => void;
-  initialUseDemoData?: boolean;
+  readonly onCriticalDetection?: (plate: DetectedPlate) => void;
+  readonly initialUseDemoData?: boolean;
 }
 
 export function usePlateScanner({

@@ -3,11 +3,11 @@ import { BackOfficeHeader } from './BackOfficeHeader';
 import { cn } from '@/lib/utils';
 
 interface BackOfficeLayoutProps {
-  children: React.ReactNode;
-  title?: string;
-  subtitle?: string;
-  actions?: React.ReactNode;
-  className?: string;
+  readonly children: React.ReactNode;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly actions?: React.ReactNode;
+  readonly className?: string;
 }
 
 export function BackOfficeLayout({

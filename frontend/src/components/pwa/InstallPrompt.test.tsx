@@ -35,7 +35,7 @@ describe('InstallPrompt', () => {
     event.preventDefault = vi.fn();
 
     act(() => {
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
     });
 
     expect(screen.getByTestId('drawer')).toBeInTheDocument();
@@ -51,7 +51,7 @@ describe('InstallPrompt', () => {
 
     const event = new Event('beforeinstallprompt');
     act(() => {
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
     });
 
     expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('InstallPrompt', () => {
     event.userChoice = Promise.resolve({ outcome: 'accepted' });
 
     act(() => {
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
     });
 
     const installButton = screen.getByText('Install App');
@@ -90,7 +90,7 @@ describe('InstallPrompt', () => {
     event.userChoice = Promise.resolve({ outcome: 'dismissed' });
 
     act(() => {
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
     });
 
     const laterButton = screen.getByText('Later');

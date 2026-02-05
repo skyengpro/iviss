@@ -4,8 +4,8 @@ import { CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 import { DetectedPlate } from '@/hooks/usePlateScanner';
 
 interface ScanDetectionsListProps {
-  detections: DetectedPlate[];
-  onPlateClick: (plate: DetectedPlate) => void;
+  readonly detections: DetectedPlate[];
+  readonly onPlateClick: (plate: DetectedPlate) => void;
 }
 
 export const ScanDetectionsList: React.FC<ScanDetectionsListProps> = ({

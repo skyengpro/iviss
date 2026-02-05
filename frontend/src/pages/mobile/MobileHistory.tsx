@@ -71,7 +71,7 @@ export default function MobileHistory() {
   // Group controls by date
   const groupedControls = filteredControls.reduce(
     (groups, control) => {
-      const dateKey = formatDate(control.timestamp.toISOString());
+      const dateKey = formatDate(control.timestamp?.toISOString() || new Date().toISOString());
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -222,7 +222,7 @@ function ControlItem({
           </div>
           <div className="flex items-center gap-1 truncate">
             <MapPin className="h-3 w-3 shrink-0" />
-            <span className="truncate">{control.location.address}</span>
+            <span className="truncate">{control.location?.address}</span>
           </div>
         </div>
       </div>

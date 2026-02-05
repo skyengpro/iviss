@@ -2,7 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { mockAuthService, User, AuthSession } from '@/services/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/use-auth';
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);

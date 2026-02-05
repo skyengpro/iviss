@@ -166,10 +166,10 @@ function NavLink({
   label,
   isActive,
 }: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  isActive: boolean;
+  readonly href: string;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly isActive: boolean;
 }) {
   return (
     <Link

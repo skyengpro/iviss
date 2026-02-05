@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface BackOfficeHeaderProps {
-  title?: string;
-  subtitle?: string;
-  actions?: React.ReactNode;
-  className?: string;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly actions?: React.ReactNode;
+  readonly className?: string;
 }
 
 export function BackOfficeHeader({ title, subtitle, actions, className }: BackOfficeHeaderProps) {

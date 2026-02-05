@@ -39,9 +39,9 @@ interface VehicleInfo {
 }
 
 interface VehicleStatusCardProps {
-  vehicle: VehicleInfo;
-  className?: string;
-  onClick?: () => void;
+  readonly vehicle: VehicleInfo;
+  readonly className?: string;
+  readonly onClick?: () => void;
 }
 
 const statusLabels: Record<VehicleStatus, string> = {
