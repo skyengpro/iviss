@@ -203,7 +203,9 @@ jobs:
         if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
         run: cargo install cargo-audit
       - name: Security audit
-        run: cargo audit
+        # Ignore RUSTSEC-2023-0071 (rsa Marvin Attack) as it is in an unused transitive dependency (sqlx-mysql)
+        # and no fixed upgrade is available for this version chain.
+        run: cargo audit --ignore RUSTSEC-2023-0071
         working-directory: iviss-backend
 
   backend_doc:
