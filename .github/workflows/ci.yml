@@ -177,3 +177,25 @@ jobs:
       - name: Lint
         run: cargo clippy
         working-directory: iviss-backend
+
+  backend_audit:
+    name: Backend Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Security audit
+        uses: rustsec/audit-check@v1.4.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: iviss-backend
+
+  backend_doc:
+    name: Backend Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build documentation
+        run: cargo doc --no-deps --verbose
+        working-directory: iviss-backend
