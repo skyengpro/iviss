@@ -120,9 +120,9 @@ function InfoRow({
   label,
   value,
 }: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly value: string;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0">
@@ -140,9 +140,9 @@ function MenuLink({
   label,
   badge,
 }: {
-  icon: React.ElementType;
-  label: string;
-  badge?: string;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly badge?: string;
 }) {
   return (
     <button className="flex w-full items-center gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted transition-colors">

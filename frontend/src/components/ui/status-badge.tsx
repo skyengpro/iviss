@@ -27,9 +27,9 @@ const statusBadgeVariants = cva(
 );
 
 interface StatusBadgeProps extends VariantProps<typeof statusBadgeVariants> {
-  children: React.ReactNode;
-  className?: string;
-  showIcon?: boolean;
+  readonly children: React.ReactNode;
+  readonly className?: string;
+  readonly showIcon?: boolean;
 }
 
 const statusIcons = {

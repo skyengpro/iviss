@@ -228,10 +228,10 @@ function StepIndicator({
   active,
   completed,
 }: {
-  number: number;
-  label: string;
-  active: boolean;
-  completed: boolean;
+  readonly number: number;
+  readonly label: string;
+  readonly active: boolean;
+  readonly completed: boolean;
 }) {
   return (
     <div className="flex flex-col items-center">
@@ -262,10 +262,10 @@ function CaptureCard({
   onCapture,
   image,
 }: {
-  title: string;
-  description: string;
-  onCapture: () => void;
-  image: string | null;
+  readonly title: string;
+  readonly description: string;
+  readonly onCapture: () => void;
+  readonly image: string | null;
 }) {
   const { t } = useTranslation();
   return (

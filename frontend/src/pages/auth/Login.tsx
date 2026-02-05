@@ -57,7 +57,7 @@ export default function Login() {
     setIsLoading(false);
   };
 
-  const fillCredentials = (cred: { username: string; password: string }) => {
+  const fillCredentials = (cred: { readonly username: string; password: string }) => {
     setUsername(cred.username);
     setPassword(cred.password);
     setError('');

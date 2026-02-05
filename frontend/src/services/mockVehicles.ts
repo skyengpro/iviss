@@ -4,32 +4,32 @@
 export type VehicleStatus = 'valid' | 'warning' | 'critical' | 'pending';
 
 export interface VehicleOwner {
-  name: string;
-  address: string;
-  nationalId?: string;
+  readonly name: string;
+  readonly address: string;
+  readonly nationalId?: string;
 }
 
 export interface VehicleDocument {
-  status: VehicleStatus;
-  expiryDate?: string;
-  provider?: string;
-  notes?: string;
+  readonly status: VehicleStatus;
+  readonly expiryDate?: string;
+  readonly provider?: string;
+  readonly notes?: string;
 }
 
 export interface Vehicle {
-  id: string;
-  plateNumber: string;
-  chassisNumber: string;
-  brand: string;
-  model: string;
-  year: number;
-  color: string;
-  enginePower: string;
-  fuelType: string;
-  owner: VehicleOwner;
-  registration: VehicleDocument;
-  insurance: VehicleDocument;
-  technicalInspection: VehicleDocument;
+  readonly id: string;
+  readonly plateNumber: string;
+  readonly chassisNumber: string;
+  readonly brand: string;
+  readonly model: string;
+  readonly year: number;
+  readonly color: string;
+  readonly enginePower: string;
+  readonly fuelType: string;
+  readonly owner: VehicleOwner;
+  readonly registration: VehicleDocument;
+  readonly insurance: VehicleDocument;
+  readonly technicalInspection: VehicleDocument;
   wantedStatus: VehicleDocument & { reason?: string };
   customsStatus: VehicleDocument;
 }
@@ -172,15 +172,15 @@ const mockVehicles: Vehicle[] = [
 import { Translatable } from './mockControls';
 
 export interface PendingVehicle {
-  id: string;
-  plateNumber: string;
-  submittedBy: string;
-  submittedAt: Date;
-  location: string;
-  frontImageUrl: string;
-  backImageUrl: string;
-  status: 'pending' | 'approved' | 'rejected';
-  notes?: Translatable;
+  readonly id: string;
+  readonly plateNumber: string;
+  readonly submittedBy: string;
+  readonly submittedAt: Date;
+  readonly location: string;
+  readonly frontImageUrl: string;
+  readonly backImageUrl: string;
+  readonly status: 'pending' | 'approved' | 'rejected';
+  readonly notes?: Translatable;
 }
 
 const pendingVehicles: PendingVehicle[] = [
@@ -249,12 +249,12 @@ export const mockVehicleService = {
 
   // Submit pending vehicle (when not found)
   async submitPendingVehicle(data: {
-    plateNumber: string;
-    submittedBy: string;
-    location: string;
-    frontImage: string;
-    backImage: string;
-    notes?: string;
+    readonly plateNumber: string;
+    readonly submittedBy: string;
+    readonly location: string;
+    readonly frontImage: string;
+    readonly backImage: string;
+    readonly notes?: string;
   }): Promise<PendingVehicle> {
     await new Promise((resolve) => setTimeout(resolve, 800));
 

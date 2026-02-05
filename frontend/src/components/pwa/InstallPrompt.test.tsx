@@ -4,13 +4,15 @@ import { InstallPrompt } from './InstallPrompt';
 
 // Mock the Drawer components to bypass animations and portals
 vi.mock('@/components/ui/drawer', () => ({
-  Drawer: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
+  Drawer: ({ children, open }: { readonly children: React.ReactNode; open: boolean }) =>
     open ? <div data-testid="drawer">{children}</div> : null,
-  DrawerContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DrawerHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DrawerTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DrawerDescription: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DrawerFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DrawerContent: ({ children }: { readonly children: React.ReactNode }) => <div>{children}</div>,
+  DrawerHeader: ({ children }: { readonly children: React.ReactNode }) => <div>{children}</div>,
+  DrawerTitle: ({ children }: { readonly children: React.ReactNode }) => <div>{children}</div>,
+  DrawerDescription: ({ children }: { readonly children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DrawerFooter: ({ children }: { readonly children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe('InstallPrompt', () => {

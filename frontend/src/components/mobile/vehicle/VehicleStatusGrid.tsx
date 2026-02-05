@@ -52,12 +52,12 @@ function StatusCard({
   notes,
   isAlert,
 }: {
-  title: string;
-  status: 'valid' | 'warning' | 'critical' | 'unknown';
-  provider?: string;
-  expiryDate?: string;
-  notes?: Translatable;
-  isAlert?: boolean;
+  readonly title: string;
+  readonly status: 'valid' | 'warning' | 'critical' | 'unknown';
+  readonly provider?: string;
+  readonly expiryDate?: string;
+  readonly notes?: Translatable;
+  readonly isAlert?: boolean;
 }) {
   const { t } = useTranslation();
 

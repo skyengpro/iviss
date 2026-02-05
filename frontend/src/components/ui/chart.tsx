@@ -9,8 +9,8 @@ const THEMES = { light: '', dark: '.dark' } as const;
 
 export type ChartConfig = {
   [k in string]: {
-    label?: React.ReactNode;
-    icon?: React.ComponentType;
+    readonly label?: React.ReactNode;
+    readonly icon?: React.ComponentType;
   } & (
     | { color?: string; theme?: never }
     | { color?: never; theme: Record<keyof typeof THEMES, string> }
@@ -18,7 +18,7 @@ export type ChartConfig = {
 };
 
 type ChartContextProps = {
-  config: ChartConfig;
+  readonly config: ChartConfig;
 };
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
@@ -63,7 +63,7 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = 'Chart';
 
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+const ChartStyle = ({ id, config }: { readonly id: string; readonly config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
   if (!colorConfig.length) {
@@ -307,13 +307,13 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
   let configLabelKey: string = key;
 
   if (key in payload && typeof payload[key as keyof typeof payload] === 'string') {
-    configLabelKey = payload[key as keyof typeof payload] as string;
+    configLabelKey = payload[key as keyof typeof payload];
   } else if (
     payloadPayload &&
     key in payloadPayload &&
     typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
   ) {
-    configLabelKey = payloadPayload[key as keyof typeof payloadPayload] as string;
+    configLabelKey = payloadPayload[key as keyof typeof payloadPayload];
   }
 
   return configLabelKey in config ? config[configLabelKey] : config[key as keyof typeof config];

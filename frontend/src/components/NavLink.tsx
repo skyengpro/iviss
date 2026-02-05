@@ -3,9 +3,9 @@ import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface NavLinkCompatProps extends Omit<NavLinkProps, 'className'> {
-  className?: string;
-  activeClassName?: string;
-  pendingClassName?: string;
+  readonly className?: string;
+  readonly activeClassName?: string;
+  readonly pendingClassName?: string;
 }
 
 const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(

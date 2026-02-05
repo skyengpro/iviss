@@ -71,10 +71,10 @@ function DetailItem({
   value,
   fullWidth,
 }: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  fullWidth?: boolean;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly value: string;
+  readonly fullWidth?: boolean;
 }) {
   return (
     <div className={`flex items-start gap-2 ${fullWidth ? '' : ''}`}>

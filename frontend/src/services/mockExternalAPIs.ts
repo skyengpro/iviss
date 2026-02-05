@@ -13,47 +13,47 @@ export interface APIResponse<T> {
 export type Translatable = string | { key: string; params?: Record<string, string | number> };
 
 export interface InsuranceResult {
-  status: APIStatus;
-  provider?: string;
-  policyNumber?: string;
-  expiryDate?: string;
-  coverageType?: string;
-  notes?: Translatable;
+  readonly status: APIStatus;
+  readonly provider?: string;
+  readonly policyNumber?: string;
+  readonly expiryDate?: string;
+  readonly coverageType?: string;
+  readonly notes?: Translatable;
 }
 
 export interface PoliceResult {
-  status: APIStatus;
-  isWanted: boolean;
-  isStolen: boolean;
-  reportDate?: string;
-  reportNumber?: string;
-  notes?: Translatable;
+  readonly status: APIStatus;
+  readonly isWanted: boolean;
+  readonly isStolen: boolean;
+  readonly reportDate?: string;
+  readonly reportNumber?: string;
+  readonly notes?: Translatable;
 }
 
 export interface CustomsResult {
-  status: APIStatus;
-  isCleared: boolean;
-  importDate?: string;
-  declarationNumber?: string;
-  notes?: Translatable;
+  readonly status: APIStatus;
+  readonly isCleared: boolean;
+  readonly importDate?: string;
+  readonly declarationNumber?: string;
+  readonly notes?: Translatable;
 }
 
 export interface TechnicalInspectionResult {
-  status: APIStatus;
-  lastInspectionDate?: string;
-  expiryDate?: string;
-  mileage?: number;
-  defects?: string[];
-  notes?: Translatable;
+  readonly status: APIStatus;
+  readonly lastInspectionDate?: string;
+  readonly expiryDate?: string;
+  readonly mileage?: number;
+  readonly defects?: string[];
+  readonly notes?: Translatable;
 }
 
 export interface AggregatedVehicleStatus {
-  insurance: InsuranceResult;
-  police: PoliceResult;
-  customs: CustomsResult;
-  technicalInspection: TechnicalInspectionResult;
-  overallStatus: APIStatus;
-  queryTime: number;
+  readonly insurance: InsuranceResult;
+  readonly police: PoliceResult;
+  readonly customs: CustomsResult;
+  readonly technicalInspection: TechnicalInspectionResult;
+  readonly overallStatus: APIStatus;
+  readonly queryTime: number;
 }
 
 // Mock data lookup table

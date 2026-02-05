@@ -22,11 +22,11 @@ const UserManagement = lazy(() => import('../pages/backoffice/UserManagement'));
 const PendingVehicles = lazy(() => import('../pages/backoffice/PendingVehicles'));
 
 export interface AppRoute {
-  path: string;
-  component: React.ComponentType | null;
-  allowedRoles?: UserRole[];
-  redirectTo?: string;
-  replace?: boolean;
+  readonly path: string;
+  readonly component: React.ComponentType | null;
+  readonly allowedRoles?: UserRole[];
+  readonly redirectTo?: string;
+  readonly replace?: boolean;
 }
 
 export const publicRoutes: AppRoute[] = [

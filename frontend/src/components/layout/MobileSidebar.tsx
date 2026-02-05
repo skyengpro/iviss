@@ -107,9 +107,9 @@ function SidebarLink({
   label,
   badge,
 }: {
-  icon: React.ElementType;
-  label: string;
-  badge?: string;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly badge?: string;
 }) {
   return (
     <button className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent">

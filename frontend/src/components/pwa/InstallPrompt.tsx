@@ -12,8 +12,8 @@ import {
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
   readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
+    readonly outcome: 'accepted' | 'dismissed';
+    readonly platform: string;
   }>;
   prompt(): Promise<void>;
 }

@@ -37,15 +37,15 @@ function handleNewDetection(
 export type PlateStatus = 'valid' | 'warning' | 'critical';
 
 export interface ProcessedImage {
-  plateNumber: string;
-  confidence: number;
-  status: PlateStatus;
+  readonly plateNumber: string;
+  readonly confidence: number;
+  readonly status: PlateStatus;
 }
 
 export interface DetectedPlate {
-  plateNumber: string;
-  confidence: number;
-  status: PlateStatus;
+  readonly plateNumber: string;
+  readonly confidence: number;
+  readonly status: PlateStatus;
 }
 
 interface UsePlateScannerProps {

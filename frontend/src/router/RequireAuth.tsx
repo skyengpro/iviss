@@ -7,8 +7,8 @@ export function RequireAuth({
   children,
   allowedRoles,
 }: {
-  children: ReactNode;
-  allowedRoles?: UserRole[];
+  readonly children: ReactNode;
+  readonly allowedRoles?: UserRole[];
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();

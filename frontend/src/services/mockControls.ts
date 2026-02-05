@@ -5,25 +5,25 @@ export type ControlStatus = 'valid' | 'warning' | 'critical' | 'pending';
 export type Translatable = string | { key: string; params?: Record<string, string | number> };
 
 export interface ControlAction {
-  type: 'check' | 'flag' | 'citation' | 'impound' | 'release';
-  description: string;
-  timestamp: Date;
+  readonly type: 'check' | 'flag' | 'citation' | 'impound' | 'release';
+  readonly description: string;
+  readonly timestamp: Date;
 }
 
 export interface ControlRecord {
-  id: string;
-  plateNumber: string;
-  vehicleId?: string;
-  agentId: string;
-  agentName: string;
-  organizationId: string;
-  organizationName: string;
-  phoneIMEI: string;
-  timestamp: Date;
+  readonly id: string;
+  readonly plateNumber: string;
+  readonly vehicleId?: string;
+  readonly agentId: string;
+  readonly agentName: string;
+  readonly organizationId: string;
+  readonly organizationName: string;
+  readonly phoneIMEI: string;
+  readonly timestamp: Date;
   location: {
-    address: string;
-    latitude: number;
-    longitude: number;
+    readonly address: string;
+    readonly latitude: number;
+    readonly longitude: number;
   };
   status: ControlStatus;
   identificationMode: 'manual' | 'photo' | 'live';
@@ -207,15 +207,15 @@ const mockControls: ControlRecord[] = [
 
 // Statistics
 export interface ControlStats {
-  today: number;
-  thisWeek: number;
-  thisMonth: number;
-  alerts: number;
-  violations: number;
+  readonly today: number;
+  readonly thisWeek: number;
+  readonly thisMonth: number;
+  readonly alerts: number;
+  readonly violations: number;
   // Aliases for dashboard
-  todayControls: number;
-  activeAlerts: number;
-  totalVehicles: number;
+  readonly todayControls: number;
+  readonly activeAlerts: number;
+  readonly totalVehicles: number;
 }
 
 export const mockControlService = {
@@ -272,12 +272,12 @@ export const mockControlService = {
 
   // Get all controls (for back office)
   async getAllControls(filters?: {
-    startDate?: Date;
-    endDate?: Date;
-    agentId?: string;
-    organizationId?: string;
-    status?: ControlStatus;
-    plateNumber?: string;
+    readonly startDate?: Date;
+    readonly endDate?: Date;
+    readonly agentId?: string;
+    readonly organizationId?: string;
+    readonly status?: ControlStatus;
+    readonly plateNumber?: string;
   }): Promise<ControlRecord[]> {
     await new Promise((resolve) => setTimeout(resolve, 400));
 

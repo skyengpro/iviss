@@ -14,7 +14,7 @@ export const FormFieldContext = React.createContext<FormFieldContextValue>(
 );
 
 type FormItemContextValue = {
-  id: string;
+  readonly id: string;
 };
 
 export const FormItemContext = React.createContext<FormItemContextValue>(

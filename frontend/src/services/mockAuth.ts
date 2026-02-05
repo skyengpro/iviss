@@ -4,23 +4,23 @@
 export type UserRole = 'agent' | 'supervisor' | 'admin';
 
 export interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: UserRole;
-  name: string;
-  organization: string;
-  organizationId: string;
-  badgeId: string;
-  phoneIMEI: string;
-  avatarInitials: string;
-  isActive: boolean;
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly role: UserRole;
+  readonly name: string;
+  readonly organization: string;
+  readonly organizationId: string;
+  readonly badgeId: string;
+  readonly phoneIMEI: string;
+  readonly avatarInitials: string;
+  readonly isActive: boolean;
 }
 
 export interface AuthSession {
-  user: User;
-  token: string;
-  expiresAt: Date;
+  readonly user: User;
+  readonly token: string;
+  readonly expiresAt: Date;
 }
 
 // Mock user database

@@ -36,7 +36,7 @@ export default function MobileHistory() {
     const noteString = renderNotes(control.notes);
     const matchesSearch =
       control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (noteString && noteString.toLowerCase().includes(searchQuery.toLowerCase()));
+      noteString?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesFilter = filterStatus === 'all' || control.status === filterStatus;
 
@@ -185,9 +185,9 @@ function ControlItem({
   formatTime,
   renderNotes,
 }: {
-  control: ControlRecord;
-  formatTime: (isoString: string) => string;
-  renderNotes: (notes: Translatable) => string;
+  readonly control: ControlRecord;
+  readonly formatTime: (isoString: string) => string;
+  readonly renderNotes: (notes: Translatable) => string;
 }) {
   const { t } = useTranslation();
   return (

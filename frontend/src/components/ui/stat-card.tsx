@@ -23,13 +23,13 @@ const statCardVariants = cva(
 );
 
 interface StatCardProps extends VariantProps<typeof statCardVariants> {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon?: LucideIcon;
+  readonly title: string;
+  readonly value: string | number;
+  readonly subtitle?: string;
+  readonly icon?: LucideIcon;
   trend?: {
-    value: number;
-    isPositive: boolean;
+    readonly value: number;
+    readonly isPositive: boolean;
   };
   className?: string;
 }

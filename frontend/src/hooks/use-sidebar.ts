@@ -2,13 +2,13 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 
 export type SidebarContext = {
-  state: 'expanded' | 'collapsed';
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  openMobile: boolean;
-  setOpenMobile: (open: boolean) => void;
-  isMobile: boolean;
-  toggleSidebar: () => void;
+  readonly state: 'expanded' | 'collapsed';
+  readonly open: boolean;
+  readonly setOpen: (open: boolean) => void;
+  readonly openMobile: boolean;
+  readonly setOpenMobile: (open: boolean) => void;
+  readonly isMobile: boolean;
+  readonly toggleSidebar: () => void;
 };
 
 export const SidebarContext = React.createContext<SidebarContext | null>(null);

@@ -182,10 +182,10 @@ function QuickActionButton({
   href,
   primary,
 }: {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  primary?: boolean;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly href: string;
+  readonly primary?: boolean;
 }) {
   return (
     <Link to={href}>
@@ -208,9 +208,9 @@ function RecentControlItem({
   time,
   status,
 }: {
-  plate: string;
-  time: string;
-  status: 'valid' | 'warning' | 'critical';
+  readonly plate: string;
+  readonly time: string;
+  readonly status: 'valid' | 'warning' | 'critical';
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">

@@ -5,15 +5,15 @@ import { Car, User, Calendar, FileCheck, Shield, AlertTriangle, ChevronRight } f
 export type VehicleStatus = 'valid' | 'warning' | 'critical' | 'pending';
 
 interface VehicleInfo {
-  plateNumber: string;
-  chassisNumber: string;
-  brand: string;
-  model: string;
-  year: number;
-  enginePower: string;
+  readonly plateNumber: string;
+  readonly chassisNumber: string;
+  readonly brand: string;
+  readonly model: string;
+  readonly year: number;
+  readonly enginePower: string;
   owner: {
-    name: string;
-    address?: string;
+    readonly name: string;
+    readonly address?: string;
   };
   registration: {
     status: VehicleStatus;
@@ -175,10 +175,10 @@ function StatusItem({
   status,
   detail,
 }: {
-  icon: React.ElementType;
-  label: string;
-  status: VehicleStatus;
-  detail?: string;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly status: VehicleStatus;
+  readonly detail?: string;
 }) {
   return (
     <div

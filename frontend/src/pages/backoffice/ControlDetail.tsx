@@ -262,9 +262,9 @@ function InfoRow({
   label,
   value,
 }: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
+  readonly icon: React.ElementType;
+  readonly label: string;
+  readonly value: string;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -282,9 +282,9 @@ function ResultRow({
   status,
   icon,
 }: {
-  label: string;
-  status: string;
-  icon: React.ReactNode;
+  readonly label: string;
+  readonly status: string;
+  readonly icon: React.ReactNode;
 }) {
   const { t } = useTranslation();
   return (
