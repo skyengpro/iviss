@@ -1,15 +1,11 @@
 mod config;
 mod db;
 mod errors;
-mod handlers;
 mod middleware;
-mod models;
-mod repositories;
 mod routes;
-mod services;
 
 use crate::config::Config;
-use crate::db::initialize_pools;
+use crate::db::initialize_pool;
 use std::net::SocketAddr;
 use tracing::info;
 
@@ -24,10 +20,10 @@ async fn main() -> anyhow::Result<()> {
 
     let config = Config::from_env()?;
 
-    let pools = initialize_pools(&config.database_url, &config.external_database_url).await?;
-    info!("Database connections initialized");
+    let pool = initialize_pool(&config.database_url).await?;
+    info!("Database connection initialized");
 
-    let app = routes::assembly(pools);
+    let app = routes::assembly(pool);
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
     info!("Listening on {}", addr);
