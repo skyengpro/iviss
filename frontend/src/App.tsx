@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppRouter } from '@/router/AppRouter';
 import { ReloadPrompt } from '@/components/pwa/ReloadPrompt';
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 
 const queryClient = new QueryClient();
 
@@ -15,6 +16,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <ReloadPrompt />
+      <InstallPrompt />
       <BrowserRouter>
         <AuthProvider>
           <AppRouter />
