@@ -1,0 +1,104 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'iviss-backend/**'
+      - '.github/workflows/backend-ci.yml'
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'iviss-backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks Scan
+        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact
+
+  backend_build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build
+        run: cargo build --verbose
+        working-directory: iviss-backend
+
+  backend_test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    needs: [backend_build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Test
+        run: cargo test --verbose
+        working-directory: iviss-backend
+
+  backend_fmt:
+    name: Backend Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Check Format
+        run: cargo fmt -- --check
+        working-directory: iviss-backend
+
+  backend_clippy:
+    name: Backend Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+      - name: Lint
+        run: cargo clippy -- -D warnings
+        working-directory: iviss-backend
+
+  backend_audit:
+    name: Backend Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo-audit
+        id: cache-cargo-audit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: ${{ runner.os }}-cargo-audit-v1
+      - name: Install cargo-audit
+        if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
+        run: cargo install cargo-audit
+      - name: Security audit
+        # Ignore RUSTSEC-2023-0071 (rsa Marvin Attack) as it is in an unused transitive dependency (sqlx-mysql)
+        # and no fixed upgrade is available for this version chain.
+        run: cargo audit --ignore RUSTSEC-2023-0071
+        working-directory: iviss-backend
+
+  backend_doc:
+    name: Backend Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build documentation
+        run: cargo doc --no-deps --verbose
+        working-directory: iviss-backend
