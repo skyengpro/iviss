@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destruct
   };
 
 export default function UserManagement() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -75,12 +77,12 @@ export default function UserManagement() {
 
   return (
     <BackOfficeLayout
-      title="User Management"
-      subtitle="Manage system users and their permissions"
+      title={t('backOfficeUserManagement.title')}
+      subtitle={t('backOfficeUserManagement.subtitle')}
       actions={
         <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
           <Plus className="h-4 w-4" />
-          Add User
+          {t('backOfficeUserManagement.addUser')}
         </Button>
       }
     >
@@ -93,7 +95,7 @@ export default function UserManagement() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, email, organization..."
+                placeholder={t('backOfficeUserManagement.searchPlaceholder')}
                 className="pl-9"
               />
             </div>
@@ -102,26 +104,32 @@ export default function UserManagement() {
             <div className="flex flex-wrap gap-2">
               <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Role" />
+                  <SelectValue placeholder={t('backOfficeUserManagement.role')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                  <SelectItem value="org_admin">Organization Admin</SelectItem>
-                  <SelectItem value="supervisor">Supervisor</SelectItem>
-                  <SelectItem value="agent">Agent</SelectItem>
-                  <SelectItem value="operator">Operator</SelectItem>
+                  <SelectItem value="all">{t('backOfficeUserManagement.allRoles')}</SelectItem>
+                  <SelectItem value="super_admin">
+                    {t('backOfficeUserManagement.super_admin')}
+                  </SelectItem>
+                  <SelectItem value="org_admin">
+                    {t('backOfficeUserManagement.org_admin')}
+                  </SelectItem>
+                  <SelectItem value="supervisor">
+                    {t('backOfficeUserManagement.supervisor')}
+                  </SelectItem>
+                  <SelectItem value="agent">{t('backOfficeUserManagement.agent')}</SelectItem>
+                  <SelectItem value="operator">{t('backOfficeUserManagement.operator')}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t('backOfficeUserManagement.status')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">{t('backOfficeUserManagement.allStatus')}</SelectItem>
+                  <SelectItem value="active">{t('backOfficeUserManagement.active')}</SelectItem>
+                  <SelectItem value="inactive">{t('backOfficeUserManagement.inactive')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -132,19 +140,27 @@ export default function UserManagement() {
           {/* Stats */}
           <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">Total Users</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.totalUsers')}
+              </p>
               <p className="text-2xl font-bold">{users.length}</p>
             </div>
             <div className="rounded-lg bg-status-valid/10 p-4">
-              <p className="text-sm text-muted-foreground">Active Now</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.activeNow')}
+              </p>
               <p className="text-2xl font-bold text-status-valid">89</p>
             </div>
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">Supervisors</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.supervisors')}
+              </p>
               <p className="text-2xl font-bold">12</p>
             </div>
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">Organizations</p>
+              <p className="text-sm text-muted-foreground">
+                {t('backOfficeUserManagement.organizations')}
+              </p>
               <p className="text-2xl font-bold">8</p>
             </div>
           </div>
@@ -154,20 +170,22 @@ export default function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Organization</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Active</TableHead>
-                  <TableHead>Controls Today</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.user')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.role')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.organization')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.status')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.lastActive')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.controlsToday')}</TableHead>
+                  <TableHead className="w-[80px]">
+                    {t('backOfficeUserManagement.actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
-                      Loading users...
+                      {t('backOfficeUserManagement.loadingUsers')}
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length > 0 ? (
@@ -195,10 +213,14 @@ export default function UserManagement() {
                       <TableCell>{user.organization}</TableCell>
                       <TableCell>
                         <StatusBadge variant={user.isActive ? 'valid' : 'pending'} size="sm">
-                          {user.isActive ? 'active' : 'inactive'}
+                          {user.isActive
+                            ? t('backOfficeUserManagement.active')
+                            : t('backOfficeUserManagement.inactive')}
                         </StatusBadge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">Today</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t('backOfficeUserManagement.today')}
+                      </TableCell>
                       <TableCell>
                         <span className="font-medium">0</span>
                       </TableCell>
@@ -214,35 +236,37 @@ export default function UserManagement() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                              {t('backOfficeUserManagement.actions')}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem>
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit User
+                              {t('backOfficeUserManagement.editUser')}
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <Key className="mr-2 h-4 w-4" />
-                              Reset Password
+                              {t('backOfficeUserManagement.resetPassword')}
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <Shield className="mr-2 h-4 w-4" />
-                              Manage Permissions
+                              {t('backOfficeUserManagement.managePermissions')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {user.isActive ? (
                               <DropdownMenuItem className="text-status-warning">
                                 <UserX className="mr-2 h-4 w-4" />
-                                Deactivate
+                                {t('backOfficeUserManagement.deactivate')}
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem className="text-status-valid">
                                 <UserCheck className="mr-2 h-4 w-4" />
-                                Activate
+                                {t('backOfficeUserManagement.activate')}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem className="text-destructive">
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete User
+                              {t('backOfficeUserManagement.deleteUser')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -252,7 +276,7 @@ export default function UserManagement() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      No users found.
+                      {t('backOfficeUserManagement.noUsersFound')}
                     </TableCell>
                   </TableRow>
                 )}

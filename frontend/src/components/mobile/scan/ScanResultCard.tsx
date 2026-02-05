@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DetectedPlate } from '@/hooks/usePlateScanner';
+import { useTranslation } from 'react-i18next';
 
 interface ScanResultCardProps {
   detectedPlate: DetectedPlate;
@@ -23,6 +24,7 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({
   onRetry,
   onConfirm,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="absolute inset-x-4 bottom-6 animate-slide-up rounded-2xl bg-card p-5 shadow-2xl z-20 border border-border/50">
       <div className="mb-4 flex items-center justify-between">
@@ -32,11 +34,9 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({
               'flex h-10 w-10 items-center justify-center rounded-full',
               detectedPlate.status === 'critical'
                 ? 'bg-status-critical/10 text-status-critical'
-                : detectedPlate.status === 'warning'
+                : detectedPlate.status === 'warning' || detectedPlate.confidence < 80
                   ? 'bg-status-warning/10 text-status-warning'
-                  : detectedPlate.confidence >= 80
-                    ? 'bg-status-valid/10 text-status-valid'
-                    : 'bg-status-warning/10 text-status-warning'
+                  : 'bg-status-valid/10 text-status-valid'
             )}
           >
             {detectedPlate.status === 'critical' ? (
@@ -48,7 +48,7 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({
             )}
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Detected Plate</p>
+            <p className="text-sm text-muted-foreground">{t('mobileScan.detectedPlate')}</p>
             {isEditing ? (
               <input
                 type="text"
@@ -63,7 +63,7 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">Confidence</p>
+          <p className="text-sm text-muted-foreground">{t('mobileScan.confidence')}</p>
           <p
             className={cn(
               'text-lg font-semibold',
@@ -79,17 +79,17 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({
         <div className="mb-4 rounded-lg bg-status-critical/10 p-2.5 text-status-critical">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span className="text-xs font-semibold">ALERT: Flagged Vehicle</span>
+            <span className="text-xs font-semibold">{t('mobileScan.alertFlaggedVehicle')}</span>
           </div>
         </div>
       )}
 
       <div className="flex gap-3 mb-3">
         <Button variant="outline" onClick={onEditToggle} className="flex-1">
-          {isEditing ? 'Cancel Edit' : 'Edit Plate'}
+          {isEditing ? t('mobileScan.cancelEdit') : t('mobileScan.editPlate')}
         </Button>
         <Button variant="outline" onClick={onRetry} className="flex-1">
-          Retry
+          {t('mobileScan.retry')}
         </Button>
       </div>
 
@@ -97,7 +97,7 @@ export const ScanResultCard: React.FC<ScanResultCardProps> = ({
         onClick={onConfirm}
         className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
       >
-        Confirm & Search
+        {t('mobileScan.confirmAndSearch')}
       </Button>
     </div>
   );

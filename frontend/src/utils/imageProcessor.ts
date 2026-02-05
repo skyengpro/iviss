@@ -1,3 +1,5 @@
+import { TFunction } from 'i18next';
+
 /**
  * Image preprocessing utilities for license plate OCR
  * Optimized for Cameroon plates (orange background, black text)
@@ -9,7 +11,7 @@ export class ImageProcessor {
    * @param imageSrc Base64 image data
    * @returns Processed base64 image
    */
-  static async preprocessForOCR(imageSrc: string): Promise<string> {
+  static async preprocessForOCR(imageSrc: string, t: TFunction): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -18,7 +20,7 @@ export class ImageProcessor {
           const ctx = canvas.getContext('2d');
 
           if (!ctx) {
-            reject(new Error('Could not get canvas context'));
+            reject(new Error(t('errors.canvasContext')));
             return;
           }
 
@@ -51,10 +53,10 @@ export class ImageProcessor {
 
           resolve(result);
         } catch (error) {
-          reject(error);
+          reject(new Error(t('errors.imageProcessing')));
         }
       };
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
       img.src = imageSrc;
     });
   }
@@ -177,7 +179,11 @@ export class ImageProcessor {
    * Scale image to optimal size for OCR
    * Tesseract works best with images around 300 DPI
    */
-  static async scaleImage(imageSrc: string, targetWidth: number = 800): Promise<string> {
+  static async scaleImage(
+    imageSrc: string,
+    t: TFunction,
+    targetWidth: number = 800
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -185,7 +191,7 @@ export class ImageProcessor {
         const ctx = canvas.getContext('2d');
 
         if (!ctx) {
-          reject(new Error('Could not get canvas context'));
+          reject(new Error(t('errors.canvasContext')));
           return;
         }
 
@@ -201,7 +207,7 @@ export class ImageProcessor {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         resolve(canvas.toDataURL('image/jpeg', 0.95));
       };
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
       img.src = imageSrc;
     });
   }

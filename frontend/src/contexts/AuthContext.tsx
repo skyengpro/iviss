@@ -1,53 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { mockAuthService, User, AuthSession, UserRole } from '@/services/mockAuth';
-
-interface AuthContextType {
-  user: User | null;
-  session: AuthSession | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  getMockCredentials: () => { role: string; username: string; password: string }[];
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Routes that don't require authentication
-const publicRoutes = ['/', '/login'];
-
-// Route access by role
-const roleAccess: Record<UserRole, string[]> = {
-  agent: [
-    '/mobile',
-    '/mobile/search',
-    '/mobile/scan',
-    '/mobile/history',
-    '/mobile/settings',
-    '/mobile/profile',
-  ],
-  supervisor: [
-    '/mobile',
-    '/mobile/search',
-    '/mobile/scan',
-    '/mobile/history',
-    '/mobile/settings',
-    '/mobile/profile',
-    '/backoffice',
-    '/backoffice/controls',
-  ],
-  admin: [
-    '/backoffice',
-    '/backoffice/controls',
-    '/backoffice/users',
-    '/backoffice/vehicles',
-    '/backoffice/validation',
-    '/backoffice/organizations',
-    '/backoffice/audit',
-    '/backoffice/settings',
-  ],
-};
+import { useState, useEffect, ReactNode } from 'react';
+import { mockAuthService, User, AuthSession } from '@/services/mockAuth';
+import { AuthContext, AuthContextType } from '@/hooks/use-auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -95,62 +48,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-// Protected route wrapper component
-export function RequireAuth({
-  children,
-  allowedRoles,
-}: {
-  children: ReactNode;
-  allowedRoles?: UserRole[];
-}) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        // Redirect to login with return path
-        navigate('/login', { state: { from: location.pathname } });
-      } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        // User doesn't have required role
-        if (user.role === 'admin') {
-          navigate('/backoffice');
-        } else {
-          navigate('/mobile');
-        }
-      }
-    }
-  }, [isLoading, isAuthenticated, user, allowedRoles, navigate, location]);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return null;
-  }
-
-  return <>{children}</>;
 }
