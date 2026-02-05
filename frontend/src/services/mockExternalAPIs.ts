@@ -10,13 +10,15 @@ export interface APIResponse<T> {
   responseTime: number;
 }
 
+export type Translatable = string | { key: string; params?: Record<string, string | number> };
+
 export interface InsuranceResult {
   status: APIStatus;
   provider?: string;
   policyNumber?: string;
   expiryDate?: string;
   coverageType?: string;
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface PoliceResult {
@@ -25,7 +27,7 @@ export interface PoliceResult {
   isStolen: boolean;
   reportDate?: string;
   reportNumber?: string;
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface CustomsResult {
@@ -33,7 +35,7 @@ export interface CustomsResult {
   isCleared: boolean;
   importDate?: string;
   declarationNumber?: string;
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface TechnicalInspectionResult {
@@ -42,7 +44,7 @@ export interface TechnicalInspectionResult {
   expiryDate?: string;
   mileage?: number;
   defects?: string[];
-  notes?: string;
+  notes?: Translatable;
 }
 
 export interface AggregatedVehicleStatus {
@@ -79,7 +81,7 @@ const mockAPIData: Record<
       lastInspectionDate: 'Mar 2022',
       expiryDate: 'Mar 2024',
       mileage: 45000,
-      notes: 'Inspection expires in 2 months',
+      notes: { key: 'vehicleResult.inspectionExpiresIn', params: { count: 2, unit: 'months' } },
     },
   },
   XY789ZW: {
@@ -88,7 +90,7 @@ const mockAPIData: Record<
       provider: 'Allianz',
       policyNumber: 'ALZ-2023-789012',
       expiryDate: 'Jan 2024',
-      notes: 'POLICY EXPIRED - Vehicle is uninsured',
+      notes: { key: 'mockApis.policyExpired' },
     },
     police: { status: 'valid', isWanted: false, isStolen: false },
     customs: { status: 'valid', isCleared: true },
@@ -112,7 +114,7 @@ const mockAPIData: Record<
       isStolen: true,
       reportDate: '15/01/2024',
       reportNumber: 'POL-2024-00147',
-      notes: 'STOLEN VEHICLE - Report to authorities immediately',
+      notes: { key: 'mockApis.stolenVehicle' },
     },
     customs: { status: 'valid', isCleared: true },
     technical: {
@@ -135,7 +137,7 @@ const mockAPIData: Record<
       isCleared: false,
       importDate: 'Dec 2023',
       declarationNumber: 'CUS-2023-98765',
-      notes: 'Import documents under review',
+      notes: { key: 'mockApis.importDocsReview' },
     },
     technical: {
       status: 'valid',
@@ -176,7 +178,7 @@ const mockAPIData: Record<
       expiryDate: 'Nov 2023',
       mileage: 95000,
       defects: ['Brake pads worn', 'Tire tread low'],
-      notes: 'INSPECTION EXPIRED - Vehicle should not be on road',
+      notes: { key: 'vehicleResult.inspectionExpired' },
     },
   },
 };
@@ -209,7 +211,7 @@ export const mockExternalAPIService = {
 
     return {
       success: true,
-      data: { status: 'unknown', notes: 'No insurance record found' },
+      data: { status: 'unknown', notes: { key: 'mockApis.noInsuranceRecord' } },
       responseTime: Date.now() - startTime,
     };
   },
@@ -280,7 +282,7 @@ export const mockExternalAPIService = {
 
     return {
       success: true,
-      data: { status: 'unknown', notes: 'No inspection record found' },
+      data: { status: 'unknown', notes: { key: 'mockApis.noInspectionRecord' } },
       responseTime: Date.now() - startTime,
     };
   },

@@ -1,12 +1,51 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import Tesseract from 'tesseract.js';
+import { useTranslation } from 'react-i18next';
 import { ImageProcessor } from '@/utils/imageProcessor';
+
+function handleNewDetection(
+  prevDetections: DetectedPlate[],
+  newResult: ProcessedImage,
+  onCriticalDetection: ((plate: DetectedPlate) => void) | undefined,
+  stopLiveScan: () => void
+): DetectedPlate[] {
+  if (prevDetections.some((d) => d.plateNumber === newResult.plateNumber)) {
+    return prevDetections;
+  }
+
+  // Mock status check for diverse testing
+  let status: PlateStatus = 'valid';
+  if (newResult.plateNumber.includes('X')) status = 'warning';
+  if (newResult.plateNumber.includes('E') || newResult.plateNumber.includes('S'))
+    status = 'critical';
+
+  const newDetection: DetectedPlate = {
+    plateNumber: newResult.plateNumber,
+    confidence: newResult.confidence,
+    status: status,
+  };
+
+  if (status === 'critical' && onCriticalDetection) {
+    onCriticalDetection(newDetection);
+    stopLiveScan();
+  }
+
+  return [newDetection, ...prevDetections].slice(0, 10);
+}
+
+export type PlateStatus = 'valid' | 'warning' | 'critical';
+
+export interface ProcessedImage {
+  plateNumber: string;
+  confidence: number;
+  status: PlateStatus;
+}
 
 export interface DetectedPlate {
   plateNumber: string;
   confidence: number;
-  status: 'valid' | 'warning' | 'critical';
+  status: PlateStatus;
 }
 
 interface UsePlateScannerProps {
@@ -18,6 +57,7 @@ export function usePlateScanner({
   onCriticalDetection,
   initialUseDemoData = false,
 }: UsePlateScannerProps = {}) {
+  const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [useDemoData, setUseDemoData] = useState(initialUseDemoData);
   const [liveScanActive, setLiveScanActive] = useState(false);
@@ -37,68 +77,85 @@ export function usePlateScanner({
     return testPlates[Math.floor(Math.random() * testPlates.length)];
   };
 
-  const processImage = async (imageSrc: string) => {
-    if (useDemoData) {
-      // Simulate processing time
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      return {
-        ...getMockPlate(),
-        confidence: 90 + Math.random() * 10,
-      };
-    }
-
-    try {
-      // ... (rest of processImage logic)
-      // Preprocess image
-      const processedImage = await ImageProcessor.preprocessForOCR(imageSrc);
-
-      // Run OCR with optimized settings
-      const worker = await Tesseract.createWorker('eng');
+  const processImage = useCallback(
+    async (imageSrc: string): Promise<ProcessedImage | null> => {
+      if (useDemoData) {
+        // Simulate processing time
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        return {
+          ...getMockPlate(),
+          confidence: 90 + Math.random() * 10,
+        };
+      }
 
       try {
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-        });
+        // Preprocess image
+        const processedImage = await ImageProcessor.preprocessForOCR(imageSrc, t);
 
-        const result = await worker.recognize(processedImage);
-        await worker.terminate();
+        // Run OCR with optimized settings
+        const worker = await Tesseract.createWorker('eng');
 
-        const rawText = result.data.text.toUpperCase().trim();
-        const validatedPlate = ImageProcessor.validateCameroonPlate(rawText);
+        try {
+          await worker.setParameters({
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+            tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+          });
 
-        if (validatedPlate && result.data.confidence > 20) {
-          return {
-            plateNumber: validatedPlate,
-            confidence: result.data.confidence,
-            status: 'valid' as const,
-          };
-        }
+          const result = await worker.recognize(processedImage);
+          await worker.terminate();
 
-        // Fallback: try to format any reasonable text
-        const cleanText = rawText.replace(/[^A-Z0-9]/g, '');
-        if (cleanText.length >= 6 && cleanText.length <= 8) {
-          if (cleanText.length === 7) {
-            const formatted = `${cleanText.slice(0, 2)} ${cleanText.slice(2, 5)} ${cleanText.slice(5)}`;
+          const rawText = result.data.text.toUpperCase().trim();
+          const validatedPlate = ImageProcessor.validateCameroonPlate(rawText);
+
+          if (validatedPlate && result.data.confidence > 20) {
             return {
-              plateNumber: formatted,
-              confidence: result.data.confidence * 0.7,
+              plateNumber: validatedPlate,
+              confidence: result.data.confidence,
               status: 'valid' as const,
             };
           }
-        }
 
+          // Fallback: try to format any reasonable text
+          const cleanText = rawText
+            .split('')
+            .filter((char) => /[A-Z0-9]/.test(char))
+            .join('');
+          if (cleanText.length >= 6 && cleanText.length <= 8) {
+            if (cleanText.length === 7) {
+              const formatted = `${cleanText.slice(0, 2)} ${cleanText.slice(2, 5)} ${cleanText.slice(5)}`;
+              return {
+                plateNumber: formatted,
+                confidence: result.data.confidence * 0.7,
+                status: 'valid' as const,
+              };
+            }
+          }
+
+          return null;
+        } catch (ocrError) {
+          console.error('OCR processing error:', ocrError);
+          await worker.terminate();
+          throw ocrError;
+        }
+      } catch (error) {
+        console.error('OCR Error:', error);
         return null;
-      } catch (ocrError) {
-        console.error('OCR processing error:', ocrError);
-        await worker.terminate();
-        throw ocrError;
       }
-    } catch (error) {
-      console.error('OCR Error:', error);
-      return null;
+    },
+    [useDemoData, t]
+  );
+
+  const stopLiveScan = useCallback(() => {
+    setLiveScanActive(false);
+    if (liveScanRef.current) {
+      clearInterval(liveScanRef.current);
+      liveScanRef.current = null;
     }
-  };
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+  }, []);
 
   const startLiveScan = useCallback(
     (webcam: Webcam | null) => {
@@ -142,47 +199,16 @@ export function usePlateScanner({
                 fallbackTimerRef.current = null;
               }
 
-              setLiveDetections((prev) => {
-                if (prev.some((d) => d.plateNumber === result.plateNumber)) return prev;
-
-                // Mock status check (diverse for testing)
-                let status: 'valid' | 'warning' | 'critical' = 'valid';
-                if (result.plateNumber.includes('X')) status = 'warning';
-                if (result.plateNumber.includes('E') || result.plateNumber.includes('S'))
-                  status = 'critical';
-
-                const newDetection: DetectedPlate = {
-                  plateNumber: result.plateNumber,
-                  confidence: result.confidence,
-                  status: status,
-                };
-
-                if (status === 'critical' && onCriticalDetection) {
-                  onCriticalDetection(newDetection);
-                  stopLiveScan();
-                }
-
-                return [newDetection, ...prev].slice(0, 10);
-              });
+              setLiveDetections((prev) =>
+                handleNewDetection(prev, result, onCriticalDetection, stopLiveScan)
+              );
             }
           }
         }, 2000);
       }
     },
-    [onCriticalDetection, liveDetections.length, useDemoData]
+    [onCriticalDetection, liveDetections.length, useDemoData, processImage, stopLiveScan]
   );
-
-  const stopLiveScan = useCallback(() => {
-    setLiveScanActive(false);
-    if (liveScanRef.current) {
-      clearInterval(liveScanRef.current);
-      liveScanRef.current = null;
-    }
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     return () => stopLiveScan();
