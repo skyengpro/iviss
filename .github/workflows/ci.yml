@@ -197,7 +197,7 @@ jobs:
         uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          directory: iviss-backend
+          working-directory: iviss-backend
 
   backend_doc:
     name: Backend Documentation
