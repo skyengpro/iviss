@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Plus, CheckCircle } from 'lucide-react';
 
@@ -15,6 +16,7 @@ export const VehicleActionFooter: React.FC<VehicleActionFooterProps> = ({
   onLogControl,
   onNewSearch,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background p-4 space-y-2 z-30">
       {!controlLogged ? (
@@ -28,18 +30,18 @@ export const VehicleActionFooter: React.FC<VehicleActionFooterProps> = ({
           ) : (
             <>
               <Plus className="h-5 w-5" />
-              Log Control
+              {t('vehicleResult.logControl')}
             </>
           )}
         </Button>
       ) : (
         <Button className="w-full h-12 gap-2 bg-status-valid text-status-valid-foreground" disabled>
           <CheckCircle className="h-5 w-5" />
-          Control Logged
+          {t('vehicleResult.controlLogged')}
         </Button>
       )}
       <Button variant="outline" className="w-full" onClick={onNewSearch}>
-        New Search
+        {t('vehicleResult.newSearch')}
       </Button>
     </div>
   );

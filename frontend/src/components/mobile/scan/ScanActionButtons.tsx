@@ -1,6 +1,7 @@
 import React from 'react';
 import { Camera, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ScanActionButtonsProps {
   mode: 'photo' | 'live';
@@ -21,6 +22,7 @@ export const ScanActionButtons: React.FC<ScanActionButtonsProps> = ({
   isScanning,
   hasResult,
 }) => {
+  const { t } = useTranslation();
   if (hasResult) return null;
 
   return (
@@ -38,7 +40,7 @@ export const ScanActionButtons: React.FC<ScanActionButtonsProps> = ({
             )}
           >
             <Camera className="h-4 w-4" />
-            Photo
+            {t('mobileScan.photo')}
           </button>
           <button
             onClick={() => onModeChange('live')}
@@ -50,7 +52,7 @@ export const ScanActionButtons: React.FC<ScanActionButtonsProps> = ({
             )}
           >
             <Radio className="h-4 w-4" />
-            Live
+            {t('mobileScan.live')}
           </button>
         </div>
       </div>
@@ -79,12 +81,12 @@ export const ScanActionButtons: React.FC<ScanActionButtonsProps> = ({
             {liveScanActive ? (
               <>
                 <div className="h-2 w-2 animate-pulse rounded-full bg-current" />
-                <span className="text-sm font-medium">Stop Scanning</span>
+                <span className="text-sm font-medium">{t('mobileScan.stopScanning')}</span>
               </>
             ) : (
               <>
                 <Radio className="h-4 w-4" />
-                <span className="text-sm font-medium">Start Live Scan</span>
+                <span className="text-sm font-medium">{t('mobileScan.startLiveScan')}</span>
               </>
             )}
           </button>

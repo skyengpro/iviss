@@ -5,15 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Search, Filter, Calendar, MapPin, Clock, ChevronRight, Download } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { mockControlService, ControlRecord } from '@/services/mockControls';
-import { useAuth } from '@/contexts/AuthContext';
+import { mockControlService, ControlRecord, Translatable } from '@/services/mockControls';
+import { useAuth } from '@/hooks/use-auth';
 
 type FilterStatus = 'all' | 'valid' | 'warning' | 'critical';
 
 export default function MobileHistory() {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
 
@@ -23,10 +24,19 @@ export default function MobileHistory() {
     enabled: !!user,
   });
 
+  const renderNotes = (notes: Translatable): string => {
+    if (!notes) return '';
+    if (typeof notes === 'string') {
+      return notes;
+    }
+    return t(notes.key, notes.params);
+  };
+
   const filteredControls = controls.filter((control) => {
+    const noteString = renderNotes(control.notes);
     const matchesSearch =
       control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (control.notes && control.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+      (noteString && noteString.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesFilter = filterStatus === 'all' || control.status === filterStatus;
 
@@ -35,7 +45,7 @@ export default function MobileHistory() {
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString(i18n.language, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -48,11 +58,11 @@ export default function MobileHistory() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return t('mobileHistory.today');
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+      return t('mobileHistory.yesterday');
     }
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(i18n.language, {
       month: 'short',
       day: 'numeric',
     });
@@ -72,7 +82,7 @@ export default function MobileHistory() {
   );
 
   return (
-    <MobileLayout title="Control History">
+    <MobileLayout title={t('mobileHistory.title')}>
       <div className="p-4 space-y-4">
         {isLoading && (
           <div className="space-y-4">
@@ -94,7 +104,7 @@ export default function MobileHistory() {
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search plates, vehicles..."
+                  placeholder={t('mobileHistory.searchPlaceholder')}
                   className="pl-9"
                 />
               </div>
@@ -122,7 +132,7 @@ export default function MobileHistory() {
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
-                  {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                  {t(`mobileHistory.${status}`)}
                 </button>
               ))}
             </div>
@@ -130,9 +140,7 @@ export default function MobileHistory() {
             {/* Summary */}
             <div className="rounded-lg bg-muted p-3 text-center">
               <p className="text-sm text-muted-foreground">
-                Showing{' '}
-                <span className="font-semibold text-foreground">{filteredControls.length}</span>{' '}
-                controls
+                {t('mobileHistory.showingControls', { count: filteredControls.length })}
               </p>
             </div>
 
@@ -146,7 +154,12 @@ export default function MobileHistory() {
                   </div>
                   <div className="space-y-2">
                     {controls.map((control) => (
-                      <ControlItem key={control.id} control={control} formatTime={formatTime} />
+                      <ControlItem
+                        key={control.id}
+                        control={control}
+                        formatTime={formatTime}
+                        renderNotes={renderNotes}
+                      />
                     ))}
                   </div>
                 </div>
@@ -157,7 +170,7 @@ export default function MobileHistory() {
             <div className="pt-4">
               <Button variant="outline" className="w-full gap-2">
                 <Download className="h-4 w-4" />
-                Export to PDF
+                {t('mobileHistory.export')}
               </Button>
             </div>
           </>
@@ -170,10 +183,13 @@ export default function MobileHistory() {
 function ControlItem({
   control,
   formatTime,
+  renderNotes,
 }: {
   control: ControlRecord;
   formatTime: (isoString: string) => string;
+  renderNotes: (notes: Translatable) => string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors active:bg-muted">
       {/* Status indicator */}
@@ -191,10 +207,14 @@ function ControlItem({
         <div className="flex items-center justify-between">
           <p className="font-mono text-lg font-bold tracking-wider">{control.plateNumber}</p>
           <StatusBadge variant={control.status} size="sm" showIcon={false}>
-            {control.status}
+            {t(`mobileHistory.${control.status}`)}
           </StatusBadge>
         </div>
-        <p className="mt-0.5 text-sm text-muted-foreground">Vehicle Control Record</p>
+        {control.notes && (
+          <p className="mt-1 text-sm text-muted-foreground truncate">
+            {renderNotes(control.notes)}
+          </p>
+        )}
         <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />

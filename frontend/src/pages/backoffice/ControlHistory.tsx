@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { useQuery } from '@tanstack/react-query';
 import { mockControlService, ControlStatus } from '@/services/mockControls';
 
 export default function ControlHistory() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [organizationFilter, setOrganizationFilter] = useState('all');
@@ -57,17 +59,17 @@ export default function ControlHistory() {
 
   return (
     <BackOfficeLayout
-      title="Control History"
-      subtitle="View and manage all control records"
+      title={t('backOfficeControlHistory.title')}
+      subtitle={t('backOfficeControlHistory.subtitle')}
       actions={
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
-            Refresh
+            {t('backOfficeControlHistory.refresh')}
           </Button>
           <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
             <Download className="h-4 w-4" />
-            Export
+            {t('backOfficeControlHistory.export')}
           </Button>
         </div>
       }
@@ -81,7 +83,7 @@ export default function ControlHistory() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by plate, agent, location..."
+                placeholder={t('backOfficeControlHistory.searchPlaceholder')}
                 className="pl-9"
               />
             </div>
@@ -90,36 +92,42 @@ export default function ControlHistory() {
             <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t('backOfficeControlHistory.status')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="valid">Valid</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="all">{t('backOfficeControlHistory.allStatus')}</SelectItem>
+                  <SelectItem value="valid">{t('backOfficeControlHistory.valid')}</SelectItem>
+                  <SelectItem value="warning">{t('backOfficeControlHistory.warning')}</SelectItem>
+                  <SelectItem value="critical">{t('backOfficeControlHistory.critical')}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Organization" />
+                  <SelectValue placeholder={t('backOfficeControlHistory.organization')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Organizations</SelectItem>
-                  <SelectItem value="alpha">Brigade Alpha</SelectItem>
-                  <SelectItem value="beta">Brigade Beta</SelectItem>
-                  <SelectItem value="gamma">Brigade Gamma</SelectItem>
+                  <SelectItem value="all">
+                    {t('backOfficeControlHistory.allOrganizations')}
+                  </SelectItem>
+                  <SelectItem value="alpha">
+                    {t('backOfficeControlHistory.brigadeAlpha')}
+                  </SelectItem>
+                  <SelectItem value="beta">{t('backOfficeControlHistory.brigadeBeta')}</SelectItem>
+                  <SelectItem value="gamma">
+                    {t('backOfficeControlHistory.brigadeGamma')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
               <Button variant="outline" className="gap-2">
                 <Calendar className="h-4 w-4" />
-                Date Range
+                {t('backOfficeControlHistory.dateRange')}
               </Button>
 
               <Button variant="outline" className="gap-2">
                 <Filter className="h-4 w-4" />
-                More Filters
+                {t('backOfficeControlHistory.moreFilters')}
               </Button>
             </div>
           </div>
@@ -129,19 +137,23 @@ export default function ControlHistory() {
           {/* Results summary */}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing{' '}
-              <span className="font-semibold text-foreground">{filteredControls.length}</span>{' '}
-              controls
+              {t('backOfficeControlHistory.showingControls', { count: filteredControls.length })}
             </p>
             <div className="flex gap-2">
               <StatusBadge variant="valid" size="sm">
-                Valid: {filteredControls.filter((c) => c.status === 'valid').length}
+                {t('backOfficeControlHistory.validCount', {
+                  count: filteredControls.filter((c) => c.status === 'valid').length,
+                })}
               </StatusBadge>
               <StatusBadge variant="warning" size="sm">
-                Warning: {filteredControls.filter((c) => c.status === 'warning').length}
+                {t('backOfficeControlHistory.warningCount', {
+                  count: filteredControls.filter((c) => c.status === 'warning').length,
+                })}
               </StatusBadge>
               <StatusBadge variant="critical" size="sm">
-                Critical: {filteredControls.filter((c) => c.status === 'critical').length}
+                {t('backOfficeControlHistory.criticalCount', {
+                  count: filteredControls.filter((c) => c.status === 'critical').length,
+                })}
               </StatusBadge>
             </div>
           </div>
@@ -151,15 +163,17 @@ export default function ControlHistory() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="w-[100px]">ID</TableHead>
-                  <TableHead>Plate Number</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Organization</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Date/Time</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead className="w-[100px]">{t('backOfficeControlHistory.id')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.plateNumber')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.vehicle')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.status')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.agent')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.organization')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.location')}</TableHead>
+                  <TableHead>{t('backOfficeControlHistory.dateTime')}</TableHead>
+                  <TableHead className="w-[80px]">
+                    {t('backOfficeControlHistory.actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,7 +182,7 @@ export default function ControlHistory() {
                     <TableCell colSpan={9} className="h-24 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <RefreshCw className="h-4 w-4 animate-spin" />
-                        Loading controls...
+                        {t('backOfficeControlHistory.loadingControls')}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -181,10 +195,10 @@ export default function ControlHistory() {
                           {control.plateNumber}
                         </span>
                       </TableCell>
-                      <TableCell>Vehicle Info</TableCell>
+                      <TableCell>{t('backOfficeControlHistory.vehicle')}</TableCell>
                       <TableCell>
                         <StatusBadge variant={control.status} size="sm">
-                          {control.status}
+                          {t(`backOfficeControlHistory.${control.status}`)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>{control.agentName}</TableCell>
@@ -209,7 +223,7 @@ export default function ControlHistory() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      No controls found matching your filters.
+                      {t('backOfficeControlHistory.noControlsFound')}
                     </TableCell>
                   </TableRow>
                 )}
@@ -219,14 +233,16 @@ export default function ControlHistory() {
 
           {/* Pagination */}
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Page 1 of 129</p>
+            <p className="text-sm text-muted-foreground">
+              {t('backOfficeControlHistory.pageOf', { currentPage: 1, totalPages: 129 })}
+            </p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled>
                 <ChevronLeft className="h-4 w-4" />
-                Previous
+                {t('backOfficeControlHistory.previous')}
               </Button>
               <Button variant="outline" size="sm">
-                Next
+                {t('backOfficeControlHistory.next')}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

@@ -2,6 +2,7 @@
 // Tracks all vehicle controls performed by agents
 
 export type ControlStatus = 'valid' | 'warning' | 'critical' | 'pending';
+export type Translatable = string | { key: string; params?: Record<string, string | number> };
 
 export interface ControlAction {
   type: 'check' | 'flag' | 'citation' | 'impound' | 'release';
@@ -35,7 +36,7 @@ export interface ControlRecord {
     customsStatus: ControlStatus;
   };
   actions: ControlAction[];
-  notes?: string;
+  notes?: Translatable;
   imageUrl?: string;
 }
 
@@ -102,8 +103,7 @@ const mockControls: ControlRecord[] = [
         timestamp: new Date(Date.now() - 20 * 60 * 1000),
       },
     ],
-    notes:
-      'Driver issued citation for expired insurance. Vehicle allowed to proceed to nearest garage.',
+    notes: { key: 'mockControls.notes.expiredInsurance' },
   },
   {
     id: 'ctrl_003',
@@ -143,7 +143,7 @@ const mockControls: ControlRecord[] = [
         timestamp: new Date(Date.now() - 55 * 60 * 1000),
       },
     ],
-    notes: 'STOLEN VEHICLE - Reported stolen on 15/01/2024. Driver detained for questioning.',
+    notes: { key: 'mockControls.notes.stolenVehicle', params: { date: '15/01/2024' } },
   },
   {
     id: 'ctrl_004',
@@ -232,7 +232,7 @@ export const mockControlService = {
     identificationMode: 'manual' | 'photo' | 'live';
     confidence?: number;
     results: ControlRecord['results'];
-    notes?: string;
+    notes?: Translatable;
   }): Promise<ControlRecord> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -285,10 +285,10 @@ export const mockControlService = {
 
     if (filters) {
       if (filters.startDate) {
-        filtered = filtered.filter((c) => c.timestamp >= filters.startDate!);
+        filtered = filtered.filter((c) => c.timestamp >= filters.startDate);
       }
       if (filters.endDate) {
-        filtered = filtered.filter((c) => c.timestamp <= filters.endDate!);
+        filtered = filtered.filter((c) => c.timestamp <= filters.endDate);
       }
       if (filters.agentId) {
         filtered = filtered.filter((c) => c.agentId === filters.agentId);

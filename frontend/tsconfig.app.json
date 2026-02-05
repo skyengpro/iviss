@@ -21,11 +21,11 @@
     "noFallthroughCasesInSwitch": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["frontend/src/*"]
+      "@/*": ["src/*"]
     }
   },
   "include": [
-    "frontend/src",
+    "src",
     "tailwind.config.ts",
     "vite.config.ts",
     "vitest.config.ts",

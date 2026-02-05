@@ -1,23 +1,28 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Camera, Search, ClipboardList, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const navItems = [
-  { href: '/mobile', icon: Home, label: 'Home' },
-  { href: '/mobile/scan', icon: Camera, label: 'Scan' },
-  { href: '/mobile/search', icon: Search, label: 'Search' },
-  { href: '/mobile/history', icon: ClipboardList, label: 'History' },
-  { href: '/mobile/settings', icon: Settings, label: 'Settings' },
-];
+import { useTranslation } from 'react-i18next';
 
 export function MobileNavigation() {
   const location = useLocation();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { href: '/mobile', icon: Home, label: t('mobileNav.home') },
+    { href: '/mobile/scan', icon: Camera, label: t('mobileNav.scan') },
+    { href: '/mobile/search', icon: Search, label: t('mobileNav.search') },
+    { href: '/mobile/history', icon: ClipboardList, label: t('mobileNav.history') },
+    { href: '/mobile/settings', icon: Settings, label: t('mobileNav.settings') },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-lg">
       <div className="flex h-16 items-center justify-around px-2">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive =
+            item.href === '/mobile'
+              ? location.pathname === item.href
+              : location.pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
