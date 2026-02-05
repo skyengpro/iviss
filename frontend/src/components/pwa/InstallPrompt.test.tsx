@@ -12,9 +12,9 @@ describe('InstallPrompt', () => {
     render(<InstallPrompt />);
 
     const event = new Event('beforeinstallprompt');
-    // @ts-ignore
+    // @ts-expect-error - prompt is not standard on Event
     event.prompt = vi.fn();
-    // @ts-ignore
+    // @ts-expect-error - userChoice is not standard on Event
     event.userChoice = Promise.resolve({ outcome: 'accepted' });
 
     fireEvent(window, event);
@@ -27,9 +27,9 @@ describe('InstallPrompt', () => {
     render(<InstallPrompt />);
 
     const event = new Event('beforeinstallprompt');
-    // @ts-ignore
+    // @ts-expect-error - prompt is not standard on Event
     event.prompt = vi.fn();
-    // @ts-ignore
+    // @ts-expect-error - userChoice is not standard on Event
     event.userChoice = Promise.resolve({ outcome: 'accepted' });
 
     fireEvent(window, event);
