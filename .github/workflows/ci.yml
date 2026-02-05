@@ -159,8 +159,9 @@ jobs:
         with:
           args: |
             -Dsonar.projectKey=IVISS
-            -Dsonar.source=frontend/src
-            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
+            -Dsonar.projectBaseDir=frontend
+            -Dsonar.sources=src
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.qualitygate.wait=true
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
