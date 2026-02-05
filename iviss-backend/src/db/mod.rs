@@ -1,3 +1,3 @@
 pub mod pool;
 
-pub use pool::{initialize_pools, DbPools};
+pub use pool::{initialize_pool, DbPool};

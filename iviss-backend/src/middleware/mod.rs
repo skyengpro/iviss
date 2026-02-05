@@ -1,3 +1,2 @@
-pub mod auth;
-pub mod logging;
 pub mod cors;
+pub mod logging;
