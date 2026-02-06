@@ -1,4 +1,5 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -12,41 +13,49 @@ import {
   LogOut,
   Bell,
   HelpCircle,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-
-
-const mainNavItems = [
-  { href: "/backoffice", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/backoffice/controls", icon: ClipboardList, label: "Control History" },
-  { href: "/backoffice/vehicles", icon: Car, label: "Vehicle Database" },
-  { href: "/backoffice/validation", icon: FileSearch, label: "Pending Validation" },
-];
-
-const adminNavItems = [
-  { href: "/backoffice/users", icon: Users, label: "User Management" },
-  { href: "/backoffice/organizations", icon: Building2, label: "Organizations" },
-  { href: "/backoffice/audit", icon: Shield, label: "Audit Logs" },
-  { href: "/backoffice/settings", icon: Settings, label: "Settings" },
-];
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 
 export function BackOfficeSidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [adminOpen, setAdminOpen] = useState(true);
   const { logout } = useAuth();
 
+  const mainNavItems = [
+    { href: '/backoffice', icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
+    {
+      href: '/backoffice/controls',
+      icon: ClipboardList,
+      label: t('backOfficeSidebar.controlHistory'),
+    },
+    { href: '/backoffice/vehicles', icon: Car, label: t('backOfficeSidebar.vehicleDatabase') },
+    {
+      href: '/backoffice/validation',
+      icon: FileSearch,
+      label: t('backOfficeSidebar.pendingValidation'),
+    },
+  ];
+
+  const adminNavItems = [
+    { href: '/backoffice/users', icon: Users, label: t('backOfficeSidebar.userManagement') },
+    {
+      href: '/backoffice/organizations',
+      icon: Building2,
+      label: t('backOfficeSidebar.organizations'),
+    },
+    { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
+    { href: '/backoffice/settings', icon: Settings, label: t('backOfficeSidebar.settings') },
+  ];
+
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate('/login');
   };
 
   return (
@@ -59,7 +68,7 @@ export function BackOfficeSidebar() {
         <div>
           <p className="font-bold tracking-wide">IVISS</p>
           <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
-            Back Office
+            {t('backOfficeSidebar.backOffice')}
           </p>
         </div>
       </div>
@@ -69,7 +78,7 @@ export function BackOfficeSidebar() {
         {/* Main section */}
         <div className="space-y-1">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-            Main
+            {t('backOfficeSidebar.main')}
           </p>
           {mainNavItems.map((item) => (
             <NavLink
@@ -86,11 +95,11 @@ export function BackOfficeSidebar() {
         <Collapsible open={adminOpen} onOpenChange={setAdminOpen} className="mt-6">
           <CollapsibleTrigger asChild>
             <button className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/70">
-              Administration
+              {t('backOfficeSidebar.administration')}
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  adminOpen && "rotate-180"
+                  'h-4 w-4 transition-transform duration-200',
+                  adminOpen && 'rotate-180'
                 )}
               />
             </button>
@@ -116,8 +125,10 @@ export function BackOfficeSidebar() {
             <span className="text-sm font-semibold">AD</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium">Admin User</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">Super Admin</p>
+            <p className="truncate text-sm font-medium">{t('backOfficeSidebar.adminUser')}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">
+              {t('backOfficeSidebar.superAdmin')}
+            </p>
           </div>
         </div>
         <div className="mt-3 flex gap-2">
@@ -164,10 +175,10 @@ function NavLink({
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
         isActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       )}
     >
       <Icon className="h-5 w-5" />

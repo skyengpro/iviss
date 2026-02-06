@@ -95,7 +95,8 @@
     --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -4px hsl(222 47% 11% / 0.1);
     --shadow-xl: 0 20px 25px -5px hsl(222 47% 11% / 0.1), 0 8px 10px -6px hsl(222 47% 11% / 0.1);
     --shadow-card: 0 1px 3px 0 hsl(222 47% 11% / 0.08), 0 1px 2px -1px hsl(222 47% 11% / 0.08);
-    --shadow-card-hover: 0 4px 12px 0 hsl(222 47% 11% / 0.12), 0 2px 4px -2px hsl(222 47% 11% / 0.08);
+    --shadow-card-hover:
+      0 4px 12px 0 hsl(222 47% 11% / 0.12), 0 2px 4px -2px hsl(222 47% 11% / 0.08);
   }
 
   .dark {
@@ -151,7 +152,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "cv11", "ss01", "ss03";
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
   }
 }
 
@@ -160,15 +161,15 @@
   .status-valid {
     @apply bg-[hsl(var(--status-valid))] text-[hsl(var(--status-valid-foreground))];
   }
-  
+
   .status-warning {
     @apply bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))];
   }
-  
+
   .status-critical {
     @apply bg-[hsl(var(--status-critical))] text-[hsl(var(--status-critical-foreground))];
   }
-  
+
   .status-pending {
     @apply bg-[hsl(var(--status-pending))] text-[hsl(var(--status-pending-foreground))];
   }
@@ -176,7 +177,9 @@
   /* Card Variants */
   .card-elevated {
     box-shadow: var(--shadow-card);
-    transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+    transition:
+      box-shadow 0.2s ease-in-out,
+      transform 0.2s ease-in-out;
   }
 
   .card-elevated:hover {
@@ -234,46 +237,55 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes slideUp {
-    from { 
-      opacity: 0; 
-      transform: translateY(20px); 
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-    to { 
-      opacity: 1; 
-      transform: translateY(0); 
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
   @keyframes slideInRight {
-    from { 
-      opacity: 0; 
-      transform: translateX(20px); 
+    from {
+      opacity: 0;
+      transform: translateX(20px);
     }
-    to { 
-      opacity: 1; 
-      transform: translateX(0); 
+    to {
+      opacity: 1;
+      transform: translateX(0);
     }
   }
 
   @keyframes pulseStatus {
-    0%, 100% { 
-      opacity: 1; 
-      transform: scale(1); 
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
     }
-    50% { 
-      opacity: 0.8; 
-      transform: scale(1.02); 
+    50% {
+      opacity: 0.8;
+      transform: scale(1.02);
     }
   }
 
   @keyframes scanLine {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100%); }
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
   }
 
   /* Scrollbar styling */

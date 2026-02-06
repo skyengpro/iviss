@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { BackOfficeLayout } from "@/components/layout/BackOfficeLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { 
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import {
   ArrowLeft,
   Car,
   User,
@@ -15,20 +16,21 @@ import {
   CheckCircle,
   AlertTriangle,
   AlertCircle,
-  Download
-} from "lucide-react";
-import { mockControlService, ControlRecord } from "@/services/mockControls";
+  Download,
+} from 'lucide-react';
+import { mockControlService, ControlRecord, Translatable } from '@/services/mockControls';
 
 export default function ControlDetail() {
   const { controlId } = useParams<{ controlId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [control, setControl] = useState<ControlRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadControl = async () => {
       if (!controlId) return;
-      
+
       try {
         const data = await mockControlService.getControlById(controlId);
         setControl(data);
@@ -44,7 +46,7 @@ export default function ControlDetail() {
 
   if (isLoading) {
     return (
-      <BackOfficeLayout title="Loading...">
+      <BackOfficeLayout title={t('backOfficeControlDetail.loading')}>
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -54,11 +56,11 @@ export default function ControlDetail() {
 
   if (!control) {
     return (
-      <BackOfficeLayout title="Control Not Found">
+      <BackOfficeLayout title={t('backOfficeControlDetail.notFoundTitle')}>
         <div className="text-center py-12">
-          <p className="text-muted-foreground">Control not found</p>
+          <p className="text-muted-foreground">{t('backOfficeControlDetail.notFoundMessage')}</p>
           <Button className="mt-4" onClick={() => navigate('/backoffice/controls')}>
-            Back to Controls
+            {t('backOfficeControlDetail.backToControls')}
           </Button>
         </div>
       </BackOfficeLayout>
@@ -78,27 +80,30 @@ export default function ControlDetail() {
     }
   };
 
+  const renderNotes = (notes: Translatable) => {
+    if (typeof notes === 'string') {
+      return notes;
+    }
+    return t(notes.key, notes.params);
+  };
+
   return (
     <BackOfficeLayout
-      title="Control Details"
-      subtitle={`Control ID: ${control.id}`}
+      title={t('backOfficeControlDetail.title')}
+      subtitle={t('backOfficeControlDetail.subtitle', { id: control.id })}
       actions={
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
-            Export PDF
+            {t('backOfficeControlDetail.exportPdf')}
           </Button>
         </div>
       }
     >
       <div className="space-y-6">
-        <Button
-          variant="ghost"
-          className="gap-2"
-          onClick={() => navigate('/backoffice/controls')}
-        >
+        <Button variant="ghost" className="gap-2" onClick={() => navigate('/backoffice/controls')}>
           <ArrowLeft className="h-4 w-4" />
-          Back to Controls
+          {t('backOfficeControlDetail.backToControls')}
         </Button>
 
         {/* Header Card */}
@@ -114,16 +119,25 @@ export default function ControlDetail() {
                     {control.plateNumber}
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    {control.identificationMode.toUpperCase()} identification
-                    {control.confidence && ` • ${control.confidence}% confidence`}
+                    {t('backOfficeControlDetail.identificationMode', {
+                      mode: control.identificationMode.toUpperCase(),
+                    })}
+                    {control.confidence &&
+                      ` • ${t('backOfficeControlDetail.confidence', { percent: control.confidence })}`}
                   </p>
                 </div>
               </div>
-              <StatusBadge 
-                variant={control.status === 'valid' ? 'valid' : control.status === 'warning' ? 'warning' : 'critical'} 
+              <StatusBadge
+                variant={
+                  control.status === 'valid'
+                    ? 'valid'
+                    : control.status === 'warning'
+                      ? 'warning'
+                      : 'critical'
+                }
                 size="lg"
               >
-                {control.status.toUpperCase()}
+                {t(`mobileHistory.${control.status}`)}
               </StatusBadge>
             </div>
           </CardContent>
@@ -135,29 +149,29 @@ export default function ControlDetail() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-accent" />
-                Control Information
+                {t('backOfficeControlDetail.controlInformation')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <InfoRow 
-                icon={Clock} 
-                label="Date & Time" 
-                value={control.timestamp.toLocaleString()} 
+              <InfoRow
+                icon={Clock}
+                label={t('backOfficeControlDetail.dateTime')}
+                value={control.timestamp.toLocaleString()}
               />
-              <InfoRow 
-                icon={MapPin} 
-                label="Location" 
-                value={control.location.address} 
+              <InfoRow
+                icon={MapPin}
+                label={t('backOfficeControlDetail.location')}
+                value={control.location.address}
               />
-              <InfoRow 
-                icon={User} 
-                label="Agent" 
-                value={control.agentName} 
+              <InfoRow
+                icon={User}
+                label={t('backOfficeControlDetail.agent')}
+                value={control.agentName}
               />
-              <InfoRow 
-                icon={Smartphone} 
-                label="Device IMEI" 
-                value={control.phoneIMEI} 
+              <InfoRow
+                icon={Smartphone}
+                label={t('backOfficeControlDetail.deviceImei')}
+                value={control.phoneIMEI}
               />
             </CardContent>
           </Card>
@@ -165,32 +179,32 @@ export default function ControlDetail() {
           {/* Verification Results */}
           <Card>
             <CardHeader>
-              <CardTitle>Verification Results</CardTitle>
+              <CardTitle>{t('backOfficeControlDetail.verificationResults')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <ResultRow 
-                label="Registration" 
-                status={control.results.registration} 
+              <ResultRow
+                label={t('backOfficeControlDetail.registration')}
+                status={control.results.registration}
                 icon={getStatusIcon(control.results.registration)}
               />
-              <ResultRow 
-                label="Insurance" 
-                status={control.results.insurance} 
+              <ResultRow
+                label={t('backOfficeControlDetail.insurance')}
+                status={control.results.insurance}
                 icon={getStatusIcon(control.results.insurance)}
               />
-              <ResultRow 
-                label="Technical Inspection" 
-                status={control.results.technicalInspection} 
+              <ResultRow
+                label={t('backOfficeControlDetail.technicalInspection')}
+                status={control.results.technicalInspection}
                 icon={getStatusIcon(control.results.technicalInspection)}
               />
-              <ResultRow 
-                label="Wanted Status" 
-                status={control.results.wantedStatus} 
+              <ResultRow
+                label={t('backOfficeControlDetail.wantedStatus')}
+                status={control.results.wantedStatus}
                 icon={getStatusIcon(control.results.wantedStatus)}
               />
-              <ResultRow 
-                label="Customs" 
-                status={control.results.customsStatus} 
+              <ResultRow
+                label={t('backOfficeControlDetail.customs')}
+                status={control.results.customsStatus}
                 icon={getStatusIcon(control.results.customsStatus)}
               />
             </CardContent>
@@ -200,7 +214,7 @@ export default function ControlDetail() {
         {/* Actions Timeline */}
         <Card>
           <CardHeader>
-            <CardTitle>Actions Timeline</CardTitle>
+            <CardTitle>{t('backOfficeControlDetail.actionsTimeline')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -231,10 +245,10 @@ export default function ControlDetail() {
         {control.notes && (
           <Card>
             <CardHeader>
-              <CardTitle>Agent Notes</CardTitle>
+              <CardTitle>{t('backOfficeControlDetail.agentNotes')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">{control.notes}</p>
+              <p className="text-muted-foreground">{renderNotes(control.notes)}</p>
             </CardContent>
           </Card>
         )}
@@ -243,14 +257,14 @@ export default function ControlDetail() {
   );
 }
 
-function InfoRow({ 
-  icon: Icon, 
-  label, 
-  value 
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: string; 
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -263,25 +277,26 @@ function InfoRow({
   );
 }
 
-function ResultRow({ 
-  label, 
-  status, 
-  icon 
-}: { 
-  label: string; 
-  status: string; 
+function ResultRow({
+  label,
+  status,
+  icon,
+}: {
+  label: string;
+  status: string;
   icon: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
       <span className="font-medium">{label}</span>
       <div className="flex items-center gap-2">
         {icon}
-        <StatusBadge 
-          variant={status === 'valid' ? 'valid' : status === 'warning' ? 'warning' : 'critical'} 
+        <StatusBadge
+          variant={status === 'valid' ? 'valid' : status === 'warning' ? 'warning' : 'critical'}
           size="sm"
         >
-          {status.toUpperCase()}
+          {t(`mobileHistory.${status}`)}
         </StatusBadge>
       </div>
     </div>

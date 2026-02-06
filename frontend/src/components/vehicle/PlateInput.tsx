@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { Search, X, Keyboard } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useTranslation } from 'react-i18next';
+import { useState, useRef } from 'react';
+import { Search, X, Keyboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface PlateInputProps {
   value: string;
@@ -18,8 +19,9 @@ export function PlateInput({
   onSubmit,
   isLoading,
   className,
-  placeholder = "Enter plate number",
-}: PlateInputProps) {
+  placeholder = 'Enter plate number',
+}: Readonly<PlateInputProps>) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -27,7 +29,7 @@ export function PlateInput({
   const formatPlate = (input: string): string => {
     return input
       .toUpperCase()
-      .replace(/[^A-Z0-9\-\s]/g, "")
+      .replace(/[^A-Z0-9\-\s]/g, '')
       .slice(0, 12);
   };
 
@@ -36,24 +38,24 @@ export function PlateInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && value.length >= 4) {
+    if (e.key === 'Enter' && value.length >= 4) {
       onSubmit();
     }
   };
 
   const handleClear = () => {
-    onChange("");
+    onChange('');
     inputRef.current?.focus();
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn('relative', className)}>
       <div
         className={cn(
-          "flex items-center gap-2 rounded-xl border-2 bg-card p-2 transition-all duration-200",
+          'flex items-center gap-2 rounded-xl border-2 bg-card p-2 transition-all duration-200',
           isFocused
-            ? "border-accent ring-4 ring-accent/20"
-            : "border-border hover:border-muted-foreground/30"
+            ? 'border-accent ring-4 ring-accent/20'
+            : 'border-border hover:border-muted-foreground/30'
         )}
       >
         {/* Plate icon/prefix */}
@@ -107,7 +109,7 @@ export function PlateInput({
       {/* Validation hint */}
       {value.length > 0 && value.length < 4 && (
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Enter at least 4 characters
+          {t('mobileSearch.helpTextShort', { count: 4 })}
         </p>
       )}
     </div>

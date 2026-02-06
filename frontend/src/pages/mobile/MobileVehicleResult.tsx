@@ -1,33 +1,48 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { Clock, ArrowLeft } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { mockVehicleService, Vehicle } from "@/services/mockVehicles";
-import { mockExternalAPIService } from "@/services/mockExternalAPIs";
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { Clock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
+import { mockVehicleService, Vehicle } from '@/services/mockVehicles';
+import { mockExternalAPIService } from '@/services/mockExternalAPIs';
 
-import { useLogControl } from "@/hooks/useLogControl";
-import { VehicleHeader } from "@/components/mobile/vehicle/VehicleHeader";
-import { VehicleStatusGrid } from "@/components/mobile/vehicle/VehicleStatusGrid";
-import { VehicleActionFooter } from "@/components/mobile/vehicle/VehicleActionFooter";
-import { VehicleLoadingState, VehicleErrorState } from "@/components/mobile/vehicle/VehicleStates";
-import { VehicleNotFound } from "@/components/mobile/vehicle/VehicleNotFound";
+import { useLogControl } from '@/hooks/useLogControl';
+import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';
+import { VehicleStatusGrid } from '@/components/mobile/vehicle/VehicleStatusGrid';
+import { VehicleActionFooter } from '@/components/mobile/vehicle/VehicleActionFooter';
+import { VehicleLoadingState, VehicleErrorState } from '@/components/mobile/vehicle/VehicleStates';
+import { VehicleNotFound } from '@/components/mobile/vehicle/VehicleNotFound';
 
 export default function MobileVehicleResult() {
   const { plateNumber } = useParams<{ plateNumber: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
-  const { data: vehicleData, isLoading: vehicleLoading, error: vehicleError, refetch: refetchVehicle } = useQuery({
+  const {
+    data: vehicleData,
+    isLoading: vehicleLoading,
+    error: vehicleError,
+    refetch: refetchVehicle,
+  } = useQuery({
     queryKey: ['vehicle', plateNumber],
-    queryFn: () => plateNumber ? mockVehicleService.searchByPlate(plateNumber) : Promise.resolve({ found: false } as { found: boolean; vehicle?: Vehicle | null }),
-    enabled: !!plateNumber
+    queryFn: () =>
+      plateNumber
+        ? mockVehicleService.searchByPlate(plateNumber)
+        : Promise.resolve({ found: false } as { found: boolean; vehicle?: Vehicle | null }),
+    enabled: !!plateNumber,
   });
 
-  const { data: apiStatus, isLoading: apiLoading, refetch: refetchApi } = useQuery({
+  const {
+    data: apiStatus,
+    isLoading: apiLoading,
+    refetch: refetchApi,
+  } = useQuery({
     queryKey: ['api-status', plateNumber],
-    queryFn: () => plateNumber ? mockExternalAPIService.checkAllSystems(plateNumber) : Promise.resolve(null),
-    enabled: !!plateNumber
+    queryFn: () =>
+      plateNumber ? mockExternalAPIService.checkAllSystems(plateNumber) : Promise.resolve(null),
+    enabled: !!plateNumber,
   });
 
   const { isLoggingControl, controlLogged, logControl } = useLogControl();
@@ -43,7 +58,7 @@ export default function MobileVehicleResult() {
 
   if (isLoading) {
     return (
-      <MobileLayout title="Searching..." hideNavigation>
+      <MobileLayout title={t('vehicleResult.searchingTitle')} hideNavigation>
         <VehicleLoadingState queryTime={apiStatus?.queryTime} />
       </MobileLayout>
     );
@@ -51,7 +66,7 @@ export default function MobileVehicleResult() {
 
   if (vehicleError || (!isLoading && !vehicleData)) {
     return (
-      <MobileLayout title="Error" hideNavigation>
+      <MobileLayout title={t('vehicleResult.errorTitle')} hideNavigation>
         <VehicleErrorState onRetry={handleRetry} />
       </MobileLayout>
     );
@@ -59,7 +74,7 @@ export default function MobileVehicleResult() {
 
   if (!found || !plateNumber) {
     return (
-      <MobileLayout title="Vehicle Not Found" hideNavigation>
+      <MobileLayout title={t('vehicleResult.notFoundTitle')} hideNavigation>
         <VehicleNotFound plateNumber={plateNumber} />
       </MobileLayout>
     );
@@ -68,14 +83,14 @@ export default function MobileVehicleResult() {
   if (!vehicle || !apiStatus) return null;
 
   return (
-    <MobileLayout title="Vehicle Details" hideNavigation>
+    <MobileLayout title={t('vehicleResult.detailsTitle')} hideNavigation>
       <div className="p-4 space-y-4 pb-32">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t('vehicleResult.backButton')}
         </button>
 
         <VehicleHeader
@@ -88,7 +103,7 @@ export default function MobileVehicleResult() {
         {/* Query Time */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>Query completed in {apiStatus.queryTime}ms</span>
+          <span>{t('vehicleResult.queryTime', { time: apiStatus.queryTime })}</span>
         </div>
       </div>
 

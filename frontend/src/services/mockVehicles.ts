@@ -53,7 +53,11 @@ const mockVehicles: Vehicle[] = [
     },
     registration: { status: 'valid', expiryDate: 'Dec 2025' },
     insurance: { status: 'valid', provider: 'AXA France', expiryDate: 'Jun 2024' },
-    technicalInspection: { status: 'warning', expiryDate: 'Mar 2024', notes: 'Expires in 2 months' },
+    technicalInspection: {
+      status: 'warning',
+      expiryDate: 'Mar 2024',
+      notes: 'Expires in 2 months',
+    },
     wantedStatus: { status: 'valid' },
     customsStatus: { status: 'valid' },
   },
@@ -165,6 +169,8 @@ const mockVehicles: Vehicle[] = [
 ];
 
 // Pending vehicle submissions (from agents in the field)
+import { Translatable } from './mockControls';
+
 export interface PendingVehicle {
   id: string;
   plateNumber: string;
@@ -174,7 +180,7 @@ export interface PendingVehicle {
   frontImageUrl: string;
   backImageUrl: string;
   status: 'pending' | 'approved' | 'rejected';
-  notes?: string;
+  notes?: Translatable;
 }
 
 const pendingVehicles: PendingVehicle[] = [
@@ -187,7 +193,7 @@ const pendingVehicles: PendingVehicle[] = [
     frontImageUrl: '/placeholder.svg',
     backImageUrl: '/placeholder.svg',
     status: 'pending',
-    notes: 'Vehicle with foreign plates, driver claims recent import',
+    notes: { key: 'mockControls.notes.expiredInsurance' },
   },
   {
     id: 'pend_002',
@@ -206,9 +212,9 @@ export const mockVehicleService = {
   async searchByPlate(plateNumber: string): Promise<{ found: boolean; vehicle?: Vehicle }> {
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    const normalizedPlate = plateNumber.toUpperCase().replace(/\s/g, '');
+    const normalizedPlate = plateNumber.toUpperCase().replace(/[-\s]/g, '');
     const vehicle = mockVehicles.find(
-      (v) => v.plateNumber.replace(/-/g, '').toUpperCase() === normalizedPlate.replace(/-/g, '')
+      (v) => v.plateNumber.replace(/-/g, '').toUpperCase() === normalizedPlate
     );
 
     if (vehicle) {
@@ -292,16 +298,26 @@ export const mockVehicleService = {
   },
 
   // Simulate live scan detection
-  async simulateLiveScan(): Promise<{ plateNumber: string; confidence: number; status: VehicleStatus }> {
+  async simulateLiveScan(): Promise<{
+    plateNumber: string;
+    confidence: number;
+    status: VehicleStatus;
+  }> {
     await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 2000));
 
     const randomVehicle = mockVehicles[Math.floor(Math.random() * mockVehicles.length)];
-    const status: VehicleStatus =
-      randomVehicle.wantedStatus.status === 'critical'
-        ? 'critical'
-        : randomVehicle.insurance.status === 'critical' || randomVehicle.technicalInspection.status === 'critical'
-        ? 'warning'
-        : 'valid';
+    let status: VehicleStatus = 'valid';
+
+    if (randomVehicle.wantedStatus.status === 'critical') {
+      status = 'critical';
+    } else {
+      if (
+        randomVehicle.insurance.status === 'critical' ||
+        randomVehicle.technicalInspection.status === 'critical'
+      ) {
+        status = 'warning';
+      }
+    }
 
     return {
       plateNumber: randomVehicle.plateNumber,

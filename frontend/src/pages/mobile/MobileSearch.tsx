@@ -1,53 +1,55 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { PlateInput } from "@/components/vehicle/PlateInput";
-import { Button } from "@/components/ui/button";
-import { Camera, History } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { PlateInput } from '@/components/vehicle/PlateInput';
+import { Button } from '@/components/ui/button';
+import { Camera, History } from 'lucide-react';
 
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockControlService } from "@/services/mockControls";
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
+import { mockControlService } from '@/services/mockControls';
 
 export default function MobileSearch() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [plateNumber, setPlateNumber] = useState("");
+  const [plateNumber, setPlateNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleSearch = useCallback(
+    async (plate?: string) => {
+      const searchPlate = plate || plateNumber;
+      if (searchPlate.length < 4) return;
+
+      setIsLoading(true);
+
+      // Navigate to result page
+      navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
+    },
+    [navigate, plateNumber]
+  );
 
   // Fetch recent controls for the agent to show as "recent searches"
   const { data: recentControls = [] } = useQuery({
     queryKey: ['recent-controls', user?.id],
-    queryFn: () => user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([]),
-    enabled: !!user
+    queryFn: () => (user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([])),
+    enabled: !!user,
   });
 
   // Check if plate was passed from scan
   useEffect(() => {
-    const plateFromScan = searchParams.get("plate");
+    const plateFromScan = searchParams.get('plate');
     if (plateFromScan) {
       setPlateNumber(plateFromScan);
       // Auto-search
       handleSearch(plateFromScan);
     }
-  }, [searchParams]);
-
-  const handleSearch = async (plate?: string) => {
-    const searchPlate = plate || plateNumber;
-    if (searchPlate.length < 4) return;
-
-    setIsLoading(true);
-
-    // Navigate to result page
-    navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
-  };
-
-  const recentSearches = ["AB-123-CD", "XY-789-ZW", "EF-456-GH"];
+  }, [searchParams, handleSearch]);
 
   return (
-    <MobileLayout title="Search Vehicle">
+    <MobileLayout title={t('mobileSearch.title')}>
       <div className="p-4 space-y-6">
         {/* Input section */}
         <section>
@@ -56,7 +58,7 @@ export default function MobileSearch() {
             onChange={setPlateNumber}
             onSubmit={() => handleSearch()}
             isLoading={isLoading}
-            placeholder="Enter plate number"
+            placeholder={t('mobileSearch.placeholder')}
           />
 
           {/* Alternative actions */}
@@ -64,13 +66,13 @@ export default function MobileSearch() {
             <Link to="/mobile/scan?mode=photo" className="flex-1">
               <Button variant="outline" className="w-full gap-2">
                 <Camera className="h-4 w-4" />
-                Photo Scan
+                {t('mobileSearch.photoScan')}
               </Button>
             </Link>
             <Link to="/mobile/history" className="flex-1">
               <Button variant="outline" className="w-full gap-2">
                 <History className="h-4 w-4" />
-                History
+                {t('mobileSearch.history')}
               </Button>
             </Link>
           </div>
@@ -79,7 +81,7 @@ export default function MobileSearch() {
         {/* Recent searches */}
         <section>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Recent Activity
+            {t('mobileSearch.recentActivity')}
           </h3>
           <div className="space-y-2">
             {recentControls.length > 0 ? (
@@ -95,12 +97,14 @@ export default function MobileSearch() {
                   <span className="font-mono font-semibold tracking-wider">
                     {control.plateNumber}
                   </span>
-                  <span className="text-xs text-muted-foreground">Tap to search</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('mobileSearch.tapToSearch')}
+                  </span>
                 </button>
               ))
             ) : (
               <p className="py-4 text-center text-sm text-muted-foreground">
-                No recent activity found.
+                {t('mobileSearch.noRecentActivity')}
               </p>
             )}
           </div>
@@ -108,10 +112,7 @@ export default function MobileSearch() {
 
         {/* Help text */}
         <div className="rounded-lg bg-muted/50 p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Enter at least 4 characters of the plate number to search.
-            The system will query all national databases.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('mobileSearch.helpText')}</p>
         </div>
       </div>
     </MobileLayout>

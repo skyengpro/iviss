@@ -1,8 +1,9 @@
-import { useNavigate } from "react-router-dom";
-import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 interface MobileSidebarProps {
   open: boolean;
@@ -10,12 +11,13 @@ interface MobileSidebarProps {
 }
 
 export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
-  const { logout } = useAuth();
+  const { t } = useTranslation();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate('/login');
     onClose();
   };
 
@@ -24,8 +26,8 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
       {/* Overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
-          open ? "opacity-100" : "pointer-events-none opacity-0"
+          'fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300',
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
         onClick={onClose}
       />
@@ -33,8 +35,8 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
       {/* Sidebar panel */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-full w-80 bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 ease-out",
-          open ? "translate-x-0" : "-translate-x-full"
+          'fixed left-0 top-0 z-50 h-full w-80 bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 ease-out',
+          open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Header */}
@@ -45,7 +47,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
             </div>
             <div>
               <p className="font-bold">IVISS</p>
-              <p className="text-xs text-sidebar-foreground/70">Front Office</p>
+              <p className="text-xs text-sidebar-foreground/70">{t('mobileSidebar.frontOffice')}</p>
             </div>
           </div>
           <Button
@@ -68,14 +70,17 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               <p className="font-semibold">Agent Dupont</p>
               <p className="text-sm text-sidebar-foreground/70">Brigade Alpha</p>
             </div>
-            <div className="h-2 w-2 rounded-full bg-status-valid" title="Online" />
+            <div
+              className="h-2 w-2 rounded-full bg-status-valid"
+              title={t('mobileSidebar.online')}
+            />
           </div>
         </div>
 
         {/* Menu items */}
         <nav className="flex-1 p-4 space-y-1">
-          <SidebarLink icon={FileText} label="My Controls Today" badge="12" />
-          <SidebarLink icon={HelpCircle} label="Help & Support" />
+          <SidebarLink icon={FileText} label={t('mobileProfile.myControlsToday')} badge="12" />
+          <SidebarLink icon={HelpCircle} label={t('mobileProfile.helpSupport')} />
         </nav>
 
         {/* Footer */}
@@ -86,10 +91,10 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
             className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent"
           >
             <LogOut className="h-5 w-5" />
-            <span>Logout</span>
+            <span>{t('buttons.logout')}</span>
           </Button>
           <p className="mt-4 text-center text-xs text-sidebar-foreground/50">
-            IVISS v1.0.0 • © 2024
+            {t('mobileSidebar.footer')}
           </p>
         </div>
       </aside>
