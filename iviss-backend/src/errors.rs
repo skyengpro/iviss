@@ -32,6 +32,28 @@ pub enum AppError {
     Internal(#[from] anyhow::Error),
 }
 
+impl AppError {
+    pub fn database(err: impl Into<sqlx::Error>) -> Self {
+        Self::Database(err.into())
+    }
+
+    pub fn not_found(msg: impl Into<String>) -> Self {
+        Self::NotFound(msg.into())
+    }
+
+    pub fn bad_request(msg: impl Into<String>) -> Self {
+        Self::BadRequest(msg.into())
+    }
+
+    pub fn unauthorized(msg: impl Into<String>) -> Self {
+        Self::Unauthorized(msg.into())
+    }
+
+    pub fn external_api_failure(msg: impl Into<String>) -> Self {
+        Self::ExternalApiFailure(msg.into())
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, code, message) = match &self {
