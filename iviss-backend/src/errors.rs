@@ -5,12 +5,14 @@ use axum::{
 };
 use serde::Serialize;
 
+#[allow(dead_code)]
 #[derive(Serialize)]
 struct AppErrorResponse {
     code: String,
     message: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -32,6 +34,7 @@ pub enum AppError {
     Internal(#[from] anyhow::Error),
 }
 
+#[allow(dead_code)]
 impl AppError {
     pub fn database(err: impl Into<sqlx::Error>) -> Self {
         Self::Database(err.into())
