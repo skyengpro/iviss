@@ -22,3 +22,12 @@
 | --------------------- | ---------- | ------- | ------------------------------------ |
 | **Internal DB** | PostgreSQL | 15+     | ACID, full-text search, JSON support |
 | **Migrations**  | sqlx-cli   | 0.7     | Version-controlled schema changes    |
+
+
+
+### 1.3 developments tools
+
+| Component | Technology | Version | Justification                     |
+| --------- | ---------- | ------- | --------------------------------- |
+| linker    | mold/lld   |         | Incrase linking phase performance |
+|           |            |         |                                   |
