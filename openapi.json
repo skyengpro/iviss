@@ -1,0 +1,549 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "IVISS Backend API",
+        "description": "API for vehicle OCR results, carte grise submissions, and back-office dashboard statistics.",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/vehicles/search": {
+            "post": {
+                "summary": "Search vehicle by plate number with location context",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VehicleSearchRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Vehicle and status information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VehicleSearchResult"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vehicles/pending": {
+            "post": {
+                "summary": "Submit gray card images for validation",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PendingVehicleSubmission"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Submission accepted for review"
+                    }
+                }
+            }
+        },
+        "/stats": {
+            "get": {
+                "summary": "Get dashboard statistics",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard statistics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DashboardStats"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me": {
+            "get": {
+                "summary": "Get current user profile",
+                "responses": {
+                    "200": {
+                        "description": "Current user profile",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/controls": {
+            "get": {
+                "summary": "List control records with filters",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "agent_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/Status"
+                        }
+                    },
+                    {
+                        "name": "plate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of control records matching the filters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ControlRecord"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "VehicleSearchRequest": {
+                "type": "object",
+                "required": [
+                    "plate"
+                ],
+                "properties": {
+                    "plate": {
+                        "type": "string"
+                    },
+                    "latitude": {
+                        "type": "number"
+                    },
+                    "longitude": {
+                        "type": "number"
+                    }
+                }
+            },
+            "Status": {
+                "type": "string",
+                "enum": [
+                    "valid",
+                    "warning",
+                    "critical",
+                    "pending"
+                ]
+            },
+            "VehicleSearchResult": {
+                "type": "object",
+                "properties": {
+                    "plateNumber": {
+                        "type": "string"
+                    },
+                    "confidence": {
+                        "type": "number"
+                    },
+                    "identificationMode": {
+                        "type": "string",
+                        "enum": [
+                            "manual",
+                            "photo",
+                            "live"
+                        ]
+                    },
+                    "vehicle": {
+                        "type": "object",
+                        "properties": {
+                            "brand": {
+                                "type": "string"
+                            },
+                            "model": {
+                                "type": "string"
+                            },
+                            "year": {
+                                "type": "integer"
+                            },
+                            "color": {
+                                "type": "string"
+                            },
+                            "enginePower": {
+                                "type": "string"
+                            },
+                            "fuelType": {
+                                "type": "string"
+                            },
+                            "chassisNumber": {
+                                "type": "string"
+                            },
+                            "owner": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "nationalId": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "statusResults": {
+                        "type": "object",
+                        "properties": {
+                            "overallStatus": {
+                                "$ref": "#/components/schemas/Status"
+                            },
+                            "insurance": {
+                                "$ref": "#/components/schemas/InsuranceStatus"
+                            },
+                            "police": {
+                                "$ref": "#/components/schemas/PoliceStatus"
+                            },
+                            "customs": {
+                                "$ref": "#/components/schemas/CustomsStatus"
+                            },
+                            "technical": {
+                                "$ref": "#/components/schemas/TechnicalStatus"
+                            }
+                        }
+                    }
+                }
+            },
+            "InsuranceStatus": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "policyNumber": {
+                        "type": "string"
+                    },
+                    "expiryDate": {
+                        "type": "string"
+                    },
+                    "coverageType": {
+                        "type": "string"
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PoliceStatus": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "isWanted": {
+                        "type": "boolean"
+                    },
+                    "isStolen": {
+                        "type": "boolean"
+                    },
+                    "reportDate": {
+                        "type": "string"
+                    },
+                    "reportNumber": {
+                        "type": "string"
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "CustomsStatus": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "isCleared": {
+                        "type": "boolean"
+                    },
+                    "importDate": {
+                        "type": "string"
+                    },
+                    "declarationNumber": {
+                        "type": "string"
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "TechnicalStatus": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "lastInspectionDate": {
+                        "type": "string"
+                    },
+                    "expiryDate": {
+                        "type": "string"
+                    },
+                    "mileage": {
+                        "type": "integer"
+                    },
+                    "defects": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PendingVehicleSubmission": {
+                "type": "object",
+                "properties": {
+                    "plateNumber": {
+                        "type": "string"
+                    },
+                    "agentId": {
+                        "type": "string"
+                    },
+                    "location": {
+                        "type": "object",
+                        "properties": {
+                            "latitude": {
+                                "type": "number"
+                            },
+                            "longitude": {
+                                "type": "number"
+                            },
+                            "address": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "frontImage": {
+                        "type": "string",
+                        "description": "Base64 encoded image"
+                    },
+                    "backImage": {
+                        "type": "string",
+                        "description": "Base64 encoded image"
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "plateNumber",
+                    "agentId",
+                    "frontImage",
+                    "backImage"
+                ]
+            },
+            "DashboardStats": {
+                "type": "object",
+                "properties": {
+                    "todayControls": {
+                        "type": "integer"
+                    },
+                    "activeAlerts": {
+                        "type": "integer"
+                    },
+                    "totalVehicles": {
+                        "type": "integer"
+                    },
+                    "onlineAgents": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "ControlRecord": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "plateNumber": {
+                        "type": "string"
+                    },
+                    "agentName": {
+                        "type": "string"
+                    },
+                    "agentId": {
+                        "type": "string"
+                    },
+                    "organizationId": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "identificationMode": {
+                        "type": "string",
+                        "enum": [
+                            "manual",
+                            "photo",
+                            "live"
+                        ]
+                    },
+                    "confidence": {
+                        "type": "number"
+                    },
+                    "location": {
+                        "type": "object",
+                        "properties": {
+                            "address": {
+                                "type": "string"
+                            },
+                            "latitude": {
+                                "type": "number"
+                            },
+                            "longitude": {
+                                "type": "number"
+                            }
+                        }
+                    },
+                    "results": {
+                        "type": "object",
+                        "properties": {
+                            "registration": {
+                                "$ref": "#/components/schemas/Status"
+                            },
+                            "insurance": {
+                                "$ref": "#/components/schemas/Status"
+                            },
+                            "technicalInspection": {
+                                "$ref": "#/components/schemas/Status"
+                            },
+                            "wantedStatus": {
+                                "$ref": "#/components/schemas/Status"
+                            },
+                            "customsStatus": {
+                                "$ref": "#/components/schemas/Status"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "check",
+                                        "flag",
+                                        "citation",
+                                        "impound",
+                                        "release"
+                                    ]
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "timestamp": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                }
+                            }
+                        }
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "admin",
+                            "agent",
+                            "manager"
+                        ]
+                    },
+                    "organizationId": {
+                        "type": "string"
+                    },
+                    "organization": {
+                        "type": "string"
+                    },
+                    "badgeId": {
+                        "type": "string"
+                    },
+                    "phoneNumber": {
+                        "type": "string"
+                    },
+                    "avatarInitials": {
+                        "type": "string"
+                    },
+                    "isActive": {
+                        "type": "boolean"
+                    }
+                }
+            }
+        }
+    }
+}
