@@ -6,19 +6,19 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/vehicles/search/{plate}": {
-            "get": {
-                "summary": "Search vehicle by plate number",
-                "parameters": [
-                    {
-                        "name": "plate",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+        "/vehicles/search": {
+            "post": {
+                "summary": "Search vehicle by plate number with location context",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VehicleSearchRequest"
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Vehicle and status information",
@@ -148,6 +148,23 @@
     },
     "components": {
         "schemas": {
+            "VehicleSearchRequest": {
+                "type": "object",
+                "required": [
+                    "plate"
+                ],
+                "properties": {
+                    "plate": {
+                        "type": "string"
+                    },
+                    "latitude": {
+                        "type": "number"
+                    },
+                    "longitude": {
+                        "type": "number"
+                    }
+                }
+            },
             "Status": {
                 "type": "string",
                 "enum": [
