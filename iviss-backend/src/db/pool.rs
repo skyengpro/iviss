@@ -7,24 +7,27 @@ use std::time::Duration;
 pub type DbPool = PgPool;
 
 async fn ensure_database_exists(database_url: &str) -> Result<()> {
-    let options = PgConnectOptions::from_str(database_url)
-        .context("Failed to parse database URL")?;
-    
-    let db_name = options.get_database().context("Database name not found in URL")?;
-    
+    let options =
+        PgConnectOptions::from_str(database_url).context("Failed to parse database URL")?;
+
+    let db_name = options
+        .get_database()
+        .context("Database name not found in URL")?;
+
     // Connect to the default 'postgres' database to check/create the target database
     let base_options = options.clone().database("postgres");
-    
+
     let mut conn = sqlx::postgres::PgConnection::connect_with(&base_options)
         .await
         .context("Failed to connect to 'postgres' database to check target database existence")?;
-    
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS (SELECT FROM pg_database WHERE datname = $1)")
-        .bind(db_name)
-        .fetch_one(&mut conn)
-        .await
-        .context("Failed to query pg_database")?;
-        
+
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS (SELECT FROM pg_database WHERE datname = $1)")
+            .bind(db_name)
+            .fetch_one(&mut conn)
+            .await
+            .context("Failed to query pg_database")?;
+
     if !exists {
         tracing::info!("Database '{}' does not exist. Creating it...", db_name);
         let query = format!("CREATE DATABASE \"{}\"", db_name);
@@ -32,7 +35,7 @@ async fn ensure_database_exists(database_url: &str) -> Result<()> {
             .await
             .context(format!("Failed to create database '{}'", db_name))?;
     }
-    
+
     Ok(())
 }
 
@@ -67,11 +70,18 @@ pub async fn initialize_pool(database_url: &str) -> Result<DbPool> {
             Err(e) => {
                 retry_count += 1;
                 if retry_count >= max_retries {
-                    return Err(anyhow::anyhow!("Failed to connect to database after {} attempts: {}", max_retries, e));
+                    return Err(anyhow::anyhow!(
+                        "Failed to connect to database after {} attempts: {}",
+                        max_retries,
+                        e
+                    ));
                 }
                 tracing::warn!(
                     "Failed to connect to database (attempt {}/{}). Retrying in {:?}... Error: {}",
-                    retry_count, max_retries, retry_interval, e
+                    retry_count,
+                    max_retries,
+                    retry_interval,
+                    e
                 );
                 tokio::time::sleep(retry_interval).await;
             }
