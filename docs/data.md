@@ -80,7 +80,7 @@ export interface ControlRecord {
   agentName: string;
   organizationId: string;
   organizationName: string;
-  phoneIMEI: string;
+  phoneNumber: string;
   timestamp: string; // Changed from Date to string
   location: {
     address: string;
@@ -120,7 +120,7 @@ export interface User {
   organizationId: string;
   organization: string;
   badgeId: string;
-  phoneIMEI: string;
+  phoneNumber: string;
   avatarInitials: string;
   isActive: boolean;
 }
