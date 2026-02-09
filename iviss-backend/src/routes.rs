@@ -1,9 +1,9 @@
 use crate::db::DbPool;
 use crate::middleware::{cors, logging};
 use axum::{routing::get, Router};
+use std::time::Duration;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
-use std::time::Duration;
 
 pub fn assembly(pool: DbPool) -> Router {
     Router::new()
