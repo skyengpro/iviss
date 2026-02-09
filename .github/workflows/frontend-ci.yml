@@ -2,12 +2,12 @@ name: Frontend CI
 
 on:
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, dev ]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, dev ]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
@@ -134,3 +134,32 @@ jobs:
         with:
           name: coverage-report
           path: frontend/coverage
+
+  frontend_sonarqube:
+    name: Frontend SonarQube Analysis
+    needs: [ frontend_build, frontend_unit_tests ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download coverage Report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: frontend/coverage
+      - uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: |
+            -Dsonar.projectKey=IVISS
+            -Dsonar.projectBaseDir=frontend
+            -Dsonar.sources=src
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.qualitygate.wait=true
+      - uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

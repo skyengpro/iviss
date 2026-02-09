@@ -26,3 +26,4 @@ sqlx migrate run
 echo "setup complete!"
 echo "You can visualize the database at http://localhost:8080"
 echo "Login: System=PostgreSQL, Server=db, Username=postgres, Password=postgres, Database=iviss_dev"
+
