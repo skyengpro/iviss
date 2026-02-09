@@ -6,9 +6,21 @@ use axum::{
 use serde::Serialize;
 
 #[allow(dead_code)]
+#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ErrorCode {
+    DatabaseError,
+    Unauthorized,
+    NotFound,
+    BadRequest,
+    ExternalApiFailure,
+    InternalError,
+}
+
+#[allow(dead_code)]
 #[derive(Serialize)]
 struct AppErrorResponse {
-    code: String,
+    code: ErrorCode,
     message: String,
 }
 
@@ -66,28 +78,30 @@ impl IntoResponse for AppError {
                 // Return a generic error to the client
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "DATABASE_ERROR".to_string(),
+                    ErrorCode::DatabaseError,
                     "Internal Server Error".to_string(),
                 )
             }
             AppError::Unauthorized(msg) => (
                 StatusCode::UNAUTHORIZED,
-                "UNAUTHORIZED".to_string(),
+                ErrorCode::Unauthorized,
                 msg.clone(),
             ),
-            AppError::NotFound(msg) => {
-                (StatusCode::NOT_FOUND, "NOT_FOUND".to_string(), msg.clone())
-            }
+            AppError::NotFound(msg) => (
+                StatusCode::NOT_FOUND,
+                ErrorCode::NotFound,
+                msg.clone(),
+            ),
             AppError::BadRequest(msg) => (
                 StatusCode::BAD_REQUEST,
-                "BAD_REQUEST".to_string(),
+                ErrorCode::BadRequest,
                 msg.clone(),
             ),
             AppError::ExternalApiFailure(msg) => {
                 tracing::error!("External API failure: {}", msg);
                 (
                     StatusCode::BAD_GATEWAY,
-                    "EXTERNAL_API_FAILURE".to_string(),
+                    ErrorCode::ExternalApiFailure,
                     "External Service Unavailable".to_string(),
                 )
             }
@@ -95,7 +109,7 @@ impl IntoResponse for AppError {
                 tracing::error!("Internal error: {:?}", err);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "INTERNAL_ERROR".to_string(),
+                    ErrorCode::InternalError,
                     "Internal Server Error".to_string(),
                 )
             }
