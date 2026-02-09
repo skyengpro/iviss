@@ -87,16 +87,10 @@ impl IntoResponse for AppError {
                 ErrorCode::Unauthorized,
                 msg.clone(),
             ),
-            AppError::NotFound(msg) => (
-                StatusCode::NOT_FOUND,
-                ErrorCode::NotFound,
-                msg.clone(),
-            ),
-            AppError::BadRequest(msg) => (
-                StatusCode::BAD_REQUEST,
-                ErrorCode::BadRequest,
-                msg.clone(),
-            ),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, ErrorCode::NotFound, msg.clone()),
+            AppError::BadRequest(msg) => {
+                (StatusCode::BAD_REQUEST, ErrorCode::BadRequest, msg.clone())
+            }
             AppError::ExternalApiFailure(msg) => {
                 tracing::error!("External API failure: {}", msg);
                 (
