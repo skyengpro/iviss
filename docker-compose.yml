@@ -1,0 +1,72 @@
+services:
+  # PostgreSQL 9.4 Database Service
+  # Note: PostgreSQL 9.4 is EOL. Consider upgrading to 14+ for production.
+  db:
+    image: postgres:9.4
+    container_name: iviss-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
+      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iviss_user} -d ${POSTGRES_DB:-iviss_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - iviss-network
+
+  # Rust Backend Service
+  backend:
+    build:
+      context: ./iviss-backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: iviss-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@db:5432/${POSTGRES_DB:-iviss_db}
+      EXTERNAL_DATABASE_URL: postgresql://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
+      JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 3000
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for live reloading
+      - ./iviss-backend/src:/app/src:ro
+      - ./iviss-backend/Cargo.toml:/app/Cargo.toml:ro
+      - ./iviss-backend/Cargo.lock:/app/Cargo.lock:ro
+      # Cache dependencies in named volume for faster builds
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/app/target
+    networks:
+      - iviss-network
+
+networks:
+  iviss-network:
+    driver: bridge
+    ipam:
+      config:
+        # Explicit subnet to ensure predictable IPs for mobile access
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # Named volume for PostgreSQL data persistence
+  postgres_data:
+    driver: local
+  # Cache volumes for faster Rust builds
+  cargo_cache:
+    driver: local
+  target_cache:
+    driver: local
