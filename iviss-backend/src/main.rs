@@ -23,6 +23,10 @@ async fn main() -> anyhow::Result<()> {
     let pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
 
+    info!("Running migrations...");
+    sqlx::migrate!("./migrations").run(&pool).await?;
+    info!("Migrations completed");
+
     let app = routes::assembly(pool);
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
