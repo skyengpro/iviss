@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - iviss-network
+
+networks:
+  iviss-network:
+    driver: bridge
