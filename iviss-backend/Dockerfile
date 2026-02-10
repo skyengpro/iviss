@@ -22,9 +22,6 @@ RUN mkdir src && \
 # Copy source code (will be overridden by volume mount in docker-compose)
 COPY src ./src
 
-# Copy migrations directory for sqlx
-COPY migrations ./migrations
-
 # Expose backend port
 EXPOSE 3000
 
@@ -42,7 +39,6 @@ WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-COPY migrations ./migrations
 
 # Build release binary
 RUN cargo build --release
