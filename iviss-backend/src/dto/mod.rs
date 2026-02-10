@@ -1,3 +1,4 @@
 pub mod auth;
-pub mod control;
+pub mod common;
+pub mod record_control;
 pub mod vehicle;

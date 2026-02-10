@@ -19,4 +19,5 @@ thiserror = "1.0"
 utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
 utoipa-swagger-ui = { version = "7", features = ["axum"] }
 time = "0.3.47"
+uuid = { version = "1.20.0", features = ["v7", "serde",]}
 
