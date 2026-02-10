@@ -1,8 +1,7 @@
 services:
-  # PostgreSQL 9.4 Database Service
-  # Note: PostgreSQL 9.4 is EOL. Consider upgrading to 14+ for production.
+  # PostgreSQL 15 Database Service (Alpine variant for smaller image size)
   db:
-    image: postgres:9.4
+    image: postgres:15-alpine
     container_name: iviss-db
     restart: unless-stopped
     environment:
