@@ -1,46 +1,71 @@
-# IVISS - Intelligent Vehicle Identification & Security System
+# IVISS 
+## Table of Contents
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technologies](#technologies)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Clone and Setup](#clone-and-setup)
+  - [Start Backend Services](#start-backend-services)
+  - [Verify Backend is Running](#verify-backend-is-running)
+  - [Start Frontend (Optional)](#start-frontend-optional)
+- [Testing the Setup](#testing-the-setup)
+  - [Test Backend Locally](#test-backend-locally)
+  - [Test from Mobile Device](#test-from-mobile-device)
+- [Development Features](#development-features)
+  - [Live Reloading](#live-reloading)
+  - [Database Access](#database-access)
+  - [Data Persistence](#data-persistence)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Project Overview
 
-IVISS is a multi-tenant platform for law enforcement and regulatory organizations to identify vehicles, perform compliance checks, and manage field operations.
+IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-tenant platform designed to empower law enforcement and regulatory organizations. It streamlines vehicle identification, automates compliance checks, and provides comprehensive tools for managing field operations efficiently. The system aims to enhance public safety and regulatory adherence through advanced technology.
 
-**Architecture:**
-- **Frontend**: React + TypeScript + Vite + shadcn/ui (Mobile-first design)
-- **Backend**: Rust + Axum + PostgreSQL (Dockerized with live reloading)
-- **Database**: PostgreSQL 9.4 (Dockerized)
+**Target Users:** Law enforcement agencies, government regulatory bodies, and organizations responsible for vehicle compliance and security.
 
 ## Features
 
-- **License Plate Recognition**: Real-time OCR scanning of vehicle plates
-- **Control History**: Tracking and management of vehicle controls
-- **Alert System**: Instant notification for flagged vehicles
-- **Mobile First**: Optimized for field agents
-- **Multi-Tenant**: Role-based access control (Super Admin, Admin, Supervisor, Agent)
+- **License Plate Recognition**: Real-time Optical Character Recognition (OCR) scanning of vehicle license plates for rapid identification and data retrieval.
+- **Control History**: Comprehensive tracking and management of all vehicle control operations, including details of inspections, violations, and resolutions.
+- **Alert System**: Instant notification system for flagged vehicles (e.g., stolen, unregistered, or vehicles with outstanding warrants), enabling immediate action by field agents.
+- **Mobile First**: User interface and experience are optimized for mobile devices, ensuring field agents can efficiently perform tasks on the go.
+- **Multi-Tenant**: Supports multiple organizations with isolated data and configurations.
+- **Role-Based Access Control**: Granular access control system with predefined roles (Super Admin, Admin, Supervisor, Agent) to manage permissions and data visibility.
+
+## Architecture:
+
+- **Frontend**: React + TypeScript + Vite + shadcn/ui (Mobile-first design)
+- **Backend**: Rust + Axum + PostgreSQL (Dockerized with live reloading)
+- **Database**: PostgreSQL 9.4 (Dockerized)
 
 ---
 
 ## Technologies
 
 ### Frontend
-- React
-- TypeScript
-- Vite
-- shadcn/ui (Radix primitives)
-- Tailwind CSS
-- React Query
-- React Router DOM
-- Tesseract.js (OCR)
-- react-webcam
+- React: A JavaScript library for building user interfaces.
+- TypeScript: A typed superset of JavaScript that compiles to plain JavaScript.
+- Vite: A fast build tool for modern web projects.
+- shadcn/ui (Radix primitives): A collection of re-usable components built with Radix UI and Tailwind CSS.
+- Tailwind CSS: A utility-first CSS framework for rapidly building custom designs.
+- React Query: Powerful asynchronous state management for React.
+- React Router DOM: Declarative routing for React.
+- Tesseract.js (OCR): JavaScript library for performing OCR.
+- react-webcam: React component for accessing and displaying webcam streams.
 
 ### Backend
-- Rust
-- Axum (Web framework)
-- Tokio (Async runtime)
-- SQLx (Database)
-- Tower-HTTP (Middleware)
+- Rust: A systems programming language focused on safety, speed, and concurrency.
+- Axum (Web framework): A web application framework built with Tokio, Tower, and Hyper.
+- Tokio (Async runtime): An asynchronous runtime for Rust.
+- SQLx (Database): An asynchronous, pure Rust SQL crate.
+- Tower-HTTP (Middleware): A collection of HTTP middleware for Tower.
 
 ### Database
-- PostgreSQL 9.4 (via Docker)
+- PostgreSQL 9.4 (via Docker): A powerful, open-source object-relational database system.
 
 ---
 
@@ -199,3 +224,32 @@ docker compose down -v
 ```
 
 ---
+
+## Project Structure
+
+```
+iviss/
+├── .github/                  # GitHub Actions workflows
+├── docs/                     # Project documentation (architecture, data, schema, diagrams)
+├── frontend/                 # Frontend application (React, TypeScript)
+│   ├── public/               # Static assets
+│   ├── src/                  # Frontend source code
+│   │   ├── components/       # Reusable UI components
+│   │   ├── contexts/         # React Context API for global state
+│   │   ├── hooks/            # Custom React hooks
+│   │   ├── i18n/             # Internationalization files
+│   │   ├── lib/              # Utility functions and libraries
+│   │   ├── pages/            # Application pages (mobile and backoffice)
+│   │   ├── router/           # React Router configuration
+│   │   └── services/         # API service integrations (mocked for now)
+│   └── ...                   # Other frontend configuration files
+└── iviss-backend/            # Backend application (Rust, Axum)
+    ├── .cargo/               # Cargo configuration
+    ├── docs/                 # Backend-specific documentation
+    ├── migrations/           # Database migration scripts
+    ├── scripts/              # Utility scripts (e.g., database initialization)
+    └── src/                  # Backend source code
+        ├── db/               # Database connection and query logic
+        ├── middleware/       # Custom Axum middleware
+        └── ...               # Other backend modules (config, errors, main, routes)
+```
