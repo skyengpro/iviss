@@ -1,46 +1,121 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use crate::dto::common::{IdentificationMode, Status};
+
+// Request
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct VehicleSearchRequest {
+    pub plate: String,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+}
+
+// Sub-objects
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OwnerInfo {
-    pub full_name: String,
-    pub cni_number: String,
-    pub phone_number: Option<String>,
-}
-
-/// Aggregated status from partner APIs
-#[derive(Debug, Serialize, ToSchema)]
-pub struct VehicleStatus {
-    pub insurance_valid: bool,
-    pub customs_cleared: bool,
-    pub inspection_valid: bool,
-    pub is_wanted: bool,
+    pub name: String,
+    pub address: Option<String>,
+    pub national_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct VehicleResponse {
-    pub plate: String,
-    pub chassis: String,
-    pub make: String,
+pub struct VehicleInfo {
+    pub brand: String,
     pub model: String,
     pub year: i32,
-    pub power: Option<String>,
-    pub carte_grise_expiry: Option<String>,
+    pub color: Option<String>,
+    pub engine_power: Option<String>,
+    pub fuel_type: Option<String>,
+    pub chassis_number: String,
     pub owner: OwnerInfo,
-    /// Real-time status from partner APIs
-    pub status: VehicleStatus,
 }
 
-/// Returned after a successful gray-card image upload
+#[derive(Debug, Serialize, ToSchema)]
+pub struct InsuranceStatus {
+    pub status: Status,
+    pub provider: Option<String>,
+    pub policy_number: Option<String>,
+    pub expiry_date: Option<String>,
+    pub coverage_type: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PoliceStatus {
+    pub status: Status,
+    pub is_wanted: bool,
+    pub is_stolen: bool,
+    pub report_date: Option<String>,
+    pub report_number: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CustomsStatus {
+    pub status: Status,
+    pub is_cleared: bool,
+    pub import_date: Option<String>,
+    pub declaration_number: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct TechnicalStatus {
+    pub status: Status,
+    pub last_inspection_date: Option<String>,
+    pub expiry_date: Option<String>,
+    pub mileage: Option<i64>,
+    pub defects: Vec<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct StatusResults {
+    pub overall_status: Status,
+    pub insurance: InsuranceStatus,
+    pub police: PoliceStatus,
+    pub customs: CustomsStatus,
+    pub technical: TechnicalStatus,
+}
+
+//  Response 
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VehicleSearchResult {
+    pub plate_number: String,
+    /// 
+    pub confidence: Option<f64>,
+    pub identification_mode: IdentificationMode,
+    pub vehicle: VehicleInfo,
+    pub status_results: StatusResults,
+}
+
+//  Gray-card upload 
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SubmissionLocation {
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub address: Option<String>,
+}
+
+/// Received as multipart/form-data — images are Base64-encoded strings
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PendingVehicleSubmission {
+    pub plate_number: String,
+    pub agent_id: String,
+    pub location: Option<SubmissionLocation>,
+    /// Base64-encoded front image of the carte grise
+    pub front_image: String,
+    /// Base64-encoded back image of the carte grise
+    pub back_image: String,
+    pub notes: Option<String>,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UploadResponse {
     pub message: String,
-    /// Reference ID to track the uploaded file
-    pub file_id: String,
-}
-
-/// Query parameter for plate lookup
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct PlateQuery {
-    pub plate_number: String,
+    pub submission_id: String,
 }
