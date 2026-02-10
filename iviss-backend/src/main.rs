@@ -14,9 +14,11 @@ use tracing::info;
 async fn main() -> anyhow::Result<()> {
     // Load configuration first (fail-fast if config is invalid)
     let config = Config::from_env().context("Failed to load configuration")?;
-    
+
     // Validate configuration
-    config.validate().context("Configuration validation failed")?;
+    config
+        .validate()
+        .context("Configuration validation failed")?;
 
     // Initialize logging based on configuration
     tracing_subscriber::fmt()
