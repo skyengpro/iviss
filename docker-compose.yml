@@ -56,10 +56,6 @@ services:
 networks:
   iviss-network:
     driver: bridge
-    ipam:
-      config:
-        # Explicit subnet to ensure predictable IPs for mobile access
-        - subnet: 172.20.0.0/16
 
 volumes:
   # Named volume for PostgreSQL data persistence
