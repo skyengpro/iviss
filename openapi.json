@@ -533,7 +533,7 @@
                     "badgeId": {
                         "type": "string"
                     },
-                    "phoneIMEI": {
+                    "phoneNumber": {
                         "type": "string"
                     },
                     "avatarInitials": {
