@@ -1,9 +1,7 @@
+use crate::dto::common::{IdentificationMode, Status};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
-use crate::dto::common::{IdentificationMode, Status};
-
-
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct GpsPosition {
@@ -20,7 +18,6 @@ pub struct CreateControlRequest {
     pub comment: Option<String>,
 }
 
-
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ControlListQuery {
     pub start_date: Option<String>,
@@ -29,7 +26,6 @@ pub struct ControlListQuery {
     pub status: Option<Status>,
     pub plate: Option<String>,
 }
-
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ControlLocation {
@@ -63,7 +59,6 @@ pub struct ControlAction {
     pub description: Option<String>,
     pub timestamp: String,
 }
-
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ControlRecord {

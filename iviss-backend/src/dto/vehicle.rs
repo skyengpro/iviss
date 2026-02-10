@@ -1,6 +1,6 @@
+use crate::dto::common::{IdentificationMode, Status};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::dto::common::{IdentificationMode, Status};
 
 // Request
 
@@ -80,19 +80,19 @@ pub struct StatusResults {
     pub technical: TechnicalStatus,
 }
 
-//  Response 
+//  Response
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct VehicleSearchResult {
     pub plate_number: String,
-    /// 
+    ///
     pub confidence: Option<f64>,
     pub identification_mode: IdentificationMode,
     pub vehicle: VehicleInfo,
     pub status_results: StatusResults,
 }
 
-//  Gray-card upload 
+//  Gray-card upload
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct SubmissionLocation {
