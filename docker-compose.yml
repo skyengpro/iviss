@@ -50,6 +50,12 @@ services:
       # Cache dependencies in named volume for faster builds
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - iviss-network
 
