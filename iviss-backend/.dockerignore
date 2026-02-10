@@ -1,0 +1,29 @@
+# Rust build artifacts
+target/
+
+# Environment files (contains secrets)
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+docs/
+
+# CI/CD
+.github/
