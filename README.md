@@ -253,3 +253,13 @@ iviss/
         ├── middleware/       # Custom Axum middleware
         └── ...               # Other backend modules (config, errors, main, routes)
 ```
+
+---
+
+## Contributing
+
+For internal contributions, please coordinate with the project lead. All changes should be made on dedicated feature branches and reviewed before merging into the main development branch.
+
+## License
+
+This project is proprietary and all rights are reserved.
