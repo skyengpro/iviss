@@ -1,3 +1,4 @@
+use crate::dto::common::SubmissionLocation;
 use crate::dto::common::{IdentificationMode, Status};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -90,28 +91,6 @@ pub struct VehicleSearchResult {
     pub identification_mode: IdentificationMode,
     pub vehicle: VehicleInfo,
     pub status_results: StatusResults,
-}
-
-//  Gray-card upload
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct SubmissionLocation {
-    pub latitude: Option<f64>,
-    pub longitude: Option<f64>,
-    pub address: Option<String>,
-}
-
-/// Received as multipart/form-data — images are Base64-encoded strings
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct PendingVehicleSubmission {
-    pub plate_number: String,
-    pub agent_id: String,
-    pub location: Option<SubmissionLocation>,
-    /// Base64-encoded front image of the carte grise
-    pub front_image: String,
-    /// Base64-encoded back image of the carte grise
-    pub back_image: String,
-    pub notes: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

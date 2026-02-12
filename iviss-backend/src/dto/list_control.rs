@@ -10,7 +10,7 @@ pub struct GpsPosition {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct CreateControlRequest {
+pub struct ListControlRequest {
     pub plate_number: String,
     pub agent_id: Uuid,
     pub identification_mode: IdentificationMode,
@@ -61,7 +61,7 @@ pub struct ControlAction {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct ControlRecord {
+pub struct ListControlResponse {
     pub id: Uuid,
     pub plate_number: String,
     pub agent_name: Option<String>,
