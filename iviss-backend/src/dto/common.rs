@@ -19,3 +19,10 @@ pub enum IdentificationMode {
     Photo,
     Live,
 }
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct SubmissionLocation {
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub address: Option<String>,
+}

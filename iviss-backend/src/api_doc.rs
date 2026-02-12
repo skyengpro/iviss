@@ -4,18 +4,14 @@ use utoipa::{
 };
 
 use crate::dto::{
-    common::{IdentificationMode, Status},
-    record_control::{
-        ActionType, ControlAction, ControlLocation, ControlRecord, ControlResults,
-        CreateControlRequest, GpsPosition,
-    },
-    vehicle::{
-        CustomsStatus, InsuranceStatus, OwnerInfo, PendingVehicleSubmission, PoliceStatus,
-        StatusResults, SubmissionLocation, TechnicalStatus, UploadResponse, VehicleInfo,
-        VehicleSearchRequest, VehicleSearchResult,
-    },
+    common::*,
+    list_control::*,
+    pending_submission::*,
+    search_vehicle::*,
+    stats::DashboardStats,
+    users::{UserProfile, UserRole},
 };
-use crate::errors::AppErrorResponse;
+use crate::errors::{AppErrorResponse, ErrorCode};
 
 // ── Security scheme injector
 
@@ -37,12 +33,7 @@ impl Modify for SecurityAddon {
     }
 }
 
-// ── Central OpenAPI document ──────────────────────────────────────────────────
-// paths() is intentionally empty here.
-// Each handler will be added incrementally in Steps 4–7
-// using the #[utoipa::path(...)] macro on the handler function,
-// then registered here.
-
+// ── Central OpenAPI document ──
 #[derive(OpenApi)]
 #[openapi(
     info(
@@ -51,11 +42,17 @@ impl Modify for SecurityAddon {
         description = "Vehicle identification, carte grise submissions and back-office dashboard.",
     ),
     tags(
-        (name = "auth",     description = "Authentication — login and token refresh"),
         (name = "vehicles", description = "Vehicle lookup and gray-card image upload"),
         (name = "controls", description = "Roadside control tracking"),
-        (name = "stats",    description = "Back-office dashboard statistics"),
-        (name = "users",    description = "Authenticated user profile"),
+        (name = "stats", description = "Dashboard statistics"),
+        (name = "users", description = "User profile and authentication"),
+    ),
+    paths(
+        crate::handlers::search_vehicle::search_vehicle,
+        crate::handlers::list_control::get_list_control,
+        crate::handlers::pending_submission::submit_vehicle,
+        crate::handlers::stats::get_dashboard_stats,
+        crate::handlers::users::get_user_profile,
     ),
     components(
         schemas(
@@ -72,19 +69,30 @@ impl Modify for SecurityAddon {
             PoliceStatus,
             CustomsStatus,
             TechnicalStatus,
-            PendingVehicleSubmission,
             SubmissionLocation,
             UploadResponse,
             // ── control ──
-            CreateControlRequest,
+            ListControlRequest,
             GpsPosition,
-            ControlRecord,
+            ListControlResponse,
             ControlLocation,
             ControlResults,
             ControlAction,
             ActionType,
+            ReviewSubmissionRequest,
+            SubmissionDecision,
+            VehicleDataEntry,
+            PendingSubmissionRequest,
+            PendingSubmissionListItem,
+            SubmissionStatus,
+            DataEntryResponse,
             // ── errors ──
             AppErrorResponse,
+            ErrorCode,
+            DashboardStats,
+            UserProfile,
+            UserRole,
+
         )
     ),
     modifiers(&SecurityAddon),
