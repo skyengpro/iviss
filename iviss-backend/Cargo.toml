@@ -10,6 +10,7 @@ sqlx = { version = "0.8", default-features = false, features = ["postgres", "run
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dotenvy = "0.15"
+config = "0.14"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout"] }
