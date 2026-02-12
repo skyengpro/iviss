@@ -1,60 +1,41 @@
-# Frontend Docker Setup
+# Docker Setup
 
-This guide explains how to run the frontend application using Docker Compose.
+This guide explains how to run the application using Docker Compose.
 
 ## Prerequisites
 
 - Docker Engine
 - Docker Compose
 
-## Local Development
+## Development (Local)
 
-To run the application in development mode with hot-reloading enabled:
+The `docker-compose.yml` file is configured for local development by default, with hot-reloading enabled for both Frontend and Backend.
 
-1.  **Configure Environment**:
-    ```bash
-    cp frontend/.env.example frontend/.env
-    ```
-
-2.  **Start the Container**:
-    ```bash
-    docker compose up --build
-    ```
-
-The application will be accessible at: http://localhost:8080
-
-**Features:**
-- **Hot Reloading**: Changes to source files in `frontend/` are reflected immediately.
-- **Port Mapping**: Host port 8080 is mapped to container port 8080.
-
-## Production Build
-
-To build and run the production-optimized container:
-
+**Start the stack:**
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose up --build
 ```
-
-The application will be accessible at: http://localhost
+- **Frontend**: http://localhost:8080
+- **Backend**: http://localhost:3000
+- **Database**: Port 5432
 
 **Features:**
-- **Nginx Server**: Serves static assets efficiently.
-- **Build Optimization**: Uses production build artifacts.
-- **Immutable**: No volume mounts; changes require a rebuild.
+- **Hot Reloading**: Source code changes are reflected immediately.
+- **Data Persistence**: Database data is stored in the `postgres_data` volume.
 
-## Environment Variables
+## Production (CI/CD)
 
-Configuration is managed via `.env` files.
+Production images are built and pushed to GitHub Container Registry (GHCR) automatically via GitHub Actions.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_API_URL` | URL of the backend API | `http://localhost:3000/api` |
-| `NODE_ENV` | Environment mode | `development` / `production` |
+- **Workflow**: `.github/workflows/docker-publish.yml`
+- **Triggers**: Pushes to `main` and `dev` branches.
+- **Images**:
+  - `ghcr.io/<owner>/iviss/frontend`
+  - `ghcr.io/<owner>/iviss/backend`
+
+To run production locally, you would need to use `docker compose -f docker-compose.yml` and override the `build.target` context or pull the images from the registry.
 
 ## Troubleshooting
 
-- **Port Conflicts**: If port 8080 is in use, modify `docker-compose.override.yml`.
-- **Node Modules**: If `node_modules` issues occur, rebuild without cache:
-  ```bash
-  docker compose build --no-cache
-  ```
+- **Port Conflicts**: Ensure ports 8080, 3000, and 5432 are free.
+- **Rebuild**: If dependencies change, run `docker compose up --build`.
