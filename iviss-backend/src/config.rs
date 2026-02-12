@@ -78,6 +78,7 @@ pub struct Config {
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
+    #[allow(dead_code)]
     pub jwt_secret: String,
     pub environment: Environment,
 }
