@@ -85,7 +85,6 @@ pub struct StatusResults {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct VehicleSearchResult {
     pub plate_number: String,
-    ///
     pub confidence: Option<f64>,
     pub identification_mode: Option<IdentificationMode>,
     pub vehicle: VehicleInfo,
