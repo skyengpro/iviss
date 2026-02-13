@@ -88,7 +88,7 @@ pub struct VehicleSearchResult {
     pub plate_number: String,
     ///
     pub confidence: Option<f64>,
-    pub identification_mode: IdentificationMode,
+    pub identification_mode: Option<IdentificationMode>,
     pub vehicle: VehicleInfo,
     pub status_results: StatusResults,
 }

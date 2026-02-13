@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::{
     dto::stats::DashboardStats,
-    errors::{AppError, AppErrorResponse},
+    errors::AppError,
 };
 
 // ── GET /stats ────────────────────────────────────────────────────────────────
@@ -14,8 +14,8 @@ use crate::{
     tag = "stats",
     responses(
         (status = 200, description = "Dashboard statistics retrieved successfully", body = DashboardStats),
-        (status = 401, description = "Unauthorized",                                body = AppErrorResponse),
-        (status = 500, description = "Internal server error",                       body = AppErrorResponse),
+        (status = 401, description = "Unauthorized",                                body = AppError),
+        (status = 500, description = "Internal server error",                       body = AppError),
     ),
     security(("bearer_auth" = []))
 )]

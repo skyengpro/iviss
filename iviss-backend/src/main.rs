@@ -5,10 +5,15 @@ mod dto;
 mod errors;
 mod handlers;
 mod middleware;
+mod models;
 mod routes;
+mod app_state;
+mod services;
+mod queries;
+
 use crate::api_doc::ApiDoc;
 use crate::config::Config;
-// use crate::db::initialize_pool;
+use crate::db::initialize_pool;
 use anyhow::Context;
 use std::net::SocketAddr;
 use tracing::info;
@@ -37,14 +42,15 @@ async fn main() -> anyhow::Result<()> {
     info!("Log Level: {:?}", config.log_level);
     let config = Config::from_env()?;
 
-    // let pool = initialize_pool(&config.database_url).await?;
+    let pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
 
     info!("Running migrations...");
     sqlx::migrate!("./migrations").run(&pool).await?;
     info!("Migrations completed");
 
-    let app = routes::assembly(pool);
+    let app = routes::assembly(pool)
+        .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
     info!("Listening on {}", addr);
