@@ -11,7 +11,7 @@ use crate::dto::{
     stats::DashboardStats,
     users::{UserProfile, UserRole},
 };
-use crate::errors::{AppErrorResponse, ErrorCode};
+use crate::errors::{AppError, ErrorCode};
 
 // ── Security scheme injector
 
@@ -87,7 +87,7 @@ impl Modify for SecurityAddon {
             SubmissionStatus,
             DataEntryResponse,
             // ── errors ──
-            AppErrorResponse,
+            AppError,
             ErrorCode,
             DashboardStats,
             UserProfile,

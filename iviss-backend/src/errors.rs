@@ -26,7 +26,7 @@ pub struct AppErrorResponse {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ToSchema)]
 pub enum AppError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),

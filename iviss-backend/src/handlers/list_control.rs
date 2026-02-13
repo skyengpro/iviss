@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     dto::list_control::{ListControlRequest, ListControlResponse},
-    errors::{AppError, AppErrorResponse},
+    errors::AppError,
 };
 
 #[utoipa::path(
@@ -21,11 +21,11 @@ use crate::{
      ),
     responses(
         (status = 200, description = "List of control records", body = ListControlResponse),
-        (status = 400, description = "Invalid request",        body = AppErrorResponse, 
+        (status = 400, description = "Invalid request",        body = AppError, 
             example = json!({ "code": "INVALID_REQUEST", "message": "Invalid date format for 'start_date'" })),
-        (status = 404, description = "Not found",           body = AppErrorResponse, 
+        (status = 404, description = "Not found",           body = AppError, 
             example = json!({ "code": "NOT_FOUND", "message": "No controls found matching the provided filters" })),
-        (status = 500, description = "Internal server error",  body = AppErrorResponse, 
+        (status = 500, description = "Internal server error",  body = AppError, 
             example = json!({ "code": "INTERNAL_ERROR", "message": "Internal Server Error" })),
     ),
     security(("bearer_auth" = []))
