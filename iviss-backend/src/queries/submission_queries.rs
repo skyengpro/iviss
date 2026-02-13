@@ -1,7 +1,8 @@
 use crate::errors::AppError;
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 use uuid::Uuid;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_pending_submission(
     pool: &PgPool,
     agent_id: Uuid,

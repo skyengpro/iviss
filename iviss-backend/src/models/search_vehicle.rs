@@ -15,5 +15,6 @@ pub struct VehicleRow {
     pub owner_name: String,
     pub owner_address: Option<String>,
     pub owner_national_id: Option<String>,
+    #[allow(dead_code)]
     pub carte_grise_expiry: Option<String>,
 }
