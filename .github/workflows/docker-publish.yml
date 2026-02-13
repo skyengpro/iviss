@@ -5,6 +5,12 @@ on:
     branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main", "dev" ]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "yes" to confirm starting the workflow'
+        required: true
+        default: 'no'
 
 env:
   REGISTRY: ghcr.io
@@ -12,6 +18,7 @@ env:
 
 jobs:
   build-and-push:
+    if: github.event_name != 'workflow_dispatch' || inputs.confirm == 'yes'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,7 +65,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           target: ${{ matrix.target }}
-          push: true
+          push: ${{ github.event_name != 'pull_request' || github.event_name == 'workflow_dispatch' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
