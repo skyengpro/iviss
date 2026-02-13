@@ -4,36 +4,22 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 // ── Request DTOs (admin actions) ──────────────────────────────────────────────
 
-/// Admin decision on a pending submission
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct ReviewSubmissionRequest {
-    /// "approved" | "rejected"
-    pub decision: SubmissionDecision,
-    /// Optional note from admin explaining the decision
-    pub admin_note: Option<String>,
-}
+// ReviewSubmissionRequest and VehicleDataEntry removed as they are not yet used by any handler.
+// Re-add when implementing admin review endpoints.
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-#[serde(rename_all = "lowercase")]
-pub enum SubmissionDecision {
-    Approved,
-    Rejected,
-}
-
-/// Admin data entry after approving a gray card submission
+/// Request payload for creating a new pending submission
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct VehicleDataEntry {
-    pub chassis_number: String,
-    pub brand: String,
-    pub model: String,
-    pub year: i32,
-    pub color: Option<String>,
-    pub engine_power: Option<String>,
-    pub fuel_type: Option<String>,
-    pub owner_name: String,
-    pub owner_address: Option<String>,
-    pub owner_national_id: Option<String>,
-    pub carte_grise_expiry: Option<String>,
+#[serde(rename_all = "camelCase")]
+pub struct CreatePendingSubmissionRequest {
+    pub plate_number: String,
+    pub agent_id: Uuid,
+    #[serde(alias = "frontImage")]
+    pub front_image_url: String,
+    #[serde(alias = "backImage")]
+    pub back_image_url: String,
+    pub notes: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
 }
 
 /// Detailed view of a pending submission (for admin review)

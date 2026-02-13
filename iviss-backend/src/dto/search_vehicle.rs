@@ -1,4 +1,3 @@
-use crate::dto::common::SubmissionLocation;
 use crate::dto::common::{IdentificationMode, Status};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

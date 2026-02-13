@@ -1,4 +1,5 @@
 pub mod api_doc;
+mod app_state;
 mod config;
 mod db;
 mod dto;
@@ -6,10 +7,9 @@ mod errors;
 mod handlers;
 mod middleware;
 mod models;
-mod routes;
-mod app_state;
-mod services;
 mod queries;
+mod routes;
+mod services;
 
 use crate::api_doc::ApiDoc;
 use crate::config::Config;
