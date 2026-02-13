@@ -1,7 +1,7 @@
 use crate::dto::common::Status;
 use crate::dto::search_vehicle::{
-    VehicleInfo, OwnerInfo, StatusResults, 
-    InsuranceStatus, PoliceStatus, CustomsStatus, TechnicalStatus
+    CustomsStatus, InsuranceStatus, OwnerInfo, PoliceStatus, StatusResults, TechnicalStatus,
+    VehicleInfo,
 };
 use crate::models::search_vehicle::VehicleRow;
 use crate::queries::vehicle_queries::VehicleStatusRow;
@@ -69,7 +69,7 @@ impl VehicleService {
 
                 InsuranceStatus {
                     status,
-                    provider: None, // Would come from external API
+                    provider: None,      // Would come from external API
                     policy_number: None, // Would come from external API
                     expiry_date: row.insurance_expiry.map(|d| d.to_string()),
                     coverage_type: None, // Would come from external API
@@ -100,7 +100,7 @@ impl VehicleService {
                     status,
                     is_wanted,
                     is_stolen,
-                    report_date: None, // Would come from external police API
+                    report_date: None,   // Would come from external police API
                     report_number: None, // Would come from external police API
                     notes: if row.stolen_status {
                         Some("Vehicle reported as stolen".to_string())
@@ -126,7 +126,7 @@ impl VehicleService {
         CustomsStatus {
             status: Status::Valid,
             is_cleared: true,
-            import_date: None, // Would come from external customs API
+            import_date: None,        // Would come from external customs API
             declaration_number: None, // Would come from external customs API
             notes: None,
         }
@@ -149,7 +149,7 @@ impl VehicleService {
                     status,
                     last_inspection_date: None, // Would come from external API
                     expiry_date: row.technical_expiry.map(|d| d.to_string()),
-                    mileage: None, // Would come from external API
+                    mileage: None,       // Would come from external API
                     defects: Vec::new(), // Would come from external API
                     notes: None,
                 }
@@ -171,7 +171,8 @@ impl VehicleService {
         let customs = Self::build_customs_status(status_row);
         let technical = Self::build_technical_status(status_row);
 
-        let overall_status = Self::calculate_overall_status(&insurance, &police, &customs, &technical);
+        let overall_status =
+            Self::calculate_overall_status(&insurance, &police, &customs, &technical);
 
         StatusResults {
             overall_status,

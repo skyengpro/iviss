@@ -3,20 +3,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct GpsPosition {
-    pub latitude: f64,
-    pub longitude: f64,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct ListControlRequest {
-    pub plate_number: String,
-    pub agent_id: Uuid,
-    pub identification_mode: IdentificationMode,
-    pub position: GpsPosition,
-    pub comment: Option<String>,
-}
+// GpsPosition and ListControlRequest removed as they are not used.
+// Use ControlListQuery for GET filtering.
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ControlListQuery {
@@ -34,7 +22,7 @@ pub struct ControlLocation {
     pub longitude: Option<f64>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ControlResults {
     pub registration: Status,
     pub insurance: Status,

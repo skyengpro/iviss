@@ -1,6 +1,6 @@
-use sqlx::{PgPool, Row};
-use crate::models::search_vehicle::VehicleRow;
 use crate::errors::AppError;
+use crate::models::search_vehicle::VehicleRow;
+use sqlx::{PgPool, Row};
 
 pub async fn get_vehicle_with_owner_by_plate(
     pool: &PgPool,

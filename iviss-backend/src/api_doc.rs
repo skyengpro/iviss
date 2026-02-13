@@ -11,7 +11,7 @@ use crate::dto::{
     stats::DashboardStats,
     users::{UserProfile, UserRole},
 };
-use crate::errors::{AppError, ErrorCode};
+use crate::errors::{AppErrorResponse, ErrorCode};
 
 // ── Security scheme injector
 
@@ -72,22 +72,18 @@ impl Modify for SecurityAddon {
             SubmissionLocation,
             UploadResponse,
             // ── control ──
-            ListControlRequest,
-            GpsPosition,
             ListControlResponse,
             ControlLocation,
             ControlResults,
             ControlAction,
             ActionType,
-            ReviewSubmissionRequest,
-            SubmissionDecision,
-            VehicleDataEntry,
+            CreatePendingSubmissionRequest,
             PendingSubmissionRequest,
             PendingSubmissionListItem,
             SubmissionStatus,
             DataEntryResponse,
             // ── errors ──
-            AppError,
+            AppErrorResponse,
             ErrorCode,
             DashboardStats,
             UserProfile,
