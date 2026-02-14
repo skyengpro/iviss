@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:unit": "npm run test",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "metrics-server": "node metrics-server.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -53,12 +54,14 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "express": "^5.2.1",
     "i18next": "^25.8.1",
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-http-backend": "^3.0.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "prom-client": "^15.1.3",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
