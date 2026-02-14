@@ -40,13 +40,29 @@ docker compose ps
 
 ## Access
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Grafana** | http://localhost:3001 | `admin` / `admin` (configurable via `.env`) |
-| **Prometheus** | http://localhost:9090 | — |
-| **Metrics Server** | http://localhost:9091 | — |
+| Service | Precise URL | Credentials |
+|---------|-------------|-------------|
+| **Frontend** | [http://localhost:8080/](http://localhost:8080/) | — |
+| **Grafana** | [http://localhost:3001/login](http://localhost:3001/login) | `admin` / `admin` |
+| **Prometheus** | [http://localhost:9090/targets](http://localhost:9090/targets) | — |
+| **Metrics Data** | [http://localhost:9091/metrics](http://localhost:9091/metrics) | — |
+| **Backend Health** | [http://localhost:3000/health](http://localhost:3000/health) | — |
 
-## Dashboards
+## Verification Steps
+
+1. **Start the stack:**
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Generate Traffic:**
+   - Open **Frontend** at [http://localhost:8080/](http://localhost:8080/)
+   - Navigate to different pages to generate data.
+
+3. **Check Status:**
+   - **Prometheus**: Go to [http://localhost:9090/targets](http://localhost:9090/targets) -> Ensure `frontend-metrics` is **UP**.
+   - **Grafana**: Go to [http://localhost:3001/](http://localhost:3001/) -> `admin`/`admin` -> **Dashboards** -> **IVISS Frontend Monitoring**.
+   - **Metrics**: Go to [http://localhost:9091/metrics](http://localhost:9091/metrics) -> Should see raw text data.
 
 A pre-built **"IVISS Frontend Monitoring"** dashboard is auto-provisioned with:
 
