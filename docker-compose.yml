@@ -34,6 +34,18 @@ services:
     networks:
       - iviss-network
 
+  # Adminer Database Management
+  adminer:
+    image: adminer
+    container_name: iviss-adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+    networks:
+      - iviss-network
+
   # Rust Backend Service
   backend:
     build:
