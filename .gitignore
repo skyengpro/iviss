@@ -38,3 +38,4 @@ target
 
 # Environment variables
 .env
+.vscode/settings.json
