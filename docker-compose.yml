@@ -46,6 +46,7 @@ services:
       - ./iviss-backend/src:/app/src:ro
       - ./iviss-backend/Cargo.toml:/app/Cargo.toml:ro
       - ./iviss-backend/Cargo.lock:/app/Cargo.lock:ro
+      - ./iviss-backend/migrations:/app/migrations:ro
       # Cache dependencies in named volume for faster builds
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
