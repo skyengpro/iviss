@@ -4,13 +4,14 @@ use axum::{
     Json,
 };
 use serde::Serialize;
+use utoipa::ToSchema;
 
 #[allow(dead_code)]
-#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
-    DatabaseError,
     Unauthorized,
+    DatabaseError,
     NotFound,
     BadRequest,
     ExternalApiFailure,
@@ -18,8 +19,8 @@ pub enum ErrorCode {
 }
 
 #[allow(dead_code)]
-#[derive(Serialize)]
-struct AppErrorResponse {
+#[derive(Serialize, ToSchema)]
+pub struct AppErrorResponse {
     code: ErrorCode,
     message: String,
 }
