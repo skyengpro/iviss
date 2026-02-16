@@ -18,7 +18,7 @@ const OUTPUT_PATH = resolve(__dirname, "../frontend/openapi.json");
 
 const BACKEND_OPENAPI_URL =
   process.env.BACKEND_OPENAPI_URL ||
-  "http://127.0.0.1:3000/docs/openapi.json";
+  "http://127.0.0.1:3000/api-doc/openapi.json";
 
 async function fetchFromBackend() {
   console.log(`⬇  Fetching OpenAPI spec from ${BACKEND_OPENAPI_URL} …`);
