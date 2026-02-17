@@ -372,7 +372,9 @@
   },
   "logControl": {
     "successTitle": "Contrôle Enregistré",
-    "successDescription": "Le contrôle du véhicule {{plateNumber}} a été enregistré avec succès."
+    "successDescription": "Le contrôle du véhicule {{plateNumber}} a été enregistré avec succès.",
+    "errorTitle": "Échec de l'enregistrement",
+    "errorDescription": "Impossible d'enregistrer le contrôle. Veuillez réessayer."
   },
   "mobileNav": {
     "home": "Accueil",

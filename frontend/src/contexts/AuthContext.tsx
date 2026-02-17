@@ -1,15 +1,16 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { mockAuthService, User, AuthSession } from '@/services/mockAuth';
-import { AuthContext, AuthContextType } from '@/hooks/use-auth';
+import { mockAuthService } from '@/services/mockAuth';
+import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
+import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<AuthSession | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on mount
   useEffect(() => {
-    const existingSession = mockAuthService.getSession();
+    const existingSession = mockAuthService.getSession() as unknown as AuthResponse | null;
     if (existingSession) {
       setSession(existingSession);
       setUser(existingSession.user);
@@ -21,8 +22,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await mockAuthService.login(username, password);
 
     if (result.success && result.session) {
-      setSession(result.session);
-      setUser(result.session.user);
+      const backendSession = result.session as unknown as AuthResponse;
+      setSession(backendSession);
+      setUser(backendSession.user);
       return { success: true };
     }
 
@@ -49,3 +51,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+

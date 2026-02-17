@@ -12,22 +12,26 @@ import {
   FileText,
   Settings,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { useNavigate } from 'react-router-dom';
-import { mockControlService } from '@/services/mockControls';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useGetControls } from '@/openapi-rq/queries/queries';
 
 export default function MobileProfile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const { data: todayControls = [] } = useQuery({
-    queryKey: ['today-controls', user?.id],
-    queryFn: () =>
-      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user,
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const { data: todayControls = [] } = useGetControls({
+    query: {
+      agent_id: user?.id,
+      start_date: startOfDay.toISOString(),
+    }
+  }, undefined, {
+    enabled: !!user?.id
   });
 
   const handleLogout = async () => {
@@ -74,7 +78,7 @@ export default function MobileProfile() {
           <InfoRow
             icon={Smartphone}
             label={t('mobileProfile.phoneImei')}
-            value={user.phoneIMEI.slice(0, 8) + '...'}
+            value={user.phoneNumber ? user.phoneNumber.slice(0, 8) + '...' : 'N/A'}
           />
         </section>
 

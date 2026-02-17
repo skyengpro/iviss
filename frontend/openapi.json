@@ -9,18 +9,213 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/admin/submissions": {
+            "get": {
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "List all pending submissions for admin review",
+                "operationId": "listPendingSubmissions",
+                "responses": {
+                    "200": {
+                        "description": "List of pending submissions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PendingSubmissionListItem"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
+        "/admin/submissions/{id}": {
+            "get": {
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Get details of a single pending submission",
+                "operationId": "getPendingSubmission",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Submission UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Submission details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PendingSubmissionRequest"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Submission not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login with email and password",
+                "operationId": "loginUser",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout and invalidate session",
+                "operationId": "logoutUser",
+                "responses": {
+                    "200": {
+                        "description": "Logout successful",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user",
+                "operationId": "registerUser",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/controls": {
             "get": {
                 "tags": [
                     "controls"
                 ],
-                "operationId": "get_list_control",
+                "operationId": "getControls",
                 "parameters": [
                     {
                         "name": "start_date",
-                        "in": "path",
+                        "in": "query",
                         "description": "Filter controls from this date (inclusive)",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "nullable": true
@@ -28,9 +223,9 @@
                     },
                     {
                         "name": "end_date",
-                        "in": "path",
+                        "in": "query",
                         "description": "Filter controls until this date (inclusive)",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "nullable": true
@@ -38,9 +233,9 @@
                     },
                     {
                         "name": "agent_id",
-                        "in": "path",
+                        "in": "query",
                         "description": "Filter controls by agent UUID",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "format": "uuid",
@@ -49,9 +244,9 @@
                     },
                     {
                         "name": "status",
-                        "in": "path",
+                        "in": "query",
                         "description": "Filter controls by status",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "allOf": [
                                 {
@@ -63,9 +258,9 @@
                     },
                     {
                         "name": "plate",
-                        "in": "path",
+                        "in": "query",
                         "description": "Filter controls by plate number",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "nullable": true
@@ -78,7 +273,10 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ListControlResponse"
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ListControlResponse"
+                                    }
                                 }
                             }
                         }
@@ -131,6 +329,69 @@
                         "bearer_auth": []
                     }
                 ]
+            },
+            "post": {
+                "tags": [
+                    "controls"
+                ],
+                "operationId": "createControl",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateControlRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Control created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreateControlResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
         },
         "/stats": {
@@ -138,7 +399,7 @@
                 "tags": [
                     "stats"
                 ],
-                "operationId": "get_dashboard_stats",
+                "operationId": "getDashboardStats",
                 "responses": {
                     "200": {
                         "description": "Dashboard statistics retrieved successfully",
@@ -183,7 +444,7 @@
                 "tags": [
                     "users"
                 ],
-                "operationId": "get_user_profile",
+                "operationId": "getUserProfile",
                 "responses": {
                     "200": {
                         "description": "Current user profile",
@@ -236,7 +497,7 @@
                 "tags": [
                     "vehicles"
                 ],
-                "operationId": "submit_vehicle",
+                "operationId": "submitVehicle",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -313,7 +574,7 @@
                 "tags": [
                     "vehicles"
                 ],
-                "operationId": "search_vehicle",
+                "operationId": "searchVehicle",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -427,6 +688,21 @@
                     }
                 }
             },
+            "AuthResponse": {
+                "type": "object",
+                "required": [
+                    "token",
+                    "user"
+                ],
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/UserProfile"
+                    }
+                }
+            },
             "ControlAction": {
                 "type": "object",
                 "required": [
@@ -489,6 +765,74 @@
                     },
                     "wanted_status": {
                         "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "CreateControlRequest": {
+                "type": "object",
+                "required": [
+                    "plate_number",
+                    "agent_id",
+                    "organization_id",
+                    "identification_mode",
+                    "results"
+                ],
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "agent_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "identification_mode": {
+                        "$ref": "#/components/schemas/IdentificationMode"
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ocr_confidence": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "organization_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "plate_number": {
+                        "type": "string"
+                    },
+                    "results": {
+                        "$ref": "#/components/schemas/ControlResults"
+                    }
+                }
+            },
+            "CreateControlResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "message"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "message": {
+                        "type": "string"
                     }
                 }
             },
@@ -724,6 +1068,21 @@
                     }
                 }
             },
+            "LoginRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
             "OwnerInfo": {
                 "type": "object",
                 "required": [
@@ -869,6 +1228,29 @@
                     },
                     "status": {
                         "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password",
+                    "full_name",
+                    "role"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/UserRole"
                     }
                 }
             },
@@ -1149,7 +1531,7 @@
     "tags": [
         {
             "name": "vehicles",
-            "description": "Vehicle lookup and gray-card image upload"
+            "description": "Vehicle lookup and image upload"
         },
         {
             "name": "controls",
@@ -1161,7 +1543,11 @@
         },
         {
             "name": "users",
-            "description": "User profile and authentication"
+            "description": "User profile management"
+        },
+        {
+            "name": "auth",
+            "description": "Authentication and registration"
         }
     ]
 }

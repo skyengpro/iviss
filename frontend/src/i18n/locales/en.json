@@ -370,7 +370,9 @@
   },
   "logControl": {
     "successTitle": "Control Logged",
-    "successDescription": "The control for vehicle {{plateNumber}} has been successfully logged."
+    "successDescription": "The control for vehicle {{plateNumber}} has been successfully logged.",
+    "errorTitle": "Logging Failed",
+    "errorDescription": "Could not log the control record. Please try again."
   },
   "mobileNav": {
     "home": "Home",

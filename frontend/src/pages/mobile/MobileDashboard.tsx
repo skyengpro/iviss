@@ -12,31 +12,25 @@ import {
   MapPin,
   Clock,
 } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { mockControlService } from '@/services/mockControls';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useDashboard } from '@/hooks/api/useDashboard';
+import { useControls } from '@/hooks/api/useControls';
 
 export default function MobileDashboard() {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['mobile-stats', user?.organizationId],
-    queryFn: () => (user ? mockControlService.getStats(user.organizationId) : null),
-    enabled: !!user,
-  });
+  const { stats, isLoading: statsLoading } = useDashboard();
 
-  const { data: recentControls = [], isLoading: controlsLoading } = useQuery({
-    queryKey: ['recent-controls', user?.id],
-    queryFn: () =>
-      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user,
+  const { controls: recentControls = [], isLoading: controlsLoading } = useControls({
+    agent_id: user?.id,
   });
 
   const isLoading = statsLoading || controlsLoading;
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.round(diffMs / 60000);
@@ -95,17 +89,17 @@ export default function MobileDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               title={t('mobileDashboard.controls')}
-              value={isLoading ? '-' : String(stats?.today || 0)}
+              value={isLoading ? '-' : String(stats?.todayControls || 0)}
               subtitle={t('mobileDashboard.today')}
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
               title={t('mobileDashboard.alerts')}
-              value={isLoading ? '-' : String(stats?.alerts || 0)}
+              value={isLoading ? '-' : String(stats?.activeAlerts || 0)}
               subtitle={t('mobileDashboard.flaggedVehicles')}
               icon={AlertTriangle}
-              variant={(stats?.alerts || 0) > 0 ? 'critical' : 'default'}
+              variant={(stats?.activeAlerts || 0) > 0 ? 'critical' : 'default'}
             />
           </div>
         </section>
@@ -152,16 +146,17 @@ export default function MobileDashboard() {
               {recentControls.map((control) => (
                 <Link
                   key={control.id}
-                  to={`/mobile/vehicle/${encodeURIComponent(control.plateNumber)}`}
+                  to={`/mobile/vehicle/${encodeURIComponent(control.plate_number)}`}
                 >
                   <RecentControlItem
-                    plate={control.plateNumber}
+                    plate={control.plate_number}
                     time={formatTimeAgo(control.timestamp)}
                     status={control.status as 'valid' | 'warning' | 'critical'}
                   />
                 </Link>
               ))}
             </div>
+
           ) : (
             <div className="rounded-lg border border-dashed border-border p-6 text-center">
               <ClipboardCheck className="mx-auto h-8 w-8 text-muted-foreground/50" />
@@ -190,11 +185,10 @@ function QuickActionButton({
   return (
     <Link to={href}>
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
-          primary
-            ? 'bg-accent text-accent-foreground shadow-lg'
-            : 'bg-card border border-border hover:bg-muted'
-        }`}
+        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${primary
+          ? 'bg-accent text-accent-foreground shadow-lg'
+          : 'bg-card border border-border hover:bg-muted'
+          }`}
       >
         <Icon className="h-6 w-6" />
         <span className="text-xs font-medium">{label}</span>
@@ -216,13 +210,12 @@ function RecentControlItem({
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 rounded-full ${
-            status === 'valid'
-              ? 'bg-status-valid'
-              : status === 'warning'
-                ? 'bg-status-warning'
-                : 'bg-status-critical'
-          }`}
+          className={`h-2 w-2 rounded-full ${status === 'valid'
+            ? 'bg-status-valid'
+            : status === 'warning'
+              ? 'bg-status-warning'
+              : 'bg-status-critical'
+            }`}
         />
         <div>
           <p className="font-mono font-semibold tracking-wider">{plate}</p>

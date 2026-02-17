@@ -11,6 +11,7 @@ use crate::errors::AppError;
     get,
     path = "/users/me",
     tag = "users",
+    operation_id = "getUserProfile",
     responses(
         (status = 200, description = "Current user profile", body = UserProfile),
         (status = 401, description = "Unauthorized",         body = AppErrorResponse, example = json!({ "code": "UNAUTHORIZED", "message": "Invalid token" })),
