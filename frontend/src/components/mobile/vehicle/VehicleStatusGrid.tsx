@@ -2,10 +2,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AlertCircle, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
-import { AggregatedVehicleStatus, Translatable } from '@/services/mockExternalAPIs';
+import { StatusResults, Status } from '@/openapi-rq/requests/types.gen';
 
 interface VehicleStatusGridProps {
-  apiStatus: AggregatedVehicleStatus;
+  apiStatus: StatusResults;
 }
 
 export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus }) => {
@@ -19,30 +19,31 @@ export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus 
       <StatusCard
         title={t('vehicleResult.insurance')}
         status={apiStatus.insurance.status}
-        provider={apiStatus.insurance.provider}
-        expiryDate={apiStatus.insurance.expiryDate}
-        notes={apiStatus.insurance.notes}
+        provider={apiStatus.insurance.provider || undefined}
+        expiryDate={apiStatus.insurance.expiry_date || undefined}
+        notes={apiStatus.insurance.notes || undefined}
       />
       <StatusCard
         title={t('vehicleResult.technicalInspection')}
-        status={apiStatus.technicalInspection.status}
-        expiryDate={apiStatus.technicalInspection.expiryDate}
-        notes={apiStatus.technicalInspection.notes}
+        status={apiStatus.technical.status}
+        expiryDate={apiStatus.technical.expiry_date || undefined}
+        notes={apiStatus.technical.notes || undefined}
       />
       <StatusCard
         title={t('vehicleResult.wantedStatus')}
         status={apiStatus.police.status}
-        notes={apiStatus.police.notes}
-        isAlert={apiStatus.police.isWanted || apiStatus.police.isStolen}
+        notes={apiStatus.police.notes || undefined}
+        isAlert={apiStatus.police.is_wanted || apiStatus.police.is_stolen}
       />
       <StatusCard
         title={t('vehicleResult.customsClearance')}
         status={apiStatus.customs.status}
-        notes={apiStatus.customs.notes}
+        notes={apiStatus.customs.notes || undefined}
       />
     </div>
   );
 };
+
 
 function StatusCard({
   title,
@@ -53,20 +54,17 @@ function StatusCard({
   isAlert,
 }: {
   title: string;
-  status: 'valid' | 'warning' | 'critical' | 'unknown';
+  status: Status;
   provider?: string;
   expiryDate?: string;
-  notes?: Translatable;
+  notes?: string;
   isAlert?: boolean;
 }) {
   const { t } = useTranslation();
 
   const renderNotes = () => {
     if (!notes) return null;
-    if (typeof notes === 'string') {
-      return notes;
-    }
-    return t(notes.key, notes.params) as string;
+    return notes;
   };
 
   const getStatusIcon = () => {
@@ -77,6 +75,7 @@ function StatusCard({
         return <AlertTriangle className="h-5 w-5 text-status-warning" />;
       case 'critical':
         return <AlertCircle className="h-5 w-5 text-status-critical" />;
+      case 'pending':
       default:
         return <Clock className="h-5 w-5 text-muted-foreground" />;
     }
@@ -90,6 +89,7 @@ function StatusCard({
         return 'border-status-warning/30';
       case 'critical':
         return 'border-status-critical/30';
+      case 'pending':
       default:
         return 'border-border';
     }
@@ -123,7 +123,7 @@ function StatusCard({
             )}
           </div>
         </div>
-        <StatusBadge variant={status === 'unknown' ? 'pending' : status} size="sm">
+        <StatusBadge variant={status} size="sm">
           {t(`mobileHistory.${status}`)}
         </StatusBadge>
       </div>
@@ -137,3 +137,4 @@ function StatusCard({
     </div>
   );
 }
+

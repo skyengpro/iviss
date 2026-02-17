@@ -10,6 +10,7 @@ use crate::errors::AppError;
     get,
     path = "/stats",
     tag = "stats",
+    operation_id = "getDashboardStats",
     responses(
         (status = 200, description = "Dashboard statistics retrieved successfully", body = DashboardStats),
         (status = 401, description = "Unauthorized",                                body = AppErrorResponse),

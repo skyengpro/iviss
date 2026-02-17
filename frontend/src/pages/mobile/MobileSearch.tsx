@@ -6,9 +6,8 @@ import { PlateInput } from '@/components/vehicle/PlateInput';
 import { Button } from '@/components/ui/button';
 import { Camera, History } from 'lucide-react';
 
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { mockControlService } from '@/services/mockControls';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useControls } from '@/hooks/api/useControls';
 
 export default function MobileSearch() {
   const { user } = useAuth();
@@ -21,7 +20,6 @@ export default function MobileSearch() {
   const handleSearch = useCallback(
     async (plate?: string) => {
       const searchPlate = plate || plateNumber;
-      if (searchPlate.length < 4) return;
 
       setIsLoading(true);
 
@@ -32,10 +30,10 @@ export default function MobileSearch() {
   );
 
   // Fetch recent controls for the agent to show as "recent searches"
-  const { data: recentControls = [] } = useQuery({
-    queryKey: ['recent-controls', user?.id],
-    queryFn: () => (user ? mockControlService.getControlsByAgent(user.id, 5) : Promise.resolve([])),
-    enabled: !!user,
+  const { controls: recentControls = [] } = useControls({
+    query: {
+      agent_id: user?.id,
+    },
   });
 
   // Check if plate was passed from scan
@@ -58,7 +56,6 @@ export default function MobileSearch() {
             onChange={setPlateNumber}
             onSubmit={() => handleSearch()}
             isLoading={isLoading}
-            placeholder={t('mobileSearch.placeholder')}
           />
 
           {/* Alternative actions */}
@@ -85,17 +82,17 @@ export default function MobileSearch() {
           </h3>
           <div className="space-y-2">
             {recentControls.length > 0 ? (
-              recentControls.map((control) => (
+              recentControls.slice(0, 5).map((control) => (
                 <button
                   key={control.id}
                   onClick={() => {
-                    setPlateNumber(control.plateNumber);
-                    handleSearch(control.plateNumber);
+                    setPlateNumber(control.plate_number);
+                    handleSearch(control.plate_number);
                   }}
                   className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted active:scale-[0.98]"
                 >
                   <span className="font-mono font-semibold tracking-wider">
-                    {control.plateNumber}
+                    {control.plate_number}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {t('mobileSearch.tapToSearch')}

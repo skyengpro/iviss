@@ -15,7 +15,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { mockVehicleService, PendingVehicle, Translatable } from '@/services/mockVehicles';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/ui/use-toast';
 
 export default function PendingVehicles() {
   const { t } = useTranslation();

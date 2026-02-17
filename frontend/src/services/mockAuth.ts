@@ -28,13 +28,13 @@ const mockUsers: Record<string, { password: string; user: User }> = {
   agent01: {
     password: 'agent123',
     user: {
-      id: 'usr_agent_001',
+      id: 'f490f1ee-6c54-4b01-90e6-d701748f0853', // agent1 from seed
       username: 'agent01',
       email: 'agent.dupont@police.gov',
       role: 'agent',
       name: 'Agent Dupont',
       organization: 'Brigade Alpha - Paris',
-      organizationId: 'org_001',
+      organizationId: 'd290f1ee-6c54-4b01-90e6-d701748f0851', // org from seed
       badgeId: 'PA-2024-0147',
       phoneIMEI: generateIMEI(),
       avatarInitials: 'AD',
@@ -44,13 +44,13 @@ const mockUsers: Record<string, { password: string; user: User }> = {
   supervisor01: {
     password: 'supervisor123',
     user: {
-      id: 'usr_supervisor_001',
+      id: 'f490f1ee-6c54-4b01-90e6-d701748f0853', // reuse agent1 for now
       username: 'supervisor01',
       email: 'supervisor.martin@police.gov',
       role: 'supervisor',
       name: 'Supervisor Martin',
       organization: 'Brigade Alpha - Paris',
-      organizationId: 'org_001',
+      organizationId: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
       badgeId: 'PS-2024-0023',
       phoneIMEI: generateIMEI(),
       avatarInitials: 'SM',
@@ -60,13 +60,13 @@ const mockUsers: Record<string, { password: string; user: User }> = {
   admin01: {
     password: 'admin123',
     user: {
-      id: 'usr_admin_001',
+      id: 'e390f1ee-6c54-4b01-90e6-d701748f0852', // admin from seed
       username: 'admin01',
       email: 'admin@iviss.gov',
       role: 'admin',
       name: 'Admin User',
       organization: 'IVISS Central',
-      organizationId: 'org_central',
+      organizationId: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
       badgeId: 'ADM-2024-0001',
       phoneIMEI: generateIMEI(),
       avatarInitials: 'AU',

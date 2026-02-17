@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import Webcam from 'react-webcam';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, ArrowLeft, CheckCircle, Upload, FileText } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-import { mockVehicleService } from '@/services/mockVehicles';
-import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useVehicles } from '@/hooks/api/useVehicles';
+import { toast } from '@/hooks/ui/use-toast';
 
 type CaptureStep = 'front' | 'back' | 'review' | 'submitted';
 
@@ -17,6 +18,7 @@ export default function MobileCarteGrise() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const plateNumber = searchParams.get('plate') || '';
+  const { submit, isSubmitting: isApiSubmitting } = useVehicles();
 
   const [step, setStep] = useState<CaptureStep>('front');
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -24,15 +26,18 @@ export default function MobileCarteGrise() {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCapture = (side: 'front' | 'back') => {
-    // Simulate capture
-    const mockImage = '/placeholder.svg';
+  const handleCapture = (imageSrc: string) => {
+    if (step === 'front') {
+      setFrontImage(imageSrc);
+    } else if (step === 'back') {
+      setBackImage(imageSrc);
+    }
+  };
 
-    if (side === 'front') {
-      setFrontImage(mockImage);
+  const handleValidate = () => {
+    if (step === 'front' && frontImage) {
       setStep('back');
-    } else {
-      setBackImage(mockImage);
+    } else if (step === 'back' && backImage) {
       setStep('review');
     }
   };
@@ -43,12 +48,13 @@ export default function MobileCarteGrise() {
     setIsSubmitting(true);
 
     try {
-      await mockVehicleService.submitPendingVehicle({
+      await submit({
         plateNumber,
-        submittedBy: user.name,
-        location: 'Highway A1, KM 42',
-        frontImage,
-        backImage,
+        agentId: user.id,
+        // submittedBy: user.name, // Not in API request type
+        // location: 'Highway A1, KM 42', // Not in API request type, or maybe implicitly?
+        frontImageUrl: frontImage,
+        backImageUrl: backImage,
         notes: notes || undefined,
       });
 
@@ -155,7 +161,8 @@ export default function MobileCarteGrise() {
           <CaptureCard
             title={t('mobileCarteGrise.frontTitle')}
             description={t('mobileCarteGrise.frontDescription')}
-            onCapture={() => handleCapture('front')}
+            onCapture={handleCapture}
+            onValidate={handleValidate}
             image={frontImage}
           />
         )}
@@ -164,7 +171,8 @@ export default function MobileCarteGrise() {
           <CaptureCard
             title={t('mobileCarteGrise.backTitle')}
             description={t('mobileCarteGrise.backDescription')}
-            onCapture={() => handleCapture('back')}
+            onCapture={handleCapture}
+            onValidate={handleValidate}
             image={backImage}
           />
         )}
@@ -177,16 +185,24 @@ export default function MobileCarteGrise() {
                 <div className="bg-muted p-2 text-center text-xs font-medium">
                   {t('mobileCarteGrise.stepFront')}
                 </div>
-                <div className="aspect-[3/4] bg-muted flex items-center justify-center">
-                  <FileText className="h-12 w-12 text-muted-foreground/50" />
+                <div className="aspect-[3/4] bg-muted flex items-center justify-center overflow-hidden">
+                  {frontImage ? (
+                    <img src={frontImage} alt="Front" className="w-full h-full object-cover" />
+                  ) : (
+                    <FileText className="h-12 w-12 text-muted-foreground/50" />
+                  )}
                 </div>
               </div>
               <div className="rounded-lg border border-border overflow-hidden">
                 <div className="bg-muted p-2 text-center text-xs font-medium">
                   {t('mobileCarteGrise.stepBack')}
                 </div>
-                <div className="aspect-[3/4] bg-muted flex items-center justify-center">
-                  <FileText className="h-12 w-12 text-muted-foreground/50" />
+                <div className="aspect-[3/4] bg-muted flex items-center justify-center overflow-hidden">
+                  {backImage ? (
+                    <img src={backImage} alt="Back" className="w-full h-full object-cover" />
+                  ) : (
+                    <FileText className="h-12 w-12 text-muted-foreground/50" />
+                  )}
                 </div>
               </div>
             </div>
@@ -238,13 +254,12 @@ function StepIndicator({
       <div
         className={`
         flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold
-        ${
-          completed
+        ${completed
             ? 'bg-status-valid text-status-valid-foreground'
             : active
               ? 'bg-accent text-accent-foreground'
               : 'bg-muted text-muted-foreground'
-        }
+          }
       `}
       >
         {completed ? <CheckCircle className="h-4 w-4" /> : number}
@@ -260,14 +275,98 @@ function CaptureCard({
   title,
   description,
   onCapture,
+  onValidate,
   image,
 }: {
   title: string;
   description: string;
-  onCapture: () => void;
+  onCapture: (img: string) => void;
+  onValidate: () => void;
   image: string | null;
 }) {
   const { t } = useTranslation();
+  const webcamRef = useRef<Webcam>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      onCapture(imageSrc);
+      setCameraActive(false);
+    }
+  }, [webcamRef, onCapture]);
+
+  const videoConstraints = {
+    width: 1280,
+    height: 720,
+    facingMode: "environment"
+  };
+
+  if (cameraActive) {
+    return (
+      <div className="space-y-4">
+        <div className="relative overflow-hidden rounded-xl bg-black">
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={videoConstraints}
+            className="w-full h-auto"
+            forceScreenshotSourceSize={true}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setCameraActive(false)}
+          >
+            {t('buttons.close', 'Cancel')}
+          </Button>
+          <Button
+            className="flex-1 gap-2 bg-accent text-accent-foreground"
+            onClick={capture}
+          >
+            <Camera className="h-5 w-5" />
+            {t('mobileCarteGrise.captureImageButton', 'Capture')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Preview captured image if available
+  if (image) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-border">
+          <img src={image} alt="Captured" className="w-full h-auto object-cover" />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => setCameraActive(true)}
+          >
+            <Camera className="h-4 w-4" />
+            {t('mobileScan.retry', 'Retake')}
+          </Button>
+          <Button
+            className="flex-1 gap-2 bg-status-valid text-status-valid-foreground hover:bg-status-valid/90"
+            onClick={onValidate}
+          >
+            <CheckCircle className="h-4 w-4" />
+            {t('buttons.validate', 'Validate')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -288,7 +387,7 @@ function CaptureCard({
 
       <Button
         className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
-        onClick={onCapture}
+        onClick={() => setCameraActive(true)}
       >
         <Camera className="h-5 w-5" />
         {t('mobileCarteGrise.captureImageButton')}

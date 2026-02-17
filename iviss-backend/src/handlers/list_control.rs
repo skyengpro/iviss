@@ -6,21 +6,57 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::{app_state::AppState, dto::list_control::ControlListQuery, errors::AppError};
+use crate::{
+    app_state::AppState,
+    dto::{
+        create_control::{CreateControlRequest, CreateControlResponse},
+        list_control::ControlListQuery,
+    },
+    errors::AppError,
+};
+
+#[utoipa::path(
+    post,
+    path = "/controls",
+    tag = "controls",
+    request_body = CreateControlRequest,
+    operation_id = "createControl",
+    responses(
+        (status = 201, description = "Control created", body = CreateControlResponse),
+        (status = 400, description = "Invalid request", body = AppErrorResponse),
+        (status = 401, description = "Unauthorized", body = AppErrorResponse),
+        (status = 500, description = "Internal server error", body = AppErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn create_control(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateControlRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let id = crate::queries::control_queries::create_control_record(&state.db, payload).await?;
+
+    let response = CreateControlResponse {
+        id,
+        message: "Control logged successfully".to_string(),
+    };
+
+    Ok((StatusCode::CREATED, Json(response)))
+}
 
 #[utoipa::path(
     get,
     path = "/controls",
     tag = "controls",
     params(
-        ("start_date" = Option<String>, Path, description = "Filter controls from this date (inclusive)" ),
-        ("end_date" = Option<String>, Path, description = "Filter controls until this date (inclusive)"),
-        ("agent_id" = Option<Uuid>, Path, description = "Filter controls by agent UUID"),
-        ("status" = Option<Status>, Path, description = "Filter controls by status" ),
-        ("plate" = Option<String>, Path, description = "Filter controls by plate number" )
+        ("start_date" = Option<String>, Query, description = "Filter controls from this date (inclusive)" ),
+        ("end_date" = Option<String>, Query, description = "Filter controls until this date (inclusive)"),
+        ("agent_id" = Option<Uuid>, Query, description = "Filter controls by agent UUID"),
+        ("status" = Option<Status>, Query, description = "Filter controls by status" ),
+        ("plate" = Option<String>, Query, description = "Filter controls by plate number" )
      ),
+    operation_id = "getControls",
     responses(
-        (status = 200, description = "List of control records", body = ListControlResponse),
+        (status = 200, description = "List of control records", body = [ListControlResponse]),
          (status = 400, description = "Invalid request",        body = AppErrorResponse, 
              example = json!({ "code": "INVALID_REQUEST", "message": "Invalid date format for 'start_date'" })),
          (status = 404, description = "Not found",           body = AppErrorResponse, 

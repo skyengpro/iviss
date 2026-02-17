@@ -23,6 +23,7 @@ use std::sync::Arc;
     post,
     path = "/vehicles/search",
     tag = "vehicles",
+    operation_id = "searchVehicle",
     request_body = VehicleSearchRequest,
     responses(
         (status = 200, description = "Vehicle found with status results", body = VehicleSearchResult),
