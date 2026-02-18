@@ -18,8 +18,7 @@
     "test:unit": "npm run test",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "codegen": "openapi-rq -i ../openapi.json -o ./src/openapi-rq -c fetch",
-    "postinstall": "npm run codegen"
+    "codegen": "openapi-rq -i ../openapi.json -o ./src/openapi-rq -c fetch"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
