@@ -63,10 +63,12 @@
   "mobileHistory": {
     "title": "Control History",
     "searchPlaceholder": "Search plates, vehicles...",
+    "searchButton": "Search Vehicle",
     "all": "All",
     "valid": "Valid",
     "warning": "Warning",
     "critical": "Critical",
+    "pending": "Pending",
     "showingControls_one": "Showing 1 control",
     "showingControls_other": "Showing {{count}} controls",
     "today": "Today",

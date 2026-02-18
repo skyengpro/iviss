@@ -190,6 +190,7 @@ pub async fn get_control_records(
             "valid" => Status::Valid,
             "warning" => Status::Warning,
             "critical" => Status::Critical,
+            "pending" => Status::Pending,
             _ => Status::Valid,
         };
 
