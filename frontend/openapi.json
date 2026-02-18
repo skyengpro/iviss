@@ -1,1067 +1,1167 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "IVISS Backend API",
-    "description": "Vehicle identification, carte grise submissions and back-office dashboard.",
-    "license": {
-      "name": ""
-    },
-    "version": "1.0.0"
-  },
-  "paths": {
-    "/controls": {
-      "get": {
-        "tags": ["controls"],
-        "operationId": "get_list_control",
-        "parameters": [
-          {
-            "name": "start_date",
-            "in": "path",
-            "description": "Filter controls from this date (inclusive)",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "end_date",
-            "in": "path",
-            "description": "Filter controls until this date (inclusive)",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "agent_id",
-            "in": "path",
-            "description": "Filter controls by agent UUID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "nullable": true
-            }
-          },
-          {
-            "name": "status",
-            "in": "path",
-            "description": "Filter controls by status",
-            "required": true,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Status"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "plate",
-            "in": "path",
-            "description": "Filter controls by plate number",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of control records",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListControlResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INVALID_REQUEST",
-                  "message": "Invalid date format for 'start_date'"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "NOT_FOUND",
-                  "message": "No controls found matching the provided filters"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
-              }
-            }
-          }
+    "openapi": "3.0.3",
+    "info": {
+        "title": "IVISS Backend API",
+        "description": "Vehicle identification, carte grise submissions and back-office dashboard.",
+        "license": {
+            "name": ""
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
-      }
+        "version": "1.0.0"
     },
-    "/stats": {
-      "get": {
-        "tags": ["stats"],
-        "operationId": "get_dashboard_stats",
-        "responses": {
-          "200": {
-            "description": "Dashboard statistics retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardStats"
-                }
-              }
+    "paths": {
+        "/controls": {
+            "get": {
+                "tags": [
+                    "controls"
+                ],
+                "operationId": "get_list_control",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "path",
+                        "description": "Filter controls from this date (inclusive)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "path",
+                        "description": "Filter controls until this date (inclusive)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "agent_id",
+                        "in": "path",
+                        "description": "Filter controls by agent UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "path",
+                        "description": "Filter controls by status",
+                        "required": true,
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Status"
+                                }
+                            ],
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "plate",
+                        "in": "path",
+                        "description": "Filter controls by plate number",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of control records",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListControlResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INVALID_REQUEST",
+                                    "message": "Invalid date format for 'start_date'"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "NOT_FOUND",
+                                    "message": "No controls found matching the provided filters"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INTERNAL_ERROR",
+                                    "message": "Internal Server Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
-            }
-          }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
-      }
-    },
-    "/users/me": {
-      "get": {
-        "tags": ["users"],
-        "operationId": "get_user_profile",
-        "responses": {
-          "200": {
-            "description": "Current user profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
+        "/stats": {
+            "get": {
+                "tags": [
+                    "stats"
+                ],
+                "operationId": "get_dashboard_stats",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard statistics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DashboardStats"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
                 },
-                "example": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Invalid token"
-                }
-              }
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
-              }
-            }
-          }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
-      }
-    },
-    "/vehicles/pending": {
-      "post": {
-        "tags": ["vehicles"],
-        "operationId": "submit_vehicle",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePendingSubmissionRequest"
-              }
+        "/users/me": {
+            "get": {
+                "tags": [
+                    "users"
+                ],
+                "operationId": "get_user_profile",
+                "responses": {
+                    "200": {
+                        "description": "Current user profile",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserProfile"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "UNAUTHORIZED",
+                                    "message": "Invalid token"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INTERNAL_ERROR",
+                                    "message": "Internal Server Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
-          },
-          "required": true
         },
-        "responses": {
-          "202": {
-            "description": "Submission accepted for review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataEntryResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
+        "/vehicles/pending": {
+            "post": {
+                "tags": [
+                    "vehicles"
+                ],
+                "operationId": "submit_vehicle",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreatePendingSubmissionRequest"
+                            }
+                        }
+                    },
+                    "required": true
                 },
-                "example": {
-                  "code": "INVALID_REQUEST",
-                  "message": "Missing required field 'plate'"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
+                "responses": {
+                    "202": {
+                        "description": "Submission accepted for review",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DataEntryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INVALID_REQUEST",
+                                    "message": "Missing required field 'plate'"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "UNAUTHORIZED",
+                                    "message": "Invalid token"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INTERNAL_ERROR",
+                                    "message": "Internal Server Error"
+                                }
+                            }
+                        }
+                    }
                 },
-                "example": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Invalid token"
-                }
-              }
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
-              }
-            }
-          }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
-      }
-    },
-    "/vehicles/search": {
-      "post": {
-        "tags": ["vehicles"],
-        "operationId": "search_vehicle",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VehicleSearchRequest"
-              }
+        "/vehicles/search": {
+            "post": {
+                "tags": [
+                    "vehicles"
+                ],
+                "operationId": "search_vehicle",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VehicleSearchRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Vehicle found with status results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VehicleSearchResult"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid plate format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INVALID_PLATE",
+                                    "message": "Plate number must be 6-8 alphanumeric characters"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "UNAUTHORIZED",
+                                    "message": "Invalid token"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Plate not found in registry",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "NOT_FOUND",
+                                    "message": "No vehicle found with the provided plate  number"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                },
+                                "example": {
+                                    "code": "INTERNAL_ERROR",
+                                    "message": "Internal Server Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
-          },
-          "required": true
+        }
+    },
+    "components": {
+        "schemas": {
+            "ActionType": {
+                "type": "string",
+                "enum": [
+                    "check",
+                    "flag",
+                    "citation",
+                    "impound",
+                    "release"
+                ]
+            },
+            "AppErrorResponse": {
+                "type": "object",
+                "required": [
+                    "code",
+                    "message"
+                ],
+                "properties": {
+                    "code": {
+                        "$ref": "#/components/schemas/ErrorCode"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ControlAction": {
+                "type": "object",
+                "required": [
+                    "action_type",
+                    "timestamp"
+                ],
+                "properties": {
+                    "action_type": {
+                        "$ref": "#/components/schemas/ActionType"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ControlLocation": {
+                "type": "object",
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    }
+                }
+            },
+            "ControlResults": {
+                "type": "object",
+                "required": [
+                    "registration",
+                    "insurance",
+                    "technical_inspection",
+                    "wanted_status",
+                    "customs_status"
+                ],
+                "properties": {
+                    "customs_status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "insurance": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "registration": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "technical_inspection": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "wanted_status": {
+                        "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "CreatePendingSubmissionRequest": {
+                "type": "object",
+                "description": "Request payload for creating a new pending submission",
+                "required": [
+                    "plateNumber",
+                    "agentId",
+                    "frontImageUrl",
+                    "backImageUrl"
+                ],
+                "properties": {
+                    "agentId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "backImageUrl": {
+                        "type": "string"
+                    },
+                    "frontImageUrl": {
+                        "type": "string"
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "plateNumber": {
+                        "type": "string"
+                    }
+                }
+            },
+            "CustomsStatus": {
+                "type": "object",
+                "required": [
+                    "status",
+                    "is_cleared"
+                ],
+                "properties": {
+                    "declaration_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "import_date": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_cleared": {
+                        "type": "boolean"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "DashboardStats": {
+                "type": "object",
+                "required": [
+                    "todayControls",
+                    "activeAlerts",
+                    "totalVehicles",
+                    "onlineAgents"
+                ],
+                "properties": {
+                    "activeAlerts": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "onlineAgents": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "todayControls": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalVehicles": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "DataEntryResponse": {
+                "type": "object",
+                "description": "Response after approved and enters vehicle data",
+                "required": [
+                    "message",
+                    "submission_id",
+                    "plate_number"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "plate_number": {
+                        "type": "string",
+                        "description": "Plate number that was added to the external registry"
+                    },
+                    "submission_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                }
+            },
+            "ErrorCode": {
+                "type": "string",
+                "enum": [
+                    "UNAUTHORIZED",
+                    "DATABASE_ERROR",
+                    "NOT_FOUND",
+                    "BAD_REQUEST",
+                    "EXTERNAL_API_FAILURE",
+                    "INTERNAL_ERROR"
+                ]
+            },
+            "IdentificationMode": {
+                "type": "string",
+                "description": "How the plate was identified by the agent",
+                "enum": [
+                    "manual",
+                    "photo",
+                    "live"
+                ]
+            },
+            "InsuranceStatus": {
+                "type": "object",
+                "required": [
+                    "status"
+                ],
+                "properties": {
+                    "coverage_type": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "expiry_date": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "policy_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "provider": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "ListControlResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "plate_number",
+                    "agent_id",
+                    "organization_id",
+                    "timestamp",
+                    "status",
+                    "identification_mode",
+                    "location",
+                    "results",
+                    "actions"
+                ],
+                "properties": {
+                    "actions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ControlAction"
+                        }
+                    },
+                    "agent_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "agent_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "identification_mode": {
+                        "$ref": "#/components/schemas/IdentificationMode"
+                    },
+                    "location": {
+                        "$ref": "#/components/schemas/ControlLocation"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "organization_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "plate_number": {
+                        "type": "string"
+                    },
+                    "results": {
+                        "$ref": "#/components/schemas/ControlResults"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "timestamp": {
+                        "type": "string"
+                    }
+                }
+            },
+            "OwnerInfo": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "national_id": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                }
+            },
+            "PendingSubmissionListItem": {
+                "type": "object",
+                "description": "Lightweight list item for admin dashboard",
+                "required": [
+                    "id",
+                    "plate_number",
+                    "status",
+                    "submitted_at"
+                ],
+                "properties": {
+                    "agent_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "plate_number": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/SubmissionStatus"
+                    },
+                    "submitted_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PendingSubmissionRequest": {
+                "type": "object",
+                "description": "Detailed view of a pending submission (for admin review)",
+                "required": [
+                    "id",
+                    "plate_number",
+                    "agent_id",
+                    "front_image_url",
+                    "back_image_url",
+                    "status",
+                    "submitted_at"
+                ],
+                "properties": {
+                    "admin_note": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "agent_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "agent_name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "back_image_url": {
+                        "type": "string",
+                        "description": "URL or Base64 of back image"
+                    },
+                    "front_image_url": {
+                        "type": "string",
+                        "description": "URL or Base64 of front image"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "location": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/SubmissionLocation"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "plate_number": {
+                        "type": "string"
+                    },
+                    "reviewed_at": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "reviewed_by": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/SubmissionStatus"
+                    },
+                    "submitted_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PoliceStatus": {
+                "type": "object",
+                "required": [
+                    "status",
+                    "is_wanted",
+                    "is_stolen"
+                ],
+                "properties": {
+                    "is_stolen": {
+                        "type": "boolean"
+                    },
+                    "is_wanted": {
+                        "type": "boolean"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "report_date": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "report_number": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "Status": {
+                "type": "string",
+                "description": "Shared status across all partner API responses",
+                "enum": [
+                    "valid",
+                    "warning",
+                    "critical",
+                    "pending"
+                ]
+            },
+            "StatusResults": {
+                "type": "object",
+                "required": [
+                    "overall_status",
+                    "insurance",
+                    "police",
+                    "customs",
+                    "technical"
+                ],
+                "properties": {
+                    "customs": {
+                        "$ref": "#/components/schemas/CustomsStatus"
+                    },
+                    "insurance": {
+                        "$ref": "#/components/schemas/InsuranceStatus"
+                    },
+                    "overall_status": {
+                        "$ref": "#/components/schemas/Status"
+                    },
+                    "police": {
+                        "$ref": "#/components/schemas/PoliceStatus"
+                    },
+                    "technical": {
+                        "$ref": "#/components/schemas/TechnicalStatus"
+                    }
+                }
+            },
+            "SubmissionLocation": {
+                "type": "object",
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    }
+                }
+            },
+            "SubmissionStatus": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "approved",
+                    "rejected"
+                ]
+            },
+            "TechnicalStatus": {
+                "type": "object",
+                "required": [
+                    "status",
+                    "defects"
+                ],
+                "properties": {
+                    "defects": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "expiry_date": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "last_inspection_date": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "mileage": {
+                        "type": "integer",
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "UploadResponse": {
+                "type": "object",
+                "required": [
+                    "message",
+                    "submission_id"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "submission_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "UserProfile": {
+                "type": "object",
+                "description": "Response for GET /users/me",
+                "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "role",
+                    "organizationId",
+                    "isActive"
+                ],
+                "properties": {
+                    "avatarInitials": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "badgeId": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "isActive": {
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "organization": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "organizationId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "phoneNumber": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/UserRole"
+                    }
+                }
+            },
+            "UserRole": {
+                "type": "string",
+                "enum": [
+                    "admin",
+                    "agent",
+                    "manager"
+                ]
+            },
+            "VehicleInfo": {
+                "type": "object",
+                "required": [
+                    "brand",
+                    "model",
+                    "year",
+                    "chassis_number",
+                    "owner"
+                ],
+                "properties": {
+                    "brand": {
+                        "type": "string"
+                    },
+                    "chassis_number": {
+                        "type": "string"
+                    },
+                    "color": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "engine_power": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "fuel_type": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "model": {
+                        "type": "string"
+                    },
+                    "owner": {
+                        "$ref": "#/components/schemas/OwnerInfo"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                }
+            },
+            "VehicleSearchRequest": {
+                "type": "object",
+                "required": [
+                    "plate"
+                ],
+                "properties": {
+                    "latitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "plate": {
+                        "type": "string"
+                    }
+                }
+            },
+            "VehicleSearchResult": {
+                "type": "object",
+                "required": [
+                    "plate_number",
+                    "vehicle",
+                    "status_results"
+                ],
+                "properties": {
+                    "confidence": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "identification_mode": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/IdentificationMode"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "plate_number": {
+                        "type": "string"
+                    },
+                    "status_results": {
+                        "$ref": "#/components/schemas/StatusResults"
+                    },
+                    "vehicle": {
+                        "$ref": "#/components/schemas/VehicleInfo"
+                    }
+                }
+            }
         },
-        "responses": {
-          "200": {
-            "description": "Vehicle found with status results",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VehicleSearchResult"
-                }
-              }
+        "securitySchemes": {
+            "bearer_auth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
             }
-          },
-          "400": {
-            "description": "Invalid plate format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INVALID_PLATE",
-                  "message": "Plate number must be 6-8 alphanumeric characters"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Invalid token"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Plate not found in registry",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "NOT_FOUND",
-                  "message": "No vehicle found with the provided plate  number"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
-              }
-            }
-          }
+        }
+    },
+    "tags": [
+        {
+            "name": "vehicles",
+            "description": "Vehicle lookup and gray-card image upload"
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "ActionType": {
-        "type": "string",
-        "enum": ["check", "flag", "citation", "impound", "release"]
-      },
-      "AppErrorResponse": {
-        "type": "object",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "$ref": "#/components/schemas/ErrorCode"
-          },
-          "message": {
-            "type": "string"
-          }
+        {
+            "name": "controls",
+            "description": "Roadside control tracking"
+        },
+        {
+            "name": "stats",
+            "description": "Dashboard statistics"
+        },
+        {
+            "name": "users",
+            "description": "User profile and authentication"
         }
-      },
-      "ControlAction": {
-        "type": "object",
-        "required": ["action_type", "timestamp"],
-        "properties": {
-          "action_type": {
-            "$ref": "#/components/schemas/ActionType"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string"
-          }
-        }
-      },
-      "ControlLocation": {
-        "type": "object",
-        "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          }
-        }
-      },
-      "ControlResults": {
-        "type": "object",
-        "required": [
-          "registration",
-          "insurance",
-          "technical_inspection",
-          "wanted_status",
-          "customs_status"
-        ],
-        "properties": {
-          "customs_status": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "insurance": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "registration": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "technical_inspection": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "wanted_status": {
-            "$ref": "#/components/schemas/Status"
-          }
-        }
-      },
-      "CreatePendingSubmissionRequest": {
-        "type": "object",
-        "description": "Request payload for creating a new pending submission",
-        "required": ["plateNumber", "agentId", "frontImageUrl", "backImageUrl"],
-        "properties": {
-          "agentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "backImageUrl": {
-            "type": "string"
-          },
-          "frontImageUrl": {
-            "type": "string"
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "plateNumber": {
-            "type": "string"
-          }
-        }
-      },
-      "CustomsStatus": {
-        "type": "object",
-        "required": ["status", "is_cleared"],
-        "properties": {
-          "declaration_number": {
-            "type": "string",
-            "nullable": true
-          },
-          "import_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_cleared": {
-            "type": "boolean"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
-        }
-      },
-      "DashboardStats": {
-        "type": "object",
-        "required": ["todayControls", "activeAlerts", "totalVehicles", "onlineAgents"],
-        "properties": {
-          "activeAlerts": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "onlineAgents": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "todayControls": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalVehicles": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
-      },
-      "DataEntryResponse": {
-        "type": "object",
-        "description": "Response after approved and enters vehicle data",
-        "required": ["message", "submission_id", "plate_number"],
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "plate_number": {
-            "type": "string",
-            "description": "Plate number that was added to the external registry"
-          },
-          "submission_id": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
-      "ErrorCode": {
-        "type": "string",
-        "enum": [
-          "UNAUTHORIZED",
-          "DATABASE_ERROR",
-          "NOT_FOUND",
-          "BAD_REQUEST",
-          "EXTERNAL_API_FAILURE",
-          "INTERNAL_ERROR"
-        ]
-      },
-      "IdentificationMode": {
-        "type": "string",
-        "description": "How the plate was identified by the agent",
-        "enum": ["manual", "photo", "live"]
-      },
-      "InsuranceStatus": {
-        "type": "object",
-        "required": ["status"],
-        "properties": {
-          "coverage_type": {
-            "type": "string",
-            "nullable": true
-          },
-          "expiry_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "policy_number": {
-            "type": "string",
-            "nullable": true
-          },
-          "provider": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
-        }
-      },
-      "ListControlResponse": {
-        "type": "object",
-        "required": [
-          "id",
-          "plate_number",
-          "agent_id",
-          "organization_id",
-          "timestamp",
-          "status",
-          "identification_mode",
-          "location",
-          "results",
-          "actions"
-        ],
-        "properties": {
-          "actions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ControlAction"
-            }
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agent_name": {
-            "type": "string",
-            "nullable": true
-          },
-          "confidence": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "identification_mode": {
-            "$ref": "#/components/schemas/IdentificationMode"
-          },
-          "location": {
-            "$ref": "#/components/schemas/ControlLocation"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "organization_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "results": {
-            "$ref": "#/components/schemas/ControlResults"
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "timestamp": {
-            "type": "string"
-          }
-        }
-      },
-      "OwnerInfo": {
-        "type": "object",
-        "required": ["name"],
-        "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
-            "type": "string"
-          },
-          "national_id": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "PendingSubmissionListItem": {
-        "type": "object",
-        "description": "Lightweight list item for admin dashboard",
-        "required": ["id", "plate_number", "status", "submitted_at"],
-        "properties": {
-          "agent_name": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SubmissionStatus"
-          },
-          "submitted_at": {
-            "type": "string"
-          }
-        }
-      },
-      "PendingSubmissionRequest": {
-        "type": "object",
-        "description": "Detailed view of a pending submission (for admin review)",
-        "required": [
-          "id",
-          "plate_number",
-          "agent_id",
-          "front_image_url",
-          "back_image_url",
-          "status",
-          "submitted_at"
-        ],
-        "properties": {
-          "admin_note": {
-            "type": "string",
-            "nullable": true
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agent_name": {
-            "type": "string",
-            "nullable": true
-          },
-          "back_image_url": {
-            "type": "string",
-            "description": "URL or Base64 of back image"
-          },
-          "front_image_url": {
-            "type": "string",
-            "description": "URL or Base64 of front image"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SubmissionLocation"
-              }
-            ],
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "reviewed_at": {
-            "type": "string",
-            "nullable": true
-          },
-          "reviewed_by": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/SubmissionStatus"
-          },
-          "submitted_at": {
-            "type": "string"
-          }
-        }
-      },
-      "PoliceStatus": {
-        "type": "object",
-        "required": ["status", "is_wanted", "is_stolen"],
-        "properties": {
-          "is_stolen": {
-            "type": "boolean"
-          },
-          "is_wanted": {
-            "type": "boolean"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "report_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "report_number": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
-        }
-      },
-      "Status": {
-        "type": "string",
-        "description": "Shared status across all partner API responses",
-        "enum": ["valid", "warning", "critical", "pending"]
-      },
-      "StatusResults": {
-        "type": "object",
-        "required": ["overall_status", "insurance", "police", "customs", "technical"],
-        "properties": {
-          "customs": {
-            "$ref": "#/components/schemas/CustomsStatus"
-          },
-          "insurance": {
-            "$ref": "#/components/schemas/InsuranceStatus"
-          },
-          "overall_status": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "police": {
-            "$ref": "#/components/schemas/PoliceStatus"
-          },
-          "technical": {
-            "$ref": "#/components/schemas/TechnicalStatus"
-          }
-        }
-      },
-      "SubmissionLocation": {
-        "type": "object",
-        "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          }
-        }
-      },
-      "SubmissionStatus": {
-        "type": "string",
-        "enum": ["pending", "approved", "rejected"]
-      },
-      "TechnicalStatus": {
-        "type": "object",
-        "required": ["status", "defects"],
-        "properties": {
-          "defects": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "expiry_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "last_inspection_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "mileage": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
-        }
-      },
-      "UploadResponse": {
-        "type": "object",
-        "required": ["message", "submission_id"],
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "submission_id": {
-            "type": "string"
-          }
-        }
-      },
-      "UserProfile": {
-        "type": "object",
-        "description": "Response for GET /users/me",
-        "required": ["id", "name", "email", "role", "organizationId", "isActive"],
-        "properties": {
-          "avatarInitials": {
-            "type": "string",
-            "nullable": true
-          },
-          "badgeId": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          },
-          "organization": {
-            "type": "string",
-            "nullable": true
-          },
-          "organizationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "role": {
-            "$ref": "#/components/schemas/UserRole"
-          }
-        }
-      },
-      "UserRole": {
-        "type": "string",
-        "enum": ["admin", "agent", "manager"]
-      },
-      "VehicleInfo": {
-        "type": "object",
-        "required": ["brand", "model", "year", "chassis_number", "owner"],
-        "properties": {
-          "brand": {
-            "type": "string"
-          },
-          "chassis_number": {
-            "type": "string"
-          },
-          "color": {
-            "type": "string",
-            "nullable": true
-          },
-          "engine_power": {
-            "type": "string",
-            "nullable": true
-          },
-          "fuel_type": {
-            "type": "string",
-            "nullable": true
-          },
-          "model": {
-            "type": "string"
-          },
-          "owner": {
-            "$ref": "#/components/schemas/OwnerInfo"
-          },
-          "year": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "VehicleSearchRequest": {
-        "type": "object",
-        "required": ["plate"],
-        "properties": {
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "plate": {
-            "type": "string"
-          }
-        }
-      },
-      "VehicleSearchResult": {
-        "type": "object",
-        "required": ["plate_number", "vehicle", "status_results"],
-        "properties": {
-          "confidence": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "identification_mode": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IdentificationMode"
-              }
-            ],
-            "nullable": true
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "status_results": {
-            "$ref": "#/components/schemas/StatusResults"
-          },
-          "vehicle": {
-            "$ref": "#/components/schemas/VehicleInfo"
-          }
-        }
-      }
-    },
-    "securitySchemes": {
-      "bearer_auth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    }
-  },
-  "tags": [
-    {
-      "name": "vehicles",
-      "description": "Vehicle lookup and gray-card image upload"
-    },
-    {
-      "name": "controls",
-      "description": "Roadside control tracking"
-    },
-    {
-      "name": "stats",
-      "description": "Dashboard statistics"
-    },
-    {
-      "name": "users",
-      "description": "User profile and authentication"
-    }
-  ]
+    ]
 }
