@@ -29,10 +29,12 @@ jobs:
         service: [frontend, backend]
         include:
           - service: frontend
-            context: ./frontend
+            context: .
+            file: ./frontend/Dockerfile
             target: prod
           - service: backend
             context: ./iviss-backend
+            file: ./iviss-backend/Dockerfile
             target: production
 
     steps:
@@ -64,6 +66,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           target: ${{ matrix.target }}
           push: ${{ github.event_name != 'pull_request' || github.event_name == 'workflow_dispatch' }}
           tags: ${{ steps.meta.outputs.tags }}
