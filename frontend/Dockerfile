@@ -1,8 +1,8 @@
 # Base stage
 FROM node:20-alpine AS base
 WORKDIR /app
-COPY package.json package-lock.json ./
-COPY openapi.json ./
+COPY frontend/package.json frontend/package-lock.json ./
+COPY openapi.json /openapi.json
 
 # Dependencies stage
 FROM base AS deps
@@ -11,7 +11,7 @@ RUN npm ci
 # Development stage
 FROM base AS dev
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY frontend/ .
 # Expose default Vite port
 EXPOSE 8080
 CMD ["npm", "run", "dev", "--", "--host"]
@@ -19,7 +19,7 @@ CMD ["npm", "run", "dev", "--", "--host"]
 # Build stage
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY frontend/ .
 RUN npm run build
 
 # Production stage
