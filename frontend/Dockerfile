@@ -2,6 +2,7 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY openapi.json ./
 
 # Dependencies stage
 FROM base AS deps
