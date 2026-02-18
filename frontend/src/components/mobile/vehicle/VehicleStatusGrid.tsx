@@ -44,7 +44,6 @@ export const VehicleStatusGrid: React.FC<VehicleStatusGridProps> = ({ apiStatus 
   );
 };
 
-
 function StatusCard({
   title,
   status,
@@ -137,4 +136,3 @@ function StatusCard({
     </div>
   );
 }
-

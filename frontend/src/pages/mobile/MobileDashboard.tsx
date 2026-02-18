@@ -137,16 +137,22 @@ export default function MobileDashboard() {
         <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                geoError ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent"
-              )}>
+              <div
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
+                  geoError ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent'
+                )}
+              >
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm font-medium">{t('mobileDashboard.currentLocation')}</p>
                 <p className="text-xs text-muted-foreground">
-                  {geoLoading ? t('mobileDashboard.locationRequesting') : geoError ? t('mobileDashboard.locationError') : t('mobileDashboard.gpsActive')}
+                  {geoLoading
+                    ? t('mobileDashboard.locationRequesting')
+                    : geoError
+                      ? t('mobileDashboard.locationError')
+                      : t('mobileDashboard.gpsActive')}
                 </p>
               </div>
             </div>
@@ -166,7 +172,8 @@ export default function MobileDashboard() {
                 </p>
                 {lat && lng && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {lat.toFixed(4)}° {lat >= 0 ? 'N' : 'S'}, {lng.toFixed(4)}° {lng >= 0 ? 'E' : 'W'}
+                    {lat.toFixed(4)}° {lat >= 0 ? 'N' : 'S'}, {lng.toFixed(4)}°{' '}
+                    {lng >= 0 ? 'E' : 'W'}
                   </p>
                 )}
               </>
@@ -204,7 +211,6 @@ export default function MobileDashboard() {
                 </Link>
               ))}
             </div>
-
           ) : (
             <div className="rounded-lg border border-dashed border-border p-6 text-center">
               <ClipboardCheck className="mx-auto h-8 w-8 text-muted-foreground/50" />
@@ -233,10 +239,11 @@ function QuickActionButton({
   return (
     <Link to={href}>
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${primary
-          ? 'bg-accent text-accent-foreground shadow-lg'
-          : 'bg-card border border-border hover:bg-muted'
-          }`}
+        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
+          primary
+            ? 'bg-accent text-accent-foreground shadow-lg'
+            : 'bg-card border border-border hover:bg-muted'
+        }`}
       >
         <Icon className="h-6 w-6" />
         <span className="text-xs font-medium">{label}</span>
@@ -258,12 +265,13 @@ function RecentControlItem({
     <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 rounded-full ${status === 'valid'
-            ? 'bg-status-valid'
-            : status === 'warning'
-              ? 'bg-status-warning'
-              : 'bg-status-critical'
-            }`}
+          className={`h-2 w-2 rounded-full ${
+            status === 'valid'
+              ? 'bg-status-valid'
+              : status === 'warning'
+                ? 'bg-status-warning'
+                : 'bg-status-critical'
+          }`}
         />
         <div>
           <p className="font-mono font-semibold tracking-wider">{plate}</p>

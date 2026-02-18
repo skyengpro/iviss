@@ -21,8 +21,16 @@ export default function MobileVehicleResult() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { search, isSearching } = useVehicles();
+
+  interface SearchError {
+    status: number;
+    code: string;
+    message: string;
+    original: unknown;
+  }
+
   const [result, setResult] = useState<VehicleSearchResult | null>(null);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<SearchError | null>(null);
 
   const performSearch = useCallback(async () => {
     if (!plateNumber) return;
@@ -30,16 +38,40 @@ export default function MobileVehicleResult() {
       setError(null);
       const data = await search({ plate: plateNumber });
       setResult(data.data as VehicleSearchResult);
-    } catch (err: any) {
-      console.error("Search error:", err);
-      console.error("Search error:", err);
+    } catch (err: unknown) {
+      const errorObj = err as {
+        status?: number;
+        code?: string;
+        message?: string;
+        body?: { status?: number; code?: string; message?: string };
+        response?: { status?: number };
+        error?: { code?: string; message?: string };
+      };
+      console.error('Search error:', err);
       // Handles @hey-api/client-fetch errors
-      const status = err.status || (err.body && err.body.status) || (err.response && err.response.status) || 500;
+      const status =
+        errorObj.status ||
+        (errorObj.body && errorObj.body.status) ||
+        (errorObj.response && errorObj.response.status) ||
+        500;
       // Check for code in body (hey-api standard) or top level
-      const code = err.code || (err.body && err.body.code) || (err.error && err.error.code) || 'UNKNOWN';
-      const message = err.message || (err.body && err.body.message) || (err.error && err.error.message) || 'An error occurred';
+      const code =
+        errorObj.code ||
+        (errorObj.body && errorObj.body.code) ||
+        (errorObj.error && errorObj.error.code) ||
+        'UNKNOWN';
+      const message =
+        errorObj.message ||
+        (errorObj.body && errorObj.body.message) ||
+        (errorObj.error && errorObj.error.message) ||
+        'An error occurred';
 
-      setError({ status, code, message, original: err });
+      setError({
+        status: Number(status),
+        code: String(code),
+        message: String(message),
+        original: err,
+      });
     }
   }, [plateNumber, search]);
 
@@ -80,7 +112,10 @@ export default function MobileVehicleResult() {
               {t('vehicleResult.invalidPlateTitle', 'Invalid Plate Format')}
             </div>
             <p className="text-muted-foreground">
-              {t('vehicleResult.invalidPlateMessage', 'The plate number format is incorrect. Please check and try again.')}
+              {t(
+                'vehicleResult.invalidPlateMessage',
+                'The plate number format is incorrect. Please check and try again.'
+              )}
             </p>
             <button
               onClick={() => navigate('/mobile/search')}
@@ -121,7 +156,6 @@ export default function MobileVehicleResult() {
           {t('vehicleResult.backButton')}
         </button>
 
-
         <VehicleHeader
           plateNumber={plateNumber}
           vehicle={result.vehicle}
@@ -144,11 +178,11 @@ export default function MobileVehicleResult() {
       <VehicleActionFooter
         controlLogged={controlLogged}
         isLoggingControl={isLoggingControl}
-        onLogControl={() => user && logControl(user, plateNumber, result.status_results, result.vehicle)}
+        onLogControl={() =>
+          user && logControl(user, plateNumber, result.status_results, result.vehicle)
+        }
         onNewSearch={() => navigate('/mobile/search')}
       />
     </MobileLayout>
   );
 }
-
-

@@ -108,4 +108,3 @@ impl Modify for SecurityAddon {
     modifiers(&SecurityAddon),
 )]
 pub struct ApiDoc;
-

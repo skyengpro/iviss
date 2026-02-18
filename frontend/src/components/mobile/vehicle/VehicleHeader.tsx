@@ -70,7 +70,6 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
   );
 };
 
-
 function DetailItem({
   icon: Icon,
   label,

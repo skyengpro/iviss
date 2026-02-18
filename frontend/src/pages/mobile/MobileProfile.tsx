@@ -25,14 +25,18 @@ export default function MobileProfile() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const { data: todayControls = [] } = useGetControls({
-    query: {
-      agent_id: user?.id,
-      start_date: startOfDay.toISOString(),
+  const { data: todayControls = [] } = useGetControls(
+    {
+      query: {
+        agent_id: user?.id,
+        start_date: startOfDay.toISOString(),
+      },
+    },
+    undefined,
+    {
+      enabled: !!user?.id,
     }
-  }, undefined, {
-    enabled: !!user?.id
-  });
+  );
 
   const handleLogout = async () => {
     await logout();
