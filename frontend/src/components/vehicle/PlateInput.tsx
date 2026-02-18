@@ -97,7 +97,6 @@ export function PlateInput({
   };
 
   const isComplete = value.length === 9; // "XX 123 YY" = 9 characters
-  const isValid = isValidFormat(value);
 
   return (
     <div className={cn('relative', className)}>

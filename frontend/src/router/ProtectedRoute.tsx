@@ -1,5 +1,4 @@
 import React from 'react';
-import { useAuth } from '@/hooks/auth/use-auth';
 import { RequireAuth } from '@/router/RequireAuth';
 import { UserRole } from '@/services/mockAuth';
 
