@@ -13,7 +13,8 @@ import {
   MapPin,
   Clock,
 } from 'lucide-react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useDashboard } from '@/hooks/api/useDashboard';

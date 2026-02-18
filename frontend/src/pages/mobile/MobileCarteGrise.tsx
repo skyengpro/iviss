@@ -18,7 +18,7 @@ export default function MobileCarteGrise() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const plateNumber = searchParams.get('plate') || '';
-  const { submit, isSubmitting: isApiSubmitting } = useVehicles();
+  const { submit } = useVehicles();
 
   const [step, setStep] = useState<CaptureStep>('front');
   const [frontImage, setFrontImage] = useState<string | null>(null);
