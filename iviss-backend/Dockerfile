@@ -13,6 +13,10 @@ WORKDIR /app
 # Copy dependency manifests
 COPY Cargo.toml Cargo.lock ./
 
+# Copy sqlx offline data
+COPY .sqlx ./.sqlx
+ENV SQLX_OFFLINE=true
+
 # Create a dummy main.rs to cache dependencies
 RUN mkdir src && \
     echo "fn main() {}" > src/main.rs && \
@@ -41,6 +45,8 @@ FROM rust:latest AS builder
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
+COPY .sqlx ./.sqlx
+ENV SQLX_OFFLINE=true
 COPY src ./src
 COPY migrations ./migrations
 
