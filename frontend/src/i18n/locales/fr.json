@@ -63,10 +63,12 @@
   "mobileHistory": {
     "title": "Historique des contrôles",
     "searchPlaceholder": "Rechercher plaques, véhicules...",
+    "searchButton": "Rechercher le véhicule",
     "all": "Tous",
     "valid": "Valide",
     "warning": "Avertissement",
     "critical": "Critique",
+    "pending": "En attente",
     "showingControls_one": "Affichage de 1 contrôle",
     "showingControls_other": "Affichage de {{count}} contrôles",
     "today": "Aujourd'hui",
