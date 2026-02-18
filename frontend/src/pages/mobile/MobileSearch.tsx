@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { PlateInput } from '@/components/vehicle/PlateInput';
 import { Button } from '@/components/ui/button';
-import { Camera, History } from 'lucide-react';
+import { Camera, History, Search } from 'lucide-react';
 
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useControls } from '@/hooks/api/useControls';
@@ -57,6 +57,20 @@ export default function MobileSearch() {
             onSubmit={() => handleSearch()}
             isLoading={isLoading}
           />
+
+          {/* Primary Search Button */}
+          <Button
+            onClick={() => handleSearch()}
+            disabled={plateNumber.length !== 9 || isLoading}
+            className="mt-4 w-full h-14 text-lg font-bold gap-3 rounded-xl shadow-lg active:scale-[0.98] transition-all"
+          >
+            {isLoading ? (
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Search className="h-6 w-6" />
+            )}
+            {t('mobileSearch.searchButton')}
+          </Button>
 
           {/* Alternative actions */}
           <div className="mt-4 flex gap-2">

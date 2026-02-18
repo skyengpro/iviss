@@ -40,6 +40,11 @@
     "flaggedVehicles": "Flagged vehicles",
     "currentLocation": "Current Location",
     "gpsActive": "GPS Active",
+    "gpsInactive": "GPS Inactive",
+    "locationRequesting": "Requesting location...",
+    "locationDenied": "Permission denied",
+    "locationError": "GPS Error",
+    "searchingLocation": "Fetching address...",
     "online": "Online",
     "recentControls": "Recent Controls",
     "viewAll": "View all",
@@ -138,6 +143,7 @@
   },
   "mobileSearch": {
     "title": "Search Vehicle",
+    "searchButton": "Search Vehicle",
     "placeholder": "Enter plate number",
     "photoScan": "Photo Scan",
     "history": "History",
@@ -149,6 +155,7 @@
   },
   "vehicleResult": {
     "searchingTitle": "Searching...",
+    "vehiclePhoto": "Vehicle Photo",
     "errorTitle": "Error",
     "notFoundTitle": "Vehicle Not Found",
     "detailsTitle": "Vehicle Details",

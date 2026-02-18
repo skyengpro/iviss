@@ -40,6 +40,11 @@
     "flaggedVehicles": "Véhicules signalés",
     "currentLocation": "Position Actuelle",
     "gpsActive": "GPS Actif",
+    "gpsInactive": "GPS Inactif",
+    "locationRequesting": "Demande de localisation...",
+    "locationDenied": "Accès refusé",
+    "locationError": "Erreur GPS",
+    "searchingLocation": "Recherche de l'adresse...",
     "online": "En ligne",
     "recentControls": "Contrôles Récents",
     "viewAll": "Voir tout",
@@ -138,6 +143,7 @@
   },
   "mobileSearch": {
     "title": "Rechercher un véhicule",
+    "searchButton": "Rechercher le véhicule",
     "placeholder": "Saisir le numéro de plaque",
     "photoScan": "Scan par photo",
     "history": "Historique",
@@ -149,6 +155,7 @@
   },
   "vehicleResult": {
     "searchingTitle": "Recherche en cours...",
+    "vehiclePhoto": "Photo du véhicule",
     "errorTitle": "Erreur",
     "notFoundTitle": "Véhicule non trouvé",
     "detailsTitle": "Détails du véhicule",

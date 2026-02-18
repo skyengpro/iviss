@@ -10,6 +10,7 @@ import { VehicleSearchResult } from '@/openapi-rq/requests/types.gen';
 import { useLogControl } from '@/hooks/api/useLogControl';
 import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';
 import { VehicleStatusGrid } from '@/components/mobile/vehicle/VehicleStatusGrid';
+import { VehicleImageCollapsible } from '@/components/mobile/vehicle/VehicleImageCollapsible';
 import { VehicleActionFooter } from '@/components/mobile/vehicle/VehicleActionFooter';
 import { VehicleLoadingState, VehicleErrorState } from '@/components/mobile/vehicle/VehicleStates';
 import { VehicleNotFound } from '@/components/mobile/vehicle/VehicleNotFound';
@@ -120,11 +121,16 @@ export default function MobileVehicleResult() {
           {t('vehicleResult.backButton')}
         </button>
 
+
         <VehicleHeader
           plateNumber={plateNumber}
           vehicle={result.vehicle}
           overallStatus={result.status_results.overall_status}
         />
+
+        {result.status_results.vehicle_image_url && (
+          <VehicleImageCollapsible imageUrl={result.status_results.vehicle_image_url} />
+        )}
 
         <VehicleStatusGrid apiStatus={result.status_results} />
 
