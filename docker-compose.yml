@@ -98,8 +98,8 @@ services:
   # Frontend Service
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       target: dev
     container_name: iviss-frontend
     restart: unless-stopped
