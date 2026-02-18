@@ -31,7 +31,6 @@ export default function MobileVehicleResult() {
 
   const [result, setResult] = useState<VehicleSearchResult | null>(null);
   const [error, setError] = useState<SearchError | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const searchedPlateRef = useRef<string | null>(null);
 
   const performSearch = useCallback(
@@ -45,7 +44,6 @@ export default function MobileVehicleResult() {
       }
 
       try {
-        setIsLoading(true); // Still useful for immediate UI feedback if needed
         setError(null);
         searchedPlateRef.current = targetPlate;
 
@@ -85,7 +83,7 @@ export default function MobileVehicleResult() {
           original: err,
         });
       } finally {
-        setIsLoading(false);
+        // Search finished
       }
     },
     [plateNumber, search, result, error]
