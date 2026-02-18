@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/hooks/ui/use-toast';
-import { UserProfile, VehicleInfo, StatusResults, CreateControlData } from '@/openapi-rq/requests/types.gen';
+import {
+  UserProfile,
+  VehicleInfo,
+  StatusResults,
+  CreateControlData,
+} from '@/openapi-rq/requests/types.gen';
 import { useCreateControl } from '@/openapi-rq/queries/queries';
 
 export function useLogControl() {
@@ -38,7 +43,7 @@ export function useLogControl() {
           wanted_status: statusResults.police.status,
           customs_status: statusResults.customs.status,
         },
-        notes: "Logged via mobile app",
+        notes: 'Logged via mobile app',
       };
 
       await createControlMutation.mutateAsync({ body: payload });
@@ -68,4 +73,3 @@ export function useLogControl() {
     setControlLogged,
   };
 }
-

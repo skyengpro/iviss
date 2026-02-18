@@ -72,7 +72,8 @@ pub async fn submit_vehicle(
 pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submissions = crate::queries::submission_queries::get_pending_submissions(&state.db).await?;
+    let submissions =
+        crate::queries::submission_queries::get_pending_submissions(&state.db).await?;
     Ok((StatusCode::OK, Json(submissions)))
 }
 
@@ -92,11 +93,10 @@ pub async fn list_pending_submissions(
     security(("bearer_auth" = []))
 )]
 pub async fn get_pending_submission(
-
     State(state): State<Arc<AppState>>,
     axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submission = crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
+    let submission =
+        crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
     Ok((StatusCode::OK, Json(submission)))
 }
-

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,8 @@ export default function MobileHistory() {
     query: {
       agent_id: user?.id,
       plate: searchQuery || undefined,
-      status: filterStatus === 'all' ? undefined : filterStatus as Status,
-    }
+      status: filterStatus === 'all' ? undefined : (filterStatus as Status),
+    },
   });
 
   const formatTime = (isoString: string) => {
@@ -34,22 +34,25 @@ export default function MobileHistory() {
     });
   };
 
-  const formatDate = (isoString: string) => {
-    const date = new Date(isoString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  const formatDate = useCallback(
+    (isoString: string) => {
+      const date = new Date(isoString);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) {
-      return t('mobileHistory.today');
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return t('mobileHistory.yesterday');
-    }
-    return date.toLocaleDateString(i18n.language, {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+      if (date.toDateString() === today.toDateString()) {
+        return t('mobileHistory.today');
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return t('mobileHistory.yesterday');
+      }
+      return date.toLocaleDateString(i18n.language, {
+        month: 'short',
+        day: 'numeric',
+      });
+    },
+    [t, i18n.language]
+  );
 
   // Group controls by date
   const groupedControls = useMemo(() => {
@@ -64,7 +67,7 @@ export default function MobileHistory() {
       },
       {} as Record<string, ListControlResponse[]>
     );
-  }, [controls, i18n.language, t]);
+  }, [controls, formatDate]);
 
   return (
     <MobileLayout title={t('mobileHistory.title')}>
@@ -100,28 +103,30 @@ export default function MobileHistory() {
 
             {/* Status filter pills */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {(['all', 'valid', 'warning', 'critical', 'pending'] as FilterStatus[]).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilterStatus(status)}
-                  className={cn(
-                    'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                    filterStatus === status
-                      ? status === 'all'
-                        ? 'bg-primary text-primary-foreground'
-                        : status === 'valid'
-                          ? 'bg-status-valid text-status-valid-foreground'
-                          : status === 'warning'
-                            ? 'bg-status-warning text-status-warning-foreground'
-                            : status === 'critical'
-                              ? 'bg-status-critical text-status-critical-foreground'
-                              : 'bg-muted text-muted-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  )}
-                >
-                  {t(`mobileHistory.${status}`)}
-                </button>
-              ))}
+              {(['all', 'valid', 'warning', 'critical', 'pending'] as FilterStatus[]).map(
+                (status) => (
+                  <button
+                    key={status}
+                    onClick={() => setFilterStatus(status)}
+                    className={cn(
+                      'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                      filterStatus === status
+                        ? status === 'all'
+                          ? 'bg-primary text-primary-foreground'
+                          : status === 'valid'
+                            ? 'bg-status-valid text-status-valid-foreground'
+                            : status === 'warning'
+                              ? 'bg-status-warning text-status-warning-foreground'
+                              : status === 'critical'
+                                ? 'bg-status-critical text-status-critical-foreground'
+                                : 'bg-muted text-muted-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    )}
+                  >
+                    {t(`mobileHistory.${status}`)}
+                  </button>
+                )
+              )}
             </div>
 
             {/* Summary */}
@@ -141,11 +146,7 @@ export default function MobileHistory() {
                   </div>
                   <div className="space-y-2">
                     {items.map((control) => (
-                      <ControlItem
-                        key={control.id}
-                        control={control}
-                        formatTime={formatTime}
-                      />
+                      <ControlItem key={control.id} control={control} formatTime={formatTime} />
                     ))}
                   </div>
                 </div>
@@ -196,9 +197,7 @@ function ControlItem({
           </StatusBadge>
         </div>
         {control.notes && (
-          <p className="mt-1 text-sm text-muted-foreground truncate">
-            {control.notes}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground truncate">{control.notes}</p>
         )}
         <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -216,4 +215,3 @@ function ControlItem({
     </div>
   );
 }
-

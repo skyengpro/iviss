@@ -41,7 +41,9 @@ pub async fn create_pending_submission(
     Ok(id)
 }
 
-pub async fn get_pending_submissions(pool: &PgPool) -> Result<Vec<crate::dto::pending_submission::PendingSubmissionListItem>, AppError> {
+pub async fn get_pending_submissions(
+    pool: &PgPool,
+) -> Result<Vec<crate::dto::pending_submission::PendingSubmissionListItem>, AppError> {
     let rows = sqlx::query(
         r#"
         SELECT s.id, s.plate_number, s.status, s.created_at as submitted_at, u.name as agent_name
@@ -61,13 +63,16 @@ pub async fn get_pending_submissions(pool: &PgPool) -> Result<Vec<crate::dto::pe
             plate_number: row.try_get("plate_number").map_err(AppError::database)?,
             agent_name: row.try_get("agent_name").map_err(AppError::database).ok(),
             status: crate::dto::pending_submission::SubmissionStatus::Pending, // Simplified for MVP
-            submitted_at: "".to_string(), // Simplified
+            submitted_at: "".to_string(),                                      // Simplified
         });
     }
     Ok(items)
 }
 
-pub async fn get_submission_by_id(pool: &PgPool, id: Uuid) -> Result<crate::dto::pending_submission::PendingSubmissionRequest, AppError> {
+pub async fn get_submission_by_id(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<crate::dto::pending_submission::PendingSubmissionRequest, AppError> {
     let row = sqlx::query(
         r#"
         SELECT s.*, u.name as agent_name
@@ -97,4 +102,3 @@ pub async fn get_submission_by_id(pool: &PgPool, id: Uuid) -> Result<crate::dto:
         admin_note: None,
     })
 }
-

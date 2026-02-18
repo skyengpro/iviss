@@ -1,11 +1,11 @@
 use crate::app_state::AppState;
 use crate::db::DbPool;
-use crate::middleware::cors;
 use crate::handlers::{
     list_control::get_list_control,
     // pending_submission::submit_vehicle,
     search_vehicle::search_vehicle,
 };
+use crate::middleware::cors;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
 use std::time::Duration;
@@ -17,7 +17,10 @@ pub fn assembly(pool: DbPool) -> Router {
     Router::new()
         .route("/health", get(|| async { "OK" }))
         .route("/vehicles/search", post(search_vehicle))
-        .route("/controls", get(get_list_control).post(crate::handlers::list_control::create_control))
+        .route(
+            "/controls",
+            get(get_list_control).post(crate::handlers::list_control::create_control),
+        )
         .route(
             "/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle),
@@ -30,7 +33,6 @@ pub fn assembly(pool: DbPool) -> Router {
             "/admin/submissions/:id",
             get(crate::handlers::pending_submission::get_pending_submission),
         )
-
         .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route("/users/me", get(crate::handlers::users::get_user_profile))
         .route("/auth/login", post(crate::handlers::auth::login))

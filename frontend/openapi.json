@@ -11,9 +11,7 @@
   "paths": {
     "/admin/submissions": {
       "get": {
-        "tags": [
-          "vehicles"
-        ],
+        "tags": ["vehicles"],
         "summary": "List all pending submissions for admin review",
         "operationId": "listPendingSubmissions",
         "responses": {
@@ -50,9 +48,7 @@
     },
     "/admin/submissions/{id}": {
       "get": {
-        "tags": [
-          "vehicles"
-        ],
+        "tags": ["vehicles"],
         "summary": "Get details of a single pending submission",
         "operationId": "getPendingSubmission",
         "parameters": [
@@ -98,9 +94,7 @@
     },
     "/auth/login": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Login with email and password",
         "operationId": "loginUser",
         "requestBody": {
@@ -139,9 +133,7 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Logout and invalidate session",
         "operationId": "logoutUser",
         "responses": {
@@ -165,9 +157,7 @@
     },
     "/auth/register": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Register a new user",
         "operationId": "registerUser",
         "requestBody": {
@@ -206,9 +196,7 @@
     },
     "/controls": {
       "get": {
-        "tags": [
-          "controls"
-        ],
+        "tags": ["controls"],
         "operationId": "getControls",
         "parameters": [
           {
@@ -331,9 +319,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "controls"
-        ],
+        "tags": ["controls"],
         "operationId": "createControl",
         "requestBody": {
           "content": {
@@ -396,9 +382,7 @@
     },
     "/stats": {
       "get": {
-        "tags": [
-          "stats"
-        ],
+        "tags": ["stats"],
         "operationId": "getDashboardStats",
         "responses": {
           "200": {
@@ -441,9 +425,7 @@
     },
     "/users/me": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "operationId": "getUserProfile",
         "responses": {
           "200": {
@@ -494,9 +476,7 @@
     },
     "/vehicles/pending": {
       "post": {
-        "tags": [
-          "vehicles"
-        ],
+        "tags": ["vehicles"],
         "operationId": "submitVehicle",
         "requestBody": {
           "content": {
@@ -571,9 +551,7 @@
     },
     "/vehicles/search": {
       "post": {
-        "tags": [
-          "vehicles"
-        ],
+        "tags": ["vehicles"],
         "operationId": "searchVehicle",
         "requestBody": {
           "content": {
@@ -665,20 +643,11 @@
     "schemas": {
       "ActionType": {
         "type": "string",
-        "enum": [
-          "check",
-          "flag",
-          "citation",
-          "impound",
-          "release"
-        ]
+        "enum": ["check", "flag", "citation", "impound", "release"]
       },
       "AppErrorResponse": {
         "type": "object",
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "properties": {
           "code": {
             "$ref": "#/components/schemas/ErrorCode"
@@ -690,10 +659,7 @@
       },
       "AuthResponse": {
         "type": "object",
-        "required": [
-          "token",
-          "user"
-        ],
+        "required": ["token", "user"],
         "properties": {
           "token": {
             "type": "string"
@@ -705,10 +671,7 @@
       },
       "ControlAction": {
         "type": "object",
-        "required": [
-          "action_type",
-          "timestamp"
-        ],
+        "required": ["action_type", "timestamp"],
         "properties": {
           "action_type": {
             "$ref": "#/components/schemas/ActionType"
@@ -822,10 +785,7 @@
       },
       "CreateControlResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "message"
-        ],
+        "required": ["id", "message"],
         "properties": {
           "id": {
             "type": "string",
@@ -839,12 +799,7 @@
       "CreatePendingSubmissionRequest": {
         "type": "object",
         "description": "Request payload for creating a new pending submission",
-        "required": [
-          "plateNumber",
-          "agentId",
-          "frontImageUrl",
-          "backImageUrl"
-        ],
+        "required": ["plateNumber", "agentId", "frontImageUrl", "backImageUrl"],
         "properties": {
           "agentId": {
             "type": "string",
@@ -877,10 +832,7 @@
       },
       "CustomsStatus": {
         "type": "object",
-        "required": [
-          "status",
-          "is_cleared"
-        ],
+        "required": ["status", "is_cleared"],
         "properties": {
           "declaration_number": {
             "type": "string",
@@ -904,12 +856,7 @@
       },
       "DashboardStats": {
         "type": "object",
-        "required": [
-          "todayControls",
-          "activeAlerts",
-          "totalVehicles",
-          "onlineAgents"
-        ],
+        "required": ["todayControls", "activeAlerts", "totalVehicles", "onlineAgents"],
         "properties": {
           "activeAlerts": {
             "type": "integer",
@@ -932,11 +879,7 @@
       "DataEntryResponse": {
         "type": "object",
         "description": "Response after approved and enters vehicle data",
-        "required": [
-          "message",
-          "submission_id",
-          "plate_number"
-        ],
+        "required": ["message", "submission_id", "plate_number"],
         "properties": {
           "message": {
             "type": "string"
@@ -965,17 +908,11 @@
       "IdentificationMode": {
         "type": "string",
         "description": "How the plate was identified by the agent",
-        "enum": [
-          "manual",
-          "photo",
-          "live"
-        ]
+        "enum": ["manual", "photo", "live"]
       },
       "InsuranceStatus": {
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "coverage_type": {
             "type": "string",
@@ -1070,10 +1007,7 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string"
@@ -1085,9 +1019,7 @@
       },
       "OwnerInfo": {
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "properties": {
           "address": {
             "type": "string",
@@ -1105,12 +1037,7 @@
       "PendingSubmissionListItem": {
         "type": "object",
         "description": "Lightweight list item for admin dashboard",
-        "required": [
-          "id",
-          "plate_number",
-          "status",
-          "submitted_at"
-        ],
+        "required": ["id", "plate_number", "status", "submitted_at"],
         "properties": {
           "agent_name": {
             "type": "string",
@@ -1202,11 +1129,7 @@
       },
       "PoliceStatus": {
         "type": "object",
-        "required": [
-          "status",
-          "is_wanted",
-          "is_stolen"
-        ],
+        "required": ["status", "is_wanted", "is_stolen"],
         "properties": {
           "is_stolen": {
             "type": "boolean"
@@ -1233,12 +1156,7 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password",
-          "full_name",
-          "role"
-        ],
+        "required": ["email", "password", "full_name", "role"],
         "properties": {
           "email": {
             "type": "string"
@@ -1257,22 +1175,11 @@
       "Status": {
         "type": "string",
         "description": "Shared status across all partner API responses",
-        "enum": [
-          "valid",
-          "warning",
-          "critical",
-          "pending"
-        ]
+        "enum": ["valid", "warning", "critical", "pending"]
       },
       "StatusResults": {
         "type": "object",
-        "required": [
-          "overall_status",
-          "insurance",
-          "police",
-          "customs",
-          "technical"
-        ],
+        "required": ["overall_status", "insurance", "police", "customs", "technical"],
         "properties": {
           "customs": {
             "$ref": "#/components/schemas/CustomsStatus"
@@ -1316,18 +1223,11 @@
       },
       "SubmissionStatus": {
         "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected"
-        ]
+        "enum": ["pending", "approved", "rejected"]
       },
       "TechnicalStatus": {
         "type": "object",
-        "required": [
-          "status",
-          "defects"
-        ],
+        "required": ["status", "defects"],
         "properties": {
           "defects": {
             "type": "array",
@@ -1359,10 +1259,7 @@
       },
       "UploadResponse": {
         "type": "object",
-        "required": [
-          "message",
-          "submission_id"
-        ],
+        "required": ["message", "submission_id"],
         "properties": {
           "message": {
             "type": "string"
@@ -1375,14 +1272,7 @@
       "UserProfile": {
         "type": "object",
         "description": "Response for GET /users/me",
-        "required": [
-          "id",
-          "name",
-          "email",
-          "role",
-          "organizationId",
-          "isActive"
-        ],
+        "required": ["id", "name", "email", "role", "organizationId", "isActive"],
         "properties": {
           "avatarInitials": {
             "type": "string",
@@ -1424,21 +1314,11 @@
       },
       "UserRole": {
         "type": "string",
-        "enum": [
-          "admin",
-          "agent",
-          "manager"
-        ]
+        "enum": ["admin", "agent", "manager"]
       },
       "VehicleInfo": {
         "type": "object",
-        "required": [
-          "brand",
-          "model",
-          "year",
-          "chassis_number",
-          "owner"
-        ],
+        "required": ["brand", "model", "year", "chassis_number", "owner"],
         "properties": {
           "brand": {
             "type": "string"
@@ -1472,9 +1352,7 @@
       },
       "VehicleSearchRequest": {
         "type": "object",
-        "required": [
-          "plate"
-        ],
+        "required": ["plate"],
         "properties": {
           "latitude": {
             "type": "number",
@@ -1493,11 +1371,7 @@
       },
       "VehicleSearchResult": {
         "type": "object",
-        "required": [
-          "plate_number",
-          "vehicle",
-          "status_results"
-        ],
+        "required": ["plate_number", "vehicle", "status_results"],
         "properties": {
           "confidence": {
             "type": "number",

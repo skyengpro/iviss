@@ -13,7 +13,6 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

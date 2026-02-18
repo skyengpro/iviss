@@ -254,12 +254,13 @@ function StepIndicator({
       <div
         className={`
         flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold
-        ${completed
+        ${
+          completed
             ? 'bg-status-valid text-status-valid-foreground'
             : active
               ? 'bg-accent text-accent-foreground'
               : 'bg-muted text-muted-foreground'
-          }
+        }
       `}
       >
         {completed ? <CheckCircle className="h-4 w-4" /> : number}
@@ -299,7 +300,7 @@ function CaptureCard({
   const videoConstraints = {
     width: 1280,
     height: 720,
-    facingMode: "environment"
+    facingMode: 'environment',
   };
 
   if (cameraActive) {
@@ -316,17 +317,10 @@ function CaptureCard({
           />
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => setCameraActive(false)}
-          >
+          <Button variant="outline" className="flex-1" onClick={() => setCameraActive(false)}>
             {t('buttons.close', 'Cancel')}
           </Button>
-          <Button
-            className="flex-1 gap-2 bg-accent text-accent-foreground"
-            onClick={capture}
-          >
+          <Button className="flex-1 gap-2 bg-accent text-accent-foreground" onClick={capture}>
             <Camera className="h-5 w-5" />
             {t('mobileCarteGrise.captureImageButton', 'Capture')}
           </Button>
@@ -347,11 +341,7 @@ function CaptureCard({
           <img src={image} alt="Captured" className="w-full h-auto object-cover" />
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1 gap-2"
-            onClick={() => setCameraActive(true)}
-          >
+          <Button variant="outline" className="flex-1 gap-2" onClick={() => setCameraActive(true)}>
             <Camera className="h-4 w-4" />
             {t('mobileScan.retry', 'Retake')}
           </Button>

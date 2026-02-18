@@ -112,12 +112,14 @@ export function PlateInput({
         )}
       >
         {/* Plate icon/prefix */}
-        <div className={cn(
-          "flex h-12 w-12 shrink-0 items-center justify-center rounded-lg transition-colors",
-          showValidationError
-            ? "bg-destructive text-destructive-foreground"
-            : "bg-primary text-primary-foreground"
-        )}>
+        <div
+          className={cn(
+            'flex h-12 w-12 shrink-0 items-center justify-center rounded-lg transition-colors',
+            showValidationError
+              ? 'bg-destructive text-destructive-foreground'
+              : 'bg-primary text-primary-foreground'
+          )}
+        >
           <Keyboard className="h-5 w-5" />
         </div>
 
@@ -156,7 +158,10 @@ export function PlateInput({
         <div className="mt-2 flex items-center justify-center gap-2 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
           <p>
-            {t('mobileSearch.invalidFormat', 'Invalid format. Use: WE 234 SD (2 letters, 3 numbers, 2 letters)')}
+            {t(
+              'mobileSearch.invalidFormat',
+              'Invalid format. Use: WE 234 SD (2 letters, 3 numbers, 2 letters)'
+            )}
           </p>
         </div>
       )}
