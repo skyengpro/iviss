@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
@@ -31,58 +31,76 @@ export default function MobileVehicleResult() {
 
   const [result, setResult] = useState<VehicleSearchResult | null>(null);
   const [error, setError] = useState<SearchError | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const searchedPlateRef = useRef<string | null>(null);
 
-  const performSearch = useCallback(async () => {
-    if (!plateNumber) return;
-    try {
-      setError(null);
-      const data = await search({ plate: plateNumber });
-      setResult(data.data as VehicleSearchResult);
-    } catch (err: unknown) {
-      const errorObj = err as {
-        status?: number;
-        code?: string;
-        message?: string;
-        body?: { status?: number; code?: string; message?: string };
-        response?: { status?: number };
-        error?: { code?: string; message?: string };
-      };
-      console.error('Search error:', err);
-      // Handles @hey-api/client-fetch errors
-      const status =
-        errorObj.status ||
-        (errorObj.body && errorObj.body.status) ||
-        (errorObj.response && errorObj.response.status) ||
-        500;
-      // Check for code in body (hey-api standard) or top level
-      const code =
-        errorObj.code ||
-        (errorObj.body && errorObj.body.code) ||
-        (errorObj.error && errorObj.error.code) ||
-        'UNKNOWN';
-      const message =
-        errorObj.message ||
-        (errorObj.body && errorObj.body.message) ||
-        (errorObj.error && errorObj.error.message) ||
-        'An error occurred';
+  const performSearch = useCallback(
+    async (plate?: string, force = false) => {
+      const targetPlate = plate || plateNumber;
+      if (!targetPlate) return;
 
-      setError({
-        status: Number(status),
-        code: String(code),
-        message: String(message),
-        original: err,
-      });
-    }
-  }, [plateNumber, search]);
+      // Prevent duplicate searches for same plate unless forced
+      if (!force && searchedPlateRef.current === targetPlate && (result || error)) {
+        return;
+      }
+
+      try {
+        setIsLoading(true); // Still useful for immediate UI feedback if needed
+        setError(null);
+        searchedPlateRef.current = targetPlate;
+
+        const data = await search({ plate: targetPlate });
+        setResult(data.data as VehicleSearchResult);
+      } catch (err: unknown) {
+        const errorObj = err as {
+          status?: number;
+          code?: string;
+          message?: string;
+          body?: { status?: number; code?: string; message?: string };
+          response?: { status?: number };
+          error?: { code?: string; message?: string };
+        };
+        console.error('Search error:', err);
+        // Handles @hey-api/client-fetch errors
+        const status =
+          errorObj.status ||
+          (errorObj.body && errorObj.body.status) ||
+          (errorObj.response && errorObj.response.status) ||
+          500;
+        const code =
+          errorObj.code ||
+          (errorObj.body && errorObj.body.code) ||
+          (errorObj.error && errorObj.error.code) ||
+          'UNKNOWN';
+        const message =
+          errorObj.message ||
+          (errorObj.body && errorObj.body.message) ||
+          (errorObj.error && errorObj.error.message) ||
+          'An error occurred';
+
+        setError({
+          status: Number(status),
+          code: String(code),
+          message: String(message),
+          original: err,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [plateNumber, search, result, error]
+  ); // Kept result/error here for the "already searched" check, but we'll be careful with useEffect
 
   useEffect(() => {
-    performSearch();
-  }, [performSearch]);
+    if (plateNumber && searchedPlateRef.current !== plateNumber) {
+      performSearch(plateNumber);
+    }
+  }, [plateNumber, performSearch]);
 
   const { isLoggingControl, controlLogged, logControl } = useLogControl();
 
   const handleRetry = () => {
-    performSearch();
+    performSearch(plateNumber, true);
   };
 
   if (isSearching && !result) {

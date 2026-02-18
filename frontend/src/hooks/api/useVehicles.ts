@@ -6,37 +6,47 @@ import {
 } from '../../openapi-rq/requests/types.gen';
 
 export function useVehicles() {
-  const searchMutation = useSearchVehicle();
-  const submitMutation = useSubmitVehicle();
+  const {
+    mutateAsync: searchMutate,
+    isPending: isSearching,
+    error: searchError,
+  } = useSearchVehicle();
+
+  const {
+    mutateAsync: submitMutate,
+    isPending: isSubmitting,
+    error: submitError,
+    isSuccess: submitSuccess,
+  } = useSubmitVehicle();
 
   const search = useCallback(
     async (request: VehicleSearchRequest) => {
-      return searchMutation.mutateAsync({
+      return searchMutate({
         body: request,
         throwOnError: true,
       });
     },
-    [searchMutation]
+    [searchMutate]
   );
 
   const submit = useCallback(
     async (request: CreatePendingSubmissionRequest) => {
-      return submitMutation.mutateAsync({
+      return submitMutate({
         body: request,
         throwOnError: true,
       });
     },
-    [submitMutation]
+    [submitMutate]
   );
 
   return {
     search,
-    isSearching: searchMutation.isPending,
-    searchError: searchMutation.error,
+    isSearching,
+    searchError,
 
     submit,
-    isSubmitting: submitMutation.isPending,
-    submitError: submitMutation.error,
-    submitSuccess: submitMutation.isSuccess,
+    isSubmitting,
+    submitError,
+    submitSuccess,
   };
 }
