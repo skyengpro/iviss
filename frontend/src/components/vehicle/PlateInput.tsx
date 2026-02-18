@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useRef } from 'react';
-import { Search, X, Keyboard, AlertCircle } from 'lucide-react';
+import { X, Keyboard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -149,20 +149,6 @@ export function PlateInput({
             <X className="h-5 w-5" />
           </Button>
         )}
-
-        {/* Search button */}
-        <Button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!isComplete || !isValid || isLoading}
-          className="h-12 w-12 shrink-0 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-50"
-        >
-          {isLoading ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <Search className="h-5 w-5" />
-          )}
-        </Button>
       </div>
 
       {/* Validation messages */}
