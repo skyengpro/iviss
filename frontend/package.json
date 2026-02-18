@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
+    "postinstall": "npm run codegen",
     "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch"
   },
   "dependencies": {
