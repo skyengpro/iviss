@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { ListControlResponse, Status } from '@/openapi-rq/requests/types.gen';
 type FilterStatus = 'all' | 'valid' | 'warning' | 'critical' | 'pending';
 
 export default function MobileHistory() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,7 +148,14 @@ export default function MobileHistory() {
                   </div>
                   <div className="space-y-2">
                     {items.map((control) => (
-                      <ControlItem key={control.id} control={control} formatTime={formatTime} />
+                      <ControlItem
+                        key={control.id}
+                        control={control}
+                        formatTime={formatTime}
+                        onClick={() =>
+                          navigate(`/mobile/history/${control.id}`, { state: { control } })
+                        }
+                      />
                     ))}
                   </div>
                 </div>
@@ -170,13 +179,18 @@ export default function MobileHistory() {
 function ControlItem({
   control,
   formatTime,
+  onClick,
 }: {
   control: ListControlResponse;
   formatTime: (isoString: string) => string;
+  onClick: () => void;
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors active:bg-muted">
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors active:bg-muted cursor-pointer hover:bg-muted/50"
+    >
       {/* Status indicator */}
       <div
         className={cn(

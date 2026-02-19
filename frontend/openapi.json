@@ -1002,6 +1002,14 @@
           },
           "timestamp": {
             "type": "string"
+          },
+          "vehicle": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleInfo"
+              }
+            ],
+            "nullable": true
           }
         }
       },
