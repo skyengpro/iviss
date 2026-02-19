@@ -81,7 +81,7 @@ VALUES
     'Hilux',
     2022,
     'White',
-    'Diesel'
+    '150 HP'
 ),
 (
     '0290f1ee-6c54-4b01-90e6-d701748f0855',
@@ -125,7 +125,7 @@ VALUES
 ) ON CONFLICT (plate_number) DO NOTHING;
 
 -- 4. Vehicle Statuses
-INSERT INTO vehicle_statuses (vehicle_id, insurance_status, insurance_expiry, technical_status, technical_expiry, stolen_status)
+INSERT INTO vehicle_statuses (vehicle_id, insurance_status, insurance_expiry, technical_status, technical_expiry, stolen_status, vehicle_image_url)
 VALUES 
 (
     '0190f1ee-6c54-4b01-90e6-d701748f0854',
@@ -133,7 +133,8 @@ VALUES
     '2025-12-31',
     'valid',
     '2025-06-30',
-    FALSE
+    FALSE,
+    'https://tse1.mm.bing.net/th/id/OIP.Fwr5qO4p1rmMDm2CYwCDZwHaEK?w=326&h=183&c=7&r=0&o=7&cb=defcachec2&pid=1.7&rm=3'
 ),
 (
     '0290f1ee-6c54-4b01-90e6-d701748f0855',
@@ -141,7 +142,8 @@ VALUES
     '2024-01-01',
     'valid',
     '2024-12-31',
-    FALSE
+    FALSE,
+    'https://tse3.mm.bing.net/th/id/OIP.UObfzSWUJy27jyleJS8fXAHaEK?cb=defcachec2&rs=1&pid=ImgDetMain&o=7&rm=3'
 ),
 (
     '0390f1ee-6c54-4b01-90e6-d701748f0856',
@@ -149,7 +151,8 @@ VALUES
     '2026-05-20',
     'valid',
     '2026-01-15',
-    FALSE
+    FALSE,
+    'https://tse1.mm.bing.net/th/id/OIF.PqqzIyivAb9fnDodlDUiwA?cb=defcachec2&rs=1&pid=ImgDetMain&o=7&rm=3'
 ),
 (
     '0490f1ee-6c54-4b01-90e6-d701748f0857',
@@ -157,7 +160,8 @@ VALUES
     '2025-08-15',
     'expired',
     '2023-12-31',
-    FALSE
+    FALSE,
+    'https://tse2.mm.bing.net/th/id/OIP.zj6q8yA5YVogucLo9pSQ4AHaEK?cb=defcachec2&rs=1&pid=ImgDetMain&o=7&rm=3'
 ),
 (
     '0590f1ee-6c54-4b01-90e6-d701748f0858',
@@ -165,7 +169,9 @@ VALUES
     '2025-11-11',
     'valid',
     '2025-11-11',
-    TRUE
+    TRUE,
+    'https://tse2.mm.bing.net/th/id/OIP.tz5wAueaTZtT5H2hXO1fpQHaFj?cb=defcachec2&rs=1&pid=ImgDetMain&o=7&rm=3'
+
 ) ON CONFLICT (vehicle_id) DO NOTHING;
 
 -- 5. Vehicle Owners

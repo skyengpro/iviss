@@ -1,15 +1,16 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Clock, ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-import { useQuery } from '@tanstack/react-query';
-import { mockVehicleService, Vehicle } from '@/services/mockVehicles';
-import { mockExternalAPIService } from '@/services/mockExternalAPIs';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useVehicles } from '@/hooks/api/useVehicles';
+import { VehicleSearchResult } from '@/openapi-rq/requests/types.gen';
 
-import { useLogControl } from '@/hooks/useLogControl';
+import { useLogControl } from '@/hooks/api/useLogControl';
 import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';
 import { VehicleStatusGrid } from '@/components/mobile/vehicle/VehicleStatusGrid';
+import { VehicleImageCollapsible } from '@/components/mobile/vehicle/VehicleImageCollapsible';
 import { VehicleActionFooter } from '@/components/mobile/vehicle/VehicleActionFooter';
 import { VehicleLoadingState, VehicleErrorState } from '@/components/mobile/vehicle/VehicleStates';
 import { VehicleNotFound } from '@/components/mobile/vehicle/VehicleNotFound';
@@ -19,52 +20,130 @@ export default function MobileVehicleResult() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { search, isSearching } = useVehicles();
 
-  const {
-    data: vehicleData,
-    isLoading: vehicleLoading,
-    error: vehicleError,
-    refetch: refetchVehicle,
-  } = useQuery({
-    queryKey: ['vehicle', plateNumber],
-    queryFn: () =>
-      plateNumber
-        ? mockVehicleService.searchByPlate(plateNumber)
-        : Promise.resolve({ found: false } as { found: boolean; vehicle?: Vehicle | null }),
-    enabled: !!plateNumber,
-  });
+  interface SearchError {
+    status: number;
+    code: string;
+    message: string;
+    original: unknown;
+  }
 
-  const {
-    data: apiStatus,
-    isLoading: apiLoading,
-    refetch: refetchApi,
-  } = useQuery({
-    queryKey: ['api-status', plateNumber],
-    queryFn: () =>
-      plateNumber ? mockExternalAPIService.checkAllSystems(plateNumber) : Promise.resolve(null),
-    enabled: !!plateNumber,
-  });
+  const [result, setResult] = useState<VehicleSearchResult | null>(null);
+  const [error, setError] = useState<SearchError | null>(null);
+  const searchedPlateRef = useRef<string | null>(null);
+
+  const performSearch = useCallback(
+    async (plate?: string, force = false) => {
+      const targetPlate = plate || plateNumber;
+      if (!targetPlate) return;
+
+      // Prevent duplicate searches for same plate unless forced
+      if (!force && searchedPlateRef.current === targetPlate && (result || error)) {
+        return;
+      }
+
+      try {
+        setError(null);
+        searchedPlateRef.current = targetPlate;
+
+        const data = await search({ plate: targetPlate });
+        setResult(data.data as VehicleSearchResult);
+      } catch (err: unknown) {
+        const errorObj = err as {
+          status?: number;
+          code?: string;
+          message?: string;
+          body?: { status?: number; code?: string; message?: string };
+          response?: { status?: number };
+          error?: { code?: string; message?: string };
+        };
+        console.error('Search error:', err);
+        // Handles @hey-api/client-fetch errors
+        const status =
+          errorObj.status ||
+          (errorObj.body && errorObj.body.status) ||
+          (errorObj.response && errorObj.response.status) ||
+          500;
+        const code =
+          errorObj.code ||
+          (errorObj.body && errorObj.body.code) ||
+          (errorObj.error && errorObj.error.code) ||
+          'UNKNOWN';
+        const message =
+          errorObj.message ||
+          (errorObj.body && errorObj.body.message) ||
+          (errorObj.error && errorObj.error.message) ||
+          'An error occurred';
+
+        setError({
+          status: Number(status),
+          code: String(code),
+          message: String(message),
+          original: err,
+        });
+      } finally {
+        // Search finished
+      }
+    },
+    [plateNumber, search, result, error]
+  ); // Kept result/error here for the "already searched" check, but we'll be careful with useEffect
+
+  useEffect(() => {
+    if (plateNumber && searchedPlateRef.current !== plateNumber) {
+      performSearch(plateNumber);
+    }
+  }, [plateNumber, performSearch]);
 
   const { isLoggingControl, controlLogged, logControl } = useLogControl();
 
   const handleRetry = () => {
-    refetchVehicle();
-    refetchApi();
+    performSearch(plateNumber, true);
   };
 
-  const isLoading = vehicleLoading || apiLoading;
-  const found = vehicleData?.found || false;
-  const vehicle = vehicleData?.vehicle || null;
-
-  if (isLoading) {
+  if (isSearching && !result) {
     return (
       <MobileLayout title={t('vehicleResult.searchingTitle')} hideNavigation>
-        <VehicleLoadingState queryTime={apiStatus?.queryTime} />
+        <VehicleLoadingState queryTime={0.5} />
       </MobileLayout>
     );
   }
 
-  if (vehicleError || (!isLoading && !vehicleData)) {
+  if (error) {
+    // Check if it's 404
+    if (error.status === 404 || error.code === 'NOT_FOUND') {
+      return (
+        <MobileLayout title={t('vehicleResult.notFoundTitle')} hideNavigation>
+          <VehicleNotFound plateNumber={plateNumber || ''} />
+        </MobileLayout>
+      );
+    }
+
+    // Check if it's 400 (Bad Request - Invalid Plate)
+    if (error.status === 400 || error.code === 'INVALID_PLATE') {
+      return (
+        <MobileLayout title={t('vehicleResult.errorTitle')} hideNavigation>
+          <div className="flex flex-col items-center justify-center h-[60vh] p-6 text-center space-y-4">
+            <div className="text-destructive font-bold text-lg">
+              {t('vehicleResult.invalidPlateTitle', 'Invalid Plate Format')}
+            </div>
+            <p className="text-muted-foreground">
+              {t(
+                'vehicleResult.invalidPlateMessage',
+                'The plate number format is incorrect. Please check and try again.'
+              )}
+            </p>
+            <button
+              onClick={() => navigate('/mobile/search')}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            >
+              {t('common.tryAgain', 'Try Again')}
+            </button>
+          </div>
+        </MobileLayout>
+      );
+    }
+
     return (
       <MobileLayout title={t('vehicleResult.errorTitle')} hideNavigation>
         <VehicleErrorState onRetry={handleRetry} />
@@ -72,15 +151,15 @@ export default function MobileVehicleResult() {
     );
   }
 
-  if (!found || !plateNumber) {
+  if (!result || !plateNumber) {
+    if (!plateNumber) return null; // Should redirect or show error clearly
+    // Fallback loading state if we have a plate but no result/error yet (initial mount before effect)
     return (
-      <MobileLayout title={t('vehicleResult.notFoundTitle')} hideNavigation>
-        <VehicleNotFound plateNumber={plateNumber} />
+      <MobileLayout title={t('vehicleResult.searchingTitle')} hideNavigation>
+        <VehicleLoadingState queryTime={0.0} />
       </MobileLayout>
     );
   }
-
-  if (!vehicle || !apiStatus) return null;
 
   return (
     <MobileLayout title={t('vehicleResult.detailsTitle')} hideNavigation>
@@ -94,23 +173,30 @@ export default function MobileVehicleResult() {
         </button>
 
         <VehicleHeader
-          vehicle={vehicle}
-          overallStatus={apiStatus.overallStatus as 'valid' | 'warning' | 'critical'}
+          plateNumber={plateNumber}
+          vehicle={result.vehicle}
+          overallStatus={result.status_results.overall_status}
         />
 
-        <VehicleStatusGrid apiStatus={apiStatus} />
+        {result.status_results.vehicle_image_url && (
+          <VehicleImageCollapsible imageUrl={result.status_results.vehicle_image_url} />
+        )}
+
+        <VehicleStatusGrid apiStatus={result.status_results} />
 
         {/* Query Time */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>{t('vehicleResult.queryTime', { time: apiStatus.queryTime })}</span>
+          <span>{t('vehicleResult.queryTime', { time: 0.4 })}</span>
         </div>
       </div>
 
       <VehicleActionFooter
         controlLogged={controlLogged}
         isLoggingControl={isLoggingControl}
-        onLogControl={() => user && logControl(user, plateNumber, apiStatus, vehicle)}
+        onLogControl={() =>
+          user && logControl(user, plateNumber, result.status_results, result.vehicle)
+        }
         onNewSearch={() => navigate('/mobile/search')}
       />
     </MobileLayout>

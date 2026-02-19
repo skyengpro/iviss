@@ -1,4 +1,5 @@
 use crate::dto::common::{IdentificationMode, Status};
+use crate::dto::search_vehicle::VehicleInfo;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
@@ -63,4 +64,5 @@ pub struct ListControlResponse {
     pub results: ControlResults,
     pub actions: Vec<ControlAction>,
     pub notes: Option<String>,
+    pub vehicle: Option<VehicleInfo>,
 }

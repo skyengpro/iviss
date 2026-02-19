@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Shield, User, LogOut, HelpCircle, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/auth/use-auth';
 
 interface MobileSidebarProps {
   open: boolean;

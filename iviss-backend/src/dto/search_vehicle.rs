@@ -78,6 +78,7 @@ pub struct StatusResults {
     pub police: PoliceStatus,
     pub customs: CustomsStatus,
     pub technical: TechnicalStatus,
+    pub vehicle_image_url: Option<String>,
 }
 
 //  Response

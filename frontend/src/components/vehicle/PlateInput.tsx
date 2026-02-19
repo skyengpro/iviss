@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useRef } from 'react';
-import { Search, X, Keyboard } from 'lucide-react';
+import { X, Keyboard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -13,53 +13,112 @@ interface PlateInputProps {
   placeholder?: string;
 }
 
+// Strict license plate format: 2 letters + 3 numbers + 2 letters (e.g., "WE 234 SD")
+const PLATE_REGEX = /^[A-Z]{2}\s\d{3}\s[A-Z]{2}$/;
+
 export function PlateInput({
   value,
   onChange,
   onSubmit,
   isLoading,
   className,
-  placeholder = 'Enter plate number',
+  placeholder = 'WE 234 SD',
 }: Readonly<PlateInputProps>) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [showValidationError, setShowValidationError] = useState(false);
 
-  // Auto-format plate number (uppercase, common separators)
+  // Auto-format plate number with proper spacing: XX 123 YY
   const formatPlate = (input: string): string => {
-    return input
-      .toUpperCase()
-      .replace(/[^A-Z0-9\-\s]/g, '')
-      .slice(0, 12);
+    // Remove all non-alphanumeric characters
+    const cleaned = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    // Build formatted string: 2 letters + space + 3 numbers + space + 2 letters
+    let formatted = '';
+
+    // First 2 letters
+    if (cleaned.length > 0) {
+      formatted += cleaned.slice(0, 2).replace(/[^A-Z]/g, '');
+    }
+
+    // Add space after 2 letters
+    if (cleaned.length > 2) {
+      formatted += ' ';
+      // Next 3 numbers
+      formatted += cleaned.slice(2, 5).replace(/[^0-9]/g, '');
+    }
+
+    // Add space after numbers
+    if (cleaned.length > 5) {
+      formatted += ' ';
+      // Last 2 letters
+      formatted += cleaned.slice(5, 7).replace(/[^A-Z]/g, '');
+    }
+
+    return formatted;
+  };
+
+  // Validate if the plate matches the required format
+  const isValidFormat = (plate: string): boolean => {
+    return PLATE_REGEX.test(plate);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(formatPlate(e.target.value));
+    const formatted = formatPlate(e.target.value);
+    onChange(formatted);
+
+    // Hide validation error while typing
+    if (showValidationError) {
+      setShowValidationError(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && value.length >= 4) {
-      onSubmit();
+    if (e.key === 'Enter') {
+      handleSubmit();
     }
+  };
+
+  const handleSubmit = () => {
+    if (!isValidFormat(value)) {
+      setShowValidationError(true);
+      return;
+    }
+
+    setShowValidationError(false);
+    onSubmit();
   };
 
   const handleClear = () => {
     onChange('');
+    setShowValidationError(false);
     inputRef.current?.focus();
   };
+
+  const isComplete = value.length === 9; // "XX 123 YY" = 9 characters
 
   return (
     <div className={cn('relative', className)}>
       <div
         className={cn(
           'flex items-center gap-2 rounded-xl border-2 bg-card p-2 transition-all duration-200',
-          isFocused
-            ? 'border-accent ring-4 ring-accent/20'
-            : 'border-border hover:border-muted-foreground/30'
+          showValidationError
+            ? 'border-destructive ring-4 ring-destructive/20'
+            : isFocused
+              ? 'border-accent ring-4 ring-accent/20'
+              : 'border-border hover:border-muted-foreground/30'
         )}
       >
         {/* Plate icon/prefix */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div
+          className={cn(
+            'flex h-12 w-12 shrink-0 items-center justify-center rounded-lg transition-colors',
+            showValidationError
+              ? 'bg-destructive text-destructive-foreground'
+              : 'bg-primary text-primary-foreground'
+          )}
+        >
           <Keyboard className="h-5 w-5" />
         </div>
 
@@ -76,6 +135,7 @@ export function PlateInput({
           className="flex-1 bg-transparent text-xl font-bold tracking-widest placeholder:text-muted-foreground/50 placeholder:font-normal placeholder:tracking-normal focus:outline-none"
           autoComplete="off"
           autoCapitalize="characters"
+          maxLength={9}
         />
 
         {/* Clear button */}
@@ -90,26 +150,24 @@ export function PlateInput({
             <X className="h-5 w-5" />
           </Button>
         )}
-
-        {/* Search button */}
-        <Button
-          type="button"
-          onClick={onSubmit}
-          disabled={value.length < 4 || isLoading}
-          className="h-12 w-12 shrink-0 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {isLoading ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <Search className="h-5 w-5" />
-          )}
-        </Button>
       </div>
 
-      {/* Validation hint */}
-      {value.length > 0 && value.length < 4 && (
+      {/* Validation messages */}
+      {showValidationError && (
+        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          <p>
+            {t(
+              'mobileSearch.invalidFormat',
+              'Invalid format. Use: WE 234 SD (2 letters, 3 numbers, 2 letters)'
+            )}
+          </p>
+        </div>
+      )}
+
+      {value.length > 0 && !isComplete && !showValidationError && (
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          {t('mobileSearch.helpTextShort', { count: 4 })}
+          {t('mobileSearch.formatExample', 'Format: WE 234 SD (2 letters, 3 numbers, 2 letters)')}
         </p>
       )}
     </div>

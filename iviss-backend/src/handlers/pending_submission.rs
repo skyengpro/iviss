@@ -12,6 +12,7 @@ use std::sync::Arc;
     post,
     path = "/vehicles/pending",
     tag = "vehicles",
+    operation_id = "submitVehicle",
     request_body = CreatePendingSubmissionRequest,
     responses(
         (status = 202, description = "Submission accepted for review", body = DataEntryResponse),
@@ -54,4 +55,48 @@ pub async fn submit_vehicle(
     };
 
     Ok((StatusCode::ACCEPTED, Json(response)))
+}
+
+/// List all pending submissions for admin review
+#[utoipa::path(
+    get,
+    path = "/admin/submissions",
+    tag = "vehicles",
+    operation_id = "listPendingSubmissions",
+    responses(
+        (status = 200, description = "List of pending submissions", body = [PendingSubmissionListItem]),
+        (status = 401, description = "Unauthorized", body = AppErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_pending_submissions(
+    State(state): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, AppError> {
+    let submissions =
+        crate::queries::submission_queries::get_pending_submissions(&state.db).await?;
+    Ok((StatusCode::OK, Json(submissions)))
+}
+
+/// Get details of a single pending submission
+#[utoipa::path(
+    get,
+    path = "/admin/submissions/{id}",
+    tag = "vehicles",
+    operation_id = "getPendingSubmission",
+    params(
+        ("id" = Uuid, Path, description = "Submission UUID")
+    ),
+    responses(
+        (status = 200, description = "Submission details", body = PendingSubmissionRequest),
+        (status = 404, description = "Submission not found", body = AppErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_pending_submission(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+) -> Result<impl IntoResponse, AppError> {
+    let submission =
+        crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
+    Ok((StatusCode::OK, Json(submission)))
 }
