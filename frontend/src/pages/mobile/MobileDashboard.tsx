@@ -200,10 +200,7 @@ export default function MobileDashboard() {
           ) : recentControls.length > 0 ? (
             <div className="space-y-2">
               {recentControls.map((control) => (
-                <Link
-                  key={control.id}
-                  to={`/mobile/vehicle/${encodeURIComponent(control.plate_number)}`}
-                >
+                <Link key={control.id} to={`/mobile/history/${control.id}`} state={{ control }}>
                   <RecentControlItem
                     plate={control.plate_number}
                     time={formatTimeAgo(control.timestamp)}

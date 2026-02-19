@@ -104,9 +104,21 @@ pub async fn get_control_records(
             c.longitude::DOUBLE PRECISION as longitude,
             c.address,
             c.results_json,
-            c.notes
+            c.notes,
+            v.brand,
+            v.model,
+            v.year,
+            v.color,
+            v.engine_power,
+            v.fuel_type,
+            v.chassis_number,
+            vo.name as owner_name,
+            vo.address as owner_address,
+            vo.national_id as owner_national_id
         FROM control_records c
         JOIN users u ON c.agent_id = u.id
+        LEFT JOIN vehicles v ON c.plate_number = v.plate_number
+        LEFT JOIN vehicle_owners vo ON v.id = vo.vehicle_id AND vo.is_current_owner = TRUE
         WHERE c.deleted_at IS NULL
         "#,
     );
@@ -214,6 +226,27 @@ pub async fn get_control_records(
             results,
             actions,
             notes: row.get("notes"),
+            vehicle: row.get::<Option<String>, _>("brand").map(|brand| {
+                use crate::dto::search_vehicle::{OwnerInfo, VehicleInfo};
+                VehicleInfo {
+                    brand,
+                    model: row.get::<Option<String>, _>("model").unwrap_or_default(),
+                    year: row.get::<Option<i32>, _>("year").unwrap_or_default(),
+                    color: row.get("color"),
+                    engine_power: row.get("engine_power"),
+                    fuel_type: row.get("fuel_type"),
+                    chassis_number: row
+                        .get::<Option<String>, _>("chassis_number")
+                        .unwrap_or_default(),
+                    owner: OwnerInfo {
+                        name: row
+                            .get::<Option<String>, _>("owner_name")
+                            .unwrap_or_default(),
+                        address: row.get("owner_address"),
+                        national_id: row.get("owner_national_id"),
+                    },
+                }
+            }),
         });
     }
 
