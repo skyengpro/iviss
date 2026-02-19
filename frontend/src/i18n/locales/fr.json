@@ -40,6 +40,11 @@
     "flaggedVehicles": "Véhicules signalés",
     "currentLocation": "Position Actuelle",
     "gpsActive": "GPS Actif",
+    "gpsInactive": "GPS Inactif",
+    "locationRequesting": "Demande de localisation...",
+    "locationDenied": "Accès refusé",
+    "locationError": "Erreur GPS",
+    "searchingLocation": "Recherche de l'adresse...",
     "online": "En ligne",
     "recentControls": "Contrôles Récents",
     "viewAll": "Voir tout",
@@ -58,10 +63,12 @@
   "mobileHistory": {
     "title": "Historique des contrôles",
     "searchPlaceholder": "Rechercher plaques, véhicules...",
+    "searchButton": "Rechercher le véhicule",
     "all": "Tous",
     "valid": "Valide",
     "warning": "Avertissement",
     "critical": "Critique",
+    "pending": "En attente",
     "showingControls_one": "Affichage de 1 contrôle",
     "showingControls_other": "Affichage de {{count}} contrôles",
     "today": "Aujourd'hui",
@@ -138,6 +145,7 @@
   },
   "mobileSearch": {
     "title": "Rechercher un véhicule",
+    "searchButton": "Rechercher le véhicule",
     "placeholder": "Saisir le numéro de plaque",
     "photoScan": "Scan par photo",
     "history": "Historique",
@@ -149,6 +157,7 @@
   },
   "vehicleResult": {
     "searchingTitle": "Recherche en cours...",
+    "vehiclePhoto": "Photo du véhicule",
     "errorTitle": "Erreur",
     "notFoundTitle": "Véhicule non trouvé",
     "detailsTitle": "Détails du véhicule",
@@ -372,7 +381,9 @@
   },
   "logControl": {
     "successTitle": "Contrôle Enregistré",
-    "successDescription": "Le contrôle du véhicule {{plateNumber}} a été enregistré avec succès."
+    "successDescription": "Le contrôle du véhicule {{plateNumber}} a été enregistré avec succès.",
+    "errorTitle": "Échec de l'enregistrement",
+    "errorDescription": "Impossible d'enregistrer le contrôle. Veuillez réessayer."
   },
   "mobileNav": {
     "home": "Accueil",

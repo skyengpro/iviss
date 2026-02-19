@@ -5,6 +5,7 @@ use utoipa::{
 
 use crate::dto::{
     common::*,
+    create_control::*,
     list_control::*,
     pending_submission::*,
     search_vehicle::*,
@@ -42,18 +43,26 @@ impl Modify for SecurityAddon {
         description = "Vehicle identification, carte grise submissions and back-office dashboard.",
     ),
     tags(
-        (name = "vehicles", description = "Vehicle lookup and gray-card image upload"),
+        (name = "vehicles", description = "Vehicle lookup and image upload"),
         (name = "controls", description = "Roadside control tracking"),
         (name = "stats", description = "Dashboard statistics"),
-        (name = "users", description = "User profile and authentication"),
+        (name = "users", description = "User profile management"),
+        (name = "auth", description = "Authentication and registration"),
     ),
     paths(
         crate::handlers::search_vehicle::search_vehicle,
         crate::handlers::list_control::get_list_control,
+        crate::handlers::list_control::create_control,
         crate::handlers::pending_submission::submit_vehicle,
+        crate::handlers::pending_submission::list_pending_submissions,
+        crate::handlers::pending_submission::get_pending_submission,
         crate::handlers::stats::get_dashboard_stats,
         crate::handlers::users::get_user_profile,
+        crate::handlers::auth::login,
+        crate::handlers::auth::register,
+        crate::handlers::auth::logout,
     ),
+
     components(
         schemas(
             // ── common ──
@@ -77,6 +86,8 @@ impl Modify for SecurityAddon {
             ControlResults,
             ControlAction,
             ActionType,
+            CreateControlRequest,
+            CreateControlResponse,
             CreatePendingSubmissionRequest,
             PendingSubmissionRequest,
             PendingSubmissionListItem,
@@ -88,7 +99,10 @@ impl Modify for SecurityAddon {
             DashboardStats,
             UserProfile,
             UserRole,
-
+            // ── auth ──
+            crate::handlers::auth::LoginRequest,
+            crate::handlers::auth::AuthResponse,
+            crate::handlers::auth::RegisterRequest,
         )
     ),
     modifiers(&SecurityAddon),

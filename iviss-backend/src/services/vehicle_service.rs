@@ -180,6 +180,9 @@ impl VehicleService {
             police,
             customs,
             technical,
+            vehicle_image_url: status_row
+                .as_ref()
+                .and_then(|row| row.vehicle_image_url.clone()),
         }
     }
 }

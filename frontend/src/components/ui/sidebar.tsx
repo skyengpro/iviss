@@ -4,7 +4,7 @@ import { VariantProps } from 'class-variance-authority';
 import { useTranslation } from 'react-i18next';
 import { PanelLeft } from 'lucide-react';
 
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/ui/use-mobile';
 import { cn } from '@/lib/utils';
 import {
   SIDEBAR_COOKIE_MAX_AGE,
@@ -14,7 +14,7 @@ import {
   SIDEBAR_WIDTH_ICON,
   SIDEBAR_WIDTH_MOBILE,
 } from './sidebar-constants';
-import { SidebarContext, useSidebar } from '@/hooks/use-sidebar';
+import { SidebarContext, useSidebar } from '@/hooks/ui/use-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';

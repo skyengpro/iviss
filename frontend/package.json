@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node ../scripts/fetch_openapi.js",
+    "predev": "node ../scripts/fetch_openapi.mjs",
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "lint:check": "npm run lint",
+    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-client/**'",
     "prettier:check": "prettier --check .",
     "format": "prettier --write .",
     "ts:check": "tsc --noEmit",
@@ -18,8 +18,7 @@
     "test:unit": "npm run test",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch",
-    "postinstall": "npm run codegen"
+    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -79,8 +78,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@7nohe/openapi-react-query-codegen": "^1.6.2",
+    "@7nohe/openapi-react-query-codegen": "^2.0.0",
     "@eslint/js": "^9.32.0",
+    "@hey-api/openapi-ts": "^0.52.1",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
@@ -91,19 +91,23 @@
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.9.19",
+    "commander": "12.1.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "install": "^0.13.0",
     "jsdom": "^20.0.3",
-    "npm": "^11.10.0",
     "postcss": "^8.5.6",
     "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.3",
+    "ts-morph": "^23.0.0",
+    "typescript": "~5.5.4",
     "typescript-eslint": "^8.38.0",
     "vite": "^7.3.1",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "commander": "12.1.0"
   }
 }

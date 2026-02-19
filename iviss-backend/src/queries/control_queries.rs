@@ -1,10 +1,84 @@
 use crate::dto::common::{IdentificationMode, Status};
+use crate::dto::create_control::CreateControlRequest;
 use crate::dto::list_control::{
     ActionType, ControlAction, ControlLocation, ControlResults, ListControlResponse,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 use uuid::Uuid;
+
+pub async fn create_control_record(
+    pool: &PgPool,
+    req: CreateControlRequest,
+) -> Result<Uuid, AppError> {
+    let control_id = Uuid::new_v4();
+    let current_time = time::OffsetDateTime::now_utc();
+
+    // Determine overall status based on results
+    let status_str = if req.results.wanted_status == Status::Critical
+        || req.results.insurance == Status::Critical
+    {
+        "critical"
+    } else if req.results.technical_inspection == Status::Warning
+        || req.results.customs_status == Status::Warning
+    {
+        "warning"
+    } else {
+        "valid"
+    };
+
+    let id_mode_str = match req.identification_mode {
+        IdentificationMode::Manual => "manual",
+        IdentificationMode::Photo => "photo",
+        IdentificationMode::Live => "live",
+    };
+
+    // 1. Insert Control Record
+    sqlx::query(
+        r#"
+        INSERT INTO control_records (
+            id, plate_number, agent_id, organization_id, timestamp,
+            latitude, longitude, address, identification_mode, ocr_confidence,
+            overall_status, results_json, notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        "#,
+    )
+    .bind(control_id)
+    .bind(req.plate_number)
+    .bind(req.agent_id)
+    .bind(req.organization_id)
+    .bind(current_time)
+    .bind(req.latitude)
+    .bind(req.longitude)
+    .bind(req.address)
+    .bind(id_mode_str)
+    .bind(req.ocr_confidence)
+    .bind(status_str)
+    .bind(serde_json::to_value(&req.results).unwrap_or(serde_json::json!({})))
+    .bind(req.notes)
+    .execute(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    // 2. Insert Initial Action (Log "Check")
+    sqlx::query(
+        r#"
+        INSERT INTO control_actions (
+            id, control_id, action_type, description, timestamp
+        )
+        VALUES ($1, $2, 'flag', 'Control performed via mobile app', $3)
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(control_id)
+    .bind(current_time)
+    .execute(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    Ok(control_id)
+}
 
 pub async fn get_control_records(
     pool: &PgPool,
@@ -24,15 +98,27 @@ pub async fn get_control_records(
             c.organization_id,
             c.timestamp,
             c.identification_mode,
-            c.ocr_confidence,
+            c.ocr_confidence::DOUBLE PRECISION as ocr_confidence,
             c.overall_status,
-            c.latitude,
-            c.longitude,
+            c.latitude::DOUBLE PRECISION as latitude,
+            c.longitude::DOUBLE PRECISION as longitude,
             c.address,
             c.results_json,
-            c.notes
+            c.notes,
+            v.brand,
+            v.model,
+            v.year,
+            v.color,
+            v.engine_power,
+            v.fuel_type,
+            v.chassis_number,
+            vo.name as owner_name,
+            vo.address as owner_address,
+            vo.national_id as owner_national_id
         FROM control_records c
         JOIN users u ON c.agent_id = u.id
+        LEFT JOIN vehicles v ON c.plate_number = v.plate_number
+        LEFT JOIN vehicle_owners vo ON v.id = vo.vehicle_id AND vo.is_current_owner = TRUE
         WHERE c.deleted_at IS NULL
         "#,
     );
@@ -90,14 +176,16 @@ pub async fn get_control_records(
         let actions = get_actions_for_control(pool, id).await?;
 
         // Parse results_json
-        let results_json: serde_json::Value = row.get("results_json");
-        let results = serde_json::from_value(results_json).unwrap_or(ControlResults {
-            registration: Status::Valid, // Default fallback
-            insurance: Status::Valid,
-            technical_inspection: Status::Valid,
-            wanted_status: Status::Valid,
-            customs_status: Status::Valid,
-        });
+        let results_json: Option<serde_json::Value> = row.get("results_json");
+        let results = results_json
+            .and_then(|v| serde_json::from_value(v).ok())
+            .unwrap_or(ControlResults {
+                registration: Status::Valid, // Default fallback
+                insurance: Status::Valid,
+                technical_inspection: Status::Valid,
+                wanted_status: Status::Valid,
+                customs_status: Status::Valid,
+            });
 
         // Determine identification mode from string
         let id_mode_str: String = row.get("identification_mode");
@@ -114,6 +202,7 @@ pub async fn get_control_records(
             "valid" => Status::Valid,
             "warning" => Status::Warning,
             "critical" => Status::Critical,
+            "pending" => Status::Pending,
             _ => Status::Valid,
         };
 
@@ -137,6 +226,27 @@ pub async fn get_control_records(
             results,
             actions,
             notes: row.get("notes"),
+            vehicle: row.get::<Option<String>, _>("brand").map(|brand| {
+                use crate::dto::search_vehicle::{OwnerInfo, VehicleInfo};
+                VehicleInfo {
+                    brand,
+                    model: row.get::<Option<String>, _>("model").unwrap_or_default(),
+                    year: row.get::<Option<i32>, _>("year").unwrap_or_default(),
+                    color: row.get("color"),
+                    engine_power: row.get("engine_power"),
+                    fuel_type: row.get("fuel_type"),
+                    chassis_number: row
+                        .get::<Option<String>, _>("chassis_number")
+                        .unwrap_or_default(),
+                    owner: OwnerInfo {
+                        name: row
+                            .get::<Option<String>, _>("owner_name")
+                            .unwrap_or_default(),
+                        address: row.get("owner_address"),
+                        national_id: row.get("owner_national_id"),
+                    },
+                }
+            }),
         });
     }
 
