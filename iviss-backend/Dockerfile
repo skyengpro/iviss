@@ -4,6 +4,14 @@
 # Development Stage - with cargo-watch for auto-reload
 FROM rust:latest AS development
 
+# Install Tesseract OCR CLI for the rusty-tesseract crate
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install cargo-watch for live reloading
 RUN cargo install cargo-watch
 
@@ -50,9 +58,13 @@ RUN cargo build --release
 # Runtime stage
 FROM debian:bookworm-slim AS production
 
-# Install runtime dependencies
+# Install runtime dependencies (PostgreSQL client + Tesseract OCR CLI)
 RUN apt-get update && \
-    apt-get install -y libpq5 ca-certificates && \
+    apt-get install -y --no-install-recommends \
+        libpq5 \
+        ca-certificates \
+        tesseract-ocr \
+        tesseract-ocr-eng && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
