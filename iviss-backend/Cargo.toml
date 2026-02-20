@@ -2,9 +2,10 @@
 name = "iviss-backend"
 version = "0.1.0"
 edition = "2021"
+default-run = "iviss-backend"
 
 [dependencies]
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.7", features = ["macros", "multipart"] }
 tokio = { version = "1.43", features = ["full"] }
 sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "time", "migrate"] }
 serde = { version = "1", features = ["derive"] }
@@ -16,3 +17,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout"] }
 anyhow = "1.0"
 thiserror = "1.0"
+
+utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
+utoipa-swagger-ui = { version = "7", features = ["axum"] }
+time = "0.3.47"
+uuid = { version = "1.20.0", features = ["v4", "serde",]}
+regex = "1.12.3"
+once_cell = "1.21.3"
+

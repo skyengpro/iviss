@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { StatCard } from '@/components/ui/stat-card';
@@ -12,31 +13,54 @@ import {
   MapPin,
   Clock,
 } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { mockControlService } from '@/services/mockControls';
+import { Link } from 'react-router-dom';
+
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useDashboard } from '@/hooks/api/useDashboard';
+import { useControls } from '@/hooks/api/useControls';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 export default function MobileDashboard() {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['mobile-stats', user?.organizationId],
-    queryFn: () => (user ? mockControlService.getStats(user.organizationId) : null),
-    enabled: !!user,
-  });
+  const { stats, isLoading: statsLoading } = useDashboard();
+  const { lat, lng, error: geoError, loading: geoLoading } = useGeolocation();
+  const [address, setAddress] = useState<string>('');
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
-  const { data: recentControls = [], isLoading: controlsLoading } = useQuery({
-    queryKey: ['recent-controls', user?.id],
-    queryFn: () =>
-      user ? mockControlService.getTodayControlsByAgent(user.id) : Promise.resolve([]),
-    enabled: !!user,
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (lat && lng) {
+        setIsReverseGeocoding(true);
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+          );
+          const data = await response.json();
+          setAddress(data.display_name || '');
+        } catch (error) {
+          console.error('Error fetching address:', error);
+        } finally {
+          setIsReverseGeocoding(false);
+        }
+      }
+    };
+
+    fetchAddress();
+  }, [lat, lng]);
+
+  const { controls: recentControls = [], isLoading: controlsLoading } = useControls({
+    query: {
+      agent_id: user?.id,
+    },
   });
 
   const isLoading = statsLoading || controlsLoading;
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.round(diffMs / 60000);
@@ -95,17 +119,17 @@ export default function MobileDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               title={t('mobileDashboard.controls')}
-              value={isLoading ? '-' : String(stats?.today || 0)}
+              value={isLoading ? '-' : String(stats?.todayControls || 0)}
               subtitle={t('mobileDashboard.today')}
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
               title={t('mobileDashboard.alerts')}
-              value={isLoading ? '-' : String(stats?.alerts || 0)}
+              value={isLoading ? '-' : String(stats?.activeAlerts || 0)}
               subtitle={t('mobileDashboard.flaggedVehicles')}
               icon={AlertTriangle}
-              variant={(stats?.alerts || 0) > 0 ? 'critical' : 'default'}
+              variant={(stats?.activeAlerts || 0) > 0 ? 'critical' : 'default'}
             />
           </div>
         </section>
@@ -114,21 +138,47 @@ export default function MobileDashboard() {
         <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <div
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
+                  geoError ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent'
+                )}
+              >
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm font-medium">{t('mobileDashboard.currentLocation')}</p>
-                <p className="text-xs text-muted-foreground">{t('mobileDashboard.gpsActive')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {geoLoading
+                    ? t('mobileDashboard.locationRequesting')
+                    : geoError
+                      ? t('mobileDashboard.locationError')
+                      : t('mobileDashboard.gpsActive')}
+                </p>
               </div>
             </div>
-            <StatusBadge variant="valid" size="sm">
-              {t('mobileDashboard.online')}
+            <StatusBadge variant={geoError ? 'critical' : 'valid'} size="sm">
+              {geoError ? t('mobileDashboard.locationDenied') : t('mobileDashboard.online')}
             </StatusBadge>
           </div>
           <div className="mt-3 rounded-lg bg-muted p-3">
-            <p className="text-sm font-medium">Highway A1, KM 42</p>
-            <p className="text-xs text-muted-foreground">48.8566° N, 2.3522° E</p>
+            {geoLoading ? (
+              <p className="text-sm animate-pulse">{t('mobileDashboard.locationRequesting')}</p>
+            ) : geoError ? (
+              <p className="text-sm text-destructive font-medium">{geoError}</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium break-words">
+                  {isReverseGeocoding ? t('mobileDashboard.searchingLocation') : address || '...'}
+                </p>
+                {lat && lng && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {lat.toFixed(4)}° {lat >= 0 ? 'N' : 'S'}, {lng.toFixed(4)}°{' '}
+                    {lng >= 0 ? 'E' : 'W'}
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </section>
 
@@ -150,12 +200,9 @@ export default function MobileDashboard() {
           ) : recentControls.length > 0 ? (
             <div className="space-y-2">
               {recentControls.map((control) => (
-                <Link
-                  key={control.id}
-                  to={`/mobile/vehicle/${encodeURIComponent(control.plateNumber)}`}
-                >
+                <Link key={control.id} to={`/mobile/history/${control.id}`} state={{ control }}>
                   <RecentControlItem
-                    plate={control.plateNumber}
+                    plate={control.plate_number}
                     time={formatTimeAgo(control.timestamp)}
                     status={control.status as 'valid' | 'warning' | 'critical'}
                   />

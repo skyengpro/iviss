@@ -12,6 +12,7 @@ const MobileScan = lazy(() => import('../pages/mobile/MobileScan'));
 const MobileHistory = lazy(() => import('../pages/mobile/MobileHistory'));
 const MobileProfile = lazy(() => import('../pages/mobile/MobileProfile'));
 const MobileVehicleResult = lazy(() => import('../pages/mobile/MobileVehicleResult'));
+const MobileHistoryDetail = lazy(() => import('../pages/mobile/MobileHistoryDetail'));
 const MobileCarteGrise = lazy(() => import('../pages/mobile/MobileCarteGrise'));
 
 // Back Office Pages
@@ -51,6 +52,11 @@ export const mobileRoutes: AppRoute[] = [
   {
     path: '/mobile/vehicle/:plateNumber',
     component: MobileVehicleResult,
+    allowedRoles: ['agent', 'supervisor'],
+  },
+  {
+    path: '/mobile/history/:id',
+    component: MobileHistoryDetail,
     allowedRoles: ['agent', 'supervisor'],
   },
   {

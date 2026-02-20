@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
       POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,6 +18,31 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
+  # Adminer Database Management
+  adminer:
+    image: adminer
+    container_name: iviss-adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
     networks:
       - iviss-network
 
@@ -33,7 +58,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@db:5432/${POSTGRES_DB:-iviss_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_db}
       EXTERNAL_DATABASE_URL: postgresql://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
       JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
       SERVER_HOST: 0.0.0.0
@@ -46,6 +71,7 @@ services:
       - ./iviss-backend/src:/app/src:ro
       - ./iviss-backend/Cargo.toml:/app/Cargo.toml:ro
       - ./iviss-backend/Cargo.lock:/app/Cargo.lock:ro
+      - ./iviss-backend/migrations:/app/migrations:ro
       # Cache dependencies in named volume for faster builds
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
@@ -55,6 +81,54 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: iviss-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+      - BACKEND_OPENAPI_URL=http://iviss-backend:3000/api-doc/openapi.json
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./scripts:/scripts
+    command: npm run dev -- --host
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - iviss-network
 
