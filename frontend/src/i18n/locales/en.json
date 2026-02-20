@@ -40,6 +40,11 @@
     "flaggedVehicles": "Flagged vehicles",
     "currentLocation": "Current Location",
     "gpsActive": "GPS Active",
+    "gpsInactive": "GPS Inactive",
+    "locationRequesting": "Requesting location...",
+    "locationDenied": "Permission denied",
+    "locationError": "GPS Error",
+    "searchingLocation": "Fetching address...",
     "online": "Online",
     "recentControls": "Recent Controls",
     "viewAll": "View all",
@@ -58,10 +63,12 @@
   "mobileHistory": {
     "title": "Control History",
     "searchPlaceholder": "Search plates, vehicles...",
+    "searchButton": "Search Vehicle",
     "all": "All",
     "valid": "Valid",
     "warning": "Warning",
     "critical": "Critical",
+    "pending": "Pending",
     "showingControls_one": "Showing 1 control",
     "showingControls_other": "Showing {{count}} controls",
     "today": "Today",
@@ -138,6 +145,7 @@
   },
   "mobileSearch": {
     "title": "Search Vehicle",
+    "searchButton": "Search Vehicle",
     "placeholder": "Enter plate number",
     "photoScan": "Photo Scan",
     "history": "History",
@@ -149,6 +157,7 @@
   },
   "vehicleResult": {
     "searchingTitle": "Searching...",
+    "vehiclePhoto": "Vehicle Photo",
     "errorTitle": "Error",
     "notFoundTitle": "Vehicle Not Found",
     "detailsTitle": "Vehicle Details",
@@ -370,7 +379,9 @@
   },
   "logControl": {
     "successTitle": "Control Logged",
-    "successDescription": "The control for vehicle {{plateNumber}} has been successfully logged."
+    "successDescription": "The control for vehicle {{plateNumber}} has been successfully logged.",
+    "errorTitle": "Logging Failed",
+    "errorDescription": "Could not log the control record. Please try again."
   },
   "mobileNav": {
     "home": "Home",

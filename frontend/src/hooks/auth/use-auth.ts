@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'react';
-import { User, AuthSession } from '@/services/mockAuth';
+import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 
 export interface AuthContextType {
-  user: User | null;
-  session: AuthSession | null;
+  user: UserProfile | null;
+  session: AuthResponse | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;

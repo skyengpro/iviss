@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO pending_submissions (\n            agent_id, plate_number, front_image_url, back_image_url, notes,\n            latitude, longitude, address, status\n        )\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Float8",
+        "Float8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ada39c30416ceba3a1115852d4b8e8411aacc9f11f946da35d756307a0af5125"
+}

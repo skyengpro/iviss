@@ -3,7 +3,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
 import { useTranslation } from 'react-i18next';
-import { usePlateScanner, DetectedPlate } from '@/hooks/usePlateScanner';
+import { usePlateScanner, DetectedPlate } from '@/hooks/feature/usePlateScanner';
 import { ScanViewfinder } from '@/components/mobile/scan/ScanViewfinder';
 import { ScanTopControls } from '@/components/mobile/scan/ScanTopControls';
 import { ScanDetectionsList } from '@/components/mobile/scan/ScanDetectionsList';

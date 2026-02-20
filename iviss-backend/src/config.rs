@@ -72,11 +72,13 @@ impl LogLevel {
 
 /// Application configuration
 #[derive(Clone, Debug)]
+#[allow(dead_code)] // jwt_secret and helper methods will be used in future JWT implementation
 pub struct Config {
     pub database_url: String,
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
+    #[allow(dead_code)]
     pub jwt_secret: String,
     pub environment: Environment,
 }
@@ -88,21 +90,19 @@ impl Config {
         dotenvy::dotenv().ok();
 
         // Load and validate DATABASE_URL (critical)
-        let database_url = env::var("DATABASE_URL")
-            .context("DATABASE_URL must be set")?;
-        
+        let database_url = env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
+
         if database_url.trim().is_empty() {
             return Err(anyhow!("DATABASE_URL cannot be empty"));
         }
 
         // Load and validate JWT_SECRET (critical)
-        let jwt_secret = env::var("JWT_SECRET")
-            .context("JWT_SECRET must be set")?;
-        
+        let jwt_secret = env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
+
         if jwt_secret.trim().is_empty() {
             return Err(anyhow!("JWT_SECRET cannot be empty"));
         }
-        
+
         // Enforce minimum length for JWT_SECRET for security
         if jwt_secret.len() < 32 {
             return Err(anyhow!(
@@ -112,8 +112,7 @@ impl Config {
         }
 
         // Load SERVER_HOST with default
-        let server_host = env::var("SERVER_HOST")
-            .unwrap_or_else(|_| "0.0.0.0".to_string());
+        let server_host = env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
         // Load and validate SERVER_PORT
         let server_port = env::var("SERVER_PORT")
@@ -154,11 +153,13 @@ impl Config {
     }
 
     /// Check if running in production environment
+    #[allow(dead_code)]
     pub fn is_production(&self) -> bool {
         self.environment == Environment::Production
     }
 
     /// Check if running in local environment
+    #[allow(dead_code)]
     pub fn is_local(&self) -> bool {
         self.environment == Environment::Local
     }
@@ -178,9 +179,18 @@ mod tests {
 
     #[test]
     fn test_environment_from_str() {
-        assert!(matches!(Environment::from_str("local"), Ok(Environment::Local)));
-        assert!(matches!(Environment::from_str("LOCAL"), Ok(Environment::Local)));
-        assert!(matches!(Environment::from_str("production"), Ok(Environment::Production)));
+        assert!(matches!(
+            Environment::from_str("local"),
+            Ok(Environment::Local)
+        ));
+        assert!(matches!(
+            Environment::from_str("LOCAL"),
+            Ok(Environment::Local)
+        ));
+        assert!(matches!(
+            Environment::from_str("production"),
+            Ok(Environment::Production)
+        ));
         assert!(Environment::from_str("invalid").is_err());
     }
 }
