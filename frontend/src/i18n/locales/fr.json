@@ -141,7 +141,9 @@
     "photo": "Photo",
     "live": "Direct",
     "stopScanning": "Arrêter le Scan",
-    "startLiveScan": "Démarrer le Scan en Direct"
+    "startLiveScan": "Démarrer le Scan en Direct",
+    "takingTooLong": "Le scan prend du temps ?",
+    "manualEntry": "Passer à la saisie manuelle"
   },
   "mobileSearch": {
     "title": "Rechercher un véhicule",
