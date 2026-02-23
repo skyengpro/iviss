@@ -8,6 +8,8 @@ interface ScanViewfinderProps {
   isScanning: boolean;
   mode: 'photo' | 'live';
   liveScanActive: boolean;
+  onUserMedia?: () => void;
+  onUserMediaError?: (error: string | DOMException) => void;
 }
 
 export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
@@ -16,6 +18,8 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
   isScanning,
   mode,
   liveScanActive,
+  onUserMedia,
+  onUserMediaError,
 }) => {
   const videoConstraints = {
     facingMode: facingMode,
@@ -29,7 +33,9 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
         className="absolute inset-0 h-full w-full object-cover"
-        onUserMediaError={(err) => console.log(err)}
+        onUserMedia={onUserMedia}
+        onUserMediaError={onUserMediaError}
+        mirrored={facingMode === 'user'}
       />
 
       {/* Scan frame overlay */}
