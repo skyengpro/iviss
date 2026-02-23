@@ -74,7 +74,8 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@hey-api/client-fetch": "^0.5.1"
   },
   "devDependencies": {
     "@7nohe/openapi-react-query-codegen": "^2.0.0",
