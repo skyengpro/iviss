@@ -2,8 +2,7 @@ use image::imageops::FilterType;
 use image::{GenericImageView, GrayImage, Luma};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rusty_tesseract::{Args, Image};
-use std::collections::HashMap;
+use leptess::{LepTess, leptonica, Variable};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
@@ -56,20 +55,19 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     //    vs light text on dark/coloured plates like orange Cameroon plates).
     let inverted = invert_image(&binary);
 
-    // 7. Tesseract args — single text line (PSM 7), A-Z + 0-9 whitelist
-    let args = Args {
-        lang: "eng".to_string(),
-        config_variables: HashMap::from([(
-            "tessedit_char_whitelist".to_string(),
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".to_string(),
-        )]),
-        dpi: Some(300),
-        psm: Some(7),
-        oem: Some(3),
-    };
+    // 7. Initialize Leptess
+    let mut tess = LepTess::new(Some("/usr/share/tesseract-ocr/4.00/tessdata"), "eng")
+        .map_err(|e| AppError::internal_error(format!("Failed to init Tesseract: {e}")))?;
+
+    tess.set_variable(Variable::TesseditCharWhitelist, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        .map_err(|e| AppError::internal_error(format!("Failed to set whitelist: {e}")))?;
+    
+    // Page segmentation mode 7 (Treat the image as a single text line).
+    tess.set_variable(Variable::TesseditPagesegMode, "7")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM: {e}")))?;
 
     // 8. Run OCR on binary image
-    let result_binary = try_ocr(&binary, &args);
+    let result_binary = try_ocr(&mut tess, &binary);
 
     // If the binary variant already matched the plate regex, return immediately
     if let Some(ref r) = result_binary {
@@ -79,7 +77,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     }
 
     // 9. Run OCR on inverted image
-    let result_inverted = try_ocr(&inverted, &args);
+    let result_inverted = try_ocr(&mut tess, &inverted);
 
     if let Some(ref r) = result_inverted {
         if r.format_valid {
@@ -93,13 +91,20 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
 
 // ── OCR helper ────────────────────────────────────────────────────────────────
 
-/// Attempt OCR on a single grayscale image. Returns None if Tesseract fails.
-fn try_ocr(img: &GrayImage, args: &Args) -> Option<ScanResultData> {
-    let dynamic_img = image::DynamicImage::ImageLuma8(img.clone());
-    let tess_image = Image::from_dynamic_image(&dynamic_img).ok()?;
+/// Attempt OCR on a single grayscale image using leptess.
+fn try_ocr(tess: &mut LepTess, img: &GrayImage) -> Option<ScanResultData> {
+    // Write image to memory buffer to pass to Leptonica
+    let mut buf = std::io::Cursor::new(Vec::new());
+    img.write_to(&mut buf, image::ImageFormat::Bmp).ok()?;
+    let data = buf.into_inner();
 
-    let raw_text = rusty_tesseract::image_to_string(&tess_image, args).ok()?;
-    let confidence = get_mean_confidence(&tess_image, args);
+    // Leptess API to load from memory buffer
+    tess.set_image_from_mem(&data).ok()?;
+    tess.set_source_resolution(300);
+
+    let raw_text = tess.get_utf8_text().unwrap_or_default();
+    let confidence = tess.mean_text_conf() as f32 / 100.0; // Mean conf returns 0-100 i32
+    
     let normalised = normalise_plate(&raw_text);
     let format_valid = PLATE_REGEX.is_match(&normalised);
 
@@ -191,20 +196,6 @@ fn invert_image(img: &GrayImage) -> GrayImage {
     })
 }
 
-/// Get mean confidence from Tesseract data output. Falls back to 0.0.
-fn get_mean_confidence(image: &Image, args: &Args) -> f32 {
-    match rusty_tesseract::image_to_data(image, args) {
-        Ok(data) => {
-            let confs: Vec<f32> = data.data.iter()
-                .filter(|d| d.conf > 0.0)
-                .map(|d| d.conf)
-                .collect();
-            if confs.is_empty() { 0.0 }
-            else { (confs.iter().sum::<f32>() / confs.len() as f32 / 100.0).clamp(0.0, 1.0) }
-        }
-        Err(_) => 0.0,
-    }
-}
 
 /// Uppercase, strip non-alphanumeric chars.
 fn normalise_plate(raw: &str) -> String {
