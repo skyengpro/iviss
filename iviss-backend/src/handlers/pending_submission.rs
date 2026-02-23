@@ -155,24 +155,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_list_pending_submissions_structure() {
-        // Test that the function has the correct signature and return type
-        // This is a structural test since we can't easily test the database interaction
-
-        // Verify the function exists and has the expected behavior
-        // In a real test with a test database, you would:
-        // 1. Set up a test database connection
-        // 2. Insert test data
-        // 3. Call the function
-        // 4. Verify the response
-
-        // For now, we verify the function compiles and has correct types
-        // We can't use impl Trait in function pointer types, so we'll just call the function
-        // to verify it compiles correctly
-        assert!(true); // Placeholder test to verify compilation
-    }
-
-    #[tokio::test]
     async fn test_get_pending_submission_structure() {
         // Test that the function has the correct signature and return type
 
@@ -235,23 +217,5 @@ mod tests {
         assert!(!request.front_image_url.is_empty());
         assert!(!request.back_image_url.is_empty());
         assert!(!request.agent_id.is_nil()); // UUID should be valid (not nil)
-    }
-
-    #[tokio::test]
-    async fn test_handler_response_codes() {
-        // Test that handlers return correct status codes
-
-        // submit_vehicle should return 202 ACCEPTED on success
-        // This would be tested with actual database calls in integration tests
-
-        // list_pending_submissions should return 200 OK on success
-        // This would be tested with actual database calls in integration tests
-
-        // get_pending_submission should return 200 OK on success
-        // This would be tested with actual database calls in integration tests
-
-        // For now, we verify the status codes are correct
-        assert_eq!(StatusCode::ACCEPTED, StatusCode::ACCEPTED);
-        assert_eq!(StatusCode::OK, StatusCode::OK);
     }
 }
