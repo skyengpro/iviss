@@ -35,6 +35,7 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
         className="absolute inset-0 h-full w-full object-cover"
         onUserMedia={onUserMedia}
         onUserMediaError={onUserMediaError}
+        mirrored={facingMode === 'user'}
       />
 
       {/* Scan frame overlay */}
