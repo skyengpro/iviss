@@ -47,6 +47,7 @@ export default function MobileScan() {
     liveDetections,
     startLiveScan,
     stopLiveScan,
+    scanError,
   } = useScanPlate({
     onSuccess: (plate) => {
       setDetectedPlate(plate);
@@ -140,6 +141,12 @@ export default function MobileScan() {
           useDemoData={useDemoData}
           onToggleDemoData={setUseDemoData}
         />
+
+        {scanError && liveScanActive && !detectedPlate && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-destructive/90 text-destructive-foreground rounded-full text-sm font-medium animate-in fade-in slide-in-from-top-4 shadow-lg whitespace-nowrap">
+            {scanError}
+          </div>
+        )}
 
         <ScanDetectionsList detections={liveDetections} onPlateClick={handleLivePlateClick} />
 
