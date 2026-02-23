@@ -26,6 +26,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   const [useDemoData, setUseDemoData] = useState(initialUseDemoData);
   const [liveScanActive, setLiveScanActive] = useState(false);
   const [liveDetections, setLiveDetections] = useState<DetectedPlate[]>([]);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const { addDetection, resetStability, stableResult } = useStabilityDetection({
     requiredMatches: 3,
@@ -66,6 +67,8 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
     setLiveScanActive(false);
     resetStability();
     setLiveDetections([]); // Clear visual history on stop
+    setScanError(null);
+
     if (scanIntervalRef.current) {
       clearInterval(scanIntervalRef.current);
       scanIntervalRef.current = null;
@@ -162,7 +165,9 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
         }
       } catch (error) {
         console.error('Frame processing failed:', error);
+        setScanError(error instanceof Error ? error.message : t('mobileScan.ocrError'));
       }
+
     },
     [useDemoData, addDetection, t]
   );
@@ -173,6 +178,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
 
       setLiveScanActive(true);
       resetStability();
+      setScanError(null);
       demoStateRef.current = { count: 0, currentPlate: 'CE 128 BC' }; // Reset demo state
 
       // Capture first frame immediately for better responsiveness
@@ -210,5 +216,6 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
     startLiveScan,
     stopLiveScan,
     setLiveDetections,
+    scanError,
   };
 }
