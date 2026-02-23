@@ -2,7 +2,7 @@ use image::imageops::FilterType;
 use image::{GenericImageView, GrayImage, Luma};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use leptess::{LepTess, leptonica, Variable};
+use leptess::{LepTess, Variable};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
