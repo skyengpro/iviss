@@ -7,7 +7,6 @@ import { useCamera } from '@/hooks/feature/useCamera';
 import { ScanViewfinder } from '@/components/mobile/scan/ScanViewfinder';
 import { ScanTopControls } from '@/components/mobile/scan/ScanTopControls';
 import { ScanDetectionsList } from '@/components/mobile/scan/ScanDetectionsList';
-import { ScanResultCard } from '@/components/mobile/scan/ScanResultCard';
 import { ScanActionButtons } from '@/components/mobile/scan/ScanActionButtons';
 import { Button } from '@/components/ui/button';
 import { Keyboard } from 'lucide-react';
@@ -25,8 +24,6 @@ export default function MobileScan() {
   const [showFallback, setShowFallback] = useState(false);
 
   const [detectedPlate, setDetectedPlate] = useState<DetectedPlate | null>(null);
-  const [editedPlate, setEditedPlate] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
 
   const {
     webcamRef,
@@ -51,9 +48,10 @@ export default function MobileScan() {
   } = useScanPlate({
     onSuccess: (plate) => {
       setDetectedPlate(plate);
-      setEditedPlate(plate.plateNumber);
+      // Auto-navigate to trigger query Automatically
+      navigate(`/mobile/vehicle/${encodeURIComponent(plate.plateNumber)}`);
     },
-    initialUseDemoData: true,
+    initialUseDemoData: false,
   });
 
   // 30-second fallback timer for manual entry
@@ -95,24 +93,10 @@ export default function MobileScan() {
     }
   }, [liveScanActive, startLiveScan, stopLiveScan, getScreenshot]);
 
-  const handleConfirm = () => {
-    const plateToSearch = isEditing ? editedPlate : detectedPlate?.plateNumber;
-    if (plateToSearch) {
-      navigate(`/mobile/vehicle/${encodeURIComponent(plateToSearch)}`);
-    }
-  };
-
-  const handleRetry = () => {
-    setDetectedPlate(null);
-    setEditedPlate('');
-    setIsEditing(false);
-    stopLiveScan(); // Ensure hook state is also reset
-  };
-
   const handleLivePlateClick = (plate: DetectedPlate) => {
     setDetectedPlate(plate);
-    setEditedPlate(plate.plateNumber);
     stopLiveScan();
+    navigate(`/mobile/vehicle/${encodeURIComponent(plate.plateNumber)}`);
   };
 
   const handleManualEntry = () => {
@@ -165,17 +149,7 @@ export default function MobileScan() {
           </div>
         )}
 
-        {detectedPlate && (
-          <ScanResultCard
-            detectedPlate={detectedPlate}
-            isEditing={isEditing}
-            editedPlate={editedPlate}
-            onEditToggle={() => setIsEditing(!isEditing)}
-            onEditChange={setEditedPlate}
-            onRetry={handleRetry}
-            onConfirm={handleConfirm}
-          />
-        )}
+
 
         <ScanActionButtons
           mode={mode}
