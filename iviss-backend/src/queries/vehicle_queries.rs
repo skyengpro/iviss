@@ -65,6 +65,7 @@ pub async fn get_vehicle_status_by_plate(
             vs.technical_status,
             vs.technical_expiry,
             vs.stolen_status,
+            vs.vehicle_image_url,
             vs.last_updated
         FROM vehicle_statuses vs
         JOIN vehicles v ON vs.vehicle_id = v.id
@@ -86,6 +87,7 @@ pub async fn get_vehicle_status_by_plate(
                 technical_status: row.get("technical_status"),
                 technical_expiry: row.get("technical_expiry"),
                 stolen_status: row.get("stolen_status"),
+                vehicle_image_url: row.get("vehicle_image_url"),
                 last_updated: row.get("last_updated"),
             };
             Ok(Some(status_row))
@@ -101,6 +103,7 @@ pub struct VehicleStatusRow {
     pub technical_status: Option<String>,
     pub technical_expiry: Option<time::Date>,
     pub stolen_status: bool,
+    pub vehicle_image_url: Option<String>,
     #[allow(dead_code)]
     pub last_updated: Option<time::OffsetDateTime>,
 }
