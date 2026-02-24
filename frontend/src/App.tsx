@@ -7,7 +7,14 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { AppRouter } from '@/router/AppRouter';
 import { useMetrics } from '@/hooks/useMetrics';
 
+import { client } from '@/openapi-rq/requests/services.gen';
+
 const queryClient = new QueryClient();
+
+// Configure the generated API client
+client.setConfig({
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+});
 
 const AppInner = () => {
   useMetrics();

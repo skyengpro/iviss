@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
       POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -58,7 +58,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@db:5432/${POSTGRES_DB:-iviss_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_db}
       EXTERNAL_DATABASE_URL: postgresql://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
       JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
       SERVER_HOST: 0.0.0.0
@@ -107,10 +107,12 @@ services:
       - "8080:8080"
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000/api}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+      - BACKEND_OPENAPI_URL=http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - ./scripts:/scripts
     command: npm run dev -- --host
     deploy:
       resources:
