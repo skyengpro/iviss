@@ -20,7 +20,7 @@
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
     "postinstall": "npm run codegen",
-    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch"
+    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -79,7 +79,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^7.0.0",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@hey-api/client-fetch": "^0.5.1"
   },
   "devDependencies": {
     "@7nohe/openapi-react-query-codegen": "^2.0.0",
