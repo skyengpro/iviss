@@ -15,7 +15,7 @@ static PLATE_REGEX: Lazy<Regex> =
 const TARGET_WIDTH: u32 = 1200;
 
 /// Radius (in pixels) for the adaptive threshold sliding window.
-const ADAPTIVE_RADIUS: u32 = 60;
+const ADAPTIVE_RADIUS: u32 = 40;
 
 /// Offset subtracted from the local mean when applying adaptive threshold.
 const ADAPTIVE_C: i16 = 5;
@@ -23,14 +23,10 @@ const ADAPTIVE_C: i16 = 5;
 // ── public API ────────────────────────────────────────────────────────────────
 
 /// Run the full OCR pipeline on raw image bytes (JPEG / PNG).
-///
-/// Pipeline:
-///   Load → Grayscale → Resize → Contrast stretch → Adaptive threshold
-///   → Tesseract (binary + inverted, PSM 7) → pick best result → normalise.
 pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let start_total = std::time::Instant::now();
 
-    // 1. Load the image from raw bytes
+    // 1. Load the image
     let load_start = std::time::Instant::now();
     let img = image::load_from_memory(image_bytes)
         .map_err(|e| AppError::bad_request(format!("Cannot decode image: {e}")))?;
@@ -42,60 +38,67 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // 2. Convert to 8-bit grayscale
     let gray = img.to_luma8();
 
-    // 3. Upscale to ensure adaptive threshold works correctly
-    //    The ADAPTIVE_RADIUS=60 needs images at least ~400px tall to avoid
-    //    destroying text. Scale up small images to TARGET_WIDTH.
-    let (gw, gh) = gray.dimensions();
-    let gray = if gw < TARGET_WIDTH {
-        let scale = TARGET_WIDTH as f32 / gw as f32;
-        let new_h = (gh as f32 * scale) as u32;
-        image::imageops::resize(&gray, TARGET_WIDTH, new_h, image::imageops::FilterType::Triangle)
-    } else {
-        gray
-    };
-
-    // 4. Preprocessing: contrast stretch → adaptive threshold
+    // 3. Preprocessing: contrast stretch → adaptive threshold
     let process_start = std::time::Instant::now();
     let stretched = contrast_stretch(&gray);
     let binary = adaptive_threshold(&stretched, ADAPTIVE_RADIUS, ADAPTIVE_C);
     let inverted = invert_image(&binary);
+    
+    // Add 30px white border — Tesseract works much better when chars aren't touching edges
+    let binary = add_border(&binary, 30, 255);
+    let inverted = add_border(&inverted, 30, 255);
+    
     let process_elapsed = process_start.elapsed();
 
     // 4. Initialize Tesseract
-    let tesseract_start = std::time::Instant::now();
     let mut tess = LepTess::new(Some("/usr/share/tesseract-ocr/5/tessdata"), "eng")
         .map_err(|e| AppError::internal_error(format!("Failed to init Tesseract: {e}")))?;
 
     tess.set_variable(Variable::TesseditCharWhitelist, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
         .map_err(|e| AppError::internal_error(format!("Failed to set whitelist: {e}")))?;
 
-    // 5. Run OCR with PSM 11 (sparse text) — only mode that works for plates in context
-    tess.set_variable(Variable::TesseditPagesegMode, "11")
-        .map_err(|e| AppError::internal_error(format!("Failed to set PSM: {e}")))?;
+    let tesseract_start = std::time::Instant::now();
+    
+    // --- MODE 1: PSM 7 (Single Text Line) ---
+    tess.set_variable(Variable::TesseditPagesegMode, "7")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
+    let r_b7 = try_ocr(&mut tess, &binary, "binary-psm7");
+    let r_i7 = try_ocr(&mut tess, &inverted, "inverted-psm7");
 
-    // Save debug image (latest frame) for diagnostics
+    // Check if we already found a winner
+    if let Some(ref res) = r_b7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
+    if let Some(ref res) = r_i7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
+
+    // --- MODE 2: PSM 11 (Sparse Text) --- Fallback
+    tess.set_variable(Variable::TesseditPagesegMode, "11")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
+    let r_b11 = try_ocr(&mut tess, &binary, "binary-psm11");
+    let r_i11 = try_ocr(&mut tess, &inverted, "inverted-psm11");
+
+    // Save debug image (latest frame)
     let _ = binary.save("/tmp/ocr_debug_binary_latest.png");
     let _ = inverted.save("/tmp/ocr_debug_inverted_latest.png");
 
-    // Run OCR on both binary and inverted
-    let result_binary = try_ocr(&mut tess, &binary, "binary-psm11");
-    let result_inverted = try_ocr(&mut tess, &inverted, "inverted-psm11");
     let tesseract_elapsed = tesseract_start.elapsed();
 
-    // Pick best result
-    let mut final_result = pick_best(result_binary, result_inverted);
+    // 5. Result Selection
+    let candidates = vec![r_b7, r_i7, r_b11, r_i11];
+    let final_result = pick_best_ensemble(candidates);
 
-    // PSM 7 may report low confidence — override based on format validity
-    if final_result.format_valid {
-        final_result.confidence = 0.90;
-    } else if !final_result.plate.is_empty() {
-        final_result.confidence = 0.50;
+    finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
+}
+
+fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time::Duration, total: std::time::Duration) -> Result<ScanResultData, AppError> {
+    if res.format_valid {
+        res.confidence = 0.90;
+    } else if !res.plate.is_empty() {
+        res.confidence = 0.50;
     }
     
     tracing::info!("Scan completed: process={:?}, tesseract={:?}, total={:?}, plate={:?} (conf={:.2})", 
-        process_elapsed, tesseract_elapsed, start_total.elapsed(), final_result.plate, final_result.confidence);
+        proc, tess, total, res.plate, res.confidence);
 
-    Ok(final_result)
+    Ok(res)
 }
 
 // ── OCR helper ────────────────────────────────────────────────────────────────
@@ -131,27 +134,32 @@ fn try_ocr(tess: &mut LepTess, img: &GrayImage, label: &str) -> Option<ScanResul
     })
 }
 
-/// Pick the better of two optional OCR results.
-fn pick_best(a: Option<ScanResultData>, b: Option<ScanResultData>) -> ScanResultData {
-    let empty = ScanResultData {
+/// Pick the best result from an ensemble of candidates.
+fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData {
+    let mut best: Option<ScanResultData> = None;
+
+    for cand in candidates.into_iter().flatten() {
+        match &best {
+            None => best = Some(cand),
+            Some(curr) => {
+                // Priority 1: Valid format
+                if cand.format_valid && !curr.format_valid {
+                    best = Some(cand);
+                }
+                // Priority 2: Higher confidence (if both valid or both invalid)
+                else if (cand.format_valid == curr.format_valid) && (cand.confidence > curr.confidence) {
+                    best = Some(cand);
+                }
+            }
+        }
+    }
+
+    best.unwrap_or(ScanResultData {
         plate: String::new(),
         raw_text: String::new(),
         confidence: 0.0,
         format_valid: false,
-    };
-
-    match (a, b) {
-        (Some(a), Some(b)) => {
-            if a.format_valid { a }
-            else if b.format_valid { b }
-            else if a.confidence >= b.confidence && !a.raw_text.is_empty() { a }
-            else if !b.raw_text.is_empty() { b }
-            else { a }
-        }
-        (Some(a), None) => a,
-        (None, Some(b)) => b,
-        (None, None) => empty,
-    }
+    })
 }
 
 // ── image processing helpers ──────────────────────────────────────────────────
@@ -261,58 +269,41 @@ fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
 fn extract_plate_fuzzy(raw: &str) -> Option<String> {
     let cleaned = normalise_plate(raw);
     
-    // 1. Try exact match first
-    if PLATE_REGEX.is_match(&cleaned) {
-        return Some(cleaned);
-    }
-
-    // 2. Try to find a 7-character sequence within a longer string
-    static FUZZY_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"[A-Z]{2}[0-9]{3}[A-Z]{2}").unwrap());
-    if let Some(mat) = FUZZY_REGEX.find(&cleaned) {
+    // 1. First priority: find a sequence that matches the Cameroon format exactly
+    if let Some(mat) = PLATE_REGEX.find(&cleaned) {
         return Some(mat.as_str().to_string());
     }
 
-    // 3. Apply position-aware character correction
-    //    Cameroon format: LL DDD LL (L=letter, D=digit)
-    //    Common OCR confusions: 0↔O, 1↔I, 5↔S, 8↔B, 2↔Z, 6↔G
-    let candidate = if cleaned.len() >= 7 {
-        &cleaned[..7]
-    } else if cleaned.len() == 7 {
-        &cleaned
-    } else {
-        // Too short, no correction possible
-        if cleaned.len() >= 5 { return Some(cleaned); }
-        return None;
-    };
-
-    let corrected: String = candidate.chars().enumerate().map(|(i, c)| {
-        match i {
-            // Positions 0, 1, 5, 6 expect LETTERS
-            0 | 1 | 5 | 6 => match c {
-                '0' => 'O',
-                '1' => 'I',
-                '2' => 'Z',
-                '5' => 'S',
-                '6' => 'G',
-                '8' => 'B',
-                _ => c,
-            },
-            // Positions 2, 3, 4 expect DIGITS
-            2 | 3 | 4 => match c {
-                'O' => '0',
-                'I' => '1',
-                'Z' => '2',
-                'S' => '5',
-                'G' => '6',
-                'B' => '8',
-                _ => c,
-            },
-            _ => c,
+    // 2. Second priority: find a 7-character sequence and try to correct it
+    // LL DDD LL
+    if cleaned.len() >= 7 {
+        // Find any 7-char block
+        for i in 0..=(cleaned.len() - 7) {
+            let candidate = &cleaned[i..i+7];
+            let corrected: String = candidate.chars().enumerate().map(|(j, c)| {
+                match j {
+                    0 | 1 | 5 | 6 => match c {
+                        '0' => 'O', '1' => 'I', '2' => 'Z', '5' => 'S', '6' => 'G', '8' => 'B', _ => c
+                    },
+                    2 | 3 | 4 => match c {
+                        'O' => '0', 'I' => '1', 'Z' => '2', 'S' => '5', 'G' => '6', 'B' => '8', _ => c
+                    },
+                    _ => c,
+                }
+            }).collect();
+            
+            if PLATE_REGEX.is_match(&corrected) {
+                return Some(corrected);
+            }
         }
-    }).collect();
+    }
 
-    tracing::info!("OCR correction: {:?} → {:?}", candidate, corrected);
-    Some(corrected)
+    // Fallback: just return the cleaned string if it's potentially a plate
+    if cleaned.len() >= 4 {
+        return Some(cleaned);
+    }
+    
+    None
 }
 
 /// Uppercase, strip non-alphanumeric chars.
