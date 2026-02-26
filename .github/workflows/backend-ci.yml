@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -36,7 +36,7 @@ jobs:
 
   backend_test:
     name: Backend Test
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -46,9 +46,36 @@ jobs:
         run: cargo test --verbose
         working-directory: iviss-backend
 
+  backend_coverage:
+    name: Backend Code Coverage
+    runs-on: arc-runner-set
+    needs: [backend_build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Cache cargo-llvm-cov
+        id: cache-cargo-llvm-cov
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-llvm-cov
+          key: ${{ runner.os }}-cargo-llvm-cov-v1
+      - name: Install cargo-llvm-cov
+        if: steps.cache-cargo-llvm-cov.outputs.cache-hit != 'true'
+        run: cargo install cargo-llvm-cov
+      - name: Generate coverage report
+        run: cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60
+        working-directory: iviss-backend
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: iviss-backend/target/coverage/html/
+          retention-days: 30
+
   backend_fmt:
     name: Backend Format
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -61,7 +88,7 @@ jobs:
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -74,7 +101,7 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Cache cargo-audit
@@ -94,7 +121,7 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
