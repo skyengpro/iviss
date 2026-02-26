@@ -40,7 +40,7 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 
       {/* Scan frame overlay */}
       <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
-        <div className="relative aspect-[3/1] w-full max-w-sm">
+        <div className="relative aspect-[2/1] w-full max-w-sm">
           {/* Corner markers */}
           <div className="absolute left-0 top-0 h-8 w-8 border-l-4 border-t-4 border-accent" />
           <div className="absolute right-0 top-0 h-8 w-8 border-r-4 border-t-4 border-accent" />
