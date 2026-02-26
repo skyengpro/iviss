@@ -75,6 +75,7 @@ impl LogLevel {
 #[allow(dead_code)] // jwt_secret and helper methods will be used in future JWT implementation
 pub struct Config {
     pub database_url: String,
+    pub redis_url: String,
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
@@ -95,7 +96,12 @@ impl Config {
         if database_url.trim().is_empty() {
             return Err(anyhow!("DATABASE_URL cannot be empty"));
         }
+        let redis_url =
+            env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
+        if redis_url.trim().is_empty() {
+            return Err(anyhow!("REDIS_URL cannot be empty"));
+        }
         // Load and validate JWT_SECRET (critical)
         let jwt_secret = env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
 
@@ -134,6 +140,7 @@ impl Config {
 
         Ok(Self {
             database_url,
+            redis_url,
             server_host,
             server_port,
             log_level,
