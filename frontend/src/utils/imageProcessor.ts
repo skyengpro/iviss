@@ -117,4 +117,56 @@ export class ImageProcessor {
       img.src = imageSrc;
     });
   }
+
+  /**
+   * Crop image to a center box for better OCR accuracy
+   * Viewfinder is roughly 3:1 aspect ratio in the center
+   */
+  static async cropToViewfinder(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          // Output dimensions — wide strip for a plate
+          const targetWidth = 900;
+          const targetHeight = 120;
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // Match the on-screen viewfinder: aspect-[3/1], ~80% of screen width, centered
+          // The webcam is stretched to fill the screen (object-cover), so
+          // we crop the same proportional region from the camera frame.
+          const sourceWidth = img.width * 0.80;
+          const sourceHeight = sourceWidth / 3; // 3:1 aspect ratio like the viewfinder
+
+          const sx = (img.width - sourceWidth) / 2;
+          const sy = (img.height - sourceHeight) / 2;
+
+          // White background (helps Tesseract with edge chars)
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+          ctx.drawImage(img, sx, sy, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
 }
