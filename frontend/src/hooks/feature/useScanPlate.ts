@@ -30,7 +30,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
 
   const { addDetection, resetStability, stableResult } = useStabilityDetection({
     requiredMatches: 2,
-    minConfidence: 60,
+    minConfidence: 40,
   });
 
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
