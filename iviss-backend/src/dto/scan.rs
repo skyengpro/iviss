@@ -2,7 +2,7 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 /// Successful OCR scan result data.
-#[derive(Debug, Clone, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema, Default)]
 pub struct ScanResultData {
     /// Normalized plate text (uppercase, no spaces). Empty if nothing detected.
     pub plate: String,
