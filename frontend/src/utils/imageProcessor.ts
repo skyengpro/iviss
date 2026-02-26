@@ -135,9 +135,9 @@ export class ImageProcessor {
             return;
           }
 
-          // Output dimensions — wide strip for a plate
-          const targetWidth = 900;
-          const targetHeight = 120;
+          // Output dimensions — 4:1 aspect ratio for a plate
+          const targetWidth = 1200; 
+          const targetHeight = 300;
 
           canvas.width = targetWidth;
           canvas.height = targetHeight;
@@ -145,20 +145,33 @@ export class ImageProcessor {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
-          // Match the on-screen viewfinder: aspect-[3/1], ~80% of screen width, centered
-          // The webcam is stretched to fill the screen (object-cover), so
-          // we crop the same proportional region from the camera frame.
-          const sourceWidth = img.width * 0.80;
-          const sourceHeight = sourceWidth / 3; // 3:1 aspect ratio like the viewfinder
+          // 1. Account for 'object-cover' scaling
+          const W = window.innerWidth;
+          const H = window.innerHeight;
+          const w = img.width;
+          const h = img.height;
 
-          const sx = (img.width - sourceWidth) / 2;
-          const sy = (img.height - sourceHeight) / 2;
+          // object-cover scale
+          const scale = Math.max(W / w, H / h);
+          
+          // Viewfinder-mapped region: 92% of screen width, 4:1 aspect ratio
+          const vw = W * 0.92; 
+          const vh = vw / 4.0; 
 
-          // White background (helps Tesseract with edge chars)
+          // Map viewfinder pixels back to raw video pixels
+          const sw = vw / scale;
+          const sh = vh / scale;
+
+          // Center the crop on the video
+          const sx = (w - sw) / 2;
+          const sy = (h - sh) / 2;
+
+          // White background
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, targetWidth, targetHeight);
 
-          ctx.drawImage(img, sx, sy, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+          // Draw without squashing! (sw/sh aspect == targetWidth/targetHeight aspect)
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
 
           resolve(canvas.toDataURL('image/jpeg', 0.9));
         } catch (error) {

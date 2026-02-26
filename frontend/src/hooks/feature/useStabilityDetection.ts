@@ -31,9 +31,9 @@ export function useStabilityDetection({
    */
   const addDetection = useCallback(
     (result: DetectionResult | null): { plateNumber: string; confidence: number } | null => {
-      // If no result or low confidence, reset history
-      if (!result || result.confidence < minConfidence) {
-        setHistory([]);
+      // If no result or low confidence, just skip this frame (don't reset history)
+      // This allows matches to accumulate even if intermittent frames are empty
+      if (!result || !result.plateNumber || result.confidence < minConfidence) {
         return null;
       }
 
