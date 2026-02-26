@@ -29,15 +29,15 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   const [scanError, setScanError] = useState<string | null>(null);
 
   const { addDetection, resetStability, stableResult } = useStabilityDetection({
-    requiredMatches: 3,
-    minConfidence: 75,
+    requiredMatches: 2,
+    minConfidence: 60,
   });
 
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Effect to handle success when a stable result is found
   useEffect(() => {
-    if (stableResult) {
+    if (stableResult?.plateNumber) {
       const confirmedPlate: DetectedPlate = {
         plateNumber: stableResult.plateNumber,
         confidence: stableResult.confidence,
@@ -56,24 +56,14 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
 
       // Stop scanning once success is reached
       setLiveScanActive(false);
+      scanActiveRef.current = false; // Also stop the ref loop
       if (scanIntervalRef.current) {
-        clearInterval(scanIntervalRef.current);
+        clearTimeout(scanIntervalRef.current);
         scanIntervalRef.current = null;
       }
     }
   }, [stableResult, onSuccess]);
 
-  const stopLiveScan = useCallback(() => {
-    setLiveScanActive(false);
-    resetStability();
-    setLiveDetections([]); // Clear visual history on stop
-    setScanError(null);
-
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-  }, [resetStability]);
 
   const demoStateRef = useRef({ count: 0, currentPlate: 'CE 128 BC' });
 
@@ -119,8 +109,8 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
       }
 
       try {
-        // 1. Optimize image (800x600, 70% JPEG ~50KB)
-        const compressedImage = await ImageProcessor.preprocessForOCR(imageSrc, t);
+        // 1. Optimize image (1200x400 crop of center)
+        const compressedImage = await ImageProcessor.cropToViewfinder(imageSrc, t);
 
         // 2. Prepare for upload (convert data URL to blob)
         const response = await fetch(compressedImage);
@@ -130,7 +120,8 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
         formData.append('image', blob, 'frame.jpg');
 
         // 3. Call Backend OCR API
-        const apiResponse = await fetch('/api/v1/scan/plate', {
+        const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
+        const apiResponse = await fetch(`${apiUrl}/api/v1/scan/plate`, {
           method: 'POST',
           body: formData,
         });
@@ -139,29 +130,31 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
 
         const json = await apiResponse.json();
 
-        if (json.success && json.data) {
+        if (json.success && json.data?.plate) {
           const result: DetectionResult = {
             plateNumber: json.data.plate,
             confidence: json.data.confidence * 100, // Assuming internal scale is 0-1
           };
 
           // Add to detections list for visual feedback (even if not stable yet)
-          if (result.confidence > 60) {
+          // Add to detections list for visual feedback (even if not stable yet)
+          // ONLY add if there is actual text
+          if (result.plateNumber.trim() !== '') {
             setLiveDetections((prev) => {
               if (prev.some((d) => d.plateNumber === result.plateNumber)) return prev;
+              const status: PlateStatus = json.data.format_valid ? 'valid' : 'warning';
               return [
                 {
                   plateNumber: result.plateNumber,
                   confidence: result.confidence,
-                  status: 'valid' as PlateStatus,
+                  status,
                 },
                 ...prev,
               ].slice(0, 10);
             });
+            // 4. Update Stability Logic
+            addDetection(result);
           }
-
-          // 4. Update Stability Logic
-          addDetection(result);
         }
       } catch (error) {
         console.error('Frame processing failed:', error);
@@ -172,36 +165,60 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
     [useDemoData, addDetection, t]
   );
 
+  const isProcessingRef = useRef(false);
+  const scanActiveRef = useRef(false);
+
   const startLiveScan = useCallback(
     (getScreenshot: () => string | null) => {
-      if (liveScanActive) return;
+      if (scanActiveRef.current) return;
 
+      scanActiveRef.current = true;
       setLiveScanActive(true);
       resetStability();
       setScanError(null);
-      demoStateRef.current = { count: 0, currentPlate: 'CE 128 BC' }; // Reset demo state
+      demoStateRef.current = { count: 0, currentPlate: 'CE 128 BC' };
 
-      // Capture first frame immediately for better responsiveness
-      const firstFrame = getScreenshot();
-      if (firstFrame) {
-        processFrame(firstFrame);
-      }
+      const runScanLoop = async () => {
+        if (!scanActiveRef.current) return;
 
-      // Implement 500ms sampling loop for subsequent frames
-      scanIntervalRef.current = setInterval(async () => {
         const imageSrc = getScreenshot();
-        if (imageSrc) {
-          await processFrame(imageSrc);
+        if (imageSrc && !isProcessingRef.current) {
+          isProcessingRef.current = true;
+          try {
+            await processFrame(imageSrc);
+          } finally {
+            isProcessingRef.current = false;
+          }
         }
-      }, 500);
+
+        if (scanActiveRef.current) {
+          scanIntervalRef.current = setTimeout(runScanLoop, 100);
+        }
+      };
+
+      runScanLoop();
     },
-    [liveScanActive, processFrame, resetStability]
+    [processFrame, resetStability]
   );
+
+  const stopLiveScan = useCallback(() => {
+    scanActiveRef.current = false;
+    setLiveScanActive(false);
+    resetStability();
+    setLiveDetections([]);
+    setScanError(null);
+
+    if (scanIntervalRef.current) {
+      clearTimeout(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+  }, [resetStability]);
 
   useEffect(() => {
     return () => {
+      scanActiveRef.current = false;
       if (scanIntervalRef.current) {
-        clearInterval(scanIntervalRef.current);
+        clearTimeout(scanIntervalRef.current as any);
       }
     };
   }, []);
