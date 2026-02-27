@@ -45,6 +45,11 @@ class SimpleStorage {
             autoIncrement: true,
           });
         }
+        if (!db.objectStoreNames.contains('metadata')) {
+          db.createObjectStore('metadata', {
+            keyPath: 'key',
+          });
+        }
       };
     });
   }
@@ -118,7 +123,7 @@ class SimpleStorage {
 }
 
 // Initialize the storage
-const storage = new SimpleStorage('EventKeyStorage', 1);
+const storage = new SimpleStorage('EventKeyStorage', 2);
 
 // Initialize storage on module load
 storage.init().catch(() => {
