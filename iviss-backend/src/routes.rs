@@ -38,9 +38,23 @@ pub fn assembly(pool: DbPool) -> Router {
         .route("/auth/login", post(crate::handlers::auth::login))
         .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route(
+            "/admin/users",
+            get(crate::handlers::admin::list_users).post(crate::handlers::admin::provision_user),
+        )
+        .route(
+            "/admin/users/:id",
+            get(crate::handlers::admin::get_user)
+                .put(crate::handlers::admin::update_user)
+                .delete(crate::handlers::admin::delete_user),
+        )
+        .route(
+            "/admin/organizations",
+            get(crate::handlers::admin::list_organizations),
+        )
         // .layer(axum::middleware::from_fn(logging::log_request))
-        .layer(cors::cors_layer())
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
+        .layer(cors::cors_layer())
         .with_state(state)
 }

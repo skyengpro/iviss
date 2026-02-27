@@ -7,10 +7,11 @@ use crate::dto::{
     common::*,
     create_control::*,
     list_control::*,
+    organizations::{Organization, OrganizationType},
     pending_submission::*,
     search_vehicle::*,
     stats::DashboardStats,
-    users::{UserProfile, UserRole},
+    users::{ProvisionUserRequest, UpdateUserRequest, UserProfile, UserRole, UserStatus},
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
 
@@ -61,6 +62,12 @@ impl Modify for SecurityAddon {
         crate::handlers::auth::login,
         crate::handlers::auth::register,
         crate::handlers::auth::logout,
+        crate::handlers::admin::provision_user,
+        crate::handlers::admin::list_users,
+        crate::handlers::admin::get_user,
+        crate::handlers::admin::update_user,
+        crate::handlers::admin::delete_user,
+        crate::handlers::admin::list_organizations,
     ),
 
     components(
@@ -103,6 +110,11 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::LoginRequest,
             crate::handlers::auth::AuthResponse,
             crate::handlers::auth::RegisterRequest,
+            ProvisionUserRequest,
+            UpdateUserRequest,
+            UserStatus,
+            Organization,
+            OrganizationType,
         )
     ),
     modifiers(&SecurityAddon),
