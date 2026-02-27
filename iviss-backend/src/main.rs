@@ -14,6 +14,9 @@ mod services;
 use crate::api_doc::ApiDoc;
 use crate::config::Config;
 use crate::db::initialize_pool;
+use crate::db::initialize_redis_pool;
+use crate::app_state::AppState;
+
 use anyhow::Context;
 use std::net::SocketAddr;
 use tracing::info;
@@ -45,11 +48,15 @@ async fn main() -> anyhow::Result<()> {
     let pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
 
+    let redis_pool = initialize_redis_pool(&config.redis_url).await?;
+    info!("Redis connection initialized");
+
     info!("Running migrations...");
     sqlx::migrate!("./migrations").run(&pool).await?;
     info!("Migrations completed");
 
-    let app = routes::assembly(pool)
+    let state = AppState::new(pool, redis_pool); 
+    let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
