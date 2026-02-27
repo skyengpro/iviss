@@ -99,8 +99,6 @@ jobs:
     runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -138,6 +136,8 @@ jobs:
     runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - uses: dtolnay/rust-toolchain@stable
       - name: Build documentation
         run: cargo doc --no-deps --verbose
