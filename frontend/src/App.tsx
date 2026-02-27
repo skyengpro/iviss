@@ -8,6 +8,8 @@ import { AppRouter } from '@/router/AppRouter';
 
 import { client } from '@/openapi-rq/requests/services.gen';
 
+import { AppInitializer } from '@/components/shared/AppInitializer';
+
 const queryClient = new QueryClient();
 
 // Configure the generated API client
@@ -17,13 +19,17 @@ client.setConfig({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
-    </TooltipProvider>
+    <AppInitializer>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRouter />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppInitializer>
   </QueryClientProvider>
 );
 
