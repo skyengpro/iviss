@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -40,10 +40,12 @@ jobs:
 
   backend_test:
     name: Backend Test
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Test
@@ -52,10 +54,12 @@ jobs:
 
   backend_coverage:
     name: Backend Code Coverage
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cache cargo-llvm-cov
@@ -79,7 +83,7 @@ jobs:
 
   backend_fmt:
     name: Backend Format
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -92,13 +96,11 @@ jobs:
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -109,9 +111,11 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cache cargo-audit
         id: cache-cargo-audit
         uses: actions/cache@v4
@@ -129,9 +133,11 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Build documentation
