@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -40,7 +40,7 @@ jobs:
 
   backend_test:
     name: Backend Test
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
 
   backend_coverage:
     name: Backend Code Coverage
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
 
   backend_fmt:
     name: Backend Format
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -92,7 +92,7 @@ jobs:
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -109,7 +109,7 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Cache cargo-audit
@@ -129,7 +129,7 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: arc-runner-set
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
