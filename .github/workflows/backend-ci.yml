@@ -87,11 +87,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - name: Check Format
-        run: cargo fmt -- --check
+        run: cargo fmt --all -- --check
         working-directory: iviss-backend
 
   backend_clippy:
@@ -102,7 +102,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - name: Lint
@@ -135,11 +135,10 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build documentation
         run: cargo doc --no-deps --verbose
         working-directory: iviss-backend
