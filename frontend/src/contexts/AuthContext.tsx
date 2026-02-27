@@ -11,15 +11,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize identity and check for existing session on mount
   useEffect(() => {
-    // Ensure device_id is generated and stored
-    getDeviceId();
+    const initIdentity = async () => {
+      // Ensure device_id is generated and stored in IndexedDB
+      await getDeviceId();
 
-    const existingSession = mockAuthService.getSession() as unknown as AuthResponse | null;
-    if (existingSession) {
-      setSession(existingSession);
-      setUser(existingSession.user);
-    }
-    setIsLoading(false);
+      const existingSession = mockAuthService.getSession() as unknown as AuthResponse | null;
+      if (existingSession) {
+        setSession(existingSession);
+        setUser(existingSession.user);
+      }
+      setIsLoading(false);
+    };
+
+    initIdentity();
   }, []);
 
   const login = async (username: string, password: string) => {
