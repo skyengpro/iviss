@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Only install prod dependencies for the metrics server
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev 2>/dev/null || npm install --production
+RUN npm ci --omit=dev --ignore-scripts 2>/dev/null || npm install --production --ignore-scripts
 
 COPY metrics-server.js ./
 
