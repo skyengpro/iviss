@@ -75,9 +75,9 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76",
-    "@hey-api/client-fetch": "^0.5.1"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@7nohe/openapi-react-query-codegen": "^2.0.0",

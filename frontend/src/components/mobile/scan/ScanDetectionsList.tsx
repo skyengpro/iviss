@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
-import { DetectedPlate } from '@/hooks/feature/useScanPlate';
+import { DetectedPlate } from '@/hooks/feature/usePlateScanner';
 
 interface ScanDetectionsListProps {
   detections: DetectedPlate[];
