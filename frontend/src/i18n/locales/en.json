@@ -141,9 +141,7 @@
     "photo": "Photo",
     "live": "Live",
     "stopScanning": "Stop Scanning",
-    "startLiveScan": "Start Live Scan",
-    "takingTooLong": "Scanning taking too long?",
-    "manualEntry": "Switch to Manual Entry"
+    "startLiveScan": "Start Live Scan"
   },
   "mobileSearch": {
     "title": "Search Vehicle",

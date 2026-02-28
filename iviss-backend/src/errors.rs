@@ -68,10 +68,6 @@ impl AppError {
     pub fn external_api_failure(msg: impl Into<String>) -> Self {
         Self::ExternalApiFailure(msg.into())
     }
-
-    pub fn internal_error(msg: impl Into<String>) -> Self {
-        Self::Internal(anyhow::anyhow!(msg.into()))
-    }
 }
 
 impl IntoResponse for AppError {

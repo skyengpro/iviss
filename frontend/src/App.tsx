@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppRouter } from '@/router/AppRouter';
-import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 import { client } from '@/openapi-rq/requests/services.gen';
 
@@ -25,11 +24,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ErrorBoundary>
-            <AuthProvider>
-              <AppRouter />
-            </AuthProvider>
-          </ErrorBoundary>
+          <AuthProvider>
+            <AppRouter />
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </AppInitializer>
