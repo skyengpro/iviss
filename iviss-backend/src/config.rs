@@ -82,6 +82,10 @@ pub struct Config {
     #[allow(dead_code)]
     pub jwt_secret: String,
     pub environment: Environment,
+    // SMS
+    pub twilio_account_sid: String,
+    pub twilio_auth_token: String,
+    pub twilio_from_number: String,
 }
 
 impl Config {
@@ -138,6 +142,14 @@ impl Config {
             .parse::<Environment>()
             .context("Failed to parse ENVIRONMENT")?;
 
+        // Twilio — requis uniquement en production
+        let twilio_account_sid =
+            env::var("TWILIO_ACCOUNT_SID").unwrap_or_else(|_| "mock".to_string());
+        let twilio_auth_token =
+            env::var("TWILIO_AUTH_TOKEN").unwrap_or_else(|_| "mock".to_string());
+        let twilio_from_number =
+            env::var("TWILIO_FROM_NUMBER").unwrap_or_else(|_| "mock".to_string());
+
         Ok(Self {
             database_url,
             redis_url,
@@ -146,6 +158,9 @@ impl Config {
             log_level,
             jwt_secret,
             environment,
+            twilio_account_sid,
+            twilio_auth_token,
+            twilio_from_number,
         })
     }
 
@@ -154,6 +169,15 @@ impl Config {
         // Additional validation can be added here
         if self.server_port == 0 {
             return Err(anyhow!("SERVER_PORT cannot be 0"));
+        }
+        // Validate Twilio config
+        if self.environment == Environment::Production {
+            if self.twilio_account_sid == "mock"
+                || self.twilio_auth_token == "mock"
+                || self.twilio_from_number == "mock"
+            {
+                return Err(anyhow!("Twilio credentials must be set in production"));
+            }
         }
 
         Ok(())
