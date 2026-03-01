@@ -53,6 +53,50 @@ export class ImageProcessor {
   }
 
   /**
+   * Preprocess image for high-resolution single-shot photo capture.
+   * Uses 1600×1200 at JPEG 90% quality for maximum OCR accuracy.
+   * @param imageSrc Base64 image data
+   * @returns Processed base64 image
+   */
+  static async preprocessForHighRes(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          // High-res target: 1600×1200
+          canvas.width = 1600;
+          canvas.height = 1200;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // Center-crop to fill canvas
+          const scale = Math.max(1600 / img.width, 1200 / img.height);
+          const x = (1600 - img.width * scale) / 2;
+          const y = (1200 - img.height * scale) / 2;
+          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+          // 90% quality for minimal compression artifacts
+          const result = canvas.toDataURL('image/jpeg', 0.9);
+          resolve(result);
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
+
+  /**
    * Clamp value between 0 and 255
    */
   private static clamp(value: number): number {
