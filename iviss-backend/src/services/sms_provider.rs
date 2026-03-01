@@ -2,15 +2,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tracing::{info, warn};
 
-/// Abstraction du provider SMS
+///  SMS provider abstraction
 #[async_trait]
 pub trait SmsProvider: Send + Sync {
     async fn send_sms(&self, phone_number: &str, message: &str) -> Result<()>;
 }
-
-// ─────────────────────────────────────────
-// Mock — développement
-// ─────────────────────────────────────────
 
 pub struct MockSmsProvider;
 
