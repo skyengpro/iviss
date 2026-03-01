@@ -143,7 +143,11 @@
     "stopScanning": "Arrêter le Scan",
     "startLiveScan": "Démarrer le Scan en Direct",
     "takingTooLong": "Le scan prend du temps ?",
-    "manualEntry": "Passer à la saisie manuelle"
+    "manualEntry": "Passer à la saisie manuelle",
+    "processingPhoto": "Traitement de la photo...",
+    "photoError": "Échec du traitement de la photo. Veuillez réessayer.",
+    "captureHint": "Positionnez la plaque dans le cadre et appuyez pour capturer",
+    "liveScanHint": "Restez stable — la plaque sera détectée automatiquement"
   },
   "mobileSearch": {
     "title": "Rechercher un véhicule",
