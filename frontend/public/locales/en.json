@@ -143,7 +143,11 @@
     "stopScanning": "Stop Scanning",
     "startLiveScan": "Start Live Scan",
     "takingTooLong": "Scanning taking too long?",
-    "manualEntry": "Switch to Manual Entry"
+    "manualEntry": "Switch to Manual Entry",
+    "processingPhoto": "Processing photo...",
+    "photoError": "Failed to process photo. Please try again.",
+    "captureHint": "Position the plate within the frame and tap to capture",
+    "liveScanHint": "Hold steady — scanning will detect the plate automatically"
   },
   "mobileSearch": {
     "title": "Search Vehicle",
