@@ -40,7 +40,8 @@ pub fn assembly(pool: DbPool) -> Router {
         .route("/auth/logout", post(crate::handlers::auth::logout))
         .route(
             "/admin/users",
-            get(crate::handlers::user_management::list_users).post(crate::handlers::user_management::provision_user),
+            get(crate::handlers::user_management::list_users)
+                .post(crate::handlers::user_management::provision_user),
         )
         .route(
             "/admin/users/:id",
