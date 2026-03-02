@@ -38,8 +38,6 @@ export default function MobileScan() {
   const {
     isScanning,
     setIsScanning,
-    useDemoData,
-    setUseDemoData,
     liveScanActive,
     liveDetections,
     startLiveScan,
@@ -51,7 +49,6 @@ export default function MobileScan() {
       // Auto-navigate to trigger query Automatically
       navigate(`/mobile/vehicle/${encodeURIComponent(plate.plateNumber)}`);
     },
-    initialUseDemoData: false,
   });
 
   // 30-second fallback timer for manual entry
@@ -122,8 +119,6 @@ export default function MobileScan() {
           onToggleFacingMode={toggleFacingMode}
           flashOn={flashOn}
           facingMode={facingMode}
-          useDemoData={useDemoData}
-          onToggleDemoData={setUseDemoData}
         />
 
         {scanError && liveScanActive && !detectedPlate && (
