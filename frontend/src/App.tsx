@@ -9,6 +9,8 @@ import { useMetrics } from '@/hooks/useMetrics';
 
 import { client } from '@/openapi-rq/requests/services.gen';
 
+import { AppInitializer } from '@/components/shared/AppInitializer';
+
 const queryClient = new QueryClient();
 
 // Configure the generated API client
@@ -28,13 +30,15 @@ const AppInner = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppInner />
-      </BrowserRouter>
-    </TooltipProvider>
+    <AppInitializer>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppInner />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppInitializer>
   </QueryClientProvider>
 );
 
