@@ -1,4 +1,3 @@
-use image::imageops::FilterType;
 use image::{GenericImageView, GrayImage};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -35,8 +34,9 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let (width, height) = img.dimensions();
     tracing::info!("Received image for OCR: {}x{} ({} bytes), load took {:?}", width, height, image_bytes.len(), load_elapsed);
 
-    // 2. Convert to 8-bit grayscale
+    // 2. Convert to 8-bit grayscale and resize for speed (keep aspect ratio)
     let gray = img.to_luma8();
+    let gray = resize_to_target_width(&gray, TARGET_WIDTH);
 
     // 3. Preprocessing: contrast stretch → adaptive threshold
     let process_start = std::time::Instant::now();
@@ -69,23 +69,26 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     if let Some(ref res) = r_b7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
     if let Some(ref res) = r_i7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
 
-    // --- MODE 2: PSM 11 (Sparse Text) --- Fallback
-    tess.set_variable(Variable::TesseditPagesegMode, "11")
-        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
-    let r_b11 = try_ocr(&mut tess, &binary, "binary-psm11");
-    let r_i11 = try_ocr(&mut tess, &inverted, "inverted-psm11");
-
-    // Save debug image (latest frame)
-    let _ = binary.save("/tmp/ocr_debug_binary_latest.png");
-    let _ = inverted.save("/tmp/ocr_debug_inverted_latest.png");
-
     let tesseract_elapsed = tesseract_start.elapsed();
 
     // 5. Result Selection
-    let candidates = vec![r_b7, r_i7, r_b11, r_i11];
+    let candidates = vec![r_b7, r_i7];
     let final_result = pick_best_ensemble(candidates);
 
     finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
+}
+
+fn resize_to_target_width(img: &GrayImage, target_w: u32) -> GrayImage {
+    let (w, h) = img.dimensions();
+    if w == 0 || h == 0 {
+        return img.clone();
+    }
+    if w <= target_w {
+        return img.clone();
+    }
+    let scale = target_w as f32 / w as f32;
+    let target_h = (h as f32 * scale).round().max(1.0) as u32;
+    image::imageops::resize(img, target_w, target_h, image::imageops::FilterType::Triangle)
 }
 
 fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time::Duration, total: std::time::Duration) -> Result<ScanResultData, AppError> {
@@ -319,6 +322,7 @@ fn normalise_plate(raw: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use image::Luma;
 
     #[test]
     fn normalise_removes_spaces_and_dashes() {

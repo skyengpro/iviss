@@ -13,17 +13,15 @@ export interface DetectedPlate {
 
 interface UseScanPlateProps {
   onSuccess?: (plate: DetectedPlate) => void;
-  initialUseDemoData?: boolean;
 }
 
 /**
  * Hook to manage the license plate scanning process (The "Eyes" of the system).
  * Implements 500ms frame sampling and hybrid OCR communication.
  */
-export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanPlateProps = {}) {
+export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
-  const [useDemoData, setUseDemoData] = useState(initialUseDemoData);
   const [liveScanActive, setLiveScanActive] = useState(false);
   const [liveDetections, setLiveDetections] = useState<DetectedPlate[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -34,6 +32,11 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   });
 
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onSuccessRef = useRef(onSuccess);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   // Effect to handle success when a stable result is found
   useEffect(() => {
@@ -56,6 +59,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
 
       // Stop scanning once success is reached
       setLiveScanActive(false);
+      setIsScanning(false);
       scanActiveRef.current = false; // Also stop the ref loop
       if (scanIntervalRef.current) {
         clearTimeout(scanIntervalRef.current);
@@ -64,50 +68,10 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
     }
   }, [stableResult, onSuccess]);
 
-
-  const demoStateRef = useRef({ count: 0, currentPlate: 'CE 128 BC' });
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const processFrame = useCallback(
     async (imageSrc: string) => {
-      if (useDemoData) {
-        // Logic for demo mode (simulated backend)
-        // To test stability logic, we return the same plate for 5 frames, then pick a new one
-        const mockPlates = ['CE 128 BC', 'LT 390 HN', 'EN 555 AA'];
-
-        if (demoStateRef.current.count >= 5) {
-          demoStateRef.current.currentPlate =
-            mockPlates[Math.floor(Math.random() * mockPlates.length)];
-          demoStateRef.current.count = 0;
-        }
-
-        demoStateRef.current.count++;
-        const currentPlate = demoStateRef.current.currentPlate;
-
-        // Simulate network delay
-        await new Promise((r) => setTimeout(r, 200));
-
-        const result: DetectionResult = {
-          plateNumber: currentPlate,
-          confidence: 85 + Math.random() * 10,
-        };
-
-        // Add to detections list for visual feedback
-        setLiveDetections((prev) => {
-          if (prev.some((d) => d.plateNumber === result.plateNumber)) return prev;
-          return [
-            {
-              plateNumber: result.plateNumber,
-              confidence: result.confidence,
-              status: 'valid' as PlateStatus,
-            },
-            ...prev,
-          ].slice(0, 10);
-        });
-
-        addDetection(result);
-        return;
-      }
-
       try {
         // 1. Optimize image (1200x400 crop of center)
         const compressedImage = await ImageProcessor.cropToViewfinder(imageSrc, t);
@@ -119,12 +83,20 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
         const formData = new FormData();
         formData.append('image', blob, 'frame.jpg');
 
+        abortControllerRef.current?.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        const timeoutMs = 1800;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
         // 3. Call Backend OCR API
         const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
         const apiResponse = await fetch(`${apiUrl}/api/v1/scan/plate`, {
           method: 'POST',
           body: formData,
-        });
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeoutId));
 
         if (!apiResponse.ok) throw new Error('OCR API failed');
 
@@ -135,6 +107,34 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
             plateNumber: json.data.plate,
             confidence: json.data.confidence * 100, // Assuming internal scale is 0-1
           };
+
+          // Fast-path: if OCR says the format is valid and confidence is high,
+          // accept immediately to keep total time under ~2 seconds.
+          if (json.data.format_valid && result.confidence >= 70) {
+            const confirmedPlate: DetectedPlate = {
+              plateNumber: result.plateNumber,
+              confidence: result.confidence,
+              status: 'valid',
+            };
+
+            setLiveDetections((prev) => {
+              if (prev.some((d) => d.plateNumber === confirmedPlate.plateNumber)) return prev;
+              return [confirmedPlate, ...prev].slice(0, 10);
+            });
+
+            onSuccessRef.current?.(confirmedPlate);
+
+            setLiveScanActive(false);
+            setIsScanning(false);
+            scanActiveRef.current = false;
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = null;
+            if (scanIntervalRef.current) {
+              clearTimeout(scanIntervalRef.current);
+              scanIntervalRef.current = null;
+            }
+            return;
+          }
 
           // Add to detections list for visual feedback (even if not stable yet)
           // Add to detections list for visual feedback (even if not stable yet)
@@ -158,11 +158,15 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
         }
       } catch (error) {
         console.error('Frame processing failed:', error);
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          setScanError(t('mobileScan.ocrError'));
+          return;
+        }
         setScanError(error instanceof Error ? error.message : t('mobileScan.ocrError'));
       }
 
     },
-    [useDemoData, addDetection, t]
+    [addDetection, t]
   );
 
   const isProcessingRef = useRef(false);
@@ -174,9 +178,9 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
 
       scanActiveRef.current = true;
       setLiveScanActive(true);
+      setIsScanning(true);
       resetStability();
       setScanError(null);
-      demoStateRef.current = { count: 0, currentPlate: 'CE 128 BC' };
 
       const runScanLoop = async () => {
         if (!scanActiveRef.current) return;
@@ -192,7 +196,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
         }
 
         if (scanActiveRef.current) {
-          scanIntervalRef.current = setTimeout(runScanLoop, 100);
+          scanIntervalRef.current = setTimeout(runScanLoop, 350);
         }
       };
 
@@ -204,9 +208,13 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   const stopLiveScan = useCallback(() => {
     scanActiveRef.current = false;
     setLiveScanActive(false);
+    setIsScanning(false);
     resetStability();
     setLiveDetections([]);
     setScanError(null);
+
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
 
     if (scanIntervalRef.current) {
       clearTimeout(scanIntervalRef.current);
@@ -217,6 +225,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   useEffect(() => {
     return () => {
       scanActiveRef.current = false;
+      abortControllerRef.current?.abort();
       if (scanIntervalRef.current) {
         clearTimeout(scanIntervalRef.current as any);
       }
@@ -226,8 +235,6 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   return {
     isScanning,
     setIsScanning,
-    useDemoData,
-    setUseDemoData,
     liveScanActive,
     liveDetections,
     startLiveScan,
