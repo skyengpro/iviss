@@ -105,7 +105,6 @@ pub async fn get_pending_submission(
 mod tests {
     use super::*;
     use crate::dto::pending_submission::{CreatePendingSubmissionRequest, SubmissionStatus};
-    use axum::http::StatusCode;
 
     // Mock test data
     fn create_test_submission_request() -> CreatePendingSubmissionRequest {
