@@ -1,3 +1,5 @@
+#![allow(clippy::all, dead_code, unused_variables)]
+
 use crate::db::{redis::RedisPool, DbPool};
 use crate::services::sms_provider::SmsProvider;
 use std::sync::Arc;

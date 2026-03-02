@@ -48,7 +48,10 @@ impl ActivationService {
         let value =
             serde_json::to_string(&entry).context("Failed to serialize activation entry")?;
 
-        let mut conn = self.redis.get().await
+        let mut conn = self
+            .redis
+            .get()
+            .await
             .context("Failed to get Redis connection")?;
 
         // Store with TTL 10 minutes — replaces any existing entry
