@@ -40,7 +40,6 @@ async fn main() -> anyhow::Result<()> {
     info!("Starting IVISS Backend...");
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
-    let config = Config::from_env()?;
 
     let pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
@@ -49,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&pool).await?;
     info!("Migrations completed");
 
-    let app = routes::assembly(pool)
+    let app = routes::assembly(pool, config.jwt_secret.clone())
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
