@@ -62,12 +62,12 @@ impl Modify for SecurityAddon {
         crate::handlers::auth::login,
         crate::handlers::auth::register,
         crate::handlers::auth::logout,
-        crate::handlers::admin::provision_user,
-        crate::handlers::admin::list_users,
-        crate::handlers::admin::get_user,
-        crate::handlers::admin::update_user,
-        crate::handlers::admin::delete_user,
-        crate::handlers::admin::list_organizations,
+        crate::handlers::user_management::provision_user,
+        crate::handlers::user_management::list_users,
+        crate::handlers::user_management::get_user,
+        crate::handlers::user_management::update_user,
+        crate::handlers::user_management::delete_user,
+        crate::handlers::user_management::list_organizations,
     ),
 
     components(
