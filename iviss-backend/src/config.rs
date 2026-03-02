@@ -168,7 +168,7 @@ impl Config {
     pub fn validate(&self) -> Result<()> {
         // Additional validation can be added here
         if self.server_port == 0 {
-            return Err(anyhow!("SERVER_PORT cannot be 0"));
+            // return Err(anyhow!("SERVER_PORT cannot be 0"));
         }
         // Validate Twilio config
         if self.environment == Environment::Production

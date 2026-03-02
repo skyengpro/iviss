@@ -1,7 +1,11 @@
+use crate::app_state::AppState;
 use crate::dto::users::{UserProfile, UserRole};
 use crate::errors::AppError;
+use crate::services::activation_service::ActivationService;
+use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -22,6 +26,16 @@ pub struct RegisterRequest {
     pub password: String,
     pub full_name: String,
     pub role: UserRole,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SendActivationRequest {
+    pub user_id: uuid::Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SendActivationResponse {
+    pub message: String,
 }
 
 /// Login with email and password
@@ -105,4 +119,70 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
 )]
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
+}
+
+/// Send activation code via SMS to a pending agent
+#[utoipa::path(
+    post,
+    path = "/auth/send-activation",
+    request_body = SendActivationRequest,
+    responses(
+        (status = 201, description = "Activation code sent", body = SendActivationResponse),
+        (status = 404, description = "User not found", body = AppErrorResponse),
+        (status = 400, description = "Bad request", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "sendActivationCode"
+)]
+pub async fn send_activation(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<SendActivationRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Fetch agent from DB
+    let user = sqlx::query!(
+        r#"
+        SELECT id, phone_number,
+               role AS "role: String",
+               status AS "status: String"
+        FROM users
+        WHERE id = $1
+        AND deleted_at IS NULL
+        "#,
+        payload.user_id
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    // Only agents can receive an activation code
+    if user.role != "agent" {
+        return Err(AppError::BadRequest(
+            "Activation is only available for agents".into(),
+        ));
+    }
+
+    // Agent must be in PENDING_ACTIVATION status
+    if user.status != "PENDING_ACTIVATION" {
+        return Err(AppError::BadRequest(format!(
+            "User is not pending activation — current status: {}",
+            user.status
+        )));
+    }
+
+    // Build ActivationService from shared state resources
+    let activation_svc = ActivationService::new(state.redis.clone(), state.sms_pvd.clone());
+
+    // Generate, store and send the activation code via SMS
+    activation_svc
+        .generate_and_send(&user.id, &user.phone_number)
+        .await
+        .map_err(AppError::Internal)?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(SendActivationResponse {
+            message: "Activation code sent successfully".into(),
+        }),
+    ))
 }

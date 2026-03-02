@@ -6,7 +6,7 @@ set -e
 
 # Start docker containers
 echo "Starting Database & Adminer..."
-docker-compose up -d
+docker compose up -d
 
 # Check if sqlx-cli is installed
 if ! command -v sqlx &> /dev/null; then
@@ -24,6 +24,6 @@ sqlx database create
 sqlx migrate run
 
 echo "setup complete!"
-echo "You can visualize the database at http://localhost:8080"
+echo "You can visualize the database at http://localhost:8081"
 echo "Login: System=PostgreSQL, Server=db, Username=postgres, Password=postgres, Database=iviss_dev"
 

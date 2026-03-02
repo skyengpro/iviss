@@ -59,7 +59,12 @@ impl SmsProvider for TwilioSmsProvider {
             ("From", &self.from_number),
             ("Body", message),
         ];
-
+        info!(
+            target: "sms",
+            phone = %phone_number,
+            message = %message,
+            "Sending SMS via Twilio"
+        );
         let response = self
             .client
             .post(&url)
