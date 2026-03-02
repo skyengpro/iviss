@@ -20,7 +20,6 @@ use crate::db::initialize_pool;
 use crate::db::initialize_redis_pool;
 use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 
-
 use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;

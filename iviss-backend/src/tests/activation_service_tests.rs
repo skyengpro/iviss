@@ -1,16 +1,16 @@
-use crate::services::activation_service::{ActivationService, ActivationEntry};
-use crate::services::sms_provider::MockSmsProvider;
 use crate::db::RedisPool;
+use crate::services::activation_service::{ActivationEntry, ActivationService};
+use crate::services::sms_provider::MockSmsProvider;
 use uuid::Uuid;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use deadpool_redis::{Config as RedisConfig, Runtime};
+    use redis::AsyncCommands;
     use std::sync::Arc;
     use testcontainers::runners::AsyncRunner;
     use testcontainers_modules::redis::Redis;
-    use redis::AsyncCommands;
 
     // ─────────────────────────────────────────
     // Helper — spin up Redis container + pool
@@ -42,7 +42,10 @@ mod tests {
         for _ in 0..100 {
             let code = svc.generate_code();
             assert_eq!(code.len(), 6, "Code must be exactly 6 chars");
-            assert!(code.chars().all(|c| c.is_ascii_digit()), "Code must be numeric");
+            assert!(
+                code.chars().all(|c| c.is_ascii_digit()),
+                "Code must be numeric"
+            );
         }
     }
 
@@ -84,10 +87,7 @@ mod tests {
 
         // Verify that the key exists in Redis
         let mut conn = pool.get().await.unwrap();
-        let raw: Option<String> = conn
-            .get(format!("activation:{}", user_id))
-            .await
-            .unwrap();
+        let raw: Option<String> = conn.get(format!("activation:{}", user_id)).await.unwrap();
 
         assert!(raw.is_some(), "Key must exist in Redis after generation");
 
@@ -125,16 +125,13 @@ mod tests {
         let _ = svc.validate(&user_id, "000000").await;
 
         let mut conn = pool.get().await.unwrap();
-        let raw: Option<String> = conn
-            .get(format!("activation:{}", user_id))
-            .await
-            .unwrap();
+        let raw: Option<String> = conn.get(format!("activation:{}", user_id)).await.unwrap();
         let entry: ActivationEntry = serde_json::from_str(&raw.unwrap()).unwrap();
 
         assert_eq!(entry.attempts, 1, "Attempts must be incremented");
     }
 
-   /*  #[tokio::test]
+    /*  #[tokio::test]
     async fn test_validate_max_attempts_invalidates_code() {
         let container = Redis::default().start().await.unwrap();
         let port = container.get_host_port_ipv4(6379).await.unwrap();
@@ -173,12 +170,12 @@ mod tests {
 
         // The key must be deleted after success (single use)
         let mut conn = pool.get().await.unwrap();
-        let raw: Option<String> = conn
-            .get(format!("activation:{}", user_id))
-            .await
-            .unwrap();
+        let raw: Option<String> = conn.get(format!("activation:{}", user_id)).await.unwrap();
 
-        assert!(raw.is_none(), "Key must be deleted after successful validation");
+        assert!(
+            raw.is_none(),
+            "Key must be deleted after successful validation"
+        );
     }
 
     #[tokio::test]
@@ -215,7 +212,10 @@ mod tests {
         let result_old = svc.validate(&user_id, &code1).await;
         // Regenerates because validate deleted the key if code1 == code2 (rare)
         if code1 != code2 {
-            assert!(result_old.is_err(), "Old code must be invalid after regeneration");
+            assert!(
+                result_old.is_err(),
+                "Old code must be invalid after regeneration"
+            );
         }
 
         let code3 = svc.generate_and_store(&user_id).await.unwrap();

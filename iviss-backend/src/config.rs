@@ -171,13 +171,12 @@ impl Config {
             return Err(anyhow!("SERVER_PORT cannot be 0"));
         }
         // Validate Twilio config
-        if self.environment == Environment::Production {
-            if self.twilio_account_sid == "mock"
+        if self.environment == Environment::Production
+            && (self.twilio_account_sid == "mock"
                 || self.twilio_auth_token == "mock"
-                || self.twilio_from_number == "mock"
-            {
-                return Err(anyhow!("Twilio credentials must be set in production"));
-            }
+                || self.twilio_from_number == "mock")
+        {
+            return Err(anyhow!("Twilio credentials must be set in production"));
         }
 
         Ok(())
