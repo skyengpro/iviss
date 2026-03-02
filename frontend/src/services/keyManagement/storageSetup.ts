@@ -82,7 +82,10 @@ class SimpleStorage {
     });
   }
 
-  async findOne(storeName: string, key: number): Promise<Record<string, unknown> | undefined> {
+  async findOne(
+    storeName: string,
+    key: string | number
+  ): Promise<Record<string, unknown> | undefined> {
     await this.waitForReady();
 
     return new Promise((resolve, reject) => {
