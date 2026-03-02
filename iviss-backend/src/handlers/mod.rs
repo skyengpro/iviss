@@ -1,4 +1,4 @@
-pub mod admin;
+pub mod user_management;
 pub mod auth;
 pub mod list_control;
 pub mod pending_submission;

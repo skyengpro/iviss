@@ -29,20 +29,10 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     .ok_or_else(|| AppError::not_found("User not found"))?;
 
     let role_str: String = row.get("role");
-    let role = match role_str.as_str() {
-        "admin" => UserRole::Admin,
-        "manager" => UserRole::Manager,
-        "agent" => UserRole::Agent,
-        _ => UserRole::Agent, // Default fallback
-    };
+    let role = UserRole::from_str(&role_str);
 
     let status_str: String = row.get("status");
-    let status = match status_str.as_str() {
-        "PENDING_ACTIVATION" => crate::dto::users::UserStatus::PendingActivation,
-        "ACTIVE" => crate::dto::users::UserStatus::Active,
-        "SUSPENDED" => crate::dto::users::UserStatus::Suspended,
-        _ => crate::dto::users::UserStatus::PendingActivation,
-    };
+    let status = crate::dto::users::UserStatus::from_str(&status_str);
 
     Ok(UserProfile {
         id: row.get("id"),
@@ -64,11 +54,7 @@ pub async fn create_user(
     pool: &PgPool,
     req: crate::dto::users::ProvisionUserRequest,
 ) -> Result<UserProfile, AppError> {
-    let role_str = match req.role {
-        UserRole::Admin => "admin",
-        UserRole::Manager => "manager",
-        UserRole::Agent => "agent",
-    };
+    let role_str = req.role.as_str();
 
     let user_id = Uuid::new_v4();
 
@@ -131,20 +117,10 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
         .into_iter()
         .map(|row| {
             let role_str: String = row.get("role");
-            let role = match role_str.as_str() {
-                "admin" => UserRole::Admin,
-                "manager" => UserRole::Manager,
-                "agent" => UserRole::Agent,
-                _ => UserRole::Agent,
-            };
+            let role = UserRole::from_str(&role_str);
 
             let status_str: String = row.get("status");
-            let status = match status_str.as_str() {
-                "PENDING_ACTIVATION" => crate::dto::users::UserStatus::PendingActivation,
-                "ACTIVE" => crate::dto::users::UserStatus::Active,
-                "SUSPENDED" => crate::dto::users::UserStatus::Suspended,
-                _ => crate::dto::users::UserStatus::PendingActivation,
-            };
+            let status = crate::dto::users::UserStatus::from_str(&status_str);
 
             UserProfile {
                 id: row.get("id"),
@@ -191,14 +167,9 @@ pub async fn update_user(
             .push_bind_unseparated(full_name);
     }
     if let Some(role) = req.role {
-        let role_str = match role {
-            UserRole::Admin => "admin",
-            UserRole::Manager => "manager",
-            UserRole::Agent => "agent",
-        };
         separated
             .push("role = ")
-            .push_bind_unseparated(role_str)
+            .push_bind_unseparated(role.as_str())
             .push_unseparated("::user_role");
     }
     if let Some(org_id) = req.organization_id {
@@ -215,14 +186,9 @@ pub async fn update_user(
             .push_bind_unseparated(badge_id);
     }
     if let Some(status) = req.status {
-        let status_str = match status {
-            crate::dto::users::UserStatus::PendingActivation => "PENDING_ACTIVATION",
-            crate::dto::users::UserStatus::Active => "ACTIVE",
-            crate::dto::users::UserStatus::Suspended => "SUSPENDED",
-        };
         separated
             .push("status = ")
-            .push_bind_unseparated(status_str)
+            .push_bind_unseparated(status.as_str())
             .push_unseparated("::user_status");
     }
 
