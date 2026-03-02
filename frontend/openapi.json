@@ -92,6 +92,54 @@
         ]
       }
     },
+    "/api/v1/scan/plate": {
+      "post": {
+        "tags": ["scanning"],
+        "operationId": "scanPlate",
+        "responses": {
+          "200": {
+            "description": "OCR result (may have low confidence)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal OCR error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": ["auth"],
@@ -1180,6 +1228,71 @@
           }
         }
       },
+      "ScanErrorData": {
+        "type": "object",
+        "description": "Error detail returned inside the scan response envelope.",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code, e.g. `INVALID_IMAGE`."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error description."
+          }
+        }
+      },
+      "ScanPlateResponse": {
+        "type": "object",
+        "description": "Envelope response for `POST /api/v1/scan/plate`.",
+        "required": ["success"],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScanResultData"
+              }
+            ],
+            "nullable": true
+          },
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScanErrorData"
+              }
+            ],
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ScanResultData": {
+        "type": "object",
+        "description": "Successful OCR scan result data.",
+        "required": ["plate", "raw_text", "confidence", "format_valid"],
+        "properties": {
+          "confidence": {
+            "type": "number",
+            "format": "float",
+            "description": "Tesseract confidence score (0.0 – 1.0)."
+          },
+          "format_valid": {
+            "type": "boolean",
+            "description": "Whether the normalized plate matches the Cameroon format (XX###XX)."
+          },
+          "plate": {
+            "type": "string",
+            "description": "Normalized plate text (uppercase, no spaces). Empty if nothing detected."
+          },
+          "raw_text": {
+            "type": "string",
+            "description": "Raw text as returned by the OCR engine before normalization."
+          }
+        }
+      },
       "Status": {
         "type": "string",
         "description": "Shared status across all partner API responses",
@@ -1422,6 +1535,10 @@
     {
       "name": "controls",
       "description": "Roadside control tracking"
+    },
+    {
+      "name": "scanning",
+      "description": "License plate OCR scanning"
     },
     {
       "name": "stats",

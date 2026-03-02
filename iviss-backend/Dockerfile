@@ -4,13 +4,15 @@
 # Development Stage - with cargo-watch for auto-reload
 FROM rust:latest AS development
 
-# Install Tesseract OCR CLI for the rusty-tesseract crate
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        tesseract-ocr \
-        tesseract-ocr-eng \
-        curl && \
-    rm -rf /var/lib/apt/lists/*
+# Install Tesseract OCR and Leptonica development headers for leptess C-bindings
+# Clang is required by bindgen to generate the Rust bindings
+RUN apt-get update && apt-get install -y \
+    libtesseract-dev \
+    libleptonica-dev \
+    tesseract-ocr-eng \
+    clang \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install cargo-watch for live reloading
 RUN cargo install cargo-watch
@@ -58,14 +60,15 @@ RUN cargo build --release
 # Runtime stage
 FROM debian:bookworm-slim AS production
 
-# Install runtime dependencies (PostgreSQL client + Tesseract OCR CLI)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        libpq5 \
-        ca-certificates \
-        tesseract-ocr \
-        tesseract-ocr-eng && \
-    rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies
+# We need libtesseract and libleptonica shared libraries at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    ca-certificates \
+    libtesseract-dev \
+    libleptonica-dev \
+    tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

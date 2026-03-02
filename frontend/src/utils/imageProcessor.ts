@@ -117,4 +117,69 @@ export class ImageProcessor {
       img.src = imageSrc;
     });
   }
+
+  /**
+   * Crop image to a center box for better OCR accuracy
+   * Viewfinder is roughly 3:1 aspect ratio in the center
+   */
+  static async cropToViewfinder(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          // Output dimensions — 2:1 aspect ratio for a plate (supports 2-line/stacked)
+          const targetWidth = 1200;
+          const targetHeight = 600;
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // 1. Account for 'object-cover' scaling
+          const W = window.innerWidth;
+          const H = window.innerHeight;
+          const w = img.width;
+          const h = img.height;
+
+          // object-cover scale
+          const scale = Math.max(W / w, H / h);
+
+          // Viewfinder-mapped region: 92% of screen width, 2:1 aspect ratio
+          const vw = W * 0.92;
+          const vh = vw / 2.0;
+
+          // Map viewfinder pixels back to raw video pixels
+          const sw = vw / scale;
+          const sh = vh / scale;
+
+          // Center the crop on the video
+          const sx = (w - sw) / 2;
+          const sy = (h - sh) / 2;
+
+          // White background
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+          // Draw without squashing! (sw/sh aspect == targetWidth/targetHeight aspect)
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
 }
