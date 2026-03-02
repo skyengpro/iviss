@@ -33,3 +33,8 @@ reqwest = { version = "0.12", features = ["json"] }
 
 sha2 = "0.10"
 rand = "0.8"
+
+[dev-dependencies]
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["redis"] }
+tokio-test = "0.4"

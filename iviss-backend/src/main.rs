@@ -10,6 +10,8 @@ mod models;
 mod queries;
 mod routes;
 mod services;
+#[cfg(test)]
+mod tests;
 
 use crate::api_doc::ApiDoc;
 use crate::app_state::AppState;

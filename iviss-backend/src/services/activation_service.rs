@@ -13,9 +13,9 @@ const MAX_ATTEMPTS: u8 = 5;
 const KEY_PREFIX: &str = "activation";
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ActivationEntry {
-    code_hash: String,
-    attempts: u8,
+pub(crate) struct ActivationEntry {
+    pub(crate) code_hash: String,
+    pub(crate) attempts: u8,
 }
 
 impl ActivationEntry {
@@ -48,16 +48,11 @@ impl ActivationService {
         let value =
             serde_json::to_string(&entry).context("Failed to serialize activation entry")?;
 
-        let mut conn = self
-            .redis
-            .get()
-            .await
+        let mut conn = self.redis.get().await
             .context("Failed to get Redis connection")?;
 
-        let ttl: u64 = conn.ttl(&key).await.context("Failed to get TTL")?;
-
         // Store with TTL 10 minutes — replaces any existing entry
-        conn.set_ex::<_, _, ()>(&key, value, ttl)
+        conn.set_ex::<_, _, ()>(&key, value, ACTIVATION_TTL_SECS)
             .await
             .context("Failed to store activation code in Redis")?;
 
@@ -116,14 +111,14 @@ impl ActivationService {
     }
 
     /// Generate a 6-digit code
-    fn generate_code(&self) -> String {
+    pub(crate) fn generate_code(&self) -> String {
         let mut rng = rand::thread_rng();
         let code: u32 = rng.gen_range(0..=999_999);
         format!("{:06}", code) // zero-padded
     }
 
     /// SHA-256 hash of the plain code
-    fn hash_code(code: &str) -> String {
+    pub(crate) fn hash_code(code: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(code.as_bytes());
         format!("{:x}", hasher.finalize())
