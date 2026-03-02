@@ -144,8 +144,6 @@ export default function MobileScan() {
           </div>
         )}
 
-
-
         <ScanActionButtons
           mode={mode}
           onModeChange={(newMode) => {

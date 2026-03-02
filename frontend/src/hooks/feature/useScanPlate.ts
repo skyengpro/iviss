@@ -31,7 +31,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
     minConfidence: 40,
   });
 
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSuccessRef = useRef(onSuccess);
 
   useEffect(() => {
@@ -164,7 +164,6 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         }
         setScanError(error instanceof Error ? error.message : t('mobileScan.ocrError'));
       }
-
     },
     [addDetection, t]
   );
@@ -227,7 +226,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
       scanActiveRef.current = false;
       abortControllerRef.current?.abort();
       if (scanIntervalRef.current) {
-        clearTimeout(scanIntervalRef.current as any);
+        clearTimeout(scanIntervalRef.current);
       }
     };
   }, []);

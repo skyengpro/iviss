@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-client/**'",
+    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-rq/**'",
     "prettier:check": "prettier --check .",
     "format": "prettier --write .",
     "ts:check": "tsc --noEmit",
