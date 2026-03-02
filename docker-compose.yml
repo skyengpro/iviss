@@ -58,8 +58,8 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_db}
-      EXTERNAL_DATABASE_URL: postgresql://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
+      DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_db}
+      EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
       JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3000

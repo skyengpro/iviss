@@ -37,6 +37,10 @@ pub fn assembly(state: AppState) -> Router {
         .route("/auth/login", post(crate::handlers::auth::login))
         .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route(
+            "/auth/send-activation",
+            post(crate::handlers::auth::send_activation),
+        )
         // .layer(axum::middleware::from_fn(logging::log_request))
         .layer(cors::cors_layer())
         .layer(CompressionLayer::new())
