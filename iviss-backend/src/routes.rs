@@ -38,12 +38,27 @@ pub fn assembly(pool: DbPool, jwt_secret: String) -> Router {
         .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route("/users/me", get(crate::handlers::users::get_user_profile))
         .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route(
+            "/admin/users",
+            get(crate::handlers::user_management::list_users)
+                .post(crate::handlers::user_management::provision_user),
+        )
+        .route(
+            "/admin/users/:id",
+            get(crate::handlers::user_management::get_user)
+                .put(crate::handlers::user_management::update_user)
+                .delete(crate::handlers::user_management::delete_user),
+        )
+        .route(
+            "/admin/organizations",
+            get(crate::handlers::user_management::list_organizations),
+        )
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes
         .merge(protected_routes)
-        .layer(cors::cors_layer())
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
+        .layer(cors::cors_layer())
         .with_state(state)
 }

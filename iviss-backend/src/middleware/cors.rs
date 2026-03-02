@@ -1,6 +1,17 @@
-use tower_http::cors::CorsLayer;
+use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
+use axum::http::Method;
+use tower_http::cors::{Any, CorsLayer};
 
-#[allow(dead_code)]
 pub fn cors_layer() -> CorsLayer {
-    CorsLayer::permissive()
+    CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(vec![
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers(vec![CONTENT_TYPE, AUTHORIZATION])
 }

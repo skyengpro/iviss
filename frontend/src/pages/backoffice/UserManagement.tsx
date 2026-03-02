@@ -13,6 +13,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +41,7 @@ import {
   Key,
   Edit,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,9 +51,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
-import { useQuery } from '@tanstack/react-query';
-import { mockAuthService, User } from '@/services/mockAuth';
+import { useUsers } from '@/hooks/api/useUsers';
+import { useOrganizations } from '@/hooks/api/useOrganizations';
+import { UserForm } from '@/components/shared/Admin/UserForm';
+import { toast } from 'sonner';
+import {
+  UserProfile,
+  UpdateUserRequest,
+  ProvisionUserRequest,
+} from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
   {
@@ -56,21 +82,93 @@ export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => mockAuthService.getAllUsers(),
-  });
+  const {
+    users = [],
+    isLoadingUsers,
+    provision,
+    isProvisioning,
+    update,
+    isUpdating,
+    remove,
+    isDeleting,
+  } = useUsers();
+  const { organizations = [] } = useOrganizations();
 
-  const filteredUsers = users.filter((user: User) => {
+  // Calculate dynamic stats
+  const totalUsersCount = users.length;
+  const activeNowCount = users.filter((u: UserProfile) => u.status === 'ACTIVE').length;
+  const supervisorsCount = users.filter((u: UserProfile) => u.role === 'manager').length;
+  const organizationsCount = organizations.length;
+
+  const handleAddUser = async (data: ProvisionUserRequest) => {
+    try {
+      await provision(data);
+      toast.success(t('backOfficeUserManagement.toastSuccess'));
+      setIsAddUserOpen(false);
+    } catch (error) {
+      toast.error(t('backOfficeUserManagement.toastError'));
+    }
+  };
+
+  const handleEditUser = async (data: ProvisionUserRequest) => {
+    if (!selectedUser) return;
+    try {
+      const updateData: UpdateUserRequest = {
+        username: data.username,
+        fullName: data.fullName,
+        phoneNumber: data.phoneNumber,
+        organizationId: data.organizationId,
+        email: data.email,
+        badgeId: data.badgeId,
+        role: data.role,
+      };
+      await update(selectedUser.id, updateData);
+      toast.success(t('backOfficeUserManagement.editSuccess'));
+      setIsEditUserOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      toast.error(t('backOfficeUserManagement.editError'));
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    try {
+      await remove(selectedUser.id);
+      toast.success(t('backOfficeUserManagement.deleteSuccess'));
+      setIsDeleteConfirmOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      toast.error(t('backOfficeUserManagement.deleteError'));
+    }
+  };
+
+  const toggleStatus = async (user: UserProfile) => {
+    try {
+      await update(user.id, { status: user.isActive ? 'SUSPENDED' : 'ACTIVE' });
+      toast.success(t('backOfficeUserManagement.toastSuccess'));
+    } catch (error) {
+      toast.error(t('backOfficeUserManagement.toastError'));
+    }
+  };
+
+  const filteredUsers = (users as UserProfile[]).filter((user: UserProfile) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.organization.toLowerCase().includes(searchQuery.toLowerCase());
+      (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (user.organization?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus =
-      statusFilter === 'all' || (statusFilter === 'active' ? user.isActive : !user.isActive);
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && user.status === 'ACTIVE') ||
+      (statusFilter === 'pending' && user.status === 'PENDING_ACTIVATION') ||
+      (statusFilter === 'suspended' && user.status === 'SUSPENDED');
 
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -80,10 +178,83 @@ export default function UserManagement() {
       title={t('backOfficeUserManagement.title')}
       subtitle={t('backOfficeUserManagement.subtitle')}
       actions={
-        <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-          <Plus className="h-4 w-4" />
-          {t('backOfficeUserManagement.addUser')}
-        </Button>
+        <>
+          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+                <Plus className="h-4 w-4" />
+                {t('backOfficeUserManagement.addUser')}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>{t('backOfficeUserManagement.addUserTitle')}</DialogTitle>
+                <DialogDescription>
+                  {t('backOfficeUserManagement.addUserDescription')}
+                </DialogDescription>
+              </DialogHeader>
+              <UserForm
+                onSubmit={handleAddUser}
+                onCancel={() => setIsAddUserOpen(false)}
+                isLoading={isProvisioning}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>{t('backOfficeUserManagement.editUser')}</DialogTitle>
+                <DialogDescription>
+                  Update the professional details and access level for this user.
+                </DialogDescription>
+              </DialogHeader>
+              {selectedUser && (
+                <UserForm
+                  initialData={{
+                    username: selectedUser.username,
+                    fullName: selectedUser.name,
+                    phoneNumber: selectedUser.phoneNumber || '',
+                    organizationId: selectedUser.organizationId,
+                    role: selectedUser.role,
+                    email: selectedUser.email || '',
+                    badgeId: selectedUser.badgeId || '',
+                  }}
+                  onSubmit={handleEditUser}
+                  onCancel={() => {
+                    setIsEditUserOpen(false);
+                    setSelectedUser(null);
+                  }}
+                  isLoading={isUpdating}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('backOfficeUserManagement.deleteUser')}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently remove the user from the
+                  active directory.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedUser(null)}>
+                  {t('backOfficeUserManagement.cancel')}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteUser}
+                  className="bg-destructive text-destructive-foreground"
+                >
+                  {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {t('backOfficeUserManagement.deleteUser')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       }
     >
       <Card>
@@ -108,17 +279,11 @@ export default function UserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('backOfficeUserManagement.allRoles')}</SelectItem>
-                  <SelectItem value="super_admin">
-                    {t('backOfficeUserManagement.super_admin')}
-                  </SelectItem>
-                  <SelectItem value="org_admin">
-                    {t('backOfficeUserManagement.org_admin')}
-                  </SelectItem>
-                  <SelectItem value="supervisor">
+                  <SelectItem value="admin">{t('backOfficeUserManagement.super_admin')}</SelectItem>
+                  <SelectItem value="manager">
                     {t('backOfficeUserManagement.supervisor')}
                   </SelectItem>
                   <SelectItem value="agent">{t('backOfficeUserManagement.agent')}</SelectItem>
-                  <SelectItem value="operator">{t('backOfficeUserManagement.operator')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -129,7 +294,10 @@ export default function UserManagement() {
                 <SelectContent>
                   <SelectItem value="all">{t('backOfficeUserManagement.allStatus')}</SelectItem>
                   <SelectItem value="active">{t('backOfficeUserManagement.active')}</SelectItem>
-                  <SelectItem value="inactive">{t('backOfficeUserManagement.inactive')}</SelectItem>
+                  <SelectItem value="pending">{t('backOfficeUserManagement.pending')}</SelectItem>
+                  <SelectItem value="suspended">
+                    {t('backOfficeUserManagement.suspended')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -143,25 +311,25 @@ export default function UserManagement() {
               <p className="text-sm text-muted-foreground">
                 {t('backOfficeUserManagement.totalUsers')}
               </p>
-              <p className="text-2xl font-bold">{users.length}</p>
+              <p className="text-2xl font-bold">{totalUsersCount}</p>
             </div>
             <div className="rounded-lg bg-status-valid/10 p-4">
               <p className="text-sm text-muted-foreground">
                 {t('backOfficeUserManagement.activeNow')}
               </p>
-              <p className="text-2xl font-bold text-status-valid">89</p>
+              <p className="text-2xl font-bold text-status-valid">{activeNowCount}</p>
             </div>
             <div className="rounded-lg bg-muted p-4">
               <p className="text-sm text-muted-foreground">
                 {t('backOfficeUserManagement.supervisors')}
               </p>
-              <p className="text-2xl font-bold">12</p>
+              <p className="text-2xl font-bold">{supervisorsCount}</p>
             </div>
             <div className="rounded-lg bg-muted p-4">
               <p className="text-sm text-muted-foreground">
                 {t('backOfficeUserManagement.organizations')}
               </p>
-              <p className="text-2xl font-bold">8</p>
+              <p className="text-2xl font-bold">{organizationsCount}</p>
             </div>
           </div>
 
@@ -182,20 +350,20 @@ export default function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoadingUsers ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
                       {t('backOfficeUserManagement.loadingUsers')}
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user: User) => (
+                  filteredUsers.map((user: UserProfile) => (
                     <TableRow key={user.id} className="group">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarFallback className="bg-primary text-primary-foreground">
-                              {user.avatarInitials}
+                              {user.avatarInitials || user.name.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -212,10 +380,21 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell>{user.organization}</TableCell>
                       <TableCell>
-                        <StatusBadge variant={user.isActive ? 'valid' : 'pending'} size="sm">
-                          {user.isActive
+                        <StatusBadge
+                          variant={
+                            user.status === 'ACTIVE'
+                              ? 'valid'
+                              : user.status === 'PENDING_ACTIVATION'
+                                ? 'pending'
+                                : 'critical'
+                          }
+                          size="sm"
+                        >
+                          {user.status === 'ACTIVE'
                             ? t('backOfficeUserManagement.active')
-                            : t('backOfficeUserManagement.inactive')}
+                            : user.status === 'PENDING_ACTIVATION'
+                              ? t('backOfficeUserManagement.pending')
+                              : t('backOfficeUserManagement.suspended')}
                         </StatusBadge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -230,7 +409,7 @@ export default function UserManagement() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="opacity-0 group-hover:opacity-100"
+                              className="text-muted-foreground hover:text-foreground"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
@@ -240,7 +419,12 @@ export default function UserManagement() {
                               {t('backOfficeUserManagement.actions')}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsEditUserOpen(true);
+                              }}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               {t('backOfficeUserManagement.editUser')}
                             </DropdownMenuItem>
@@ -253,18 +437,31 @@ export default function UserManagement() {
                               {t('backOfficeUserManagement.managePermissions')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            {user.isActive ? (
-                              <DropdownMenuItem className="text-status-warning">
-                                <UserX className="mr-2 h-4 w-4" />
-                                {t('backOfficeUserManagement.deactivate')}
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem className="text-status-valid">
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                {t('backOfficeUserManagement.activate')}
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem
+                              onClick={() => toggleStatus(user)}
+                              className={
+                                user.isActive ? 'text-status-warning' : 'text-status-valid'
+                              }
+                            >
+                              {user.isActive ? (
+                                <>
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  {t('backOfficeUserManagement.deactivate')}
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="mr-2 h-4 w-4" />
+                                  {t('backOfficeUserManagement.activate')}
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsDeleteConfirmOpen(true);
+                              }}
+                              className="text-destructive"
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               {t('backOfficeUserManagement.deleteUser')}
                             </DropdownMenuItem>
