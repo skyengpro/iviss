@@ -9,8 +9,8 @@ mod tests {
     use deadpool_redis::{Config as RedisConfig, Runtime};
     use redis::AsyncCommands;
     use std::sync::Arc;
-    use testcontainers::redis::Redis;
-    use testcontainers_modules::testcontainers::runners::AsyncRunner;
+    use testcontainers::runners::AsyncRunner;
+    use testcontainers_modules::redis::Redis;
 
     // ─────────────────────────────────────────
     // Helper — spin up Redis container + pool
