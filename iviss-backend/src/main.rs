@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&db_pool).await?;
     info!("Migrations completed");
 
-    let state = AppState::new(db_pool, redis_pool);
+    let state = AppState::new(db_pool, redis_pool, sms_provider);
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 

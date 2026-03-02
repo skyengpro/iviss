@@ -13,7 +13,7 @@ pub struct MockSmsProvider;
 #[async_trait]
 impl SmsProvider for MockSmsProvider {
     async fn send_sms(&self, phone_number: &str, message: &str) -> Result<()> {
-        // Simule un échec aléatoire en dev pour tester la gestion d'erreur
+        // Simulates a random failure in dev to test error handling
         warn!(
             target: "sms",
             phone = %phone_number,
