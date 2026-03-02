@@ -11,6 +11,7 @@
 1. [System Overview](#1-system-overview)
 2. [High-Level Architecture](#2-high-level-architecture)
 3. [Multi-Tenant Organization Hierarchy](#3-multi-tenant-organization-hierarchy)
+4. [Authentication & User Registration](User_registration.md)
 
 ## 1. System Overview
 

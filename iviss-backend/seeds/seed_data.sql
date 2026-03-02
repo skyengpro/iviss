@@ -46,8 +46,8 @@ VALUES (
     'Capital Region'
 ) ON CONFLICT (id) DO NOTHING;
 
--- 2. Insert Users
-INSERT INTO users (id, organization_id, username, email, password_hash, role, badge_id, full_name)
+-- 2. Insert Users (updated for new schema with phone_number, status, and nullable email/password_hash)
+INSERT INTO users (id, organization_id, username, email, password_hash, role, badge_id, full_name, phone_number, status)
 VALUES 
 (
     'e390f1ee-6c54-4b01-90e6-d701748f0852',
@@ -57,17 +57,45 @@ VALUES
     '$2b$12$LQv3c1yqBWVHxkd0LqZGueOQ/H/XJmK8m7B/K8yK8yK8yK8yK8yK8',
     'admin',
     'ADM-001',
-    'System Administrator'
+    'System Administrator',
+    '+254700123456',
+    'ACTIVE'
 ),
 (
     'f490f1ee-6c54-4b01-90e6-d701748f0853',
     'd290f1ee-6c54-4b01-90e6-d701748f0851',
     'agent1',
-    'agent1@iviss.gov',
-    '$2b$12$LQv3c1yqBWVHxkd0LqZGueOQ/H/XJmK8m7B/K8yK8yK8yK8yK8yK8',
+    NULL, -- Agents don't need email
+    NULL, -- Agents don't have password_hash
     'agent',
     'AGT-102',
-    'John Doe'
+    'John Doe',
+    '+254700123457',
+    'ACTIVE'
+),
+(
+    'e590f1ee-6c54-4b01-90e6-d701748f0854',
+    'd290f1ee-6c54-4b01-90e6-d701748f0851',
+    'manager1',
+    'manager@iviss.gov',
+    '$2b$12$LQv3c1yqBWVHxkd0LqZGueOQ/H/XJmK8m7B/K8yK8yK8yK8yK8yK8',
+    'manager',
+    'MGR-103',
+    'Jane Smith',
+    '+254700123458',
+    'ACTIVE'
+),
+(
+    'f690f1ee-6c54-4b01-90e6-d701748f0855',
+    'd290f1ee-6c54-4b01-90e6-d701748f0851',
+    'agent2',
+    NULL, -- Agents don't need email
+    NULL, -- Agents don't have password_hash
+    'agent',
+    'AGT-104',
+    'Michael Johnson',
+    '+254700123459',
+    'PENDING_ACTIVATION'
 ) ON CONFLICT (username) DO NOTHING;
 
 -- 3. Insert Vehicles (5 diverse plates in format: AD 345 CE)

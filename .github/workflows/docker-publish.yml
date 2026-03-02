@@ -19,7 +19,7 @@ env:
 jobs:
   build-and-push:
     if: github.event_name != 'workflow_dispatch' || inputs.confirm == 'yes'
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     permissions:
       contents: read
       packages: write
