@@ -1,3 +1,4 @@
+pub mod auth_queries;
 pub mod control_queries;
 pub mod stats_queries;
 pub mod submission_queries;
