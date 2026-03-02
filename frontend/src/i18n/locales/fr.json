@@ -345,7 +345,30 @@
     "deactivate": "Désactiver",
     "activate": "Activer",
     "deleteUser": "Supprimer l'utilisateur",
-    "noUsersFound": "Aucun utilisateur trouvé."
+    "noUsersFound": "Aucun utilisateur trouvé.",
+    "addUserTitle": "Ajouter un nouvel utilisateur",
+    "addUserDescription": "Remplissez les détails ci-dessous pour créer un nouveau compte utilisateur.",
+    "username": "Nom d'utilisateur",
+    "fullName": "Nom complet",
+    "phoneNumber": "Numéro de téléphone",
+    "email": "Adresse e-mail",
+    "badgeId": "ID du badge",
+    "saveUser": "Enregistrer l'utilisateur",
+    "cancel": "Annuler",
+    "pendingActivation": "En attente d'activation",
+    "suspended": "Suspendu",
+    "loading": "Chargement...",
+    "selectOrganization": "Sélectionner une organisation",
+    "validation": {
+      "required": "Ce champ est obligatoire",
+      "invalidEmail": "Veuillez entrer une adresse e-mail valide",
+      "tooShort": "Doit contenir au moins {{count}} caractères",
+      "invalidName": "Le nom doit contenir uniquement des lettres et des espaces",
+      "invalidPhone": "Le numéro de téléphone doit commencer par +237 suivi de 8 à 12 chiffres",
+      "invalidUuid": "Veuillez sélectionner une organisation valide"
+    },
+    "toastSuccess": "Utilisateur créé avec succès",
+    "toastError": "Échec de la création de l'utilisateur"
   },
   "mobileSidebar": {
     "frontOffice": "Portail Mobile",
