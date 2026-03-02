@@ -1,4 +1,4 @@
- import { TFunction } from 'i18next';
+import { TFunction } from 'i18next';
 
 /**
  * Image preprocessing utilities for license plate OCR
@@ -136,12 +136,12 @@ export class ImageProcessor {
           }
 
           // Output dimensions — 2:1 aspect ratio for a plate (supports 2-line/stacked)
-          const targetWidth = 1200; 
+          const targetWidth = 1200;
           const targetHeight = 600;
 
           canvas.width = targetWidth;
           canvas.height = targetHeight;
-          
+
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
@@ -153,10 +153,10 @@ export class ImageProcessor {
 
           // object-cover scale
           const scale = Math.max(W / w, H / h);
-          
+
           // Viewfinder-mapped region: 92% of screen width, 2:1 aspect ratio
-          const vw = W * 0.92; 
-          const vh = vw / 2.0; 
+          const vw = W * 0.92;
+          const vh = vw / 2.0;
 
           // Map viewfinder pixels back to raw video pixels
           const sw = vw / scale;
