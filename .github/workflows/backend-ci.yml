@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,9 +25,13 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Build
@@ -36,34 +40,67 @@ jobs:
 
   backend_test:
     name: Backend Test
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Test
         run: cargo test --verbose
         working-directory: iviss-backend
 
+  backend_coverage:
+    name: Backend Code Coverage
+    runs-on: arc-runner-set
+    needs: [backend_build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Cache cargo-llvm-cov
+        id: cache-cargo-llvm-cov
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-llvm-cov
+          key: ${{ runner.os }}-cargo-llvm-cov-v1
+      - name: Install cargo-llvm-cov
+        if: steps.cache-cargo-llvm-cov.outputs.cache-hit != 'true'
+        run: cargo install cargo-llvm-cov
+      - name: Generate coverage report
+        run: cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60
+        working-directory: iviss-backend
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: iviss-backend/target/coverage/html/
+          retention-days: 30
+
   backend_fmt:
     name: Backend Format
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - name: Check Format
-        run: cargo fmt -- --check
+        run: cargo fmt --all -- --check
         working-directory: iviss-backend
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -74,9 +111,13 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cache cargo-audit
         id: cache-cargo-audit
         uses: actions/cache@v4
@@ -94,11 +135,12 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y mold -y clang lld pkg-config libssl-dev build-essential
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build documentation
         run: cargo doc --no-deps --verbose
         working-directory: iviss-backend
