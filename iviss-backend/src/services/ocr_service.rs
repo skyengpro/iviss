@@ -1,4 +1,3 @@
-use image::imageops::FilterType;
 use image::{GenericImageView, GrayImage};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -86,6 +85,17 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let final_result = pick_best_ensemble(candidates);
 
     finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
+}
+
+/// Run OCR for a single-shot photo capture.
+///
+/// This is intentionally a separate entrypoint from `scan_plate` so the photo
+/// mechanism can evolve independently (heavier preprocessing / different
+/// candidate selection) without changing the live scanning behavior.
+pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
+    // For now we reuse the same underlying pipeline as scan.
+    // Separation is enforced at the API boundary + entrypoint level.
+    scan_plate(image_bytes)
 }
 
 fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time::Duration, total: std::time::Duration) -> Result<ScanResultData, AppError> {
@@ -319,6 +329,7 @@ fn normalise_plate(raw: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use image::Luma;
 
     #[test]
     fn normalise_removes_spaces_and_dashes() {

@@ -13,17 +13,15 @@ export interface DetectedPlate {
 
 interface UseScanPlateProps {
   onSuccess?: (plate: DetectedPlate) => void;
-  initialUseDemoData?: boolean;
 }
 
 /**
  * Hook to manage the license plate scanning process (The "Eyes" of the system).
  * Implements 500ms frame sampling and hybrid OCR communication.
  */
-export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanPlateProps = {}) {
+export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
-  const [useDemoData, setUseDemoData] = useState(initialUseDemoData);
   const [liveScanActive, setLiveScanActive] = useState(false);
   const [liveDetections, setLiveDetections] = useState<DetectedPlate[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -64,50 +62,8 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
     }
   }, [stableResult, onSuccess]);
 
-
-  const demoStateRef = useRef({ count: 0, currentPlate: 'CE 128 BC' });
-
   const processFrame = useCallback(
     async (imageSrc: string) => {
-      if (useDemoData) {
-        // Logic for demo mode (simulated backend)
-        // To test stability logic, we return the same plate for 5 frames, then pick a new one
-        const mockPlates = ['CE 128 BC', 'LT 390 HN', 'EN 555 AA'];
-
-        if (demoStateRef.current.count >= 5) {
-          demoStateRef.current.currentPlate =
-            mockPlates[Math.floor(Math.random() * mockPlates.length)];
-          demoStateRef.current.count = 0;
-        }
-
-        demoStateRef.current.count++;
-        const currentPlate = demoStateRef.current.currentPlate;
-
-        // Simulate network delay
-        await new Promise((r) => setTimeout(r, 200));
-
-        const result: DetectionResult = {
-          plateNumber: currentPlate,
-          confidence: 85 + Math.random() * 10,
-        };
-
-        // Add to detections list for visual feedback
-        setLiveDetections((prev) => {
-          if (prev.some((d) => d.plateNumber === result.plateNumber)) return prev;
-          return [
-            {
-              plateNumber: result.plateNumber,
-              confidence: result.confidence,
-              status: 'valid' as PlateStatus,
-            },
-            ...prev,
-          ].slice(0, 10);
-        });
-
-        addDetection(result);
-        return;
-      }
-
       try {
         // 1. Optimize image (1200x400 crop of center)
         const compressedImage = await ImageProcessor.cropToViewfinder(imageSrc, t);
@@ -162,7 +118,7 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
       }
 
     },
-    [useDemoData, addDetection, t]
+    [addDetection, t]
   );
 
   const isProcessingRef = useRef(false);
@@ -176,7 +132,6 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
       setLiveScanActive(true);
       resetStability();
       setScanError(null);
-      demoStateRef.current = { count: 0, currentPlate: 'CE 128 BC' };
 
       const runScanLoop = async () => {
         if (!scanActiveRef.current) return;
@@ -226,8 +181,6 @@ export function useScanPlate({ onSuccess, initialUseDemoData = false }: UseScanP
   return {
     isScanning,
     setIsScanning,
-    useDemoData,
-    setUseDemoData,
     liveScanActive,
     liveDetections,
     startLiveScan,
