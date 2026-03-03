@@ -3,7 +3,12 @@ import { mockAuthService } from '@/services/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/deviceId';
-import { setAccessToken, setRefreshToken, clearTokens, getAccessToken } from '@/services/tokenManager';
+import {
+  setAccessToken,
+  setRefreshToken,
+  clearTokens,
+  getAccessToken,
+} from '@/services/tokenManager';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);

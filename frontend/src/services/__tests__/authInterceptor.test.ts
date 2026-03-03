@@ -21,7 +21,8 @@ vi.mock('../signatureService', () => ({
 // Helper: create a mock hey-api client
 function createMockClient() {
   const requestInterceptors: Array<(req: Request) => Promise<Request> | Request> = [];
-  const responseInterceptors: Array<(res: Response, req: Request) => Promise<Response> | Response> = [];
+  const responseInterceptors: Array<(res: Response, req: Request) => Promise<Response> | Response> =
+    [];
 
   return {
     interceptors: {
@@ -163,9 +164,7 @@ describe('authInterceptor', () => {
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue('my-refresh-token');
 
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
-      fetchSpy.mockResolvedValueOnce(
-        new Response('Server Error', { status: 500 })
-      );
+      fetchSpy.mockResolvedValueOnce(new Response('Server Error', { status: 500 }));
 
       const request = new Request('http://localhost:3000/api/test');
       const response = new Response('Unauthorized', { status: 401 });
@@ -203,17 +202,17 @@ describe('authInterceptor', () => {
       // Mock implementation to track precisely what is called
       fetchSpy.mockImplementation(async (req) => {
         const url = typeof req === 'string' ? req : (req as Request).url;
-        
+
         if (url.includes('/auth/refresh/verify')) {
           return new Response(JSON.stringify({ access_token: 'shared-new-token' }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });
         }
-        
+
         if (url.includes('/auth/refresh')) {
           // Add delay to ensure concurrency
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
           return new Response(JSON.stringify({ nonce: 'shared-nonce' }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
@@ -227,7 +226,7 @@ describe('authInterceptor', () => {
       });
 
       const interceptor = mockClient._responseInterceptors[0];
-      
+
       const req1 = new Request('http://localhost:3000/api/1');
       const req2 = new Request('http://localhost:3000/api/2');
       const response401 = new Response('Unauthorized', { status: 401 });
@@ -239,7 +238,7 @@ describe('authInterceptor', () => {
       ]);
 
       // Verify refresh calls: /auth/refresh should be called ONCE, /auth/refresh/verify ONCE
-      const refreshCalls = fetchSpy.mock.calls.filter(call => {
+      const refreshCalls = fetchSpy.mock.calls.filter((call) => {
         const url = typeof call[0] === 'string' ? call[0] : (call[0] as Request).url;
         return url.includes('/auth/refresh');
       });
@@ -247,11 +246,11 @@ describe('authInterceptor', () => {
       // Total of 2 calls for refresh flow (1 init, 1 verify)
       // If queueing works, it's not 4 calls (2 init, 2 verify)
       expect(refreshCalls).toHaveLength(2);
-      
+
       // Verify retry calls: both should succeed with the same token
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
-      
+
       const res1Body = await res1.json();
       const res2Body = await res2.json();
       expect(res1Body.data).toBe('success');

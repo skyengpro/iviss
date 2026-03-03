@@ -12,11 +12,10 @@ const mockedRetrieveKeyPair = vi.mocked(retrieveKeyPair);
 
 // Generate a real ES256 key pair for testing
 async function generateTestKeyPair() {
-  const keyPair = await crypto.subtle.generateKey(
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    true,
-    ['sign', 'verify']
-  );
+  const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+    'sign',
+    'verify',
+  ]);
 
   const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
   const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
@@ -70,9 +69,7 @@ describe('signatureService', () => {
     it('should throw when private key is not found', async () => {
       mockedRetrieveKeyPair.mockResolvedValue({ publicKey: null, privateKey: null });
 
-      await expect(signNonce('test-nonce')).rejects.toThrow(
-        'Device private key not found'
-      );
+      await expect(signNonce('test-nonce')).rejects.toThrow('Device private key not found');
     });
 
     it('should throw when key retrieval fails', async () => {
