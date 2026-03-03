@@ -38,20 +38,23 @@ pub async fn provision_user(
 ) -> Result<impl IntoResponse, AppError> {
     let user = create_user(&state.db, payload).await?;
 
-    // If user is an agent, spawn background task to send activation code
+    // If user is an agent, send activation code
     if matches!(user.role, crate::dto::users::UserRole::Agent) {
         if let Some(phone) = user.phone_number.clone() {
             let user_id = user.id;
             let redis = state.redis.clone();
             let sms = state.sms_pvd.clone();
+            let pepper = state.pepper.clone();
             tokio::spawn(async move {
-                let svc = ActivationService::new(redis, sms);
+                let svc = ActivationService::new(redis, sms, pepper);
                 if let Err(e) = svc.generate_and_send(&user_id, &phone).await {
                     warn!("Failed to send activation code to {}: {}", phone, e);
                 }
             });
         }
     }
+
+    tracing::info!("User created successfully: {}", user.id);
 
     Ok((StatusCode::CREATED, Json(user)))
 }

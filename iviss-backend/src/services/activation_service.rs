@@ -2,11 +2,14 @@ use crate::db::RedisPool;
 use crate::services::sms_provider::SmsProvider;
 use anyhow::{Context, Result};
 use deadpool_redis::redis::AsyncCommands;
+use hmac::{Hmac, Mac};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use std::sync::Arc;
 use uuid::Uuid;
+
+type HmacSha256 = Hmac<Sha256>;
 
 const ACTIVATION_TTL_SECS: u64 = 600; // 10 minutes
 const MAX_ATTEMPTS: u8 = 5;
@@ -27,17 +30,18 @@ impl ActivationEntry {
 pub struct ActivationService {
     redis: RedisPool,
     sms: Arc<dyn SmsProvider>,
+    pepper: String,
 }
 
 impl ActivationService {
-    pub fn new(redis: RedisPool, sms: Arc<dyn SmsProvider>) -> Self {
-        Self { redis, sms }
+    pub fn new(redis: RedisPool, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
+        Self { redis, sms, pepper }
     }
 
     /// Generates a 6-digit code, stores its hash in Redis, returns the plain code
     pub async fn generate_and_store(&self, user_id: &Uuid) -> Result<String> {
         let code = self.generate_code();
-        let code_hash = Self::hash_code(&code);
+        let code_hash = self.hash_code(&code);
 
         let entry = ActivationEntry {
             code_hash,
@@ -72,12 +76,20 @@ impl ActivationService {
             .context("Failed to get Redis connection")?;
 
         // Retrieve the entry
-        let raw: Option<String> = conn
+        let (raw, ttl): (Option<String>, i64) = redis::pipe()
             .get(&key)
+            .ttl(&key)
+            .query_async(&mut conn)
             .await
-            .context("Failed to get activation entry from Redis")?;
+            .context("Failed to fetch activation entry")?;
 
         let raw = raw.ok_or_else(|| anyhow::anyhow!("Activation code expired or not found"))?;
+
+        let remaining_ttl = if ttl > 0 {
+            ttl as u64
+        } else {
+            return Err(anyhow::anyhow!("Activation code expired"));
+        };
 
         let mut entry: ActivationEntry =
             serde_json::from_str(&raw).context("Failed to deserialize activation entry")?;
@@ -91,16 +103,24 @@ impl ActivationService {
             ));
         }
 
-        // Increment attempts before verification
-        entry.attempts += 1;
-        let updated = serde_json::to_string(&entry).context("Failed to serialize")?;
-        conn.set_ex::<_, _, ()>(&key, updated, ACTIVATION_TTL_SECS)
-            .await
-            .context("Failed to update attempts")?;
+        let submitted_hash = self.hash_code(submitted_code);
 
-        // Verify the hash
-        let submitted_hash = Self::hash_code(submitted_code);
         if submitted_hash != entry.code_hash {
+            // Increment only on mismatch
+            entry.attempts += 1;
+
+            if entry.attempts >= MAX_ATTEMPTS {
+                conn.del::<_, ()>(&key).await.ok();
+                return Err(anyhow::anyhow!(
+                    "Max attempts reached — activation code invalidated"
+                ));
+            }
+
+            let updated = serde_json::to_string(&entry)?;
+            conn.set_ex::<_, _, ()>(&key, updated, remaining_ttl)
+                .await
+                .context("Failed to update attempts")?;
+
             return Err(anyhow::anyhow!(
                 "Invalid activation code — {} attempt(s) remaining",
                 MAX_ATTEMPTS - entry.attempts
@@ -121,10 +141,11 @@ impl ActivationService {
     }
 
     /// SHA-256 hash of the plain code
-    pub(crate) fn hash_code(code: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(code.as_bytes());
-        format!("{:x}", hasher.finalize())
+    pub(crate) fn hash_code(&self, code: &str) -> String {
+        let mut mac =
+            HmacSha256::new_from_slice(self.pepper.as_bytes()).expect("HMAC accepts any key size");
+        mac.update(code.as_bytes());
+        format!("{:x}", mac.finalize().into_bytes())
     }
 
     /// Generate a code, store it, and send via SMS

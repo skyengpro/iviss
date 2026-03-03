@@ -9,14 +9,21 @@ pub struct AppState {
     pub db: DbPool,
     pub redis: RedisPool,
     pub sms_pvd: Arc<dyn SmsProvider>,
+    pub pepper: String,
 }
 
 impl AppState {
-    pub fn new(db_pool: DbPool, redis_pool: RedisPool, sms_pvd: Arc<dyn SmsProvider>) -> Self {
+    pub fn new(
+        db_pool: DbPool,
+        redis_pool: RedisPool,
+        sms_pvd: Arc<dyn SmsProvider>,
+        pepper: String,
+    ) -> Self {
         Self {
             db: db_pool,
             redis: redis_pool,
             sms_pvd,
+            pepper,
         }
     }
 }
