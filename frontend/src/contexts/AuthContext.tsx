@@ -2,20 +2,28 @@ import { useState, useEffect, ReactNode } from 'react';
 import { mockAuthService } from '@/services/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
+import { getDeviceId } from '@/services/deviceId';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Initialize identity and check for existing session on mount
   useEffect(() => {
-    const existingSession = mockAuthService.getSession() as unknown as AuthResponse | null;
-    if (existingSession) {
-      setSession(existingSession);
-      setUser(existingSession.user);
-    }
-    setIsLoading(false);
+    const initIdentity = async () => {
+      // Ensure device_id is generated and stored in IndexedDB
+      await getDeviceId();
+
+      const existingSession = mockAuthService.getSession() as unknown as AuthResponse | null;
+      if (existingSession) {
+        setSession(existingSession);
+        setUser(existingSession.user);
+      }
+      setIsLoading(false);
+    };
+
+    initIdentity();
   }, []);
 
   const login = async (username: string, password: string) => {

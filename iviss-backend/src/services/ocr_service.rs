@@ -2,6 +2,7 @@ use image::{GenericImageView, GrayImage};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use leptess::{LepTess, Variable};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
@@ -34,9 +35,23 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let (width, height) = img.dimensions();
     tracing::info!("Received image for OCR: {}x{} ({} bytes), load took {:?}", width, height, image_bytes.len(), load_elapsed);
 
+    let debug_enabled = std::env::var("OCR_DEBUG").map(|v| v == "1" || v.eq_ignore_ascii_case("true")).unwrap_or(false);
+    let debug_id = if debug_enabled {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
     // 2. Convert to 8-bit grayscale and resize for speed (keep aspect ratio)
     let gray = img.to_luma8();
     let gray = resize_to_target_width(&gray, TARGET_WIDTH);
+
+    if debug_enabled {
+        let _ = gray.save(format!("/tmp/ocr_debug_{}_gray.png", debug_id));
+    }
 
     // 3. Preprocessing: contrast stretch → adaptive threshold
     let process_start = std::time::Instant::now();
@@ -46,7 +61,14 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     
     // Add 30px white border — Tesseract works much better when chars aren't touching edges
     let binary = add_border(&binary, 30, 255);
-    let inverted = add_border(&inverted, 30, 255);
+    let inverted = add_border(&inverted, 30, 0);
+    let gray = add_border(&gray, 30, 255);
+
+    if debug_enabled {
+        let _ = stretched.save(format!("/tmp/ocr_debug_{}_stretched.png", debug_id));
+        let _ = binary.save(format!("/tmp/ocr_debug_{}_binary.png", debug_id));
+        let _ = inverted.save(format!("/tmp/ocr_debug_{}_inverted.png", debug_id));
+    }
     
     let process_elapsed = process_start.elapsed();
 
@@ -64,6 +86,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
     let r_b7 = try_ocr(&mut tess, &binary, "binary-psm7");
     let r_i7 = try_ocr(&mut tess, &inverted, "inverted-psm7");
+    let r_g7 = try_ocr(&mut tess, &gray, "gray-psm7");
 
     // Check if we already found a winner
     if let Some(ref res) = r_b7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
@@ -72,7 +95,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let tesseract_elapsed = tesseract_start.elapsed();
 
     // 5. Result Selection
-    let candidates = vec![r_b7, r_i7];
+    let candidates = vec![r_b7, r_i7, r_g7];
     let final_result = pick_best_ensemble(candidates);
 
     finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
@@ -108,8 +131,17 @@ fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time:
 
 /// Attempt OCR on a single grayscale image using leptess.
 fn try_ocr(tess: &mut LepTess, img: &GrayImage, label: &str) -> Option<ScanResultData> {
-    // Write image to a temp file as PNG (bypasses potential BMP/memory issues in leptess)
-    let tmp_path = format!("/tmp/ocr_tmp_{}.png", label.replace('-', "_"));
+    // Write image to a temp file as PNG (bypasses potential BMP/memory issues in leptess).
+    // Use a unique name to avoid collisions between rapid requests.
+    let uniq = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp_path = format!(
+        "/tmp/ocr_tmp_{}_{}.png",
+        label.replace('-', "_"),
+        uniq
+    );
     img.save(&tmp_path).ok()?;
 
     // Load from file path (Leptonica handles PNG natively)

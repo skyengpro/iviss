@@ -7,11 +7,12 @@ use crate::dto::{
     common::*,
     create_control::*,
     list_control::*,
+    organizations::{Organization, OrganizationType},
     pending_submission::*,
     scan::*,
     search_vehicle::*,
     stats::DashboardStats,
-    users::{UserProfile, UserRole},
+    users::{ProvisionUserRequest, UpdateUserRequest, UserProfile, UserRole, UserStatus},
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
 
@@ -58,12 +59,18 @@ impl Modify for SecurityAddon {
         crate::handlers::pending_submission::submit_vehicle,
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,
+        crate::handlers::scan::scan_plate,
         crate::handlers::stats::get_dashboard_stats,
         crate::handlers::users::get_user_profile,
         crate::handlers::auth::login,
         crate::handlers::auth::register,
         crate::handlers::auth::logout,
-        crate::handlers::scan::scan_plate,
+        crate::handlers::user_management::provision_user,
+        crate::handlers::user_management::list_users,
+        crate::handlers::user_management::get_user,
+        crate::handlers::user_management::update_user,
+        crate::handlers::user_management::delete_user,
+        crate::handlers::user_management::list_organizations,
     ),
 
     components(
@@ -110,6 +117,11 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::LoginRequest,
             crate::handlers::auth::AuthResponse,
             crate::handlers::auth::RegisterRequest,
+            ProvisionUserRequest,
+            UpdateUserRequest,
+            UserStatus,
+            Organization,
+            OrganizationType,
         )
     ),
     modifiers(&SecurityAddon),

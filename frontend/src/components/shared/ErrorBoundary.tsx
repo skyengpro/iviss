@@ -66,7 +66,7 @@ const ErrorFallback = ({ onReset, error }: { onReset: () => void; error: Error |
           Return Home
         </Button>
       </div>
-      {import.meta.env.DEV && error && (
+      {process.env.NODE_ENV === 'development' && error && (
         <pre className="mt-8 max-w-full overflow-auto rounded-lg bg-muted p-4 text-left text-xs text-muted-foreground">
           {error.toString()}
         </pre>

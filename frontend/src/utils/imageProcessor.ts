@@ -145,24 +145,21 @@ export class ImageProcessor {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
-          // 1. Account for 'object-cover' scaling
-          const W = window.innerWidth;
-          const H = window.innerHeight;
           const w = img.width;
           const h = img.height;
 
-          // object-cover scale
-          const scale = Math.max(W / w, H / h);
+          // Crop a centered region from the actual screenshot dimensions.
+          // This avoids relying on window sizing (which can differ from the video element and cause mis-crops).
+          let sw = w * 0.92;
+          let sh = sw / 2.0;
 
-          // Viewfinder-mapped region: 92% of screen width, 2:1 aspect ratio
-          const vw = W * 0.92;
-          const vh = vw / 2.0;
+          // If the computed crop is too tall, fit by height instead.
+          const maxSh = h * 0.92;
+          if (sh > maxSh) {
+            sh = maxSh;
+            sw = sh * 2.0;
+          }
 
-          // Map viewfinder pixels back to raw video pixels
-          const sw = vw / scale;
-          const sh = vh / scale;
-
-          // Center the crop on the video
           const sx = (w - sw) / 2;
           const sy = (h - sh) / 2;
 
