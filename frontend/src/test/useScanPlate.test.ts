@@ -13,7 +13,9 @@ vi.mock('react-i18next', () => ({
 describe('useScanPlate', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.spyOn(ImageProcessor, 'cropToViewfinder').mockResolvedValue('data:image/jpeg;base64,AAA');
+    vi.spyOn(ImageProcessor, 'cropToViewfinderFast').mockResolvedValue(
+      'data:image/jpeg;base64,AAA'
+    );
   });
 
   afterEach(() => {
@@ -52,21 +54,29 @@ describe('useScanPlate', () => {
 
     const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
 
-    await act(async () => {
+    act(() => {
       result.current.startLiveScan(getScreenshot);
-      // Let the async OCR call chain resolve.
-      await Promise.resolve();
-      await Promise.resolve();
     });
 
+    // Stability requires 2 consecutive matches in the current hook implementation.
+    // Drive the scan loop (setTimeout) and let async fetch chain resolve.
+    for (let i = 0; i < 10 && onSuccess.mock.calls.length === 0; i += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    }
+
     expect(onSuccess).toHaveBeenCalledTimes(1);
+
     expect(onSuccess).toHaveBeenCalledWith({
       plateNumber: 'CE128BC',
       confidence: 90,
       status: 'valid',
     });
 
-    expect(result.current.isScanning).toBe(false);
+    expect(result.current.liveScanActive).toBe(false);
   });
 
   it('stopLiveScan should reset scanning state and clear detections', async () => {
@@ -108,13 +118,13 @@ describe('useScanPlate', () => {
       await Promise.resolve();
     });
 
-    expect(result.current.isScanning).toBe(true);
+    expect(result.current.liveScanActive).toBe(true);
 
     act(() => {
       result.current.stopLiveScan();
     });
 
-    expect(result.current.isScanning).toBe(false);
+    expect(result.current.liveScanActive).toBe(false);
     expect(result.current.liveDetections).toEqual([]);
   });
 
@@ -145,6 +155,7 @@ describe('useScanPlate', () => {
       await Promise.resolve();
     });
 
-    expect(result.current.scanError).toBe('mobileScan.ocrError');
+    // AbortError is intentionally ignored by the hook.
+    expect(result.current.scanError).toBeNull();
   });
 });
