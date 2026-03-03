@@ -12,6 +12,7 @@ mod routes;
 mod services;
 
 use crate::api_doc::ApiDoc;
+use crate::app_state::AppState;
 use crate::config::Config;
 use crate::db::initialize_pool;
 use anyhow::Context;
@@ -48,7 +49,8 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&pool).await?;
     info!("Migrations completed");
 
-    let app = routes::assembly(pool, config.jwt_secret.clone())
+    let app_state = AppState::new(pool, config.jwt_secret.clone());
+    let app = routes::assembly(app_state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
