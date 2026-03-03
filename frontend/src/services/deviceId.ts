@@ -14,7 +14,7 @@ const DEVICE_ID_KEY = 'device_id';
  */
 export async function getDeviceId(): Promise<string> {
   try {
-    const record = (await storage.findOne('metadata', DEVICE_ID_KEY as any)) as
+    const record = (await storage.findOne('metadata', DEVICE_ID_KEY)) as
       | {
           key: string;
           value: string;

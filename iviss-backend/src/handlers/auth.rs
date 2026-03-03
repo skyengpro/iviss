@@ -58,7 +58,8 @@ pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoRespon
             token: "mock-jwt-token".to_string(),
             user: UserProfile {
                 id: uuid::Uuid::new_v4(),
-                email: "admin@iviss.com".to_string(),
+                username: "admin".to_string(),
+                email: Some("admin@iviss.com".to_string()),
                 name: "Admin User".to_string(),
                 role: UserRole::Admin,
                 organization_id: uuid::Uuid::new_v4(),
@@ -66,6 +67,7 @@ pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoRespon
                 badge_id: Some("ADMIN-01".to_string()),
                 phone_number: Some("+237 600 000 000".to_string()),
                 avatar_initials: Some("AU".to_string()),
+                status: crate::dto::users::UserStatus::Active,
                 is_active: true,
             },
         }),
@@ -92,7 +94,13 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
             token: "mock-jwt-token".to_string(),
             user: UserProfile {
                 id: uuid::Uuid::new_v4(),
-                email: payload.email,
+                username: payload
+                    .email
+                    .split('@')
+                    .next()
+                    .unwrap_or("user")
+                    .to_string(),
+                email: Some(payload.email),
                 name: payload.full_name,
                 role: payload.role,
                 organization_id: uuid::Uuid::new_v4(),
@@ -100,6 +108,7 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
                 badge_id: Some("TEMP-01".to_string()),
                 phone_number: None,
                 avatar_initials: Some("NU".to_string()),
+                status: crate::dto::users::UserStatus::Active,
                 is_active: true,
             },
         }),
