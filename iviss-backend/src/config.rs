@@ -86,6 +86,7 @@ pub struct Config {
     pub twilio_account_sid: String,
     pub twilio_auth_token: String,
     pub twilio_from_number: String,
+    pub activation_code_pepper: String,
 }
 
 impl Config {
@@ -150,6 +151,14 @@ impl Config {
         let twilio_from_number =
             env::var("TWILIO_FROM_NUMBER").unwrap_or_else(|_| "mock".to_string());
 
+        let activation_code_pepper =
+            env::var("ACTIVATION_CODE_PEPPER").context("ACTIVATION_CODE_PEPPER must be set")?;
+
+        if activation_code_pepper.len() < 32 {
+            return Err(anyhow!(
+                "ACTIVATION_CODE_PEPPER must be at least 32 characters"
+            ));
+        }
         Ok(Self {
             database_url,
             redis_url,
@@ -161,6 +170,7 @@ impl Config {
             twilio_account_sid,
             twilio_auth_token,
             twilio_from_number,
+            activation_code_pepper,
         })
     }
 

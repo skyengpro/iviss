@@ -171,16 +171,20 @@ pub async fn send_activation(
         ));
     }
 
-    // Agent must be in PENDING_ACTIVATION status
-    if user.status != "PENDING_ACTIVATION" {
+    // Agent must be in PENDING_ACTIVATION or SUSPENDED status
+    if user.status != "PENDING_ACTIVATION" && user.status != "SUSPENDED" {
         return Err(AppError::BadRequest(format!(
-            "User is not pending activation — current status: {}",
+            "User is not pending activation or suspended — current status: {}",
             user.status
         )));
     }
 
     // Build ActivationService from shared state resources
-    let activation_svc = ActivationService::new(state.redis.clone(), state.sms_pvd.clone());
+    let activation_svc = ActivationService::new(
+        state.redis.clone(),
+        state.sms_pvd.clone(),
+        state.pepper.clone(),
+    );
 
     // Generate, store and send the activation code via SMS
     activation_svc

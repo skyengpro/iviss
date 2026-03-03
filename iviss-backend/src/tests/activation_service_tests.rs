@@ -21,8 +21,10 @@ mod tests {
         cfg.create_pool(Some(Runtime::Tokio1)).unwrap()
     }
 
+    const TEST_PEPPER: &str = "test_pepper_for_activation_code_hashing_must_be_32_chars_long";
+
     fn make_service(pool: RedisPool) -> ActivationService {
-        ActivationService::new(pool, Arc::new(MockSmsProvider))
+        ActivationService::new(pool, Arc::new(MockSmsProvider), TEST_PEPPER.to_string())
     }
 
     // ─────────────────────────────────────────
@@ -37,6 +39,7 @@ mod tests {
                 .create_pool(Some(Runtime::Tokio1))
                 .unwrap(),
             Arc::new(MockSmsProvider),
+            TEST_PEPPER.to_string(),
         );
 
         for _ in 0..100 {
@@ -51,23 +54,38 @@ mod tests {
 
     #[test]
     fn test_hash_code_is_deterministic() {
-        let hash1 = ActivationService::hash_code("123456");
-        let hash2 = ActivationService::hash_code("123456");
+        let svc = make_service(
+            deadpool_redis::Config::from_url("redis://127.0.0.1:6379")
+                .create_pool(Some(Runtime::Tokio1))
+                .unwrap(),
+        );
+        let hash1 = svc.hash_code("123456");
+        let hash2 = svc.hash_code("123456");
         assert_eq!(hash1, hash2);
     }
 
     #[test]
     fn test_hash_code_different_inputs() {
-        let hash1 = ActivationService::hash_code("123456");
-        let hash2 = ActivationService::hash_code("654321");
+        let svc = make_service(
+            deadpool_redis::Config::from_url("redis://127.0.0.1:6379")
+                .create_pool(Some(Runtime::Tokio1))
+                .unwrap(),
+        );
+        let hash1 = svc.hash_code("123456");
+        let hash2 = svc.hash_code("654321");
         assert_ne!(hash1, hash2);
     }
 
     #[test]
     fn test_hash_code_zero_padded() {
         // "000001" et "1" doivent donner des hash différents
-        let hash1 = ActivationService::hash_code("000001");
-        let hash2 = ActivationService::hash_code("1");
+        let svc = make_service(
+            deadpool_redis::Config::from_url("redis://127.0.0.1:6379")
+                .create_pool(Some(Runtime::Tokio1))
+                .unwrap(),
+        );
+        let hash1 = svc.hash_code("000001");
+        let hash2 = svc.hash_code("1");
         assert_ne!(hash1, hash2);
     }
 
@@ -93,7 +111,7 @@ mod tests {
 
         // Verify that the stored hash matches the returned code
         let entry: ActivationEntry = serde_json::from_str(&raw.unwrap()).unwrap();
-        assert_eq!(entry.code_hash, ActivationService::hash_code(&code));
+        assert_eq!(entry.code_hash, svc.hash_code(&code));
         assert_eq!(entry.attempts, 0);
     }
 
