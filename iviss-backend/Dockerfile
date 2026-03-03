@@ -61,14 +61,9 @@ RUN cargo build --release
 FROM debian:bookworm-slim AS production
 
 # Install runtime dependencies
-# We need libtesseract and libleptonica shared libraries at runtime
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    ca-certificates \
-    libtesseract-dev \
-    libleptonica-dev \
-    tesseract-ocr-eng \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y libpq5 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

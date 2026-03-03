@@ -39,7 +39,7 @@ describe('useStabilityDetection', () => {
       result.current.addDetection({ plateNumber: 'CE128BC', confidence: 85 });
     });
 
-    // Low confidence should reset
+    // Low confidence resets history
     act(() => {
       result.current.addDetection({ plateNumber: 'CE128BC', confidence: 50 });
     });
@@ -47,7 +47,8 @@ describe('useStabilityDetection', () => {
     act(() => {
       result.current.addDetection({ plateNumber: 'CE128BC', confidence: 80 });
     });
-    expect(result.current.stableResult).toBeNull(); // Need 2 more
+    // After reset, we only have 1 high-confidence detection again
+    expect(result.current.stableResult).toBeNull();
   });
 
   it('should reset history on mismatching plate number', () => {
