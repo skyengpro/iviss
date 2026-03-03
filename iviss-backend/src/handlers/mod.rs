@@ -5,4 +5,5 @@ pub mod photo;
 pub mod scan;
 pub mod search_vehicle;
 pub mod stats;
+pub mod user_management;
 pub mod users;

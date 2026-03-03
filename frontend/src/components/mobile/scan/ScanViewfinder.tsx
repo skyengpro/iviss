@@ -65,11 +65,9 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 
           {/* Scanning indicator */}
           {isScanning && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <div className="flex flex-col items-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-                <p className="mt-2 text-sm text-white">Processing OCR...</p>
-              </div>
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-white text-sm border border-white/20 backdrop-blur-sm">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              <span>Scanning…</span>
             </div>
           )}
         </div>

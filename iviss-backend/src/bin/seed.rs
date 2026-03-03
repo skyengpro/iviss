@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to execute seed SQL")?;
 
-    println!("✨ Database seeded successfully with 5 car plates and associated data!");
+    println!("✨ Database seeded successfully with 6 car plates and associated data!");
 
     Ok(())
 }

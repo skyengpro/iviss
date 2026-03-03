@@ -9,6 +9,53 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/admin/organizations": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all organizations (admin only)",
+        "operationId": "listOrganizations",
+        "responses": {
+          "200": {
+            "description": "Organizations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Organization"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/admin/submissions": {
       "get": {
         "tags": ["vehicles"],
@@ -92,52 +139,320 @@
         ]
       }
     },
-    "/api/v1/scan/plate": {
-      "post": {
-        "tags": ["scanning"],
-        "operationId": "scanPlate",
+    "/admin/users": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all users (admin only)",
+        "operationId": "listUsers",
         "responses": {
           "200": {
-            "description": "OCR result (may have low confidence)",
+            "description": "Users retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfile"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["admin"],
+        "summary": "Provision a new user (admin only)",
+        "operationId": "provisionUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User provisioned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid or missing image",
+            "description": "Bad request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
+                  "$ref": "#/components/schemas/AppErrorResponse"
                 }
               }
             }
           },
-          "415": {
-            "description": "Unsupported media type",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
+                  "$ref": "#/components/schemas/AppErrorResponse"
                 }
               }
             }
           },
-          "500": {
-            "description": "Internal OCR error",
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
+                  "$ref": "#/components/schemas/AppErrorResponse"
                 }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/admin/users/{id}": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Get a specific user by ID (admin only)",
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": ["admin"],
+        "summary": "Update a user (admin only)",
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["admin"],
+        "summary": "Delete a user (admin only)",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/auth/login": {
@@ -1073,6 +1388,30 @@
           }
         }
       },
+      "Organization": {
+        "type": "object",
+        "required": ["id", "name", "orgType"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orgType": {
+            "$ref": "#/components/schemas/OrganizationType"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "OrganizationType": {
+        "type": "string",
+        "enum": ["police", "customs", "bordercontrol", "other"]
+      },
       "OwnerInfo": {
         "type": "object",
         "required": ["name"],
@@ -1210,6 +1549,37 @@
           }
         }
       },
+      "ProvisionUserRequest": {
+        "type": "object",
+        "description": "Request for POST /admin/users (provisioning)",
+        "required": ["username", "phoneNumber", "fullName", "role", "organizationId"],
+        "properties": {
+          "badgeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
       "RegisterRequest": {
         "type": "object",
         "required": ["email", "password", "full_name", "role"],
@@ -1225,71 +1595,6 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
-          }
-        }
-      },
-      "ScanErrorData": {
-        "type": "object",
-        "description": "Error detail returned inside the scan response envelope.",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code, e.g. `INVALID_IMAGE`."
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error description."
-          }
-        }
-      },
-      "ScanPlateResponse": {
-        "type": "object",
-        "description": "Envelope response for `POST /api/v1/scan/plate`.",
-        "required": ["success"],
-        "properties": {
-          "data": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ScanResultData"
-              }
-            ],
-            "nullable": true
-          },
-          "error": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ScanErrorData"
-              }
-            ],
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ScanResultData": {
-        "type": "object",
-        "description": "Successful OCR scan result data.",
-        "required": ["plate", "raw_text", "confidence", "format_valid"],
-        "properties": {
-          "confidence": {
-            "type": "number",
-            "format": "float",
-            "description": "Tesseract confidence score (0.0 – 1.0)."
-          },
-          "format_valid": {
-            "type": "boolean",
-            "description": "Whether the normalized plate matches the Cameroon format (XX###XX)."
-          },
-          "plate": {
-            "type": "string",
-            "description": "Normalized plate text (uppercase, no spaces). Empty if nothing detected."
-          },
-          "raw_text": {
-            "type": "string",
-            "description": "Raw text as returned by the OCR engine before normalization."
           }
         }
       },
@@ -1378,6 +1683,53 @@
           }
         }
       },
+      "UpdateUserRequest": {
+        "type": "object",
+        "description": "Request for PATCH /admin/users/:id (update)",
+        "properties": {
+          "badgeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRole"
+              }
+            ],
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "UploadResponse": {
         "type": "object",
         "required": ["message", "submission_id"],
@@ -1393,7 +1745,7 @@
       "UserProfile": {
         "type": "object",
         "description": "Response for GET /users/me",
-        "required": ["id", "name", "email", "role", "organizationId", "isActive"],
+        "required": ["id", "username", "name", "role", "organizationId", "status", "isActive"],
         "properties": {
           "avatarInitials": {
             "type": "string",
@@ -1404,7 +1756,8 @@
             "nullable": true
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "id": {
             "type": "string",
@@ -1430,12 +1783,22 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "username": {
+            "type": "string"
           }
         }
       },
       "UserRole": {
         "type": "string",
         "enum": ["admin", "agent", "manager"]
+      },
+      "UserStatus": {
+        "type": "string",
+        "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
       },
       "VehicleInfo": {
         "type": "object",
@@ -1535,10 +1898,6 @@
     {
       "name": "controls",
       "description": "Roadside control tracking"
-    },
-    {
-      "name": "scanning",
-      "description": "License plate OCR scanning"
     },
     {
       "name": "stats",
