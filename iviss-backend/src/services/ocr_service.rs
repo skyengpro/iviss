@@ -2,6 +2,7 @@ use image::{GenericImageView, GrayImage};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use leptess::{LepTess, Variable};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
@@ -64,18 +65,49 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
     let r_b7 = try_ocr(&mut tess, &binary, "binary-psm7");
     let r_i7 = try_ocr(&mut tess, &inverted, "inverted-psm7");
+    let r_g7 = try_ocr(&mut tess, &gray, "gray-psm7");
 
-    // Check if we already found a winner
-    if let Some(ref res) = r_b7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
-    if let Some(ref res) = r_i7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
+    if let Some(res) = best_valid(&[&r_b7, &r_i7, &r_g7]) {
+        return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed());
+    }
+
+    // --- MODE 2: PSM 6 (Single Uniform Block of Text) ---
+    tess.set_variable(Variable::TesseditPagesegMode, "6")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 6: {e}")))?;
+    let r_b6 = try_ocr(&mut tess, &binary, "binary-psm6");
+    let r_i6 = try_ocr(&mut tess, &inverted, "inverted-psm6");
+    let r_g6 = try_ocr(&mut tess, &gray, "gray-psm6");
+
+    if let Some(res) = best_valid(&[&r_b6, &r_i6, &r_g6]) {
+        return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed());
+    }
+
+    // --- MODE 3: PSM 11 (Sparse Text) ---
+    tess.set_variable(Variable::TesseditPagesegMode, "11")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
+    let r_b11 = try_ocr(&mut tess, &binary, "binary-psm11");
+    let r_i11 = try_ocr(&mut tess, &inverted, "inverted-psm11");
+    let r_g11 = try_ocr(&mut tess, &gray, "gray-psm11");
+
+    if let Some(res) = best_valid(&[&r_b11, &r_i11, &r_g11]) {
+        return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed());
+    }
 
     let tesseract_elapsed = tesseract_start.elapsed();
 
     // 5. Result Selection
-    let candidates = vec![r_b7, r_i7];
+    let candidates = vec![r_b7, r_i7, r_g7, r_b6, r_i6, r_g6, r_b11, r_i11, r_g11];
     let final_result = pick_best_ensemble(candidates);
 
     finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
+}
+
+fn best_valid<'a>(candidates: &[&'a Option<ScanResultData>]) -> Option<&'a ScanResultData> {
+    candidates
+        .iter()
+        .filter_map(|c| c.as_ref())
+        .filter(|r| r.format_valid)
+        .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal))
 }
 
 fn resize_to_target_width(img: &GrayImage, target_w: u32) -> GrayImage {
@@ -108,8 +140,17 @@ fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time:
 
 /// Attempt OCR on a single grayscale image using leptess.
 fn try_ocr(tess: &mut LepTess, img: &GrayImage, label: &str) -> Option<ScanResultData> {
-    // Write image to a temp file as PNG (bypasses potential BMP/memory issues in leptess)
-    let tmp_path = format!("/tmp/ocr_tmp_{}.png", label.replace('-', "_"));
+    // Write image to a temp file as PNG (bypasses potential BMP/memory issues in leptess).
+    // Use a unique name to avoid collisions between rapid requests.
+    let uniq = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d: Duration| d.as_nanos())
+        .unwrap_or(0);
+    let tmp_path = format!(
+        "/tmp/ocr_tmp_{}_{}.png",
+        label.replace('-', "_"),
+        uniq
+    );
     img.save(&tmp_path).ok()?;
 
     // Load from file path (Leptonica handles PNG natively)
