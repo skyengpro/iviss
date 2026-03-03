@@ -6,7 +6,7 @@ set -e
 
 # Start docker containers
 echo "Starting Database & Adminer..."
-docker compose up -d
+docker-compose up -d
 
 # Check if sqlx-cli is installed
 if ! command -v sqlx &> /dev/null; then
