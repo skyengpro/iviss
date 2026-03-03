@@ -6,6 +6,7 @@ use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
+use crate::services::activation_service::ActivationService;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -13,6 +14,7 @@ use axum::{
     Json,
 };
 use std::sync::Arc;
+use tracing::warn;
 use uuid::Uuid;
 
 /// Provision a new user (admin only)
@@ -35,6 +37,22 @@ pub async fn provision_user(
     Json(payload): Json<ProvisionUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let user = create_user(&state.db, payload).await?;
+
+    // If user is an agent, spawn background task to send activation code
+    if matches!(user.role, crate::dto::users::UserRole::Agent) {
+        if let Some(phone) = user.phone_number.clone() {
+            let user_id = user.id;
+            let redis = state.redis.clone();
+            let sms = state.sms_pvd.clone();
+            tokio::spawn(async move {
+                let svc = ActivationService::new(redis, sms);
+                if let Err(e) = svc.generate_and_send(&user_id, &phone).await {
+                    warn!("Failed to send activation code to {}: {}", phone, e);
+                }
+            });
+        }
+    }
+
     Ok((StatusCode::CREATED, Json(user)))
 }
 
