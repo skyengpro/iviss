@@ -117,7 +117,9 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
 type HeyApiClient = {
   interceptors: {
     request: { use: (fn: (request: Request) => Promise<Request> | Request) => void };
-    response: { use: (fn: (response: Response, request: Request) => Promise<Response> | Response) => void };
+    response: {
+      use: (fn: (response: Response, request: Request) => Promise<Response> | Response) => void;
+    };
   };
 };
 

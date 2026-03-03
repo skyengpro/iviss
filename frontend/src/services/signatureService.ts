@@ -22,9 +22,7 @@ export async function signNonce(nonce: string): Promise<string> {
   const { privateKey: privateJwk } = await retrieveKeyPair(1);
 
   if (!privateJwk) {
-    throw new Error(
-      'Device private key not found. Device may need to be re-enrolled.'
-    );
+    throw new Error('Device private key not found. Device may need to be re-enrolled.');
   }
 
   // Import the JWK as a CryptoKey for signing
