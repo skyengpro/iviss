@@ -41,11 +41,12 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let process_start = std::time::Instant::now();
     let stretched = contrast_stretch(&gray);
     let binary = adaptive_threshold(&stretched, ADAPTIVE_RADIUS, ADAPTIVE_C);
-    let inverted = invert_image(&binary);
-    
+
     // Add 30px white border — Tesseract works much better when chars aren't touching edges
     let binary = add_border(&binary, 30, 255);
-    let inverted = add_border(&inverted, 30, 255);
+
+    // Lazily computed; only needed if binary variants fail.
+    let mut inverted: Option<GrayImage> = None;
     
     let process_elapsed = process_start.elapsed();
 
@@ -62,21 +63,58 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     tess.set_variable(Variable::TesseditPagesegMode, "7")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
     let r_b7 = try_ocr(&mut tess, &binary, "binary-psm7");
-    let r_i7 = try_ocr(&mut tess, &inverted, "inverted-psm7");
 
-    // Check if we already found a winner
-    if let Some(ref res) = r_b7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
-    if let Some(ref res) = r_i7 { if res.format_valid { return finalize(res.clone(), process_elapsed, tesseract_start.elapsed(), start_total.elapsed()); } }
+    if let Some(ref res) = r_b7 {
+        if res.format_valid {
+            return finalize(
+                res.clone(),
+                process_elapsed,
+                tesseract_start.elapsed(),
+                start_total.elapsed(),
+            );
+        }
+    }
+
+    let r_i7 = {
+        if inverted.is_none() {
+            inverted = Some(add_border(&invert_image(&binary), 0, 255));
+        }
+        inverted.as_ref().and_then(|inv| try_ocr(&mut tess, inv, "inverted-psm7"))
+    };
+
+    if let Some(ref res) = r_i7 {
+        if res.format_valid {
+            return finalize(
+                res.clone(),
+                process_elapsed,
+                tesseract_start.elapsed(),
+                start_total.elapsed(),
+            );
+        }
+    }
 
     // --- MODE 2: PSM 11 (Sparse Text) --- Fallback
     tess.set_variable(Variable::TesseditPagesegMode, "11")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
     let r_b11 = try_ocr(&mut tess, &binary, "binary-psm11");
-    let r_i11 = try_ocr(&mut tess, &inverted, "inverted-psm11");
 
-    // Save debug image (latest frame)
-    let _ = binary.save("/tmp/ocr_debug_binary_latest.png");
-    let _ = inverted.save("/tmp/ocr_debug_inverted_latest.png");
+    if let Some(ref res) = r_b11 {
+        if res.format_valid {
+            return finalize(
+                res.clone(),
+                process_elapsed,
+                tesseract_start.elapsed(),
+                start_total.elapsed(),
+            );
+        }
+    }
+
+    let r_i11 = {
+        if inverted.is_none() {
+            inverted = Some(add_border(&invert_image(&binary), 0, 255));
+        }
+        inverted.as_ref().and_then(|inv| try_ocr(&mut tess, inv, "inverted-psm11"))
+    };
 
     let tesseract_elapsed = tesseract_start.elapsed();
 
