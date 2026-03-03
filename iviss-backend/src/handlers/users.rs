@@ -22,7 +22,6 @@ pub async fn get_user_profile(
     State(state): State<Arc<AppState>>,
     Extension(auth): Extension<AuthenticatedUser>,
 ) -> Result<impl IntoResponse, AppError> {
-    let _ = (&auth.device_id, &auth.jti);
     let profile = crate::queries::user_queries::get_user_by_id(&state.db, auth.user_id).await?;
     Ok((StatusCode::OK, Json(profile)))
 }
