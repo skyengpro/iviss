@@ -15,6 +15,10 @@ pub fn assembly(state: AppState) -> Router {
     let state = Arc::new(state);
     Router::new()
         .route("/health", get(|| async { "OK" }))
+        .route(
+            "/api/v1/scan/plate",
+            post(crate::handlers::scan::scan_plate),
+        )
         .route("/vehicles/search", post(search_vehicle))
         .route(
             "/controls",
@@ -57,6 +61,7 @@ pub fn assembly(state: AppState) -> Router {
             get(crate::handlers::user_management::list_organizations),
         )
         // .layer(axum::middleware::from_fn(logging::log_request))
+        .layer(cors::cors_layer())
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(cors::cors_layer())

@@ -4,6 +4,16 @@
 # Development Stage - with cargo-watch for auto-reload
 FROM rust:latest AS development
 
+# Install Tesseract OCR and Leptonica development headers for leptess C-bindings
+# Clang is required by bindgen to generate the Rust bindings
+RUN apt-get update && apt-get install -y \
+    libtesseract-dev \
+    libleptonica-dev \
+    tesseract-ocr-eng \
+    clang \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install cargo-watch for live reloading
 RUN cargo install cargo-watch
 

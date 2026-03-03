@@ -9,6 +9,7 @@ use crate::dto::{
     list_control::*,
     organizations::{Organization, OrganizationType},
     pending_submission::*,
+    scan::*,
     search_vehicle::*,
     stats::DashboardStats,
     users::{ProvisionUserRequest, UpdateUserRequest, UserProfile, UserRole, UserStatus},
@@ -46,6 +47,7 @@ impl Modify for SecurityAddon {
     tags(
         (name = "vehicles", description = "Vehicle lookup and image upload"),
         (name = "controls", description = "Roadside control tracking"),
+        (name = "scanning", description = "License plate OCR scanning"),
         (name = "stats", description = "Dashboard statistics"),
         (name = "users", description = "User profile management"),
         (name = "auth", description = "Authentication and registration"),
@@ -57,6 +59,7 @@ impl Modify for SecurityAddon {
         crate::handlers::pending_submission::submit_vehicle,
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,
+        crate::handlers::scan::scan_plate,
         crate::handlers::stats::get_dashboard_stats,
         crate::handlers::users::get_user_profile,
         crate::handlers::auth::login,
@@ -107,6 +110,10 @@ impl Modify for SecurityAddon {
             DashboardStats,
             UserProfile,
             UserRole,
+            // ── scanning ──
+            ScanPlateResponse,
+            ScanResultData,
+            ScanErrorData,
             // ── auth ──
             crate::handlers::auth::LoginRequest,
             crate::handlers::auth::AuthResponse,
