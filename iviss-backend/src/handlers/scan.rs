@@ -60,8 +60,11 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
     // Offload the CPU-heavy work to a blocking thread so we don't starve
     // the async Tokio runtime.
     let mut handle = tokio::task::spawn_blocking(move || ocr_service::scan_plate(&image_bytes));
-    let result = tokio::time::timeout(std::time::Duration::from_millis(OCR_TIMEOUT_MS), &mut handle)
-        .await;
+    let result = tokio::time::timeout(
+        std::time::Duration::from_millis(OCR_TIMEOUT_MS),
+        &mut handle,
+    )
+    .await;
 
     match result {
         Ok(joined) => match joined {

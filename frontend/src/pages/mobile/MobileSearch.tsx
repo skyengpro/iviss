@@ -22,7 +22,6 @@ export default function MobileSearch() {
       const searchPlate = plate || plateNumber;
 
       setIsLoading(true);
-      
 
       // Navigate to result page
       navigate(`/mobile/vehicle/${encodeURIComponent(searchPlate)}`);
