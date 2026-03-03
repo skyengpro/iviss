@@ -42,7 +42,8 @@ describe('usePhotoCapture', () => {
     const mockOnConfirm = vi.fn();
 
     // Mock fetch: first call for blob conversion, second for API
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
       })
@@ -77,7 +78,8 @@ describe('usePhotoCapture', () => {
   it('should handle API errors gracefully', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
       })
@@ -111,7 +113,8 @@ describe('usePhotoCapture', () => {
   it('should reset state on retry', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
       })
@@ -147,7 +150,8 @@ describe('usePhotoCapture', () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
     const mockOnConfirm = vi.fn();
 
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
       })
@@ -183,15 +187,14 @@ describe('usePhotoCapture', () => {
       result.current.confirmPlate();
     });
 
-    expect(mockOnConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({ plateNumber: 'CE129BC' })
-    );
+    expect(mockOnConfirm).toHaveBeenCalledWith(expect.objectContaining({ plateNumber: 'CE129BC' }));
   });
 
   it('should set status to warning for invalid format plates', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi.fn()
+    global.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
       })

@@ -51,8 +51,8 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         // Save the raw captured frame for UI preview (freeze frame)
         setCapturedImageSrc(imageSrc);
 
-        // 1. Photo preprocessing (viewfinder crop + sharpen)
-        const processed = await ImageProcessor.preprocessForPhotoCapture(imageSrc, t);
+        // 1. Photo preprocessing (high-resolution)
+        const processed = await ImageProcessor.preprocessForHighRes(imageSrc, t);
 
         // 2. Convert data URL to blob for multipart upload
         const fetchRes = await fetch(processed);
@@ -94,7 +94,11 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         }
       } catch (err) {
         console.error('Photo capture failed:', err);
-        setError(err instanceof Error ? err.message : t('mobileScan.photoError'));
+        if (err instanceof Error && err.message.startsWith('mobileScan.')) {
+          setError(err.message);
+        } else {
+          setError(t('mobileScan.photoError'));
+        }
         setState('error');
       } finally {
         isProcessingRef.current = false;
