@@ -21,16 +21,12 @@ pub struct JwtClaims {
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
     pub user_id: Uuid,
-    pub device_id: Uuid,
-    pub jti: String,
 }
 
 impl From<&JwtClaims> for AuthenticatedUser {
     fn from(claims: &JwtClaims) -> Self {
         Self {
             user_id: claims.sub,
-            device_id: claims.device_id,
-            jti: claims.jti.clone(),
         }
     }
 }
@@ -43,21 +39,26 @@ pub async fn require_auth(
     let token = extract_bearer_token(request.headers().get(AUTHORIZATION))?;
     let claims = decode_jwt(token, &state.jwt_secret)?;
 
-    if auth_queries::is_token_blacklisted(&state.db, &claims.jti).await? {
+    let validation_context = auth_queries::get_auth_validation_context(
+        &state.db,
+        claims.sub,
+        claims.device_id,
+        &claims.jti,
+    )
+    .await?;
+
+    if validation_context.is_blacklisted {
         return Err(AppError::unauthorized("Token has been revoked"));
     }
 
-    let user_status = auth_queries::get_user_status(&state.db, claims.sub).await?;
-    match user_status.as_deref() {
+    match validation_context.user_status.as_deref() {
         Some(status) if is_user_status_allowed(status) => {}
         Some("SUSPENDED") => return Err(AppError::unauthorized("User account is suspended")),
         Some(_) => return Err(AppError::unauthorized("User account is not active")),
         None => return Err(AppError::unauthorized("User not found")),
     }
 
-    let device_is_active =
-        auth_queries::is_device_active_for_user(&state.db, claims.device_id, claims.sub).await?;
-    if !device_is_active {
+    if !validation_context.device_is_active {
         return Err(AppError::unauthorized(
             "Device is not active or not bound to user",
         ));
@@ -92,7 +93,10 @@ fn decode_jwt(token: &str, jwt_secret: &str) -> Result<JwtClaims, AppError> {
         &validation,
     )
     .map(|token_data| token_data.claims)
-    .map_err(|_| AppError::unauthorized("Invalid or expired token"))
+    .map_err(|error| {
+        tracing::warn!(error_kind = ?error.kind(), %error, "JWT decode failed");
+        AppError::unauthorized("Invalid or expired token")
+    })
 }
 
 fn is_user_status_allowed(status: &str) -> bool {
