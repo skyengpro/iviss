@@ -1,5 +1,4 @@
 use crate::app_state::AppState;
-use crate::db::DbPool;
 use crate::handlers::{
     list_control::get_list_control,
     // pending_submission::submit_vehicle,
@@ -12,8 +11,8 @@ use std::time::Duration;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 
-pub fn assembly(pool: DbPool) -> Router {
-    let state = Arc::new(AppState::new(pool));
+pub fn assembly(state: AppState) -> Router {
+    let state = Arc::new(state);
     Router::new()
         .route("/health", get(|| async { "OK" }))
         .route(
@@ -51,6 +50,10 @@ pub fn assembly(pool: DbPool) -> Router {
         .route("/auth/login", post(crate::handlers::auth::login))
         .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route(
+            "/auth/send-activation",
+            post(crate::handlers::auth::send_activation),
+        )
         .route(
             "/admin/users",
             get(crate::handlers::user_management::list_users)
