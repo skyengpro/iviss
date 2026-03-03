@@ -132,6 +132,105 @@ services:
     networks:
       - iviss-network
 
+  # ————————————————————————————————————————
+  # Monitoring Stack
+  # ————————————————————————————————————————
+
+  # Frontend Metrics Server — receives browser metrics, exposes to Prometheus
+  metrics-server:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.metrics
+    container_name: iviss-metrics-server
+    restart: unless-stopped
+    environment:
+      METRICS_PORT: 9091
+    ports:
+      - "9091:9091"
+    volumes:
+      - ./frontend/metrics-server.js:/app/metrics-server.js
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9091/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
+  # Prometheus — scrapes and stores metrics
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: iviss-prometheus
+    restart: unless-stopped
+    depends_on:
+      metrics-server:
+        condition: service_healthy
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
+  # Grafana — dashboards and visualization
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: iviss-grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
 networks:
   iviss-network:
     driver: bridge
@@ -144,4 +243,9 @@ volumes:
   cargo_cache:
     driver: local
   target_cache:
+    driver: local
+  # Monitoring volumes
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
