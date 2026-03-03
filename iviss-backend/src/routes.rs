@@ -17,6 +17,10 @@ pub fn assembly(state: AppState) -> Router {
         .route("/auth/register", post(crate::handlers::auth::register));
 
     let protected_routes = Router::new()
+        .route(
+            "/api/v1/scan/plate",
+            post(crate::handlers::scan::scan_plate),
+        )
         .route("/vehicles/search", post(search_vehicle))
         .route(
             "/controls",
