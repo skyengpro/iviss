@@ -41,9 +41,24 @@ pub fn assembly(state: AppState) -> Router {
             "/auth/send-activation",
             post(crate::handlers::auth::send_activation),
         )
+        .route(
+            "/admin/users",
+            get(crate::handlers::user_management::list_users)
+                .post(crate::handlers::user_management::provision_user),
+        )
+        .route(
+            "/admin/users/:id",
+            get(crate::handlers::user_management::get_user)
+                .put(crate::handlers::user_management::update_user)
+                .delete(crate::handlers::user_management::delete_user),
+        )
+        .route(
+            "/admin/organizations",
+            get(crate::handlers::user_management::list_organizations),
+        )
         // .layer(axum::middleware::from_fn(logging::log_request))
-        .layer(cors::cors_layer())
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
+        .layer(cors::cors_layer())
         .with_state(state)
 }
