@@ -83,11 +83,10 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         const formData = new FormData();
         formData.append('image', blob, 'frame.jpg');
 
-        abortControllerRef.current?.abort();
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
-        const timeoutMs = 1800;
+        const timeoutMs = 12000;
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         // 3. Call Backend OCR API

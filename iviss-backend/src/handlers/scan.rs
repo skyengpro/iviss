@@ -11,7 +11,7 @@ const ALLOWED_CONTENT_TYPES: &[&str] = &["image/jpeg", "image/png"];
 
 /// Hard OCR timeout budget (server-side).
 /// This keeps the scan endpoint responsive even if OCR gets slow.
-const OCR_TIMEOUT_MS: u64 = 1800;
+const OCR_TIMEOUT_MS: u64 = 9000;
 
 // ── POST /api/v1/scan/plate ──────────────────────────────────────────────────
 
