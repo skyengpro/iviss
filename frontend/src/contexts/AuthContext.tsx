@@ -3,6 +3,7 @@ import { mockAuthService } from '@/services/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/deviceId';
+import { setAccessToken, setRefreshToken, clearTokens, getAccessToken } from '@/services/tokenManager';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -19,6 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (existingSession) {
         setSession(existingSession);
         setUser(existingSession.user);
+
+        // Sync token manager with existing session token
+        if (existingSession.token && !getAccessToken()) {
+          setAccessToken(existingSession.token);
+        }
       }
       setIsLoading(false);
     };
@@ -33,6 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const backendSession = result.session as unknown as AuthResponse;
       setSession(backendSession);
       setUser(backendSession.user);
+
+      // Persist tokens for the auth interceptor
+      if (backendSession.token) {
+        setAccessToken(backendSession.token);
+        // In a real flow, the backend would also return a refresh_token
+        // For now with mock auth, we store the same token as refresh
+        setRefreshToken(backendSession.token);
+      }
+
       return { success: true };
     }
 
@@ -41,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await mockAuthService.logout();
+    clearTokens();
     setSession(null);
     setUser(null);
   };

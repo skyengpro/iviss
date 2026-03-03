@@ -7,14 +7,27 @@ import { AppRouter } from '@/router/AppRouter';
 import { useMetrics } from '@/hooks/useMetrics';
 
 import { client } from '@/openapi-rq/requests/services.gen';
+import { setupAuthInterceptors } from '@/services/authInterceptor';
 
 import { AppInitializer } from '@/components/shared/AppInitializer';
 
 const queryClient = new QueryClient();
 
 // Configure the generated API client
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 client.setConfig({
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseUrl: apiBaseUrl,
+});
+
+// Register auth interceptors for automatic token refresh with device signature
+setupAuthInterceptors(client, {
+  baseUrl: apiBaseUrl,
+  onSessionExpired: () => {
+    // Clear mock session and reload to trigger login screen
+    localStorage.removeItem('iviss_session');
+    window.location.href = '/login';
+  },
 });
 
 const AppInner = () => {
