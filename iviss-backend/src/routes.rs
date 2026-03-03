@@ -1,5 +1,4 @@
 use crate::app_state::AppState;
-use crate::db::DbPool;
 use crate::handlers::{list_control::get_list_control, search_vehicle::search_vehicle};
 use crate::middleware::{auth, cors};
 use axum::middleware::from_fn_with_state;
@@ -9,8 +8,8 @@ use std::time::Duration;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 
-pub fn assembly(pool: DbPool, jwt_secret: String) -> Router {
-    let state = Arc::new(AppState::new(pool, jwt_secret));
+pub fn assembly(state: AppState) -> Router {
+    let state = Arc::new(state);
 
     let public_routes = Router::new()
         .route("/health", get(|| async { "OK" }))
