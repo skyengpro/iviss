@@ -1,0 +1,17 @@
+# Rust build artifacts
+/target/
+
+# SQLx offline query cache (commit .sqlx/ for offline builds, ignore if online)
+# /.sqlx/
+
+# Environment variables (contains secrets)
+.env
+
+# Test coverage output
+/coverage/
+*.profraw
+*.profdata
+
+# Editor / OS
+.DS_Store
+*.swp

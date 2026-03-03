@@ -1,0 +1,11 @@
+# Prometheus Configuration for IVISS Frontend Monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "frontend-metrics"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["metrics-server:9091"]
+    metrics_path: /metrics

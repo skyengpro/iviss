@@ -2,4 +2,5 @@
 
 pub mod activation_service;
 pub mod sms_provider;
+pub mod ocr_service;
 pub mod vehicle_service;
