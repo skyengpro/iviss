@@ -20,13 +20,22 @@ pub fn assembly(pool: DbPool) -> Router {
             "/api/v1/scan/plate",
             post(crate::handlers::scan::scan_plate),
         )
+        .route(
+            "/api/v1/photo/plate",
+            post(crate::handlers::photo::photo_plate),
+        )
         .route("/vehicles/search", post(search_vehicle))
+        .route("/api/v1/vehicles/search", post(search_vehicle))
         .route(
             "/controls",
             get(get_list_control).post(crate::handlers::list_control::create_control),
         )
         .route(
             "/vehicles/pending",
+            post(crate::handlers::pending_submission::submit_vehicle),
+        )
+        .route(
+            "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle),
         )
         .route(
