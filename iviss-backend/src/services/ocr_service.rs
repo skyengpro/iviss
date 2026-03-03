@@ -1,20 +1,16 @@
 use image::{GenericImageView, GrayImage};
+use leptess::{LepTess, Variable};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use leptess::{LepTess, Variable};
 use std::cell::RefCell;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
 
 /// Cameroon plate format: 2 letters + 3 digits + 2 letters (e.g. CE128BC).
-static PLATE_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[A-Z]{2}[0-9]{3}[A-Z]{2}$").unwrap());
-
-/// Target width (px) for the resized image fed to Tesseract.
-const TARGET_WIDTH: u32 = 1200;
+static PLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Z]{2}[0-9]{3}[A-Z]{2}$").unwrap());
 
 /// Radius (in pixels) for the adaptive threshold sliding window.
 const ADAPTIVE_RADIUS: u32 = 40;
@@ -74,7 +70,13 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let load_elapsed = load_start.elapsed();
 
     let (width, height) = img.dimensions();
-    tracing::info!("Received image for OCR: {}x{} ({} bytes), load took {:?}", width, height, image_bytes.len(), load_elapsed);
+    tracing::info!(
+        "Received image for OCR: {}x{} ({} bytes), load took {:?}",
+        width,
+        height,
+        image_bytes.len(),
+        load_elapsed
+    );
 
     // 2. Convert to 8-bit grayscale
     let gray = img.to_luma8();
@@ -89,7 +91,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
 
     // Lazily computed; only needed if binary variants fail.
     let mut inverted: Option<GrayImage> = None;
-    
+
     let process_elapsed = process_start.elapsed();
 
     // 4. Initialize / reuse Tesseract
@@ -107,11 +109,11 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         .save(&bin_path)
         .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
     let mut inv_path: Option<String> = None;
-    
+
     // --- MODE 1: PSM 7 (Single Text Line) ---
     tess.set_variable(Variable::TesseditPagesegMode, "7")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
-    let r_b7 = try_ocr_path(&mut *tess, &bin_path, "binary-psm7");
+    let r_b7 = try_ocr_path(&mut tess, &bin_path, "binary-psm7");
 
     if let Some(ref res) = r_b7 {
         if res.format_valid {
@@ -128,16 +130,14 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         if inverted.is_none() {
             inverted = Some(add_border(&invert_image(&binary), 0, 255));
             let p = format!("/tmp/ocr_inv_{tmp_id}.png");
-            inverted
-                .as_ref()
-                .unwrap()
-                .save(&p)
-                .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
+            inverted.as_ref().unwrap().save(&p).map_err(|e| {
+                AppError::internal_error(format!("Failed to write temp image: {e}"))
+            })?;
             inv_path = Some(p);
         }
         inv_path
             .as_ref()
-            .and_then(|p| try_ocr_path(&mut *tess, p, "inverted-psm7"))
+            .and_then(|p| try_ocr_path(&mut tess, p, "inverted-psm7"))
     };
 
     if let Some(ref res) = r_i7 {
@@ -154,7 +154,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // --- MODE 2: PSM 11 (Sparse Text) --- Fallback
     tess.set_variable(Variable::TesseditPagesegMode, "11")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
-    let r_b11 = try_ocr_path(&mut *tess, &bin_path, "binary-psm11");
+    let r_b11 = try_ocr_path(&mut tess, &bin_path, "binary-psm11");
 
     if let Some(ref res) = r_b11 {
         if res.format_valid {
@@ -171,16 +171,14 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         if inverted.is_none() {
             inverted = Some(add_border(&invert_image(&binary), 0, 255));
             let p = format!("/tmp/ocr_inv_{tmp_id}.png");
-            inverted
-                .as_ref()
-                .unwrap()
-                .save(&p)
-                .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
+            inverted.as_ref().unwrap().save(&p).map_err(|e| {
+                AppError::internal_error(format!("Failed to write temp image: {e}"))
+            })?;
             inv_path = Some(p);
         }
         inv_path
             .as_ref()
-            .and_then(|p| try_ocr_path(&mut *tess, p, "inverted-psm11"))
+            .and_then(|p| try_ocr_path(&mut tess, p, "inverted-psm11"))
     };
 
     let tesseract_elapsed = tesseract_start.elapsed();
@@ -198,29 +196,34 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // Add tesseract init time into logs by folding it into process_elapsed.
     // (We don't change the response; this is purely for observability.)
     let _ = tess_init_elapsed;
-    finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
+    finalize(
+        final_result,
+        process_elapsed,
+        tesseract_elapsed,
+        start_total.elapsed(),
+    )
 }
 
-/// Run OCR for a single-shot photo capture.
-///
-/// This is intentionally a separate entrypoint from `scan_plate` so the photo
-/// mechanism can evolve independently (heavier preprocessing / different
-/// candidate selection) without changing the live scanning behavior.
-pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
-    // For now we reuse the same underlying pipeline as scan.
-    // Separation is enforced at the API boundary + entrypoint level.
-    scan_plate(image_bytes)
-}
-
-fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time::Duration, total: std::time::Duration) -> Result<ScanResultData, AppError> {
+fn finalize(
+    mut res: ScanResultData,
+    proc: std::time::Duration,
+    tess: std::time::Duration,
+    total: std::time::Duration,
+) -> Result<ScanResultData, AppError> {
     if res.format_valid {
         res.confidence = 0.90;
     } else if !res.plate.is_empty() {
         res.confidence = 0.50;
     }
-    
-    tracing::info!("Scan completed: process={:?}, tesseract={:?}, total={:?}, plate={:?} (conf={:.2})", 
-        proc, tess, total, res.plate, res.confidence);
+
+    tracing::info!(
+        "Scan completed: process={:?}, tesseract={:?}, total={:?}, plate={:?} (conf={:.2})",
+        proc,
+        tess,
+        total,
+        res.plate,
+        res.confidence
+    );
 
     Ok(res)
 }
@@ -243,9 +246,7 @@ fn take_tesseract() -> Result<LepTess, AppError> {
             *slot = Some(tess);
         }
 
-        Ok(slot
-            .take()
-            .expect("Tesseract slot must be initialized"))
+        Ok(slot.take().expect("Tesseract slot must be initialized"))
     })
 }
 
@@ -264,11 +265,20 @@ fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<ScanR
     let trimmed = raw_text.trim();
     let confidence = tess.mean_text_conf() as f32 / 100.0;
     let extracted = extract_plate_fuzzy(trimmed);
-    let format_valid = extracted.as_ref().map(|p| PLATE_REGEX.is_match(p)).unwrap_or(false);
+    let format_valid = extracted
+        .as_ref()
+        .map(|p| PLATE_REGEX.is_match(p))
+        .unwrap_or(false);
 
-    tracing::info!("[{}] OCR raw: {:?} (conf: {:.2}), extracted: {:?}, valid: {}", 
-        label, trimmed, confidence, extracted, format_valid);
-    
+    tracing::info!(
+        "[{}] OCR raw: {:?} (conf: {:.2}), extracted: {:?}, valid: {}",
+        label,
+        trimmed,
+        confidence,
+        extracted,
+        format_valid
+    );
+
     if trimmed.is_empty() {
         return None;
     }
@@ -289,12 +299,9 @@ fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData
         match &best {
             None => best = Some(cand),
             Some(curr) => {
-                // Priority 1: Valid format
-                if cand.format_valid && !curr.format_valid {
-                    best = Some(cand);
-                }
-                // Priority 2: Higher confidence (if both valid or both invalid)
-                else if (cand.format_valid == curr.format_valid) && (cand.confidence > curr.confidence) {
+                let better =
+                    (cand.format_valid, cand.confidence) > (curr.format_valid, curr.confidence);
+                if better {
                     best = Some(cand);
                 }
             }
@@ -314,14 +321,20 @@ fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData
 /// Min-max contrast stretch: maps the pixel range [min, max] → [0, 255].
 fn contrast_stretch(img: &GrayImage) -> GrayImage {
     let pixels = img.as_raw();
-    if pixels.is_empty() { return img.clone(); }
+    if pixels.is_empty() {
+        return img.clone();
+    }
 
     let mut min_val = 255u8;
     let mut max_val = 0u8;
-    
+
     for &px in pixels {
-        if px < min_val { min_val = px; }
-        if px > max_val { max_val = px; }
+        if px < min_val {
+            min_val = px;
+        }
+        if px > max_val {
+            max_val = px;
+        }
     }
 
     if max_val == min_val {
@@ -331,17 +344,17 @@ fn contrast_stretch(img: &GrayImage) -> GrayImage {
     let range = (max_val - min_val) as f32;
     let (w, h) = img.dimensions();
     let mut out = GrayImage::new(w, h);
-    
+
     // Predeterminlookup table for speed
     let mut lut = [0u8; 256];
-    for i in 0..256 {
-        lut[i] = (((i as f32 - min_val as f32).max(0.0) / range * 255.0) as u8).min(255);
+    for (i, v) in lut.iter_mut().enumerate() {
+        *v = ((i as f32 - min_val as f32).max(0.0) / range * 255.0) as u8;
     }
 
     for (out_px, &in_px) in out.iter_mut().zip(pixels.iter()) {
         *out_px = lut[in_px as usize];
     }
-    
+
     out
 }
 
@@ -358,7 +371,7 @@ fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
         let row_off = y * w;
         let int_curr_row_off = (y + 1) * iw;
         let int_prev_row_off = y * iw;
-        
+
         for x in 0..w {
             row_sum += pixels[row_off + x] as i64;
             integral[int_curr_row_off + (x + 1)] = row_sum + integral[int_prev_row_off + (x + 1)];
@@ -373,15 +386,15 @@ fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
         let y1 = y.saturating_sub(r);
         let y2 = (y + r + 1).min(h);
         let row_off = y * w;
-        
+
         for x in 0..w {
             let x1 = x.saturating_sub(r);
             let x2 = (x + r + 1).min(w);
-            
+
             let count = ((x2 - x1) * (y2 - y1)) as i64;
-            let sum = integral[y2 * iw + x2] - integral[y1 * iw + x2]
-                - integral[y2 * iw + x1] + integral[y1 * iw + x1];
-            
+            let sum = integral[y2 * iw + x2] - integral[y1 * iw + x2] - integral[y2 * iw + x1]
+                + integral[y1 * iw + x1];
+
             let threshold = ((sum / count) as i16 - c).max(0) as u8;
             if pixels[row_off + x] > threshold {
                 out_pixels[row_off + x] = 255;
@@ -410,12 +423,11 @@ fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
     out
 }
 
-
 /// Cameroon plate: 2 letters + 3 digits + 2 letters.
 /// Apply position-aware correction for common OCR misreads.
 fn extract_plate_fuzzy(raw: &str) -> Option<String> {
     let cleaned = normalise_plate(raw);
-    
+
     // 1. First priority: find a sequence that matches the Cameroon format exactly
     if let Some(mat) = PLATE_REGEX.find(&cleaned) {
         return Some(mat.as_str().to_string());
@@ -426,19 +438,33 @@ fn extract_plate_fuzzy(raw: &str) -> Option<String> {
     if cleaned.len() >= 7 {
         // Find any 7-char block
         for i in 0..=(cleaned.len() - 7) {
-            let candidate = &cleaned[i..i+7];
-            let corrected: String = candidate.chars().enumerate().map(|(j, c)| {
-                match j {
+            let candidate = &cleaned[i..i + 7];
+            let corrected: String = candidate
+                .chars()
+                .enumerate()
+                .map(|(j, c)| match j {
                     0 | 1 | 5 | 6 => match c {
-                        '0' => 'O', '1' => 'I', '2' => 'Z', '5' => 'S', '6' => 'G', '8' => 'B', _ => c
+                        '0' => 'O',
+                        '1' => 'I',
+                        '2' => 'Z',
+                        '5' => 'S',
+                        '6' => 'G',
+                        '8' => 'B',
+                        _ => c,
                     },
-                    2 | 3 | 4 => match c {
-                        'O' => '0', 'I' => '1', 'Z' => '2', 'S' => '5', 'G' => '6', 'B' => '8', _ => c
+                    2..=4 => match c {
+                        'O' => '0',
+                        'I' => '1',
+                        'Z' => '2',
+                        'S' => '5',
+                        'G' => '6',
+                        'B' => '8',
+                        _ => c,
                     },
                     _ => c,
-                }
-            }).collect();
-            
+                })
+                .collect();
+
             if PLATE_REGEX.is_match(&corrected) {
                 return Some(corrected);
             }
@@ -449,7 +475,7 @@ fn extract_plate_fuzzy(raw: &str) -> Option<String> {
     if cleaned.len() >= 4 {
         return Some(cleaned);
     }
-    
+
     None
 }
 
@@ -494,7 +520,11 @@ mod tests {
     #[test]
     fn contrast_stretch_full_range() {
         let img = GrayImage::from_fn(3, 1, |x, _| {
-            Luma([match x { 0 => 100, 1 => 150, _ => 200 }])
+            Luma([match x {
+                0 => 100,
+                1 => 150,
+                _ => 200,
+            }])
         });
         let stretched = contrast_stretch(&img);
         assert_eq!(stretched.get_pixel(0, 0)[0], 0);
@@ -503,9 +533,7 @@ mod tests {
 
     #[test]
     fn adaptive_threshold_basic() {
-        let img = GrayImage::from_fn(5, 1, |x, _| {
-            Luma([if x == 2 { 200 } else { 10 }])
-        });
+        let img = GrayImage::from_fn(5, 1, |x, _| Luma([if x == 2 { 200 } else { 10 }]));
         let result = adaptive_threshold(&img, 2, 5);
         assert_eq!(result.get_pixel(2, 0)[0], 255);
     }

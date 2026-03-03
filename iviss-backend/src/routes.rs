@@ -16,8 +16,14 @@ pub fn assembly(pool: DbPool) -> Router {
     let state = Arc::new(AppState::new(pool));
     Router::new()
         .route("/health", get(|| async { "OK" }))
-        .route("/api/v1/scan/plate", post(crate::handlers::scan::scan_plate))
-        .route("/api/v1/photo/plate", post(crate::handlers::photo::photo_plate))
+        .route(
+            "/api/v1/scan/plate",
+            post(crate::handlers::scan::scan_plate),
+        )
+        .route(
+            "/api/v1/photo/plate",
+            post(crate::handlers::photo::photo_plate),
+        )
         .route("/vehicles/search", post(search_vehicle))
         .route("/api/v1/vehicles/search", post(search_vehicle))
         .route(

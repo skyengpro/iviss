@@ -91,12 +91,11 @@ pub async fn search_vehicle(
 
 pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {
     // Normalize: remove all whitespace/dashes for internal lookup
-    let normalized = plate.trim().to_uppercase().replace(|c: char| c == ' ' || c == '-', "");
+    let normalized = plate.trim().to_uppercase().replace([' ', '-'], "");
 
     // Validates 7-character Cameroon format (LLDDDLL)
-    static COMPACT_REGEX: Lazy<Regex> = Lazy::new(|| {
-        Regex::new(r"^[A-Z]{2}\d{3}[A-Z]{2}$").unwrap()
-    });
+    static COMPACT_REGEX: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"^[A-Z]{2}\d{3}[A-Z]{2}$").unwrap());
 
     if !COMPACT_REGEX.is_match(&normalized) {
         return Err(AppError::bad_request(format!(

@@ -71,10 +71,11 @@ async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, 
         return Ok(requested);
     }
 
-    let first: Option<Uuid> = sqlx::query_scalar("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
-        .fetch_optional(pool)
-        .await
-        .map_err(AppError::database)?;
+    let first: Option<Uuid> =
+        sqlx::query_scalar("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
+            .fetch_optional(pool)
+            .await
+            .map_err(AppError::database)?;
 
     match first {
         Some(id) => Ok(id),

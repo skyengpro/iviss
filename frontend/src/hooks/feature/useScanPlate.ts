@@ -36,7 +36,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
     minConfidence: 40,
   });
 
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Effect to handle success when a stable result is found
   useEffect(() => {
@@ -142,7 +142,6 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
       } finally {
         setIsLiveProcessing(false);
       }
-
     },
     [addDetection, t]
   );
@@ -212,7 +211,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         activeRequestRef.current = null;
       }
       if (scanIntervalRef.current) {
-        clearTimeout(scanIntervalRef.current as any);
+        clearTimeout(scanIntervalRef.current);
       }
     };
   }, []);

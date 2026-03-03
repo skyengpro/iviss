@@ -31,32 +31,37 @@ export function useStabilityDetection({
    */
   const addDetection = useCallback(
     (result: DetectionResult | null): { plateNumber: string; confidence: number } | null => {
-      // If no result or low confidence, just skip this frame (don't reset history)
-      // This allows matches to accumulate even if intermittent frames are empty
+      // If no result or low confidence, reset stability
       if (!result || !result.plateNumber || result.confidence < minConfidence) {
+        setHistory([]);
+        setStableResult(null);
         return null;
       }
 
       setHistory((prev) => {
-        const newHistory = [...prev, result].slice(-requiredMatches);
-
-        // Check if we have enough matches
-        if (newHistory.length < requiredMatches) {
-          return newHistory;
+        // If the plate changes, restart the consecutive-match counter
+        if (prev.length > 0 && prev[prev.length - 1].plateNumber !== result.plateNumber) {
+          setStableResult(null);
+          return [result];
         }
 
-        // Check if all items in history are identical
-        const firstPlate = newHistory[0].plateNumber;
-        const allMatch = newHistory.every((item) => item.plateNumber === firstPlate);
+        const newHistory = [...prev, result].slice(-requiredMatches);
 
-        if (allMatch) {
-          // Calculate average confidence
-          const avgConfidence =
-            newHistory.reduce((sum, item) => sum + item.confidence, 0) / newHistory.length;
-          setStableResult({
-            plateNumber: firstPlate,
-            confidence: avgConfidence,
-          });
+        if (newHistory.length === requiredMatches) {
+          const firstPlate = newHistory[0].plateNumber;
+          const allMatch = newHistory.every((item) => item.plateNumber === firstPlate);
+          if (allMatch) {
+            const avgConfidence =
+              newHistory.reduce((sum, item) => sum + item.confidence, 0) / newHistory.length;
+            setStableResult({
+              plateNumber: firstPlate,
+              confidence: avgConfidence,
+            });
+          } else {
+            setStableResult(null);
+          }
+        } else {
+          setStableResult(null);
         }
 
         return newHistory;
