@@ -2,6 +2,9 @@ use image::{GenericImageView, GrayImage};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use leptess::{LepTess, Variable};
+use std::cell::RefCell;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::ops::{Deref, DerefMut};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
@@ -18,6 +21,45 @@ const ADAPTIVE_RADIUS: u32 = 40;
 
 /// Offset subtracted from the local mean when applying adaptive threshold.
 const ADAPTIVE_C: i16 = 5;
+
+static TMP_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+thread_local! {
+    static TESSERACT: RefCell<Option<LepTess>> = const { RefCell::new(None) };
+}
+
+struct TesseractGuard {
+    tess: Option<LepTess>,
+}
+
+impl TesseractGuard {
+    fn new() -> Result<Self, AppError> {
+        Ok(Self {
+            tess: Some(take_tesseract()?),
+        })
+    }
+}
+
+impl Deref for TesseractGuard {
+    type Target = LepTess;
+    fn deref(&self) -> &Self::Target {
+        self.tess.as_ref().expect("tesseract must be present")
+    }
+}
+
+impl DerefMut for TesseractGuard {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.tess.as_mut().expect("tesseract must be present")
+    }
+}
+
+impl Drop for TesseractGuard {
+    fn drop(&mut self) {
+        if let Some(tess) = self.tess.take() {
+            put_tesseract(tess);
+        }
+    }
+}
 
 // ── public API ────────────────────────────────────────────────────────────────
 
@@ -50,19 +92,26 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     
     let process_elapsed = process_start.elapsed();
 
-    // 4. Initialize Tesseract
-    let mut tess = LepTess::new(Some("/usr/share/tesseract-ocr/5/tessdata"), "eng")
-        .map_err(|e| AppError::internal_error(format!("Failed to init Tesseract: {e}")))?;
-
-    tess.set_variable(Variable::TesseditCharWhitelist, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-        .map_err(|e| AppError::internal_error(format!("Failed to set whitelist: {e}")))?;
+    // 4. Initialize / reuse Tesseract
+    let tess_init_start = std::time::Instant::now();
+    let mut tess = TesseractGuard::new()?;
+    let tess_init_elapsed = tess_init_start.elapsed();
 
     let tesseract_start = std::time::Instant::now();
+
+    // Write the preprocessed image(s) once per request and reuse across OCR passes.
+    // leptonica/leptess works most reliably via file paths.
+    let tmp_id = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let bin_path = format!("/tmp/ocr_bin_{tmp_id}.png");
+    binary
+        .save(&bin_path)
+        .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
+    let mut inv_path: Option<String> = None;
     
     // --- MODE 1: PSM 7 (Single Text Line) ---
     tess.set_variable(Variable::TesseditPagesegMode, "7")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
-    let r_b7 = try_ocr(&mut tess, &binary, "binary-psm7");
+    let r_b7 = try_ocr_path(&mut *tess, &bin_path, "binary-psm7");
 
     if let Some(ref res) = r_b7 {
         if res.format_valid {
@@ -78,8 +127,17 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let r_i7 = {
         if inverted.is_none() {
             inverted = Some(add_border(&invert_image(&binary), 0, 255));
+            let p = format!("/tmp/ocr_inv_{tmp_id}.png");
+            inverted
+                .as_ref()
+                .unwrap()
+                .save(&p)
+                .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
+            inv_path = Some(p);
         }
-        inverted.as_ref().and_then(|inv| try_ocr(&mut tess, inv, "inverted-psm7"))
+        inv_path
+            .as_ref()
+            .and_then(|p| try_ocr_path(&mut *tess, p, "inverted-psm7"))
     };
 
     if let Some(ref res) = r_i7 {
@@ -96,7 +154,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // --- MODE 2: PSM 11 (Sparse Text) --- Fallback
     tess.set_variable(Variable::TesseditPagesegMode, "11")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
-    let r_b11 = try_ocr(&mut tess, &binary, "binary-psm11");
+    let r_b11 = try_ocr_path(&mut *tess, &bin_path, "binary-psm11");
 
     if let Some(ref res) = r_b11 {
         if res.format_valid {
@@ -112,8 +170,17 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let r_i11 = {
         if inverted.is_none() {
             inverted = Some(add_border(&invert_image(&binary), 0, 255));
+            let p = format!("/tmp/ocr_inv_{tmp_id}.png");
+            inverted
+                .as_ref()
+                .unwrap()
+                .save(&p)
+                .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
+            inv_path = Some(p);
         }
-        inverted.as_ref().and_then(|inv| try_ocr(&mut tess, inv, "inverted-psm11"))
+        inv_path
+            .as_ref()
+            .and_then(|p| try_ocr_path(&mut *tess, p, "inverted-psm11"))
     };
 
     let tesseract_elapsed = tesseract_start.elapsed();
@@ -122,6 +189,15 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let candidates = vec![r_b7, r_i7, r_b11, r_i11];
     let final_result = pick_best_ensemble(candidates);
 
+    // Best-effort cleanup of temp files
+    let _ = std::fs::remove_file(&bin_path);
+    if let Some(p) = inv_path.as_ref() {
+        let _ = std::fs::remove_file(p);
+    }
+
+    // Add tesseract init time into logs by folding it into process_elapsed.
+    // (We don't change the response; this is purely for observability.)
+    let _ = tess_init_elapsed;
     finalize(final_result, process_elapsed, tesseract_elapsed, start_total.elapsed())
 }
 
@@ -151,14 +227,37 @@ fn finalize(mut res: ScanResultData, proc: std::time::Duration, tess: std::time:
 
 // ── OCR helper ────────────────────────────────────────────────────────────────
 
-/// Attempt OCR on a single grayscale image using leptess.
-fn try_ocr(tess: &mut LepTess, img: &GrayImage, label: &str) -> Option<ScanResultData> {
-    // Write image to a temp file as PNG (bypasses potential BMP/memory issues in leptess)
-    let tmp_path = format!("/tmp/ocr_tmp_{}.png", label.replace('-', "_"));
-    img.save(&tmp_path).ok()?;
+fn take_tesseract() -> Result<LepTess, AppError> {
+    TESSERACT.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        if slot.is_none() {
+            let mut tess = LepTess::new(Some("/usr/share/tesseract-ocr/5/tessdata"), "eng")
+                .map_err(|e| AppError::internal_error(format!("Failed to init Tesseract: {e}")))?;
 
-    // Load from file path (Leptonica handles PNG natively)
-    tess.set_image(&tmp_path).ok()?;
+            tess.set_variable(
+                Variable::TesseditCharWhitelist,
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            )
+            .map_err(|e| AppError::internal_error(format!("Failed to set whitelist: {e}")))?;
+
+            *slot = Some(tess);
+        }
+
+        Ok(slot
+            .take()
+            .expect("Tesseract slot must be initialized"))
+    })
+}
+
+fn put_tesseract(tess: LepTess) {
+    TESSERACT.with(|cell| {
+        *cell.borrow_mut() = Some(tess);
+    });
+}
+
+/// Attempt OCR on a single image path using leptess.
+fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<ScanResultData> {
+    tess.set_image(img_path).ok()?;
     tess.set_source_resolution(300);
 
     let raw_text = tess.get_utf8_text().unwrap_or_default();

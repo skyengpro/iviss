@@ -22,9 +22,14 @@ interface UseScanPlateProps {
 export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
+  const [isLiveProcessing, setIsLiveProcessing] = useState(false);
   const [liveScanActive, setLiveScanActive] = useState(false);
   const [liveDetections, setLiveDetections] = useState<DetectedPlate[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  const lastHandledStablePlateRef = useRef<string | null>(null);
+
+  const activeRequestRef = useRef<AbortController | null>(null);
 
   const { addDetection, resetStability, stableResult } = useStabilityDetection({
     requiredMatches: 2,
@@ -36,6 +41,11 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   // Effect to handle success when a stable result is found
   useEffect(() => {
     if (stableResult?.plateNumber) {
+      if (lastHandledStablePlateRef.current === stableResult.plateNumber) {
+        return;
+      }
+      lastHandledStablePlateRef.current = stableResult.plateNumber;
+
       const confirmedPlate: DetectedPlate = {
         plateNumber: stableResult.plateNumber,
         confidence: stableResult.confidence,
@@ -64,9 +74,19 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
 
   const processFrame = useCallback(
     async (imageSrc: string) => {
+      setIsLiveProcessing(true);
       try {
-        // 1. Optimize image (1200x400 crop of center)
-        const compressedImage = await ImageProcessor.cropToViewfinder(imageSrc, t);
+        // Cancel any previous in-flight request so we don't wait on stale frames
+        if (activeRequestRef.current) {
+          activeRequestRef.current.abort();
+          activeRequestRef.current = null;
+        }
+
+        const controller = new AbortController();
+        activeRequestRef.current = controller;
+
+        // 1. Optimize image (smaller crop + lower quality for speed)
+        const compressedImage = await ImageProcessor.cropToViewfinderFast(imageSrc, t);
 
         // 2. Prepare for upload (convert data URL to blob)
         const response = await fetch(compressedImage);
@@ -80,6 +100,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         const apiResponse = await fetch(`${apiUrl}/api/v1/scan/plate`, {
           method: 'POST',
           body: formData,
+          signal: controller.signal,
         });
 
         if (!apiResponse.ok) throw new Error('OCR API failed');
@@ -113,8 +134,13 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
           }
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
         console.error('Frame processing failed:', error);
         setScanError(error instanceof Error ? error.message : t('mobileScan.ocrError'));
+      } finally {
+        setIsLiveProcessing(false);
       }
 
     },
@@ -129,6 +155,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
       if (scanActiveRef.current) return;
 
       scanActiveRef.current = true;
+      lastHandledStablePlateRef.current = null;
       setLiveScanActive(true);
       resetStability();
       setScanError(null);
@@ -159,9 +186,16 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   const stopLiveScan = useCallback(() => {
     scanActiveRef.current = false;
     setLiveScanActive(false);
+    setIsLiveProcessing(false);
+    lastHandledStablePlateRef.current = null;
     resetStability();
     setLiveDetections([]);
     setScanError(null);
+
+    if (activeRequestRef.current) {
+      activeRequestRef.current.abort();
+      activeRequestRef.current = null;
+    }
 
     if (scanIntervalRef.current) {
       clearTimeout(scanIntervalRef.current);
@@ -172,6 +206,11 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   useEffect(() => {
     return () => {
       scanActiveRef.current = false;
+      setIsLiveProcessing(false);
+      if (activeRequestRef.current) {
+        activeRequestRef.current.abort();
+        activeRequestRef.current = null;
+      }
       if (scanIntervalRef.current) {
         clearTimeout(scanIntervalRef.current as any);
       }
@@ -181,6 +220,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
   return {
     isScanning,
     setIsScanning,
+    isLiveProcessing,
     liveScanActive,
     liveDetections,
     startLiveScan,

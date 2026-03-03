@@ -24,11 +24,6 @@ export default function MobileScan() {
   const [flashOn, setFlashOn] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
 
-  // ── Shared result state for both modes ──────────────────────────────────────
-  const [liveResult, setLiveResult] = useState<DetectedPlate | null>(null);
-  const [liveEditedPlate, setLiveEditedPlate] = useState('');
-  const [liveIsEditing, setLiveIsEditing] = useState(false);
-
   const {
     webcamRef,
     facingMode,
@@ -42,16 +37,15 @@ export default function MobileScan() {
   const {
     isScanning,
     setIsScanning,
+    isLiveProcessing,
     liveScanActive,
     startLiveScan,
     stopLiveScan,
     scanError,
   } = useScanPlate({
     onSuccess: (plate) => {
-      // Stop scanning and present the result for user confirmation
-      setLiveResult(plate);
-      setLiveEditedPlate(plate.plateNumber);
-      setLiveIsEditing(false);
+      // Live scan should immediately navigate (no confirmation step)
+      navigate(`/mobile/vehicle/${encodeURIComponent(plate.plateNumber)}`);
     },
   });
 
@@ -77,7 +71,7 @@ export default function MobileScan() {
   // 30-second fallback timer for manual entry (live mode only)
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (liveScanActive && !liveResult) {
+    if (liveScanActive) {
       setShowFallback(false);
       timer = setTimeout(() => {
         setShowFallback(true);
@@ -86,7 +80,7 @@ export default function MobileScan() {
       setShowFallback(false);
     }
     return () => clearTimeout(timer);
-  }, [liveScanActive, liveResult]);
+  }, [liveScanActive]);
 
   const handleCapture = useCallback(async () => {
     setIsScanning(true);
@@ -102,36 +96,9 @@ export default function MobileScan() {
     if (liveScanActive) {
       stopLiveScan();
     } else {
-      setLiveResult(null);
-      setLiveIsEditing(false);
       startLiveScan(getScreenshot);
     }
   }, [liveScanActive, startLiveScan, stopLiveScan, getScreenshot]);
-
-  // ── Live result confirmation handlers ───────────────────────────────────────
-  const handleLiveConfirm = useCallback(() => {
-    if (!liveResult) return;
-    const finalPlate = liveIsEditing ? liveEditedPlate : liveResult.plateNumber;
-    navigate(`/mobile/vehicle/${encodeURIComponent(finalPlate)}`);
-  }, [liveResult, liveIsEditing, liveEditedPlate, navigate]);
-
-  const handleLiveRetry = useCallback(() => {
-    setLiveResult(null);
-    setLiveEditedPlate('');
-    setLiveIsEditing(false);
-    // Restart scanning automatically
-    startLiveScan(getScreenshot);
-  }, [startLiveScan, getScreenshot]);
-
-  const handleLiveEditToggle = useCallback(() => {
-    setLiveIsEditing((prev) => {
-      if (prev && liveResult) {
-        // Cancel edit — revert to original
-        setLiveEditedPlate(liveResult.plateNumber);
-      }
-      return !prev;
-    });
-  }, [liveResult]);
 
   const handleManualEntry = () => {
     navigate('/mobile/search');
@@ -139,8 +106,7 @@ export default function MobileScan() {
 
   // Determine which result card to show
   const showPhotoResult = mode === 'photo' && photoState === 'result' && photoPlate;
-  const showLiveResult = mode === 'live' && liveResult !== null;
-  const showResultCard = showPhotoResult || showLiveResult;
+  const showResultCard = showPhotoResult;
 
   return (
     <MobileLayout title={t('mobileScan.title')} hideNavigation>
@@ -148,9 +114,13 @@ export default function MobileScan() {
         <ScanViewfinder
           webcamRef={webcamRef}
           facingMode={facingMode}
-          isScanning={isScanning || photoState === 'processing'}
+          isScanning={
+            isScanning ||
+            photoState === 'processing' ||
+            (mode === 'live' && liveScanActive && isLiveProcessing)
+          }
           mode={mode}
-          liveScanActive={liveScanActive && !liveResult}
+          liveScanActive={liveScanActive}
           capturedImageSrc={mode === 'photo' ? capturedImageSrc : null}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
@@ -165,7 +135,7 @@ export default function MobileScan() {
         />
 
         {/* Error banners */}
-        {scanError && liveScanActive && !liveResult && (
+        {scanError && liveScanActive && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-destructive/90 text-destructive-foreground rounded-full text-sm font-medium animate-in fade-in slide-in-from-top-4 shadow-lg whitespace-nowrap">
             {scanError}
           </div>
@@ -187,7 +157,7 @@ export default function MobileScan() {
         )}
 
         {/* Live scan hint */}
-        {mode === 'live' && liveScanActive && !liveResult && (
+        {mode === 'live' && liveScanActive && (
           <div className="absolute top-20 left-0 right-0 flex justify-center z-10 pointer-events-none">
             <p className="text-white/70 text-xs font-medium bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">
               {t('mobileScan.liveScanHint')}
@@ -196,7 +166,7 @@ export default function MobileScan() {
         )}
 
         {/* Live mode 30s fallback */}
-        {showFallback && !liveResult && (
+        {showFallback && (
           <div className="absolute top-1/2 left-0 right-0 z-20 flex flex-col items-center px-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="bg-black/80 backdrop-blur-md p-6 rounded-2xl border border-white/20 text-center shadow-2xl">
               <p className="text-white mb-4 font-medium">{t('mobileScan.takingTooLong')}</p>
@@ -224,18 +194,6 @@ export default function MobileScan() {
           />
         )}
 
-        {showLiveResult && liveResult && (
-          <ScanResultCard
-            detectedPlate={liveResult}
-            isEditing={liveIsEditing}
-            editedPlate={liveEditedPlate}
-            onEditToggle={handleLiveEditToggle}
-            onEditChange={setLiveEditedPlate}
-            onRetry={handleLiveRetry}
-            onConfirm={handleLiveConfirm}
-          />
-        )}
-
         {/* Only show action buttons when there's no result card */}
         {!showResultCard && (
           <ScanActionButtons
@@ -243,8 +201,6 @@ export default function MobileScan() {
             onModeChange={(newMode) => {
               setMode(newMode);
               stopLiveScan();
-              setLiveResult(null);
-              setLiveIsEditing(false);
               photoRetry(); // Reset photo state when switching modes
             }}
             liveScanActive={liveScanActive}
