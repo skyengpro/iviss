@@ -32,11 +32,13 @@ pub async fn get_dashboard_stats_query(pool: &PgPool) -> Result<DashboardStats, 
     // For now, let's count agents who performed a check in the last 24h as 'active recently' or just count total active agents)
     // Let's go with "Active Agents" in the system for now as we don't have heartbeat.
     let online_agents: i64 =
-        sqlx::query("SELECT COUNT(*) FROM users WHERE role = 'agent' AND is_active = true")
-            .fetch_one(pool)
-            .await
-            .map_err(AppError::database)?
-            .get(0);
+        sqlx::query(
+            "SELECT COUNT(*) FROM users WHERE role = 'agent' AND status = 'ACTIVE' AND deleted_at IS NULL",
+        )
+        .fetch_one(pool)
+        .await
+        .map_err(AppError::database)?
+        .get(0);
 
     Ok(DashboardStats {
         today_controls,
