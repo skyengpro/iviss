@@ -19,6 +19,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
   const { t } = useTranslation();
 
   const [state, setState] = useState<PhotoCaptureState>('idle');
+  const [capturedImageSrc, setCapturedImageSrc] = useState<string | null>(null);
   const [detectedPlate, setDetectedPlate] = useState<DetectedPlate | null>(null);
   const [editedPlate, setEditedPlate] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -39,6 +40,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
       setState('processing');
       setError(null);
       setDetectedPlate(null);
+      setCapturedImageSrc(null);
 
       try {
         const imageSrc = getScreenshot();
@@ -46,8 +48,11 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
           throw new Error(t('mobileScan.photoError'));
         }
 
-        // 1. High-res preprocessing (1600×1200 @ 90% quality)
-        const processed = await ImageProcessor.preprocessForHighRes(imageSrc, t);
+        // Save the raw captured frame for UI preview (freeze frame)
+        setCapturedImageSrc(imageSrc);
+
+        // 1. Photo preprocessing (viewfinder crop + sharpen)
+        const processed = await ImageProcessor.preprocessForPhotoCapture(imageSrc, t);
 
         // 2. Convert data URL to blob for multipart upload
         const fetchRes = await fetch(processed);
@@ -58,7 +63,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
 
         // 3. Call backend OCR API
         const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
-        const apiResponse = await fetch(`${apiUrl}/api/v1/scan/plate`, {
+        const apiResponse = await fetch(`${apiUrl}/api/v1/photo/plate`, {
           method: 'POST',
           body: formData,
         });
@@ -101,6 +106,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
   /** Reset to idle state for a new capture attempt. */
   const retry = useCallback(() => {
     setState('idle');
+    setCapturedImageSrc(null);
     setDetectedPlate(null);
     setEditedPlate('');
     setIsEditing(false);
@@ -142,6 +148,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
   return {
     // State
     state,
+    capturedImageSrc,
     detectedPlate,
     editedPlate,
     isEditing,

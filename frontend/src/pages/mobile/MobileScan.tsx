@@ -42,8 +42,6 @@ export default function MobileScan() {
   const {
     isScanning,
     setIsScanning,
-    useDemoData,
-    setUseDemoData,
     liveScanActive,
     startLiveScan,
     stopLiveScan,
@@ -55,12 +53,12 @@ export default function MobileScan() {
       setLiveEditedPlate(plate.plateNumber);
       setLiveIsEditing(false);
     },
-    initialUseDemoData: false,
   });
 
   // ── Photo Capture Hook ──────────────────────────────────────────────────────
   const {
     state: photoState,
+    capturedImageSrc,
     detectedPlate: photoPlate,
     editedPlate,
     isEditing,
@@ -153,6 +151,7 @@ export default function MobileScan() {
           isScanning={isScanning || photoState === 'processing'}
           mode={mode}
           liveScanActive={liveScanActive && !liveResult}
+          capturedImageSrc={mode === 'photo' ? capturedImageSrc : null}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
         />
@@ -163,8 +162,6 @@ export default function MobileScan() {
           onToggleFacingMode={toggleFacingMode}
           flashOn={flashOn}
           facingMode={facingMode}
-          useDemoData={useDemoData}
-          onToggleDemoData={setUseDemoData}
         />
 
         {/* Error banners */}

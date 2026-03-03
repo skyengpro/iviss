@@ -17,6 +17,7 @@ pub fn assembly(pool: DbPool) -> Router {
     Router::new()
         .route("/health", get(|| async { "OK" }))
         .route("/api/v1/scan/plate", post(crate::handlers::scan::scan_plate))
+        .route("/api/v1/photo/plate", post(crate::handlers::photo::photo_plate))
         .route("/vehicles/search", post(search_vehicle))
         .route(
             "/controls",
