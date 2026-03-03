@@ -332,4 +332,57 @@ export class ImageProcessor {
       img.src = imageSrc;
     });
   }
+
+  static async cropToViewfinderFast(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          // Smaller output for live scanning to reduce upload + backend time
+          const targetWidth = 800;
+          const targetHeight = 400;
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          const W = window.innerWidth;
+          const H = window.innerHeight;
+          const w = img.width;
+          const h = img.height;
+
+          const scale = Math.max(W / w, H / h);
+          const vw = W * 0.92;
+          const vh = vw / 2.0;
+
+          const sw = vw / scale;
+          const sh = vh / scale;
+
+          const sx = (w - sw) / 2;
+          const sy = (h - sh) / 2;
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+          // Lower quality for speed in live mode
+          resolve(canvas.toDataURL('image/jpeg', 0.65));
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
 }
