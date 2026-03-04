@@ -521,6 +521,57 @@
                 }
             }
         },
+        "/auth/activate": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Activate an agent account by validating OTP and registering device public key",
+                "operationId": "activateDevice",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActivateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Activation successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ActivateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
@@ -1148,6 +1199,49 @@
                     "impound",
                     "release"
                 ]
+            },
+            "ActivateRequest": {
+                "type": "object",
+                "required": [
+                    "badgeId",
+                    "activationCode",
+                    "deviceId",
+                    "publicKeyBase64"
+                ],
+                "properties": {
+                    "activationCode": {
+                        "type": "string"
+                    },
+                    "badgeId": {
+                        "type": "string"
+                    },
+                    "deviceId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "publicKeyBase64": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ActivateResponse": {
+                "type": "object",
+                "required": [
+                    "accessToken",
+                    "refreshToken",
+                    "user"
+                ],
+                "properties": {
+                    "accessToken": {
+                        "type": "string"
+                    },
+                    "refreshToken": {
+                        "type": "string"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/UserProfile"
+                    }
+                }
             },
             "AppErrorResponse": {
                 "type": "object",

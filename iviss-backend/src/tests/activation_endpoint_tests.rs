@@ -61,15 +61,13 @@ async fn activation_flow_activates_user_and_issues_tokens() {
         .unwrap();
 
     let org_id = Uuid::new_v4();
-    sqlx::query!(
-        r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#,
-        org_id,
-        "Test Org",
-        "police"
-    )
-    .execute(&db)
-    .await
-    .unwrap();
+    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+        .bind(org_id)
+        .bind("Test Org")
+        .bind("police")
+        .execute(&db)
+        .await
+        .unwrap();
 
     let user_id = Uuid::new_v4();
     let badge_id = "AGENT-001";
