@@ -8,3 +8,4 @@ pub mod scan;
 pub mod search_vehicle;
 pub mod stats;
 pub mod users;
+pub mod location;

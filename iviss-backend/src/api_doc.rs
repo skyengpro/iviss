@@ -11,8 +11,9 @@ use crate::dto::{
     pending_submission::*,
     scan::*,
     search_vehicle::*,
-    stats::DashboardStats,
+    stats::{DashboardStats, ActivityData, AgentLocationDto},
     users::{ProvisionUserRequest, UpdateUserRequest, UserProfile, UserRole, UserStatus},
+    location::{UpdateLocationRequest, UpdateLocationResponse},
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
 
@@ -62,6 +63,7 @@ impl Modify for SecurityAddon {
         crate::handlers::scan::scan_plate,
         crate::handlers::stats::get_dashboard_stats,
         crate::handlers::users::get_user_profile,
+        crate::handlers::users::update_location,
         crate::handlers::auth::login,
         crate::handlers::auth::register,
         crate::handlers::auth::logout,
@@ -109,8 +111,12 @@ impl Modify for SecurityAddon {
             AppErrorResponse,
             ErrorCode,
             DashboardStats,
+            ActivityData,
+            AgentLocationDto,
             UserProfile,
             UserRole,
+            UpdateLocationRequest,
+            UpdateLocationResponse,
             // ── scanning ──
             ScanPlateResponse,
             ScanResultData,
