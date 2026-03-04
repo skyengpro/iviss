@@ -89,10 +89,7 @@ export default function DailyLogin() {
 
     try {
       const deviceId = await getDeviceId();
-      const phoneNumber =
-        (user as any)?.phoneNumber ||
-        (user as any)?.phone_number ||
-        '';
+      const phoneNumber = (user as any)?.phoneNumber || (user as any)?.phone_number || '';
 
       if (!phoneNumber) {
         setError(t('dailyLogin.phoneNotFound'));
@@ -141,10 +138,7 @@ export default function DailyLogin() {
 
     try {
       const deviceId = await getDeviceId();
-      const phoneNumber =
-        (user as any)?.phoneNumber ||
-        (user as any)?.phone_number ||
-        '';
+      const phoneNumber = (user as any)?.phoneNumber || (user as any)?.phone_number || '';
 
       const response = await fetch(`${API_BASE}/auth/verify-daily-login`, {
         method: 'POST',
@@ -387,9 +381,7 @@ export default function DailyLogin() {
                 <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 animate-bounce">
                   <CheckCircle2 className="h-10 w-10" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {t('dailyLogin.shiftActive')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('dailyLogin.shiftActive')}</p>
               </div>
             )}
 
@@ -402,9 +394,7 @@ export default function DailyLogin() {
         </Card>
 
         {/* Footer */}
-        <p className="mt-4 text-center text-[10px] text-white/30">
-          {t('dailyLogin.footer')}
-        </p>
+        <p className="mt-4 text-center text-[10px] text-white/30">{t('dailyLogin.footer')}</p>
       </div>
     </div>
   );
