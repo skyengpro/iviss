@@ -98,11 +98,7 @@ export default function MobileProfile() {
             label={t('mobileProfile.organization')}
             value={displayUser.organization}
           />
-          <InfoRow
-            icon={Smartphone}
-            label="Phone"
-            value={displayUser.phoneNumber || '—'}
-          />
+          <InfoRow icon={Smartphone} label="Phone" value={displayUser.phoneNumber || '—'} />
         </section>
 
         {/* Quick Links */}
@@ -130,7 +126,6 @@ export default function MobileProfile() {
             onClick={() => navigate('/mobile/settings')}
           />
         </section>
-
 
         {/* App Info */}
         <div className="text-center text-xs text-muted-foreground">
