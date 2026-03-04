@@ -147,18 +147,23 @@ pub async fn send_activation(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    // Internal row type for the query
+    #[derive(Debug, sqlx::FromRow)]
+    struct UserRow {
+        id: uuid::Uuid,
+        phone_number: String,
+        role: String,
+        status: String,
+    }
+
     // Fetch agent from DB
-    let user = sqlx::query!(
-        r#"
-        SELECT id, phone_number,
-               role AS "role: String",
-               status AS "status: String"
-        FROM users
-        WHERE id = $1
-        AND deleted_at IS NULL
-        "#,
-        payload.user_id
+    let user = sqlx::query_as::<_, UserRow>(
+        r#"SELECT id, phone_number, role::TEXT, status::TEXT
+           FROM users
+           WHERE id = $1
+           AND deleted_at IS NULL"#,
     )
+    .bind(payload.user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?
@@ -199,3 +204,4 @@ pub async fn send_activation(
         }),
     ))
 }
+

@@ -55,6 +55,14 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::auth::send_activation),
         )
         .route(
+            "/auth/request-daily-login",
+            post(crate::handlers::daily_login::request_daily_login),
+        )
+        .route(
+            "/auth/verify-daily-login",
+            post(crate::handlers::daily_login::verify_daily_login),
+        )
+        .route(
             "/admin/users",
             get(crate::handlers::user_management::list_users)
                 .post(crate::handlers::user_management::provision_user),

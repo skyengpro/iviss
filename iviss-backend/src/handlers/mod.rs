@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod daily_login;
 pub mod list_control;
 pub mod pending_submission;
 pub mod photo;
