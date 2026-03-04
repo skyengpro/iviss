@@ -9,6 +9,12 @@ export interface AuthContextType {
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   getMockCredentials: () => { role: string; username: string; password: string }[];
+  // Daily shift management
+  shiftToken: string | null;
+  shiftExpiresAt: Date | null;
+  isShiftActive: boolean;
+  setShiftSession: (token: string, expiresIn: number) => void;
+  clearShiftSession: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,3 +26,4 @@ export function useAuth() {
   }
   return context;
 }
+

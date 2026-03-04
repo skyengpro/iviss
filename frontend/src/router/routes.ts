@@ -3,6 +3,7 @@ import { UserRole } from '@/services/mockAuth';
 
 // Lazy Pages
 const Login = lazy(() => import('../pages/auth/Login'));
+const DailyLogin = lazy(() => import('../pages/auth/DailyLogin'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Mobile Pages
@@ -32,6 +33,7 @@ export interface AppRoute {
 
 export const publicRoutes: AppRoute[] = [
   { path: '/login', component: Login },
+  { path: '/daily-login', component: DailyLogin },
   { path: '/', component: null, redirectTo: '/login', replace: true },
 ];
 

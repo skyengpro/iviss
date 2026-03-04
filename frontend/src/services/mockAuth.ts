@@ -13,6 +13,7 @@ export interface User {
   organizationId: string;
   badgeId: string;
   phoneIMEI: string;
+  phoneNumber: string;
   avatarInitials: string;
   isActive: boolean;
 }
@@ -37,6 +38,7 @@ const mockUsers: Record<string, { password: string; user: User }> = {
       organizationId: 'd290f1ee-6c54-4b01-90e6-d701748f0851', // org from seed
       badgeId: 'PA-2024-0147',
       phoneIMEI: generateIMEI(),
+      phoneNumber: '+254700123457',
       avatarInitials: 'AD',
       isActive: true,
     },
@@ -53,6 +55,7 @@ const mockUsers: Record<string, { password: string; user: User }> = {
       organizationId: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
       badgeId: 'PS-2024-0023',
       phoneIMEI: generateIMEI(),
+      phoneNumber: '+254700123457',
       avatarInitials: 'SM',
       isActive: true,
     },
@@ -69,6 +72,7 @@ const mockUsers: Record<string, { password: string; user: User }> = {
       organizationId: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
       badgeId: 'ADM-2024-0001',
       phoneIMEI: generateIMEI(),
+      phoneNumber: '+254700123456',
       avatarInitials: 'AU',
       isActive: true,
     },
