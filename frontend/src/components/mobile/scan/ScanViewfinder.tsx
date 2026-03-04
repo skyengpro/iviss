@@ -1,6 +1,5 @@
 import React from 'react';
 import Webcam from 'react-webcam';
-import { cn } from '@/lib/utils';
 
 interface ScanViewfinderProps {
   webcamRef: React.RefObject<Webcam>;
@@ -8,6 +7,7 @@ interface ScanViewfinderProps {
   isScanning: boolean;
   mode: 'photo' | 'live';
   liveScanActive: boolean;
+  capturedImageSrc?: string | null;
   onUserMedia?: () => void;
   onUserMediaError?: (error: string | DOMException) => void;
 }
@@ -18,6 +18,7 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
   isScanning,
   mode,
   liveScanActive,
+  capturedImageSrc,
   onUserMedia,
   onUserMediaError,
 }) => {
@@ -27,16 +28,24 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 
   return (
     <div className="relative flex-1 bg-black">
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        videoConstraints={videoConstraints}
-        className="absolute inset-0 h-full w-full object-cover"
-        onUserMedia={onUserMedia}
-        onUserMediaError={onUserMediaError}
-        mirrored={facingMode === 'user'}
-      />
+      {mode === 'photo' && capturedImageSrc ? (
+        <img
+          src={capturedImageSrc}
+          alt="Captured"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/jpeg"
+          videoConstraints={videoConstraints}
+          className="absolute inset-0 h-full w-full object-cover"
+          onUserMedia={onUserMedia}
+          onUserMediaError={onUserMediaError}
+          mirrored={facingMode === 'user'}
+        />
+      )}
 
       {/* Scan frame overlay */}
       <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">

@@ -52,6 +52,156 @@ export class ImageProcessor {
     });
   }
 
+  private static convolve(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    kernel: number[],
+    divisor: number,
+    bias: number
+  ) {
+    const src = ctx.getImageData(0, 0, width, height);
+    const dst = ctx.createImageData(width, height);
+    const s = src.data;
+    const d = dst.data;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let a = 0;
+
+        for (let ky = -1; ky <= 1; ky++) {
+          const sy = Math.min(height - 1, Math.max(0, y + ky));
+          for (let kx = -1; kx <= 1; kx++) {
+            const sx = Math.min(width - 1, Math.max(0, x + kx));
+            const si = (sy * width + sx) * 4;
+            const ki = (ky + 1) * 3 + (kx + 1);
+            const w = kernel[ki];
+            r += s[si] * w;
+            g += s[si + 1] * w;
+            b += s[si + 2] * w;
+            a += s[si + 3] * w;
+          }
+        }
+
+        const di = (y * width + x) * 4;
+        d[di] = ImageProcessor.clamp(r / divisor + bias);
+        d[di + 1] = ImageProcessor.clamp(g / divisor + bias);
+        d[di + 2] = ImageProcessor.clamp(b / divisor + bias);
+        d[di + 3] = ImageProcessor.clamp(a / divisor + bias);
+      }
+    }
+
+    ctx.putImageData(dst, 0, 0);
+  }
+
+  static async preprocessForPhotoCapture(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          const targetWidth = 1800;
+          const targetHeight = 900;
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          const W = window.innerWidth;
+          const H = window.innerHeight;
+          const w = img.width;
+          const h = img.height;
+
+          const scale = Math.max(W / w, H / h);
+          const vw = W * 0.92;
+          const vh = vw / 2.0;
+
+          const sw = vw / scale;
+          const sh = vh / scale;
+
+          const sx = (w - sw) / 2;
+          const sy = (h - sh) / 2;
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+          ImageProcessor.convolve(
+            ctx,
+            targetWidth,
+            targetHeight,
+            [0, -1, 0, -1, 5, -1, 0, -1, 0],
+            1,
+            0
+          );
+
+          const result = canvas.toDataURL('image/jpeg', 0.92);
+          resolve(result);
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
+
+  /**
+   * Preprocess image for high-resolution single-shot photo capture.
+   * Uses 1600×1200 at JPEG 90% quality for maximum OCR accuracy.
+   * @param imageSrc Base64 image data
+   * @returns Processed base64 image
+   */
+  static async preprocessForHighRes(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          // High-res target: 1600×1200
+          canvas.width = 1600;
+          canvas.height = 1200;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // Center-crop to fill canvas
+          const scale = Math.max(1600 / img.width, 1200 / img.height);
+          const x = (1600 - img.width * scale) / 2;
+          const y = (1200 - img.height * scale) / 2;
+          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+          // 90% quality for minimal compression artifacts
+          const result = canvas.toDataURL('image/jpeg', 0.9);
+          resolve(result);
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
+
   /**
    * Clamp value between 0 and 255
    */
@@ -145,21 +295,24 @@ export class ImageProcessor {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
+          // 1. Account for 'object-cover' scaling
+          const W = window.innerWidth;
+          const H = window.innerHeight;
           const w = img.width;
           const h = img.height;
 
-          // Crop a centered region from the actual screenshot dimensions.
-          // This avoids relying on window sizing (which can differ from the video element and cause mis-crops).
-          let sw = w * 0.92;
-          let sh = sw / 2.0;
+          // object-cover scale
+          const scale = Math.max(W / w, H / h);
 
-          // If the computed crop is too tall, fit by height instead.
-          const maxSh = h * 0.92;
-          if (sh > maxSh) {
-            sh = maxSh;
-            sw = sh * 2.0;
-          }
+          // Viewfinder-mapped region: 92% of screen width, 2:1 aspect ratio
+          const vw = W * 0.92;
+          const vh = vw / 2.0;
 
+          // Map viewfinder pixels back to raw video pixels
+          const sw = vw / scale;
+          const sh = vh / scale;
+
+          // Center the crop on the video
           const sx = (w - sw) / 2;
           const sy = (h - sh) / 2;
 
@@ -171,6 +324,59 @@ export class ImageProcessor {
           ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
 
           resolve(canvas.toDataURL('image/jpeg', 0.9));
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
+
+  static async cropToViewfinderFast(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          // Smaller output for live scanning to reduce upload + backend time
+          const targetWidth = 800;
+          const targetHeight = 400;
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          const W = window.innerWidth;
+          const H = window.innerHeight;
+          const w = img.width;
+          const h = img.height;
+
+          const scale = Math.max(W / w, H / h);
+          const vw = W * 0.92;
+          const vh = vw / 2.0;
+
+          const sw = vw / scale;
+          const sh = vh / scale;
+
+          const sx = (w - sw) / 2;
+          const sy = (h - sh) / 2;
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+          // Lower quality for speed in live mode
+          resolve(canvas.toDataURL('image/jpeg', 0.65));
         } catch (error) {
           reject(new Error(t('errors.imageProcessing')));
         }
