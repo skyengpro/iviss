@@ -89,7 +89,7 @@ export default function DailyLogin() {
 
     try {
       const deviceId = await getDeviceId();
-      const phoneNumber = (user as any)?.phoneNumber || (user as any)?.phone_number || '';
+      const phoneNumber = user?.phoneNumber || '';
 
       if (!phoneNumber) {
         setError(t('dailyLogin.phoneNotFound'));
@@ -138,7 +138,7 @@ export default function DailyLogin() {
 
     try {
       const deviceId = await getDeviceId();
-      const phoneNumber = (user as any)?.phoneNumber || (user as any)?.phone_number || '';
+      const phoneNumber = user?.phoneNumber || '';
 
       const response = await fetch(`${API_BASE}/auth/verify-daily-login`, {
         method: 'POST',
