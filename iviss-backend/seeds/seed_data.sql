@@ -100,7 +100,7 @@ VALUES
     'agent',
     'AGT-104',
     'Michael Johnson',
-    '+254700123459',
+    '+237671210292',
     'PENDING_ACTIVATION'
 ) ON CONFLICT (username) DO NOTHING;
 

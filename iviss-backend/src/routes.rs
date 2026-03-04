@@ -21,13 +21,22 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/scan/plate",
             post(crate::handlers::scan::scan_plate),
         )
+        .route(
+            "/api/v1/photo/plate",
+            post(crate::handlers::photo::photo_plate),
+        )
         .route("/vehicles/search", post(search_vehicle))
+        .route("/api/v1/vehicles/search", post(search_vehicle))
         .route(
             "/controls",
             get(get_list_control).post(crate::handlers::list_control::create_control),
         )
         .route(
             "/vehicles/pending",
+            post(crate::handlers::pending_submission::submit_vehicle),
+        )
+        .route(
+            "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle),
         )
         .route(
@@ -41,6 +50,10 @@ pub fn assembly(state: AppState) -> Router {
         .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route("/users/me", get(crate::handlers::users::get_user_profile))
         .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route(
+            "/auth/send-activation",
+            post(crate::handlers::auth::send_activation),
+        )
         .route(
             "/admin/users",
             get(crate::handlers::user_management::list_users)

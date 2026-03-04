@@ -10,13 +10,19 @@ mod models;
 mod queries;
 mod routes;
 mod services;
+#[cfg(test)]
+mod tests;
 
 use crate::api_doc::ApiDoc;
 use crate::app_state::AppState;
-use crate::config::Config;
+use crate::config::{Config, Environment};
 use crate::db::initialize_pool;
+use crate::db::initialize_redis_pool;
+use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
+
 use anyhow::Context;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -30,7 +36,6 @@ async fn main() -> anyhow::Result<()> {
     config
         .validate()
         .context("Configuration validation failed")?;
-
     // Initialize logging based on configuration
     tracing_subscriber::fmt()
         .with_target(false)
@@ -42,15 +47,32 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let pool = initialize_pool(&config.database_url).await?;
+    let sms_provider: Arc<dyn SmsProvider> = match &config.environment {
+        Environment::Production => Arc::new(TwilioSmsProvider::new(
+            config.twilio_account_sid.clone(),
+            config.twilio_auth_token.clone(),
+            config.twilio_from_number.clone(),
+        )),
+        _ => Arc::new(MockSmsProvider),
+    };
+    let db_pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
 
+    let redis_pool = initialize_redis_pool(&config.redis_url).await?;
+    info!("Redis connection initialized");
+
     info!("Running migrations...");
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    sqlx::migrate!("./migrations").run(&db_pool).await?;
     info!("Migrations completed");
 
-    let app_state = AppState::new(pool, config.jwt_secret.clone());
-    let app = routes::assembly(app_state)
+    let state = AppState::new(
+        db_pool,
+        redis_pool,
+        sms_provider,
+        config.activation_code_pepper.clone(),
+        config.jwt_secret.clone(),
+    );
+    let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
