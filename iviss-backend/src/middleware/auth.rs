@@ -12,7 +12,9 @@ use uuid::Uuid;
 #[derive(Clone, Debug)]
 pub struct AuthUser {
     pub user_id: Uuid,
+    #[allow(dead_code)]
     pub role: String,
+    #[allow(dead_code)]
     pub device_id: Uuid,
 }
 
