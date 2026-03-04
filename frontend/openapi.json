@@ -966,6 +966,61 @@
                 ]
             }
         },
+        "/users/location": {
+            "post": {
+                "tags": [
+                    "users"
+                ],
+                "operationId": "updateLocation",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateLocationRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UpdateLocationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
         "/users/me": {
             "get": {
                 "tags": [
@@ -1243,6 +1298,52 @@
                     }
                 }
             },
+            "ActivityData": {
+                "type": "object",
+                "required": [
+                    "hour",
+                    "count"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "hour": {
+                        "type": "string"
+                    }
+                }
+            },
+            "AgentLocationDto": {
+                "type": "object",
+                "required": [
+                    "agentId",
+                    "agentName",
+                    "latitude",
+                    "longitude",
+                    "lastUpdated"
+                ],
+                "properties": {
+                    "agentId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "agentName": {
+                        "type": "string"
+                    },
+                    "lastUpdated": {
+                        "type": "string"
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                }
+            },
             "AppErrorResponse": {
                 "type": "object",
                 "required": [
@@ -1478,12 +1579,26 @@
                     "todayControls",
                     "activeAlerts",
                     "totalVehicles",
-                    "onlineAgents"
+                    "onlineAgents",
+                    "activity24h",
+                    "liveAgents"
                 ],
                 "properties": {
                     "activeAlerts": {
                         "type": "integer",
                         "format": "int64"
+                    },
+                    "activity24h": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ActivityData"
+                        }
+                    },
+                    "liveAgents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AgentLocationDto"
+                        }
                     },
                     "onlineAgents": {
                         "type": "integer",
@@ -2100,6 +2215,39 @@
                     },
                     "status": {
                         "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "UpdateLocationRequest": {
+                "type": "object",
+                "required": [
+                    "agentId",
+                    "latitude",
+                    "longitude"
+                ],
+                "properties": {
+                    "agentId": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                }
+            },
+            "UpdateLocationResponse": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
                     }
                 }
             },

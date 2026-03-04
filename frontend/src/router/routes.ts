@@ -2,7 +2,6 @@ import { lazy } from 'react';
 import { UserRole } from '@/services/mockAuth';
 
 // Lazy Pages
-const Login = lazy(() => import('../pages/auth/Login'));
 const Activate = lazy(() => import('../pages/auth/Activate'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
@@ -35,8 +34,6 @@ export interface AppRoute {
 
 export const publicRoutes: AppRoute[] = [
   { path: '/activate', component: Activate },
-  { path: '/admin-login', component: null, redirectTo: '/activate', replace: true },
-  { path: '/login', component: null, redirectTo: '/activate', replace: true },
   { path: '/', component: null, redirectTo: '/activate', replace: true },
 ];
 
