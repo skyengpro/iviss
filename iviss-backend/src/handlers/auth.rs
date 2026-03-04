@@ -8,6 +8,7 @@ use axum::{http::StatusCode, response::IntoResponse, Json};
 use base64::Engine;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 use std::sync::Arc;
 use time::OffsetDateTime;
 use utoipa::ToSchema;
@@ -170,34 +171,40 @@ pub async fn send_activation(
     Json(payload): Json<SendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
-    let user = sqlx::query!(
+    let user = sqlx::query(
         r#"
-        SELECT id, phone_number,
-               role AS "role: String",
-               status AS "status: String"
+        SELECT id,
+               phone_number,
+               role::TEXT AS role,
+               status::TEXT AS status
         FROM users
         WHERE id = $1
         AND deleted_at IS NULL
         "#,
-        payload.user_id
     )
+    .bind(payload.user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?
     .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
+    let user_id: Uuid = user.get("id");
+    let phone_number: String = user.get("phone_number");
+    let role: String = user.get("role");
+    let status: String = user.get("status");
+
     // Only agents can receive an activation code
-    if user.role != "agent" {
+    if role != "agent" {
         return Err(AppError::BadRequest(
             "Activation is only available for agents".into(),
         ));
     }
 
     // Agent must be in PENDING_ACTIVATION or SUSPENDED status
-    if user.status != "PENDING_ACTIVATION" && user.status != "SUSPENDED" {
+    if status != "PENDING_ACTIVATION" && status != "SUSPENDED" {
         return Err(AppError::BadRequest(format!(
             "User is not pending activation or suspended — current status: {}",
-            user.status
+            status
         )));
     }
 
@@ -210,7 +217,7 @@ pub async fn send_activation(
 
     // Generate, store and send the activation code via SMS
     activation_svc
-        .generate_and_send(&user.id, &user.phone_number)
+        .generate_and_send(&user_id, &phone_number)
         .await
         .map_err(AppError::Internal)?;
 
@@ -252,31 +259,35 @@ pub async fn activate(
 
     let mut tx = state.db.begin().await.map_err(AppError::Database)?;
 
-    let user_row = sqlx::query!(
+    let user_row = sqlx::query(
         r#"
         SELECT id,
-               role AS "role: String",
-               status AS "status: String"
+               role::TEXT AS role,
+               status::TEXT AS status
         FROM users
         WHERE badge_id = $1
         AND deleted_at IS NULL
         "#,
-        payload.badge_id
     )
+    .bind(&payload.badge_id)
     .fetch_optional(&mut *tx)
     .await
     .map_err(AppError::Database)?
     .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
-    if user_row.role != "agent" {
+    let user_id: Uuid = user_row.get("id");
+    let user_role: String = user_row.get("role");
+    let user_status: String = user_row.get("status");
+
+    if user_role != "agent" {
         return Err(AppError::BadRequest(
             "Activation is only available for agents".into(),
         ));
     }
-    if user_row.status != "PENDING_ACTIVATION" && user_row.status != "SUSPENDED" {
+    if user_status != "PENDING_ACTIVATION" && user_status != "SUSPENDED" {
         return Err(AppError::BadRequest(format!(
             "User is not pending activation or suspended — current status: {}",
-            user_row.status
+            user_status
         )));
     }
 
@@ -286,24 +297,24 @@ pub async fn activate(
         state.pepper.clone(),
     );
     activation_svc
-        .validate(&user_row.id, &payload.activation_code)
+        .validate(&user_id, &payload.activation_code)
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    sqlx::query!(
+    sqlx::query(
         r#"
         UPDATE users
         SET status = 'ACTIVE'::user_status
         WHERE id = $1
         AND deleted_at IS NULL
         "#,
-        user_row.id
     )
+    .bind(user_id)
     .execute(&mut *tx)
     .await
     .map_err(AppError::Database)?;
 
-    sqlx::query!(
+    sqlx::query(
         r#"
         INSERT INTO devices (id, user_id, public_key, status)
         VALUES ($1, $2, $3, 'ACTIVE'::device_status)
@@ -314,10 +325,10 @@ pub async fn activate(
             status = 'ACTIVE'::device_status,
             revoked_at = NULL
         "#,
-        payload.device_id,
-        user_row.id,
-        payload.public_key_base64
     )
+    .bind(payload.device_id)
+    .bind(user_id)
+    .bind(&payload.public_key_base64)
     .execute(&mut *tx)
     .await
     .map_err(AppError::Database)?;
@@ -338,27 +349,27 @@ pub async fn activate(
         time::PrimitiveDateTime::new(dt.date(), dt.time())
     };
 
-    sqlx::query!(
+    sqlx::query(
         r#"
         INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
         VALUES ($1, $2, $3, $4)
         "#,
-        refresh_token_hash,
-        user_row.id,
-        payload.device_id,
-        refresh_expires_at
     )
+    .bind(&refresh_token_hash)
+    .bind(user_id)
+    .bind(payload.device_id)
+    .bind(refresh_expires_at)
     .execute(&mut *tx)
     .await
     .map_err(AppError::Database)?;
 
     tx.commit().await.map_err(AppError::Database)?;
 
-    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_row.id).await?;
+    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
 
     let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
     let access_token = jwt_svc
-        .issue_access_token(user_row.id, payload.device_id, user.role)
+        .issue_access_token(user_id, payload.device_id, user.role)
         .map_err(AppError::Internal)?;
 
     Ok((

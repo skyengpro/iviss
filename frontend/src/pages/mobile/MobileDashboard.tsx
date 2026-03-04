@@ -57,6 +57,19 @@ export default function MobileDashboard() {
     },
   });
 
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const todayControlsCount = (recentControls || []).filter((c) =>
+    new Date(c.timestamp).getTime() >= startOfDay.getTime()
+  ).length;
+
+  const todayAlertsCount = (recentControls || []).filter(
+    (c) =>
+      new Date(c.timestamp).getTime() >= startOfDay.getTime() &&
+      (c.status === 'critical' || c.status === 'warning')
+  ).length;
+
   const isLoading = statsLoading || controlsLoading;
 
   const formatTimeAgo = (dateString: string) => {
@@ -119,17 +132,17 @@ export default function MobileDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               title={t('mobileDashboard.controls')}
-              value={isLoading ? '-' : String(stats?.todayControls || 0)}
+              value={isLoading ? '-' : String(todayControlsCount)}
               subtitle={t('mobileDashboard.today')}
               icon={ClipboardCheck}
               variant="gradient"
             />
             <StatCard
               title={t('mobileDashboard.alerts')}
-              value={isLoading ? '-' : String(stats?.activeAlerts || 0)}
+              value={isLoading ? '-' : String(todayAlertsCount)}
               subtitle={t('mobileDashboard.flaggedVehicles')}
               icon={AlertTriangle}
-              variant={(stats?.activeAlerts || 0) > 0 ? 'critical' : 'default'}
+              variant={todayAlertsCount > 0 ? 'critical' : 'default'}
             />
           </div>
         </section>

@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
+      POSTGRES_DB: ${POSTGRES_DB:-iviss_dev}
     ports:
       - "5435:5432"
     volumes:
@@ -83,12 +83,18 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_db}
+      DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
       EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
       REDIS_URL: redis://iviss-redis:6379
       SQLX_OFFLINE: "true"
       JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
+      JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
+      JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
       ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3000
       RUST_LOG: ${RUST_LOG:-info}
