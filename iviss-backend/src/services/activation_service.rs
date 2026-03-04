@@ -13,7 +13,7 @@ type HmacSha256 = Hmac<Sha256>;
 
 const ACTIVATION_TTL_SECS: u64 = 600; // 10 minutes
 const MAX_ATTEMPTS: u8 = 5;
-const KEY_PREFIX: &str = "activation";
+const DEFAULT_KEY_PREFIX: &str = "activation";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ActivationEntry {
@@ -22,8 +22,8 @@ pub(crate) struct ActivationEntry {
 }
 
 impl ActivationEntry {
-    fn redis_key(user_id: &Uuid) -> String {
-        format!("{}:{}", KEY_PREFIX, user_id)
+    fn redis_key(prefix: &str, user_id: &Uuid) -> String {
+        format!("{}:{}", prefix, user_id)
     }
 }
 
@@ -31,11 +31,22 @@ pub struct ActivationService {
     redis: RedisPool,
     sms: Arc<dyn SmsProvider>,
     pepper: String,
+    prefix: &'static str,
 }
 
 impl ActivationService {
     pub fn new(redis: RedisPool, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
-        Self { redis, sms, pepper }
+        Self::new_with_prefix(redis, sms, pepper, DEFAULT_KEY_PREFIX)
+    }
+
+    /// used by OtpService
+    pub fn new_with_prefix(
+        redis: RedisPool,
+        sms: Arc<dyn SmsProvider>,
+        pepper: String,
+        prefix: &'static str,
+    ) -> Self {
+        Self { redis, sms, pepper, prefix }
     }
 
     /// Generates a 6-digit code, stores its hash in Redis, returns the plain code
@@ -48,7 +59,7 @@ impl ActivationService {
             attempts: 0,
         };
 
-        let key = ActivationEntry::redis_key(user_id);
+        let key = ActivationEntry::redis_key(self.prefix, user_id);
         let value =
             serde_json::to_string(&entry).context("Failed to serialize activation entry")?;
 
@@ -68,7 +79,7 @@ impl ActivationService {
 
     /// Validates a code submitted by the agent — returns Ok(()) if valid
     pub async fn validate(&self, user_id: &Uuid, submitted_code: &str) -> Result<()> {
-        let key = ActivationEntry::redis_key(user_id);
+        let key = ActivationEntry::redis_key(self.prefix, user_id);
         let mut conn = self
             .redis
             .get()
@@ -137,10 +148,10 @@ impl ActivationService {
     pub(crate) fn generate_code(&self) -> String {
         let mut rng = rand::thread_rng();
         let code: u32 = rng.gen_range(0..=999_999);
-        format!("{:06}", code) // zero-padded
+        format!("{:06}", code)
     }
 
-    /// SHA-256 hash of the plain code
+    /// HMAC-SHA256 hash of the plain code
     pub(crate) fn hash_code(&self, code: &str) -> String {
         let mut mac =
             HmacSha256::new_from_slice(self.pepper.as_bytes()).expect("HMAC accepts any key size");

@@ -5,3 +5,4 @@ pub mod sms_provider;
 pub mod ocr_service;
 pub mod photo_ocr_service;
 pub mod vehicle_service;
+pub mod otp_service;
