@@ -52,8 +52,7 @@ impl DailyOtpService {
         };
 
         let key = DailyOtpEntry::redis_key(user_id);
-        let value =
-            serde_json::to_string(&entry).context("Failed to serialize daily OTP entry")?;
+        let value = serde_json::to_string(&entry).context("Failed to serialize daily OTP entry")?;
 
         let mut conn = self
             .redis

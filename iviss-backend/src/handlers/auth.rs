@@ -204,4 +204,3 @@ pub async fn send_activation(
         }),
     ))
 }
-
