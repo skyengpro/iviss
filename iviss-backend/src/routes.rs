@@ -54,6 +54,7 @@ pub fn assembly(state: AppState) -> Router {
             "/auth/send-activation",
             post(crate::handlers::auth::send_activation),
         )
+        .route("/auth/activate", post(crate::handlers::auth::activate))
         .route(
             "/admin/users",
             get(crate::handlers::user_management::list_users)

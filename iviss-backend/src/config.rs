@@ -81,6 +81,8 @@ pub struct Config {
     pub log_level: LogLevel,
     #[allow(dead_code)]
     pub jwt_secret: String,
+    pub jwt_private_key_pem: String,
+    pub jwt_public_key_pem: String,
     pub environment: Environment,
     // SMS
     pub twilio_account_sid: String,
@@ -120,6 +122,18 @@ impl Config {
                 "JWT_SECRET must be at least 32 characters long for security. Current length: {}",
                 jwt_secret.len()
             ));
+        }
+
+        let jwt_private_key_pem =
+            env::var("JWT_PRIVATE_KEY_PEM").context("JWT_PRIVATE_KEY_PEM must be set")?;
+        if jwt_private_key_pem.trim().is_empty() {
+            return Err(anyhow!("JWT_PRIVATE_KEY_PEM cannot be empty"));
+        }
+
+        let jwt_public_key_pem =
+            env::var("JWT_PUBLIC_KEY_PEM").context("JWT_PUBLIC_KEY_PEM must be set")?;
+        if jwt_public_key_pem.trim().is_empty() {
+            return Err(anyhow!("JWT_PUBLIC_KEY_PEM cannot be empty"));
         }
 
         // Load SERVER_HOST with default
@@ -166,6 +180,8 @@ impl Config {
             server_port,
             log_level,
             jwt_secret,
+            jwt_private_key_pem,
+            jwt_public_key_pem,
             environment,
             twilio_account_sid,
             twilio_auth_token,
