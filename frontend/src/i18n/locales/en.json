@@ -438,5 +438,33 @@
     "notes": {
       "foreignPlates": "Vehicle with foreign plates, driver claims recent import"
     }
+  },
+  "dailyLogin": {
+    "pageTitle": "Daily Shift Login",
+    "startShift": "Start Your Shift",
+    "enterOtp": "Enter OTP Code",
+    "shiftStarted": "Shift Started!",
+    "requestDescription": "Request a one-time code to start your daily shift.",
+    "enterDescription": "Enter the 6-digit code sent to your phone.",
+    "successDescription": "You are now on duty. Redirecting...",
+    "smsNotice": "An SMS with a 6-digit verification code will be sent to your registered phone number.",
+    "requestOtp": "Request OTP",
+    "timeRemaining": "Time remaining",
+    "verificationCode": "Verification Code",
+    "verifyAndStart": "Verify & Start Shift",
+    "requestNewCode": "Request a new code",
+    "shiftActive": "Your 8-hour shift session is now active.",
+    "securityNotice": "Secured with device-bound one-time verification. Code valid for 5 minutes.",
+    "footer": "IVISS © 2026 — National Road Control System",
+    "otpExpired": "OTP expired. Please request a new one.",
+    "enterComplete": "Please enter the complete 6-digit code",
+    "failedToSend": "Failed to send OTP",
+    "accountInactive": "Your account is currently inactive or suspended. Please contact your supervisor.",
+    "invalidOtp_one": "Invalid OTP — 1 attempt remaining",
+    "invalidOtp_other": "Invalid OTP — {{count}} attempts remaining",
+    "verificationFailed": "Verification failed",
+    "failedToRequest": "Failed to request OTP",
+    "maxAttempts": "Too many failed attempts. Please request a new code.",
+    "phoneNotFound": "Phone number not found in your session. Please log out and log back in."
   }
 }

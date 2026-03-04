@@ -435,5 +435,33 @@
     "notes": {
       "foreignPlates": "Véhicule avec plaques étrangères, le conducteur déclare une importation récente"
     }
+  },
+  "dailyLogin": {
+    "pageTitle": "Connexion Quotidienne",
+    "startShift": "Démarrer Votre Service",
+    "enterOtp": "Entrez le Code OTP",
+    "shiftStarted": "Service Démarré !",
+    "requestDescription": "Demandez un code à usage unique pour commencer votre service quotidien.",
+    "enterDescription": "Entrez le code à 6 chiffres envoyé sur votre téléphone.",
+    "successDescription": "Vous êtes maintenant en service. Redirection...",
+    "smsNotice": "Un SMS avec un code de vérification à 6 chiffres sera envoyé à votre numéro de téléphone enregistré.",
+    "requestOtp": "Demander le Code",
+    "timeRemaining": "Temps restant",
+    "verificationCode": "Code de Vérification",
+    "verifyAndStart": "Vérifier et Démarrer",
+    "requestNewCode": "Demander un nouveau code",
+    "shiftActive": "Votre session de service de 8 heures est maintenant active.",
+    "securityNotice": "Sécurisé par vérification à usage unique liée à l'appareil. Code valide 5 minutes.",
+    "footer": "IVISS © 2026 — Système de Contrôle Routier National",
+    "otpExpired": "Code OTP expiré. Veuillez en demander un nouveau.",
+    "enterComplete": "Veuillez entrer le code complet à 6 chiffres",
+    "failedToSend": "Échec de l'envoi du code OTP",
+    "accountInactive": "Votre compte est actuellement inactif ou suspendu. Veuillez contacter votre superviseur.",
+    "invalidOtp_one": "Code OTP invalide — 1 tentative restante",
+    "invalidOtp_other": "Code OTP invalide — {{count}} tentatives restantes",
+    "verificationFailed": "Échec de la vérification",
+    "failedToRequest": "Échec de la demande du code OTP",
+    "maxAttempts": "Trop de tentatives échouées. Veuillez demander un nouveau code.",
+    "phoneNotFound": "Numéro de téléphone introuvable dans votre session. Veuillez vous déconnecter et vous reconnecter."
   }
 }
