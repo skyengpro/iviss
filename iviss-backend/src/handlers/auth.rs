@@ -5,6 +5,7 @@ use crate::services::activation_service::ActivationService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
@@ -36,6 +37,14 @@ pub struct SendActivationRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SendActivationResponse {
     pub message: String,
+}
+
+#[derive(Debug, FromRow)]
+struct ActivationUserRow {
+    id: uuid::Uuid,
+    phone_number: String,
+    role: String,
+    status: String,
 }
 
 /// Login with email and password
@@ -148,17 +157,17 @@ pub async fn send_activation(
     Json(payload): Json<SendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
-    let user = sqlx::query!(
+    let user = sqlx::query_as::<_, ActivationUserRow>(
         r#"
         SELECT id, phone_number,
-               role AS "role: String",
-               status AS "status: String"
+               role::TEXT AS role,
+               status::TEXT AS status
         FROM users
         WHERE id = $1
         AND deleted_at IS NULL
         "#,
-        payload.user_id
     )
+    .bind(payload.user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?
