@@ -28,8 +28,8 @@ impl ActivationEntry {
 }
 
 pub struct ActivationService {
-    redis: RedisPool,
-    sms: Arc<dyn SmsProvider>,
+    pub (crate) redis: RedisPool,
+    pub (crate) sms: Arc<dyn SmsProvider>,
     pepper: String,
     prefix: &'static str,
 }
