@@ -7,6 +7,7 @@ use axum::{
     response::IntoResponse,
 };
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -32,9 +33,11 @@ pub async fn submit_vehicle(
     // In a real app we'd decode base64 images and upload to S3/Cloud storage here
     // For now we assume the frontend sends URLs or we just store the strings as-is (stub behavior for images)
 
+    let agent_id = resolve_agent_id(&state.db, payload.agent_id).await?;
+
     let submission_id = crate::queries::submission_queries::create_pending_submission(
         &state.db,
-        payload.agent_id,
+        agent_id,
         payload.plate_number.clone(),
         payload.front_image_url,
         payload.back_image_url,
@@ -55,6 +58,29 @@ pub async fn submit_vehicle(
     };
 
     Ok((StatusCode::ACCEPTED, Json(response)))
+}
+
+async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, AppError> {
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
+        .bind(requested)
+        .fetch_one(pool)
+        .await
+        .map_err(AppError::database)?;
+
+    if exists {
+        return Ok(requested);
+    }
+
+    let first: Option<Uuid> =
+        sqlx::query_scalar("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
+            .fetch_optional(pool)
+            .await
+            .map_err(AppError::database)?;
+
+    match first {
+        Some(id) => Ok(id),
+        None => Err(AppError::not_found("No users found in database")),
+    }
 }
 
 /// List all pending submissions for admin review

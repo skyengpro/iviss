@@ -18,7 +18,9 @@ DELETE FROM vehicle_owners WHERE vehicle_id IN (
     '0290f1ee-6c54-4b01-90e6-d701748f0855',
     '0390f1ee-6c54-4b01-90e6-d701748f0856',
     '0490f1ee-6c54-4b01-90e6-d701748f0857',
-    '0590f1ee-6c54-4b01-90e6-d701748f0858'
+    '0590f1ee-6c54-4b01-90e6-d701748f0858',
+    '0690f1ee-6c54-4b01-90e6-d701748f085c',
+    '0790f1ee-6c54-4b01-90e6-d701748f085d'
 );
 
 DELETE FROM vehicle_statuses WHERE vehicle_id IN (
@@ -26,7 +28,9 @@ DELETE FROM vehicle_statuses WHERE vehicle_id IN (
     '0290f1ee-6c54-4b01-90e6-d701748f0855',
     '0390f1ee-6c54-4b01-90e6-d701748f0856',
     '0490f1ee-6c54-4b01-90e6-d701748f0857',
-    '0590f1ee-6c54-4b01-90e6-d701748f0858'
+    '0590f1ee-6c54-4b01-90e6-d701748f0858',
+    '0690f1ee-6c54-4b01-90e6-d701748f085c',
+    '0790f1ee-6c54-4b01-90e6-d701748f085d'
 );
 
 DELETE FROM vehicles WHERE id IN (
@@ -34,7 +38,9 @@ DELETE FROM vehicles WHERE id IN (
     '0290f1ee-6c54-4b01-90e6-d701748f0855',
     '0390f1ee-6c54-4b01-90e6-d701748f0856',
     '0490f1ee-6c54-4b01-90e6-d701748f0857',
-    '0590f1ee-6c54-4b01-90e6-d701748f0858'
+    '0590f1ee-6c54-4b01-90e6-d701748f0858',
+    '0690f1ee-6c54-4b01-90e6-d701748f085c',
+    '0790f1ee-6c54-4b01-90e6-d701748f085d'
 );
 
 -- 1. Insert Organization
@@ -94,7 +100,7 @@ VALUES
     'agent',
     'AGT-104',
     'Michael Johnson',
-    '+254700123459',
+    '+237671210292',
     'PENDING_ACTIVATION'
 ) ON CONFLICT (username) DO NOTHING;
 
@@ -150,6 +156,26 @@ VALUES
     2019,
     'Grey',
     'Petrol'
+) ,
+(
+    '0690f1ee-6c54-4b01-90e6-d701748f085c',
+    'OU544AU',
+    'CHASSIS-OU544AU-001',
+    'Peugeot',
+    '208',
+    2018,
+    'Red',
+    'Petrol'
+) ,
+(
+    '0790f1ee-6c54-4b01-90e6-d701748f085d',
+    'LT128AB',
+    'CHASSIS-LT128AB-001',
+    'Toyota',
+    'Corolla',
+    2020,
+    'White',
+    'Petrol'
 ) ON CONFLICT (plate_number) DO NOTHING;
 
 -- 4. Vehicle Statuses
@@ -200,6 +226,24 @@ VALUES
     TRUE,
     'https://tse2.mm.bing.net/th/id/OIP.tz5wAueaTZtT5H2hXO1fpQHaFj?cb=defcachec2&rs=1&pid=ImgDetMain&o=7&rm=3'
 
+) ,
+(
+    '0690f1ee-6c54-4b01-90e6-d701748f085c',
+    'valid',
+    '2026-10-10',
+    'valid',
+    '2026-10-10',
+    FALSE,
+    'https://tse4.mm.bing.net/th/id/OIP.qZyWb3QEGxY0NHwGgG_6vQHaEK?cb=defcachec2&rs=1&pid=ImgDetMain&o=7&rm=3'
+) ,
+(
+    '0790f1ee-6c54-4b01-90e6-d701748f085d',
+    'valid',
+    '2026-12-31',
+    'valid',
+    '2026-12-31',
+    FALSE,
+    'https://tse1.mm.bing.net/th/id/OIP.Fwr5qO4p1rmMDm2CYwCDZwHaEK?w=326&h=183&c=7&r=0&o=7&cb=defcachec2&pid=1.7&rm=3'
 ) ON CONFLICT (vehicle_id) DO NOTHING;
 
 -- 5. Vehicle Owners
@@ -238,6 +282,20 @@ VALUES
     'David Omondi',
     '654 Eldoret St, Eldoret',
     'ID-55667788',
+    TRUE
+) ,
+(
+    '0690f1ee-6c54-4b01-90e6-d701748f085c',
+    'Aminata Diallo',
+    '12 Rue de l''Industrie, Dakar',
+    'ID-99887766',
+    TRUE
+) ,
+(
+    '0790f1ee-6c54-4b01-90e6-d701748f085d',
+    'Paul Nguema',
+    'Douala, Littoral Region',
+    'ID-1234LT128AB',
     TRUE
 ) ON CONFLICT DO NOTHING;
 

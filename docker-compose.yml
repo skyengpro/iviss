@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
+      POSTGRES_DB: ${POSTGRES_DB:-iviss_dev}
     ports:
       - "5435:5432"
     volumes:
@@ -18,14 +18,37 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: iviss-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '0.25'
+          memory: 256M
         reservations:
           cpus: '0.1'
-          memory: 128M
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -57,10 +80,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_db}
-      EXTERNAL_DATABASE_URL: postgresql://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
+      DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
+      EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
+      REDIS_URL: redis://iviss-redis:6379
+      SQLX_OFFLINE: "true"
       JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
+      JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
+      JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
+      ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3000
       RUST_LOG: ${RUST_LOG:-info}
@@ -72,6 +106,7 @@ services:
       - ./iviss-backend/Cargo.toml:/app/Cargo.toml:ro
       - ./iviss-backend/Cargo.lock:/app/Cargo.lock:ro
       - ./iviss-backend/migrations:/app/migrations:ro
+      - ./iviss-backend/.sqlx:/app/.sqlx:ro
       # Cache dependencies in named volume for faster builds
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
@@ -81,12 +116,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -114,115 +143,11 @@ services:
       - /app/node_modules
       - ./scripts:/scripts
     command: npm run dev -- --host
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
       interval: 10s
       timeout: 5s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - iviss-network
-
-  # ————————————————————————————————————————
-  # Monitoring Stack
-  # ————————————————————————————————————————
-
-  # Frontend Metrics Server — receives browser metrics, exposes to Prometheus
-  metrics-server:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.metrics
-    container_name: iviss-metrics-server
-    restart: unless-stopped
-    environment:
-      METRICS_PORT: 9091
-    ports:
-      - "9091:9091"
-    volumes:
-      - ./frontend/metrics-server.js:/app/metrics-server.js
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9091/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - iviss-network
-
-  # Prometheus — scrapes and stores metrics
-  prometheus:
-    image: prom/prometheus:v2.51.0
-    container_name: iviss-prometheus
-    restart: unless-stopped
-    depends_on:
-      metrics-server:
-        condition: service_healthy
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}"
-      - "--web.console.libraries=/etc/prometheus/console_libraries"
-      - "--web.console.templates=/etc/prometheus/consoles"
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - iviss-network
-
-  # Grafana — dashboards and visualization
-  grafana:
-    image: grafana/grafana:10.4.1
-    container_name: iviss-grafana
-    restart: unless-stopped
-    depends_on:
-      prometheus:
-        condition: service_started
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana_data:/var/lib/grafana
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -239,13 +164,11 @@ volumes:
   # Named volume for PostgreSQL data persistence
   postgres_data:
     driver: local
+  # Named volume for Redis data persistence
+  redis_data:
+    driver: local
   # Cache volumes for faster Rust builds
   cargo_cache:
     driver: local
   target_cache:
-    driver: local
-  # Monitoring volumes
-  prometheus_data:
-    driver: local
-  grafana_data:
     driver: local

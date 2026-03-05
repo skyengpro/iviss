@@ -42,6 +42,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -86,6 +87,7 @@ export default function UserManagement() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [resendLoadingUserId, setResendLoadingUserId] = useState<string | null>(null);
 
   const {
     users = [],
@@ -145,6 +147,38 @@ export default function UserManagement() {
       setSelectedUser(null);
     } catch (error) {
       toast.error(t('backOfficeUserManagement.deleteError'));
+    }
+  };
+
+  const handleResendActivationCode = async (user: UserProfile) => {
+    setResendLoadingUserId(user.id);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${baseUrl}/auth/send-activation`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const json = (await res.json()) as { code?: string; message?: string };
+          toast.error(json?.message || 'Failed to resend activation code');
+          return;
+        }
+        const text = await res.text();
+        toast.error(text || 'Failed to resend activation code');
+        return;
+      }
+
+      toast.success('Activation code sent');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to resend activation code');
+    } finally {
+      setResendLoadingUserId(null);
     }
   };
 
@@ -435,6 +469,24 @@ export default function UserManagement() {
                             <DropdownMenuItem>
                               <Shield className="mr-2 h-4 w-4" />
                               {t('backOfficeUserManagement.managePermissions')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                resendLoadingUserId === user.id ||
+                                user.role !== 'agent' ||
+                                !(
+                                  user.status === 'PENDING_ACTIVATION' ||
+                                  user.status === 'SUSPENDED'
+                                )
+                              }
+                              onClick={() => handleResendActivationCode(user)}
+                            >
+                              {resendLoadingUserId === user.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                              )}
+                              Resend activation code
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

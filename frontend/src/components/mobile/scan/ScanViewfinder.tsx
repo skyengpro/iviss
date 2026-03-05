@@ -1,6 +1,5 @@
 import React from 'react';
 import Webcam from 'react-webcam';
-import { cn } from '@/lib/utils';
 
 interface ScanViewfinderProps {
   webcamRef: React.RefObject<Webcam>;
@@ -8,6 +7,9 @@ interface ScanViewfinderProps {
   isScanning: boolean;
   mode: 'photo' | 'live';
   liveScanActive: boolean;
+  capturedImageSrc?: string | null;
+  onUserMedia?: () => void;
+  onUserMediaError?: (error: string | DOMException) => void;
 }
 
 export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
@@ -16,6 +18,9 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
   isScanning,
   mode,
   liveScanActive,
+  capturedImageSrc,
+  onUserMedia,
+  onUserMediaError,
 }) => {
   const videoConstraints = {
     facingMode: facingMode,
@@ -23,18 +28,28 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 
   return (
     <div className="relative flex-1 bg-black">
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        videoConstraints={videoConstraints}
-        className="absolute inset-0 h-full w-full object-cover"
-        onUserMediaError={(err) => console.log(err)}
-      />
+      {mode === 'photo' && capturedImageSrc ? (
+        <img
+          src={capturedImageSrc}
+          alt="Captured"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/jpeg"
+          videoConstraints={videoConstraints}
+          className="absolute inset-0 h-full w-full object-cover"
+          onUserMedia={onUserMedia}
+          onUserMediaError={onUserMediaError}
+          mirrored={facingMode === 'user'}
+        />
+      )}
 
       {/* Scan frame overlay */}
       <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
-        <div className="relative aspect-[3/1] w-full max-w-sm">
+        <div className="relative aspect-[2/1] w-full max-w-sm">
           {/* Corner markers */}
           <div className="absolute left-0 top-0 h-8 w-8 border-l-4 border-t-4 border-accent" />
           <div className="absolute right-0 top-0 h-8 w-8 border-r-4 border-t-4 border-accent" />
@@ -50,11 +65,9 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 
           {/* Scanning indicator */}
           {isScanning && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <div className="flex flex-col items-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-                <p className="mt-2 text-sm text-white">Processing OCR...</p>
-              </div>
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-white text-sm border border-white/20 backdrop-blur-sm">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              <span>Scanning…</span>
             </div>
           )}
         </div>
