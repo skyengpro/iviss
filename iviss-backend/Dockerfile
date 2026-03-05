@@ -62,6 +62,10 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY migrations ./migrations
+COPY .sqlx ./.sqlx
+
+# Force SQLx to use checked-in query metadata during container builds.
+ENV SQLX_OFFLINE=true
 
 # Build release binary
 RUN cargo build --release
