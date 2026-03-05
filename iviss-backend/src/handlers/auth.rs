@@ -1,10 +1,9 @@
 use crate::app_state::AppState;
+use crate::dto::auth::{
+    DailyLoginResponse, RequestDailyLoginRequest, RequestDailyLoginResponse,
+    SendActivationResponse, VerifyDailyLoginRequest,
+};
 use crate::dto::users::{UserProfile, UserRole};
-use crate::dto::auth::{DailyLoginResponse,
-    RequestDailyLoginRequest,
-    RequestDailyLoginResponse,
-    VerifyDailyLoginRequest,
-     SendActivationResponse};
 use crate::errors::AppError;
 use crate::services::activation_service::ActivationService;
 use axum::extract::State;
@@ -37,7 +36,6 @@ pub struct RegisterRequest {
 pub struct SendActivationRequest {
     pub user_id: uuid::Uuid,
 }
-
 
 /// Login with email and password
 #[utoipa::path(
@@ -263,7 +261,9 @@ pub async fn request_daily_login(
     .ok_or_else(|| AppError::NotFound("Device not found".into()))?;
 
     if device.status != "ACTIVE" {
-        return Err(AppError::Unauthorized("Device is revoked or inactive".into()));
+        return Err(AppError::Unauthorized(
+            "Device is revoked or inactive".into(),
+        ));
     }
 
     // Build OtpService and request OTP — rate limit enforced inside
@@ -346,7 +346,9 @@ pub async fn verify_daily_login(
     .ok_or_else(|| AppError::NotFound("Device not found".into()))?;
 
     if device.status != "ACTIVE" {
-        return Err(AppError::Unauthorized("Device is revoked or inactive".into()));
+        return Err(AppError::Unauthorized(
+            "Device is revoked or inactive".into(),
+        ));
     }
 
     // Validate OTP — handles expiry + attempts
@@ -368,10 +370,7 @@ pub async fn verify_daily_login(
         .map_err(|e| AppError::Internal(anyhow::anyhow!("{}", e)))?;
 
     // Hash refresh token before storing (SHA-256)
-    let refresh_hash = format!(
-        "{:x}",
-        Sha256::digest(token_pair.refresh_token.as_bytes())
-    );
+    let refresh_hash = format!("{:x}", Sha256::digest(token_pair.refresh_token.as_bytes()));
 
     // Store hashed refresh token linked to device
     sqlx::query!(

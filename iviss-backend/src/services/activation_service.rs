@@ -28,8 +28,8 @@ impl ActivationEntry {
 }
 
 pub struct ActivationService {
-    pub (crate) redis: RedisPool,
-    pub (crate) sms: Arc<dyn SmsProvider>,
+    pub(crate) redis: RedisPool,
+    pub(crate) sms: Arc<dyn SmsProvider>,
     pepper: String,
     prefix: &'static str,
 }
@@ -46,7 +46,12 @@ impl ActivationService {
         pepper: String,
         prefix: &'static str,
     ) -> Self {
-        Self { redis, sms, pepper, prefix }
+        Self {
+            redis,
+            sms,
+            pepper,
+            prefix,
+        }
     }
 
     /// Generates a 6-digit code, stores its hash in Redis, returns the plain code
