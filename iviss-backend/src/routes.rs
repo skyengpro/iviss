@@ -1,9 +1,5 @@
 use crate::app_state::AppState;
-use crate::handlers::{
-    list_control::get_list_control,
-    // pending_submission::submit_vehicle,
-    search_vehicle::search_vehicle,
-};
+use crate::handlers::{list_control::get_list_control, search_vehicle::search_vehicle};
 use crate::middleware::cors;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
@@ -53,6 +49,14 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/auth/send-activation",
             post(crate::handlers::auth::send_activation),
+        )
+        .route(
+            "/auth/request-daily-login",
+            post(crate::handlers::auth::request_daily_login),
+        )
+        .route(
+            "//auth/verify-daily-login",
+            post(crate::handlers::auth::verify_daily_login),
         )
         .route(
             "/admin/users",

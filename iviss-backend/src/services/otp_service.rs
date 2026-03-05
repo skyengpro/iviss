@@ -10,18 +10,13 @@ const RATE_LIMIT_MAX_REQUESTS: u8 = 3;
 const RATE_LIMIT_TTL_SECS: u64 = 600; // 10 minutes window
 
 pub struct OtpService {
-    inner: ActivationService,   // delegates all OTP logic to ActivationService
+    inner: ActivationService, // delegates all OTP logic to ActivationService
 }
 
 impl OtpService {
     pub fn new(redis: RedisPool, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
         Self {
-            inner: ActivationService::new_with_prefix(
-                redis.clone(),
-                sms,
-                pepper,
-                "otp",
-            ),
+            inner: ActivationService::new_with_prefix(redis.clone(), sms, pepper, "otp"),
         }
     }
 
@@ -48,16 +43,24 @@ impl OtpService {
     /// Rate limit: max 3 requests per phone number per 10 minutes
     async fn check_rate_limit(&self, phone_number: &str) -> Result<()> {
         let key = format!("rate_limit:otp_request:{}", phone_number);
-        let mut conn = self.inner.redis.get().await
+        let mut conn = self
+            .inner
+            .redis
+            .get()
+            .await
             .context("Failed to get Redis connection")?;
 
         // Increment counter
-        let count: u8 = conn.incr(&key, 1).await
+        let count: u8 = conn
+            .incr(&key, 1)
+            .await
             .context("Failed to increment rate limit counter")?;
 
         // Set TTL only on first request — preserves absolute window
         if count == 1 {
-            let _: ()= conn.expire(&key, RATE_LIMIT_TTL_SECS as i64).await
+            let _: () = conn
+                .expire(&key, RATE_LIMIT_TTL_SECS as i64)
+                .await
                 .context("Failed to set rate limit TTL")?;
         }
 
