@@ -94,8 +94,8 @@ fi
 
 echo "📊 Step 7: Generating code coverage..."
 if command -v cargo-llvm-cov &> /dev/null; then
-    echo "Running coverage and generating HTML report..."
-    if cargo llvm-cov --html --output-dir target/coverage/html; then
+    echo "Running coverage with 60% minimum threshold..."
+    if cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60; then
         print_status "Coverage report generated successfully"
         echo "📁 Coverage report available at: target/coverage/html/index.html"
     else
@@ -105,8 +105,8 @@ if command -v cargo-llvm-cov &> /dev/null; then
 else
     print_warning "cargo-llvm-cov not found. Installing..."
     cargo install cargo-llvm-cov
-    echo "Running coverage and generating HTML report..."
-    if cargo llvm-cov --html --output-dir target/coverage/html; then
+    echo "Running coverage with 60% minimum threshold..."
+    if cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60; then
         print_status "Coverage report generated successfully after installation"
         echo "📁 Coverage report available at: target/coverage/html/index.html"
     else
@@ -126,6 +126,6 @@ echo "  ✅ Format check"
 echo "  ✅ Clippy linting"
 echo "  ✅ Security audit"
 echo "  ✅ Documentation build"
-echo "  ✅ Code coverage report"
+echo "  ✅ Code coverage (≥60%)"
 echo ""
 echo "📊 View coverage report: open target/coverage/html/index.html"
