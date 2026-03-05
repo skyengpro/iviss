@@ -3,6 +3,7 @@ import { UserRole } from '@/services/mockAuth';
 
 // Lazy Pages
 const Login = lazy(() => import('../pages/auth/Login'));
+const Activate = lazy(() => import('../pages/auth/Activate'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Mobile Pages
@@ -14,6 +15,8 @@ const MobileProfile = lazy(() => import('../pages/mobile/MobileProfile'));
 const MobileVehicleResult = lazy(() => import('../pages/mobile/MobileVehicleResult'));
 const MobileHistoryDetail = lazy(() => import('../pages/mobile/MobileHistoryDetail'));
 const MobileCarteGrise = lazy(() => import('../pages/mobile/MobileCarteGrise'));
+const MobileSupport = lazy(() => import('../pages/mobile/MobileSupport'));
+const MobileSettings = lazy(() => import('../pages/mobile/MobileSettings'));
 
 // Back Office Pages
 const BackOfficeDashboard = lazy(() => import('../pages/backoffice/BackOfficeDashboard'));
@@ -31,8 +34,10 @@ export interface AppRoute {
 }
 
 export const publicRoutes: AppRoute[] = [
-  { path: '/login', component: Login },
-  { path: '/', component: null, redirectTo: '/login', replace: true },
+  { path: '/activate', component: Activate },
+  { path: '/admin-login', component: null, redirectTo: '/activate', replace: true },
+  { path: '/login', component: null, redirectTo: '/activate', replace: true },
+  { path: '/', component: null, redirectTo: '/activate', replace: true },
 ];
 
 export const mobileRoutes: AppRoute[] = [
@@ -65,10 +70,13 @@ export const mobileRoutes: AppRoute[] = [
     allowedRoles: ['agent', 'supervisor'],
   },
   {
+    path: '/mobile/support',
+    component: MobileSupport,
+    allowedRoles: ['agent', 'supervisor'],
+  },
+  {
     path: '/mobile/settings',
-    component: null,
-    redirectTo: '/mobile/profile',
-    replace: true,
+    component: MobileSettings,
     allowedRoles: ['agent', 'supervisor'],
   },
 ];

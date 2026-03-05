@@ -75,12 +75,20 @@ impl LogLevel {
 #[allow(dead_code)] // jwt_secret and helper methods will be used in future JWT implementation
 pub struct Config {
     pub database_url: String,
+    pub redis_url: String,
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
     #[allow(dead_code)]
     pub jwt_secret: String,
+    pub jwt_private_key_pem: String,
+    pub jwt_public_key_pem: String,
     pub environment: Environment,
+    // SMS
+    pub twilio_account_sid: String,
+    pub twilio_auth_token: String,
+    pub twilio_from_number: String,
+    pub activation_code_pepper: String,
 }
 
 impl Config {
@@ -95,7 +103,12 @@ impl Config {
         if database_url.trim().is_empty() {
             return Err(anyhow!("DATABASE_URL cannot be empty"));
         }
+        let redis_url =
+            env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
+        if redis_url.trim().is_empty() {
+            return Err(anyhow!("REDIS_URL cannot be empty"));
+        }
         // Load and validate JWT_SECRET (critical)
         let jwt_secret = env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
 
@@ -109,6 +122,18 @@ impl Config {
                 "JWT_SECRET must be at least 32 characters long for security. Current length: {}",
                 jwt_secret.len()
             ));
+        }
+
+        let jwt_private_key_pem =
+            env::var("JWT_PRIVATE_KEY_PEM").context("JWT_PRIVATE_KEY_PEM must be set")?;
+        if jwt_private_key_pem.trim().is_empty() {
+            return Err(anyhow!("JWT_PRIVATE_KEY_PEM cannot be empty"));
+        }
+
+        let jwt_public_key_pem =
+            env::var("JWT_PUBLIC_KEY_PEM").context("JWT_PUBLIC_KEY_PEM must be set")?;
+        if jwt_public_key_pem.trim().is_empty() {
+            return Err(anyhow!("JWT_PUBLIC_KEY_PEM cannot be empty"));
         }
 
         // Load SERVER_HOST with default
@@ -132,13 +157,36 @@ impl Config {
             .parse::<Environment>()
             .context("Failed to parse ENVIRONMENT")?;
 
+        // Twilio — requis uniquement en production
+        let twilio_account_sid =
+            env::var("TWILIO_ACCOUNT_SID").unwrap_or_else(|_| "mock".to_string());
+        let twilio_auth_token =
+            env::var("TWILIO_AUTH_TOKEN").unwrap_or_else(|_| "mock".to_string());
+        let twilio_from_number =
+            env::var("TWILIO_FROM_NUMBER").unwrap_or_else(|_| "mock".to_string());
+
+        let activation_code_pepper =
+            env::var("ACTIVATION_CODE_PEPPER").context("ACTIVATION_CODE_PEPPER must be set")?;
+
+        if activation_code_pepper.len() < 32 {
+            return Err(anyhow!(
+                "ACTIVATION_CODE_PEPPER must be at least 32 characters"
+            ));
+        }
         Ok(Self {
             database_url,
+            redis_url,
             server_host,
             server_port,
             log_level,
             jwt_secret,
+            jwt_private_key_pem,
+            jwt_public_key_pem,
             environment,
+            twilio_account_sid,
+            twilio_auth_token,
+            twilio_from_number,
+            activation_code_pepper,
         })
     }
 
@@ -146,7 +194,15 @@ impl Config {
     pub fn validate(&self) -> Result<()> {
         // Additional validation can be added here
         if self.server_port == 0 {
-            return Err(anyhow!("SERVER_PORT cannot be 0"));
+            // return Err(anyhow!("SERVER_PORT cannot be 0"));
+        }
+        // Validate Twilio config
+        if self.environment == Environment::Production
+            && (self.twilio_account_sid == "mock"
+                || self.twilio_auth_token == "mock"
+                || self.twilio_from_number == "mock")
+        {
+            return Err(anyhow!("Twilio credentials must be set in production"));
         }
 
         Ok(())

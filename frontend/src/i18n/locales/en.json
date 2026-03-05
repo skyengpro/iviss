@@ -141,7 +141,13 @@
     "photo": "Photo",
     "live": "Live",
     "stopScanning": "Stop Scanning",
-    "startLiveScan": "Start Live Scan"
+    "startLiveScan": "Start Live Scan",
+    "takingTooLong": "Scanning taking too long?",
+    "manualEntry": "Switch to Manual Entry",
+    "processingPhoto": "Processing photo...",
+    "photoError": "Failed to process photo. Please try again.",
+    "captureHint": "Position the plate within the frame and tap to capture",
+    "liveScanHint": "Hold steady — scanning will detect the plate automatically"
   },
   "mobileSearch": {
     "title": "Search Vehicle",
@@ -416,7 +422,8 @@
     "scan": "Scan",
     "search": "Search",
     "history": "History",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "Profile"
   },
   "backOfficeHeader": {
     "nationalPoliceHQ": "National Police HQ",
