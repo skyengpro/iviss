@@ -4,6 +4,9 @@ use utoipa::{
 };
 
 use crate::dto::{
+    auth::{
+        RefreshNonceRequest, RefreshNonceResponse, RefreshVerifyRequest, RefreshVerifyResponse,
+    },
     common::*,
     create_control::*,
     list_control::*,
@@ -65,6 +68,8 @@ impl Modify for SecurityAddon {
         crate::handlers::auth::login,
         crate::handlers::auth::register,
         crate::handlers::auth::logout,
+        crate::handlers::auth::create_refresh_nonce,
+        crate::handlers::auth::verify_refresh_signature,
         crate::handlers::auth::send_activation,
         crate::handlers::user_management::provision_user,
         crate::handlers::user_management::list_users,
@@ -120,6 +125,10 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::RegisterRequest,
             crate::handlers::auth::SendActivationRequest,
             crate::handlers::auth::SendActivationResponse,
+            RefreshNonceRequest,
+            RefreshNonceResponse,
+            RefreshVerifyRequest,
+            RefreshVerifyResponse,
             ProvisionUserRequest,
             UpdateUserRequest,
             UserStatus,
