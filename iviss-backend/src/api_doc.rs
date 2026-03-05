@@ -4,6 +4,7 @@ use utoipa::{
 };
 
 use crate::dto::{
+    auth::*,
     common::*,
     create_control::*,
     list_control::*,
@@ -66,6 +67,8 @@ impl Modify for SecurityAddon {
         crate::handlers::auth::register,
         crate::handlers::auth::logout,
         crate::handlers::auth::send_activation,
+        crate::handlers::auth::request_daily_login,
+        crate::handlers::auth::verify_daily_login,
         crate::handlers::user_management::provision_user,
         crate::handlers::user_management::list_users,
         crate::handlers::user_management::get_user,
@@ -119,7 +122,11 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::AuthResponse,
             crate::handlers::auth::RegisterRequest,
             crate::handlers::auth::SendActivationRequest,
-            crate::handlers::auth::SendActivationResponse,
+            SendActivationResponse,
+            RequestDailyLoginRequest,
+            RequestDailyLoginResponse,
+            VerifyDailyLoginRequest,
+            DailyLoginResponse,
             ProvisionUserRequest,
             UpdateUserRequest,
             UserStatus,

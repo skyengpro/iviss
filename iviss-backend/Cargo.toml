@@ -36,6 +36,7 @@ reqwest = { version = "0.12", features = ["json"] }
 sha2 = "0.10"
 hmac = "0.12"
 rand = "0.8"
+jsonwebtoken = "10.3.0"
 
 [dev-dependencies]
 testcontainers = "0.23"
