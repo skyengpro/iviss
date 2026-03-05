@@ -1,7 +1,11 @@
 use crate::app_state::AppState;
+use crate::dto::auth::{
+    RefreshNonceRequest, RefreshNonceResponse, RefreshVerifyRequest, RefreshVerifyResponse,
+};
 use crate::dto::users::{UserProfile, UserRole};
 use crate::errors::AppError;
 use crate::services::activation_service::ActivationService;
+use crate::services::refresh_service::RefreshService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
@@ -128,6 +132,83 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
 )]
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
+}
+
+/// Create nonce challenge for refresh-token proof-of-possession
+#[utoipa::path(
+    post,
+    path = "/auth/refresh/nonce",
+    request_body = RefreshNonceRequest,
+    responses(
+        (status = 200, description = "Nonce challenge generated", body = RefreshNonceResponse),
+        (status = 401, description = "Invalid refresh token or device binding", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "createRefreshNonce"
+)]
+pub async fn create_refresh_nonce(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshNonceRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let refresh_service = RefreshService::new(
+        state.db.clone(),
+        state.redis.clone(),
+        state.jwt_secret.clone(),
+    );
+
+    let challenge = refresh_service
+        .create_nonce_challenge(&payload.refresh_token, payload.device_id)
+        .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(RefreshNonceResponse {
+            challenge_id: challenge.challenge_id,
+            nonce: challenge.nonce,
+            expires_in_seconds: challenge.expires_in_seconds,
+        }),
+    ))
+}
+
+/// Verify signed nonce for a refresh-token proof-of-possession and issue a new access token
+#[utoipa::path(
+    post,
+    path = "/auth/refresh/verify",
+    request_body = RefreshVerifyRequest,
+    responses(
+        (status = 200, description = "Signature verified and access token issued", body = RefreshVerifyResponse),
+        (status = 401, description = "Invalid signature, nonce, refresh token, or device binding", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "verifyRefreshSignature"
+)]
+pub async fn verify_refresh_signature(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshVerifyRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let refresh_service = RefreshService::new(
+        state.db.clone(),
+        state.redis.clone(),
+        state.jwt_secret.clone(),
+    );
+
+    let access_token = refresh_service
+        .verify_and_issue_access_token(
+            &payload.refresh_token,
+            payload.device_id,
+            payload.challenge_id,
+            &payload.signature,
+        )
+        .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(RefreshVerifyResponse {
+            access_token,
+            token_type: "Bearer".to_string(),
+            expires_in_seconds: crate::services::refresh_service::ACCESS_TOKEN_TTL_SECS,
+        }),
+    ))
 }
 
 /// Send activation code via SMS to a pending agent
