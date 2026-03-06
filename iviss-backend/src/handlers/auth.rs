@@ -6,6 +6,7 @@ use crate::dto::auth::{
 use crate::dto::users::{UserProfile, UserRole};
 use crate::errors::AppError;
 use crate::services::activation_service::ActivationService;
+use crate::services::otp_service::OtpService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
@@ -217,8 +218,6 @@ pub async fn request_daily_login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RequestDailyLoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    use crate::services::otp_service::OtpService;
-
     // Fetch user by phone number
     let user = sqlx::query!(
         r#"
@@ -310,14 +309,14 @@ pub async fn verify_daily_login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VerifyDailyLoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    use crate::services::otp_service::OtpService;
     use sha2::{Digest, Sha256};
 
     // Fetch user by phone number
     let user = sqlx::query!(
         r#"
         SELECT id, phone_number,
-               status AS "status: String"
+               status AS "status: String",
+               role AS "role: String"
         FROM users
         WHERE phone_number = $1
         AND deleted_at IS NULL
@@ -363,11 +362,17 @@ pub async fn verify_daily_login(
         .await
         .map_err(|e| AppError::Unauthorized(e.to_string()))?;
 
-    // Issue token pair via JwtService
+    // Parse role
+    let role = user
+        .role
+        .parse::<UserRole>()
+        .map_err(|_| AppError::Internal(anyhow::anyhow!("Invalid user role")))?;
+
+    // Issue shift token pair (8h access + 30d refresh)
     let token_pair = state
         .jwt_service
-        .issue_token_pair(user.id, payload.device_id)
-        .map_err(|e| AppError::Internal(anyhow::anyhow!("{}", e)))?;
+        .issue_shift_token_pair(user.id, payload.device_id, role)
+        .map_err(AppError::Internal)?;
 
     // Hash refresh token before storing (SHA-256)
     let refresh_hash = format!("{:x}", Sha256::digest(token_pair.refresh_token.as_bytes()));
@@ -375,9 +380,9 @@ pub async fn verify_daily_login(
     // Store hashed refresh token linked to device
     sqlx::query!(
         r#"
-        INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
-        VALUES ($1, $2, $3, NOW() + INTERVAL '30 days')
-        "#,
+    INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
+    VALUES ($1, $2, $3, NOW() + INTERVAL '30 days')
+    "#,
         refresh_hash,
         user.id,
         payload.device_id,

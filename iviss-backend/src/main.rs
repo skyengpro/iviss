@@ -18,8 +18,8 @@ use crate::app_state::AppState;
 use crate::config::{Config, Environment};
 use crate::db::initialize_pool;
 use crate::db::initialize_redis_pool;
-use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 use crate::services::jwt_service::JwtService;
+use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -62,22 +62,15 @@ async fn main() -> anyhow::Result<()> {
     info!("Redis connection initialized");
 
     let pepper = config.activation_code_pepper;
-    let jwt_secret = config.jwt_secret.clone();
+    let jwt_secret = config.jwt_private_key_pem.clone();
 
-    let jwt_service = Arc::new(JwtService::new(config.jwt_secret.clone()));
+    let jwt_service = Arc::new(JwtService::new(jwt_secret.as_str())?);
 
     info!("Running migrations...");
     sqlx::migrate!("./migrations").run(&db_pool).await?;
     info!("Migrations completed");
 
-    let state = AppState::new(
-        db_pool,
-        redis_pool,
-        sms_provider,
-        pepper,
-        jwt_secret,
-        jwt_service,
-    );
+    let state = AppState::new(db_pool, redis_pool, sms_provider, pepper, jwt_service);
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
