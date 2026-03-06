@@ -8,17 +8,20 @@ use deadpool_redis::{Config as RedisConfig, Runtime};
 use ed25519_dalek::{Signer, SigningKey};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use sqlx::PgPool;
-use testcontainers::core::{IntoContainerPort, WaitFor};
+use testcontainers::core::IntoContainerPort;
 use testcontainers::runners::AsyncRunner;
-use testcontainers::{ContainerAsync, GenericImage};
+use testcontainers::{ContainerAsync, GenericImage, ImageExt};
 use testcontainers_modules::redis::Redis;
+use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
 const TEST_JWT_SECRET: &str = "be06-refresh-jwt-secret-must-be-at-least-32-chars";
+const DEFAULT_TEST_DATABASE_URL: &str = "postgres://iviss_user:iviss_password@127.0.0.1:5435/iviss_db";
+const DEFAULT_TEST_REDIS_URL: &str = "redis://127.0.0.1:6380";
 
 struct TestContext {
-    _pg_container: ContainerAsync<GenericImage>,
-    _redis_container: ContainerAsync<Redis>,
+    _pg_container: Option<ContainerAsync<GenericImage>>,
+    _redis_container: Option<ContainerAsync<Redis>>,
     db_pool: PgPool,
     redis_pool: RedisPool,
 }
@@ -31,19 +34,29 @@ struct SeedData {
 }
 
 async fn setup_context() -> TestContext {
+    let database_url =
+        std::env::var("BE06_TEST_DATABASE_URL").unwrap_or_else(|_| DEFAULT_TEST_DATABASE_URL.to_string());
+    let redis_url =
+        std::env::var("BE06_TEST_REDIS_URL").unwrap_or_else(|_| DEFAULT_TEST_REDIS_URL.to_string());
+
+    // Prefer already-running local services; this avoids requiring Docker socket
+    // access for every local test run.
+    if let Ok(context) = try_setup_external_context(&database_url, &redis_url).await {
+        return context;
+    }
+
     let pg_image = GenericImage::new("postgres", "15-alpine")
         .with_env_var("POSTGRES_USER", "postgres")
         .with_env_var("POSTGRES_PASSWORD", "postgres")
         .with_env_var("POSTGRES_DB", "iviss")
-        .with_exposed_port(5432.tcp())
-        .with_wait_for(WaitFor::message_on_stderr(
-            "database system is ready to accept connections",
-        ));
+        .with_mapped_port(0, 5432.tcp());
     let pg_container = pg_image.start().await.unwrap();
     let pg_port = pg_container.get_host_port_ipv4(5432).await.unwrap();
 
     let database_url = format!("postgres://postgres:postgres@127.0.0.1:{pg_port}/iviss");
-    let db_pool = PgPool::connect(&database_url).await.unwrap();
+    let db_pool = connect_with_retry(&database_url)
+        .await
+        .unwrap_or_else(|err| panic!("Failed to connect to container postgres after retries: {err}"));
     sqlx::migrate!("./migrations").run(&db_pool).await.unwrap();
 
     let redis_container = Redis::default().start().await.unwrap();
@@ -54,11 +67,57 @@ async fn setup_context() -> TestContext {
         .unwrap();
 
     TestContext {
-        _pg_container: pg_container,
-        _redis_container: redis_container,
+        _pg_container: Some(pg_container),
+        _redis_container: Some(redis_container),
         db_pool,
         redis_pool,
     }
+}
+
+async fn try_setup_external_context(database_url: &str, redis_url: &str) -> Result<TestContext, String> {
+    let db_pool = connect_with_retry(database_url)
+        .await
+        .map_err(|err| format!("database connect failed: {err}"))?;
+
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await
+        .map_err(|err| format!("migration failed: {err}"))?;
+
+    let redis_pool = RedisConfig::from_url(redis_url)
+        .create_pool(Some(Runtime::Tokio1))
+        .map_err(|err| format!("redis pool creation failed: {err}"))?;
+
+    let mut redis_conn = redis_pool
+        .get()
+        .await
+        .map_err(|err| format!("redis connection failed: {err}"))?;
+    let _: String = redis::cmd("PING")
+        .query_async(&mut redis_conn)
+        .await
+        .map_err(|err| format!("redis ping failed: {err}"))?;
+
+    Ok(TestContext {
+        _pg_container: None,
+        _redis_container: None,
+        db_pool,
+        redis_pool,
+    })
+}
+
+async fn connect_with_retry(database_url: &str) -> Result<PgPool, sqlx::Error> {
+    for attempt in 1..=10 {
+        match PgPool::connect(database_url).await {
+            Ok(pool) => return Ok(pool),
+            Err(err) => {
+                if attempt == 10 {
+                    return Err(err);
+                }
+                sleep(Duration::from_millis(500)).await;
+            }
+        }
+    }
+    unreachable!("retry loop should always return");
 }
 
 async fn seed_active_refresh_token(pool: &PgPool) -> SeedData {
@@ -67,6 +126,10 @@ async fn seed_active_refresh_token(pool: &PgPool) -> SeedData {
     let device_id = Uuid::new_v4();
     let refresh_token = format!("refresh-{}", Uuid::new_v4());
     let refresh_token_hash = RefreshService::hash_refresh_token(&refresh_token);
+    let username = format!("be06-agent-{}", &user_id.simple().to_string()[..8]);
+    let badge_id = format!("AG-{}", &user_id.simple().to_string()[..6].to_uppercase());
+    let phone_suffix: u32 = rand::random::<u32>() % 10_000_000;
+    let phone_number = format!("+2376{phone_suffix:07}");
 
     let secret_key: [u8; 32] = rand::random();
     let signing_key = SigningKey::from_bytes(&secret_key);
@@ -89,12 +152,15 @@ async fn seed_active_refresh_token(pool: &PgPool) -> SeedData {
             id, organization_id, username, email, password_hash, role, badge_id, full_name, phone_number, status, deleted_at
         )
         VALUES (
-            $1, $2, 'be06-agent', NULL, NULL, 'agent'::user_role, 'AG-BE06', 'BE06 Agent', '+237600123456', 'ACTIVE'::user_status, NULL
+            $1, $2, $3, NULL, NULL, 'agent'::user_role, $4, 'BE06 Agent', $5, 'ACTIVE'::user_status, NULL
         )
         "#,
     )
     .bind(user_id)
     .bind(organization_id)
+    .bind(username)
+    .bind(badge_id)
+    .bind(phone_number)
     .execute(pool)
     .await
     .unwrap();

@@ -42,6 +42,14 @@ pub struct SendActivationResponse {
     pub message: String,
 }
 
+#[derive(Debug, sqlx::FromRow)]
+struct ActivationUserRow {
+    id: uuid::Uuid,
+    phone_number: String,
+    role: String,
+    status: String,
+}
+
 /// Login with email and password
 #[utoipa::path(
     post,
@@ -229,7 +237,7 @@ pub async fn send_activation(
     Json(payload): Json<SendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
-    let user = sqlx::query!(
+    let user = sqlx::query_as::<_, ActivationUserRow>(
         r#"
         SELECT id, phone_number,
                role AS "role: String",
@@ -238,8 +246,8 @@ pub async fn send_activation(
         WHERE id = $1
         AND deleted_at IS NULL
         "#,
-        payload.user_id
     )
+    .bind(payload.user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?

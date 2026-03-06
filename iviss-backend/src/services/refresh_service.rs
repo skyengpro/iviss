@@ -208,9 +208,19 @@ impl RefreshService {
             .await
             .context("Failed to get Redis connection for refresh challenge verification")?;
 
-        let raw: Option<String> = redis::cmd("GETDEL")
-            .arg(&key)
-            .query_async(&mut conn)
+        let script = redis::Script::new(
+            r#"
+            local value = redis.call("GET", KEYS[1])
+            if value then
+                redis.call("DEL", KEYS[1])
+            end
+            return value
+            "#,
+        );
+
+        let raw: Option<String> = script
+            .key(&key)
+            .invoke_async(&mut conn)
             .await
             .context("Failed to consume refresh nonce challenge from Redis")?;
 
