@@ -80,7 +80,7 @@ pub struct Config {
     pub server_port: u16,
     pub log_level: LogLevel,
     #[allow(dead_code)]
-    pub jwt_secret: String,
+    pub jwt_private_key_pem: String,
     pub environment: Environment,
     // SMS
     pub twilio_account_sid: String,
@@ -107,17 +107,18 @@ impl Config {
         if redis_url.trim().is_empty() {
             return Err(anyhow!("REDIS_URL cannot be empty"));
         }
-        // Load and validate JWT_SECRET (critical)
-        let jwt_secret = env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
+        // Load and validate JWT_PRIVATE_KEY_PEM (critical)
+        let jwt_secret =
+            env::var("JWT_PRIVATE_KEY_PEM").context("JWT_PRIVATE_KEY_PEM must be set")?;
 
         if jwt_secret.trim().is_empty() {
-            return Err(anyhow!("JWT_SECRET cannot be empty"));
+            return Err(anyhow!("JWT_PRIVATE_KEY_PEM cannot be empty"));
         }
 
-        // Enforce minimum length for JWT_SECRET for security
+        // Enforce minimum length for JWT_PRIVATE_KEY_PEM for security
         if jwt_secret.len() < 32 {
             return Err(anyhow!(
-                "JWT_SECRET must be at least 32 characters long for security. Current length: {}",
+                "JWT_PRIVATE_KEY_PEM must be at least 32 characters long for security. Current length: {}",
                 jwt_secret.len()
             ));
         }
@@ -165,7 +166,7 @@ impl Config {
             server_host,
             server_port,
             log_level,
-            jwt_secret,
+            jwt_private_key_pem: jwt_secret,
             environment,
             twilio_account_sid,
             twilio_auth_token,
