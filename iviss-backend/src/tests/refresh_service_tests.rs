@@ -16,7 +16,8 @@ use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
 const TEST_JWT_SECRET: &str = "be06-refresh-jwt-secret-must-be-at-least-32-chars";
-const DEFAULT_TEST_DATABASE_URL: &str = "postgres://iviss_user:iviss_password@127.0.0.1:5435/iviss_db";
+const DEFAULT_TEST_DATABASE_URL: &str =
+    "postgres://iviss_user:iviss_password@127.0.0.1:5435/iviss_db";
 const DEFAULT_TEST_REDIS_URL: &str = "redis://127.0.0.1:6380";
 
 struct TestContext {
@@ -34,8 +35,8 @@ struct SeedData {
 }
 
 async fn setup_context() -> TestContext {
-    let database_url =
-        std::env::var("BE06_TEST_DATABASE_URL").unwrap_or_else(|_| DEFAULT_TEST_DATABASE_URL.to_string());
+    let database_url = std::env::var("BE06_TEST_DATABASE_URL")
+        .unwrap_or_else(|_| DEFAULT_TEST_DATABASE_URL.to_string());
     let redis_url =
         std::env::var("BE06_TEST_REDIS_URL").unwrap_or_else(|_| DEFAULT_TEST_REDIS_URL.to_string());
 
@@ -56,7 +57,9 @@ async fn setup_context() -> TestContext {
     let database_url = format!("postgres://postgres:postgres@127.0.0.1:{pg_port}/iviss");
     let db_pool = connect_with_retry(&database_url)
         .await
-        .unwrap_or_else(|err| panic!("Failed to connect to container postgres after retries: {err}"));
+        .unwrap_or_else(|err| {
+            panic!("Failed to connect to container postgres after retries: {err}")
+        });
     sqlx::migrate!("./migrations").run(&db_pool).await.unwrap();
 
     let redis_container = Redis::default().start().await.unwrap();
@@ -74,7 +77,10 @@ async fn setup_context() -> TestContext {
     }
 }
 
-async fn try_setup_external_context(database_url: &str, redis_url: &str) -> Result<TestContext, String> {
+async fn try_setup_external_context(
+    database_url: &str,
+    redis_url: &str,
+) -> Result<TestContext, String> {
     let db_pool = connect_with_retry(database_url)
         .await
         .map_err(|err| format!("database connect failed: {err}"))?;
