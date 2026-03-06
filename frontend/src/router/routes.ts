@@ -2,7 +2,6 @@ import { lazy } from 'react';
 import { UserRole } from '@/services/mockAuth';
 
 // Lazy Pages
-const Login = lazy(() => import('../pages/auth/Login'));
 const Activate = lazy(() => import('../pages/auth/Activate'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
