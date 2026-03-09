@@ -244,9 +244,54 @@ mod tests {
             Ok(Environment::Local)
         ));
         assert!(matches!(
+            Environment::from_str("staging"),
+            Ok(Environment::Staging)
+        ));
+        assert!(matches!(
             Environment::from_str("production"),
             Ok(Environment::Production)
         ));
         assert!(Environment::from_str("invalid").is_err());
+    }
+
+    #[test]
+    fn test_log_level_as_tracing_level() {
+        assert_eq!(LogLevel::Trace.as_tracing_level(), tracing::Level::TRACE);
+        assert_eq!(LogLevel::Debug.as_tracing_level(), tracing::Level::DEBUG);
+        assert_eq!(LogLevel::Info.as_tracing_level(), tracing::Level::INFO);
+        assert_eq!(LogLevel::Warn.as_tracing_level(), tracing::Level::WARN);
+        assert_eq!(LogLevel::Error.as_tracing_level(), tracing::Level::ERROR);
+    }
+
+    #[test]
+    fn test_config_helpers() {
+        let config = Config {
+            database_url: "db".into(),
+            redis_url: "redis".into(),
+            server_host: "0.0.0.0".into(),
+            server_port: 3000,
+            log_level: LogLevel::Info,
+            jwt_secret: "secret_longer_than_32_characters_for_test".into(),
+            jwt_private_key_pem: "priv".into(),
+            jwt_public_key_pem: "pub".into(),
+            environment: Environment::Local,
+            twilio_account_sid: "sid".into(),
+            twilio_auth_token: "token".into(),
+            twilio_from_number: "num".into(),
+            activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
+        };
+
+        assert!(config.is_local());
+        assert!(!config.is_production());
+        assert!(config.validate().is_ok());
+
+        let mut prod_config = config.clone();
+        prod_config.environment = Environment::Production;
+        assert!(prod_config.is_production());
+        assert!(!prod_config.is_local());
+
+        // Twilio check in production
+        prod_config.twilio_account_sid = "mock".into();
+        assert!(prod_config.validate().is_err());
     }
 }
