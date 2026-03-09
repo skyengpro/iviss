@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Gitleaks Scan
-        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact --gitleaks-ignore-path=/path/.gitleaksignore
+        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact --config=/path/.gitleaks.toml
 
   backend_build:
     name: Backend Build
