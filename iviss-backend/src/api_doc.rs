@@ -7,13 +7,13 @@ use crate::dto::{
     common::*,
     create_control::*,
     list_control::*,
+    location::{UpdateLocationRequest, UpdateLocationResponse},
     organizations::{Organization, OrganizationType},
     pending_submission::*,
     scan::*,
     search_vehicle::*,
-    stats::{DashboardStats, ActivityData, AgentLocationDto},
+    stats::{ActivityData, AgentLocationDto, DashboardStats},
     users::{ProvisionUserRequest, UpdateUserRequest, UserProfile, UserRole, UserStatus},
-    location::{UpdateLocationRequest, UpdateLocationResponse},
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
 

@@ -8,12 +8,18 @@ const statCardVariants = cva(
     variants: {
       variant: {
         default: 'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground',
-        primary: 'bg-gradient-to-br from-[hsl(222,47%,20%)] to-[hsl(222,47%,32%)] text-white shadow-lg hover:shadow-xl',
-        accent: 'bg-gradient-to-br from-[hsl(186,72%,32%)] to-[hsl(186,72%,48%)] text-white shadow-lg hover:shadow-xl',
-        valid: 'bg-gradient-to-br from-[hsl(142,71%,38%)] to-[hsl(142,71%,52%)] text-white shadow-lg hover:shadow-xl',
-        warning: 'bg-gradient-to-br from-[hsl(38,92%,44%)] to-[hsl(38,92%,58%)] text-white shadow-lg hover:shadow-xl',
-        critical: 'bg-gradient-to-br from-[hsl(0,84%,54%)] to-[hsl(0,84%,66%)] text-white shadow-lg hover:shadow-xl',
-        gradient: 'bg-gradient-to-br from-[hsl(222,47%,20%)] to-[hsl(222,47%,32%)] text-white shadow-lg hover:shadow-xl',
+        primary:
+          'bg-gradient-to-br from-[hsl(222,47%,20%)] to-[hsl(222,47%,32%)] text-white shadow-lg hover:shadow-xl',
+        accent:
+          'bg-gradient-to-br from-[hsl(186,72%,32%)] to-[hsl(186,72%,48%)] text-white shadow-lg hover:shadow-xl',
+        valid:
+          'bg-gradient-to-br from-[hsl(142,71%,38%)] to-[hsl(142,71%,52%)] text-white shadow-lg hover:shadow-xl',
+        warning:
+          'bg-gradient-to-br from-[hsl(38,92%,44%)] to-[hsl(38,92%,58%)] text-white shadow-lg hover:shadow-xl',
+        critical:
+          'bg-gradient-to-br from-[hsl(0,84%,54%)] to-[hsl(0,84%,66%)] text-white shadow-lg hover:shadow-xl',
+        gradient:
+          'bg-gradient-to-br from-[hsl(222,47%,20%)] to-[hsl(222,47%,32%)] text-white shadow-lg hover:shadow-xl',
       },
     },
     defaultVariants: {
@@ -75,37 +81,57 @@ export function StatCard({
       <div className="relative z-10 flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
-            <p className={cn('text-xs font-semibold uppercase tracking-widest', isColored ? 'text-white/70' : 'text-muted-foreground')}>
+            <p
+              className={cn(
+                'text-xs font-semibold uppercase tracking-widest',
+                isColored ? 'text-white/70' : 'text-muted-foreground'
+              )}
+            >
               {title}
             </p>
           </div>
           {Icon && (
-            <div className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-              isColored ? 'bg-white/15 backdrop-blur-sm' : 'bg-primary/10'
-            )}>
+            <div
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                isColored ? 'bg-white/15 backdrop-blur-sm' : 'bg-primary/10'
+              )}
+            >
               <Icon className={cn('h-5 w-5', isColored ? 'text-white' : 'text-primary')} />
             </div>
           )}
         </div>
 
         <div>
-          <p className={cn('text-4xl font-bold tracking-tight leading-none', isColored ? 'text-white' : 'text-foreground')}>
+          <p
+            className={cn(
+              'text-4xl font-bold tracking-tight leading-none',
+              isColored ? 'text-white' : 'text-foreground'
+            )}
+          >
             {value}
           </p>
           <div className="mt-2 flex items-center gap-2">
             {trend && (
-              <span className={cn(
-                'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
-                trend.isPositive
-                  ? isColored ? 'bg-white/20 text-white' : 'bg-status-valid/10 text-status-valid'
-                  : isColored ? 'bg-black/20 text-white/80' : 'bg-status-critical/10 text-status-critical'
-              )}>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
+                  trend.isPositive
+                    ? isColored
+                      ? 'bg-white/20 text-white'
+                      : 'bg-status-valid/10 text-status-valid'
+                    : isColored
+                      ? 'bg-black/20 text-white/80'
+                      : 'bg-status-critical/10 text-status-critical'
+                )}
+              >
                 {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
               </span>
             )}
             {subtitle && (
-              <span className={cn('text-xs', isColored ? 'text-white/60' : 'text-muted-foreground')}>
+              <span
+                className={cn('text-xs', isColored ? 'text-white/60' : 'text-muted-foreground')}
+              >
                 {subtitle}
               </span>
             )}

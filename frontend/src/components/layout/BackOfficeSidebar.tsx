@@ -19,12 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useState } from 'react';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useSidebar } from '@/context/SidebarContext';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function BackOfficeSidebar() {
   const { t } = useTranslation();
@@ -36,14 +31,26 @@ export function BackOfficeSidebar() {
 
   const mainNavItems = [
     { href: '/backoffice', icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
-    { href: '/backoffice/controls', icon: ClipboardList, label: t('backOfficeSidebar.controlHistory') },
+    {
+      href: '/backoffice/controls',
+      icon: ClipboardList,
+      label: t('backOfficeSidebar.controlHistory'),
+    },
     { href: '/backoffice/vehicles', icon: Car, label: t('backOfficeSidebar.vehicleDatabase') },
-    { href: '/backoffice/validation', icon: FileSearch, label: t('backOfficeSidebar.pendingValidation') },
+    {
+      href: '/backoffice/validation',
+      icon: FileSearch,
+      label: t('backOfficeSidebar.pendingValidation'),
+    },
   ];
 
   const adminNavItems = [
     { href: '/backoffice/users', icon: Users, label: t('backOfficeSidebar.userManagement') },
-    { href: '/backoffice/organizations', icon: Building2, label: t('backOfficeSidebar.organizations') },
+    {
+      href: '/backoffice/organizations',
+      icon: Building2,
+      label: t('backOfficeSidebar.organizations'),
+    },
     { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
     { href: '/backoffice/settings', icon: Settings, label: t('backOfficeSidebar.settings') },
   ];
@@ -62,10 +69,12 @@ export function BackOfficeSidebar() {
         )}
       >
         {/* Logo + collapse toggle */}
-        <div className={cn(
-          'flex h-16 items-center border-b border-sidebar-border px-4 transition-all duration-300',
-          collapsed ? 'justify-center' : 'justify-between gap-3'
-        )}>
+        <div
+          className={cn(
+            'flex h-16 items-center border-b border-sidebar-border px-4 transition-all duration-300',
+            collapsed ? 'justify-center' : 'justify-between gap-3'
+          )}
+        >
           {/* Logo mark */}
           <div className="flex shrink-0 items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary">
@@ -87,7 +96,11 @@ export function BackOfficeSidebar() {
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/60 transition hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
           </button>
         </div>
 
@@ -132,7 +145,12 @@ export function BackOfficeSidebar() {
                 <CollapsibleTrigger asChild>
                   <button className="flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors">
                     {t('backOfficeSidebar.administration')}
-                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', adminOpen && 'rotate-180')} />
+                    <ChevronDown
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform duration-200',
+                        adminOpen && 'rotate-180'
+                      )}
+                    />
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5">
@@ -153,7 +171,9 @@ export function BackOfficeSidebar() {
         </nav>
 
         {/* User section */}
-        <div className={cn('border-t border-sidebar-border p-3', collapsed && 'flex justify-center')}>
+        <div
+          className={cn('border-t border-sidebar-border p-3', collapsed && 'flex justify-center')}
+        >
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -173,7 +193,9 @@ export function BackOfficeSidebar() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{t('backOfficeSidebar.adminUser')}</p>
-                <p className="truncate text-[10px] text-sidebar-foreground/50">{t('backOfficeSidebar.superAdmin')}</p>
+                <p className="truncate text-[10px] text-sidebar-foreground/50">
+                  {t('backOfficeSidebar.superAdmin')}
+                </p>
               </div>
               <button
                 onClick={handleLogout}
@@ -223,7 +245,9 @@ function NavLink({
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">{label}</TooltipContent>
+          <TooltipContent side="right" className="font-medium">
+            {label}
+          </TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

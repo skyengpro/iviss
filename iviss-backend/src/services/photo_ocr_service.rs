@@ -21,7 +21,7 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // 1) baseline scan pipeline
     // 2) one photo-specific preprocessed fallback
 
-    let first = sanitize_photo_result(ocr_service::scan_plate(image_bytes)?);
+    let first = enhance_photo_result(ocr_service::scan_plate(image_bytes)?);
     if first.format_valid {
         return Ok(first);
     }
@@ -56,20 +56,29 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         buf.len()
     );
 
-    let second = sanitize_photo_result(ocr_service::scan_plate(&buf)?);
+    let second = enhance_photo_result(ocr_service::scan_plate(&buf)?);
     Ok(pick_best(first, second))
 }
 
-fn sanitize_photo_result(mut r: ScanResultData) -> ScanResultData {
-    if let Some(p) = extract_plate_strict(&r.raw_text) {
-        r.plate = p;
-        r.format_valid = true;
+fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
+    // If the scan pipeline already extracted a plate, keep it (even if format is invalid).
+    // Photo mode should still surface the best candidate to the client.
+    if !r.plate.is_empty() {
         return r;
     }
 
-    r.plate = String::new();
-    r.format_valid = false;
-    r.confidence = 0.0;
+    // If scan couldn't extract a plate, try a strict extraction from raw_text.
+    // This mirrors the intent of the photo service without discarding useful OCR info.
+    if let Some(p) = extract_plate_strict(&r.raw_text) {
+        r.plate = p;
+        r.format_valid = true;
+        // Keep confidence semantics consistent with `ocr_service::finalize`, which
+        // promotes valid-format plates to a high confidence score.
+        if r.confidence < 0.90 {
+            r.confidence = 0.90;
+        }
+    }
+
     r
 }
 
@@ -94,26 +103,15 @@ fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData {
         return b;
     }
 
-    if a.format_valid && b.format_valid {
-        if !a.plate.is_empty() && a.plate == b.plate {
-            return if b.confidence > a.confidence { b } else { a };
-        }
-
-        if b.confidence >= a.confidence + 0.20 {
-            return b;
-        }
-        if a.confidence >= b.confidence + 0.20 {
-            return a;
-        }
-
-        let mut out = if b.confidence > a.confidence { b } else { a };
-        out.plate = String::new();
-        out.format_valid = false;
-        out.confidence = 0.0;
-        return out;
+    // Priority 2: If one has a candidate plate and the other does not, pick the one with text.
+    if a.plate.is_empty() && !b.plate.is_empty() {
+        return b;
+    }
+    if b.plate.is_empty() && !a.plate.is_empty() {
+        return a;
     }
 
-    // Priority 2: Higher confidence
+    // Priority 3: Higher confidence
     if b.confidence > a.confidence {
         return b;
     }

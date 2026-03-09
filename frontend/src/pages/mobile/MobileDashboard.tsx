@@ -60,8 +60,8 @@ export default function MobileDashboard() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const todayControlsCount = (recentControls || []).filter((c) =>
-    new Date(c.timestamp).getTime() >= startOfDay.getTime()
+  const todayControlsCount = (recentControls || []).filter(
+    (c) => new Date(c.timestamp).getTime() >= startOfDay.getTime()
   ).length;
 
   const todayAlertsCount = (recentControls || []).filter(

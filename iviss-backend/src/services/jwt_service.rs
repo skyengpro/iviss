@@ -27,7 +27,12 @@ impl JwtService {
         Ok(Self { encoding_key })
     }
 
-    pub fn issue_access_token(&self, user_id: Uuid, device_id: Uuid, role: UserRole) -> Result<String> {
+    pub fn issue_access_token(
+        &self,
+        user_id: Uuid,
+        device_id: Uuid,
+        role: UserRole,
+    ) -> Result<String> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .context("System time before UNIX_EPOCH")?

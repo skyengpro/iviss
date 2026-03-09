@@ -39,7 +39,11 @@ export default function ControlHistory() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [organizationFilter, setOrganizationFilter] = useState('all');
 
-  const { data: controls = [], isLoading, refetch } = useQuery({
+  const {
+    data: controls = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['controls', 'all', statusFilter, organizationFilter],
     queryFn: () =>
       mockControlService.getAllControls({
@@ -48,10 +52,11 @@ export default function ControlHistory() {
       }),
   });
 
-  const filteredControls = controls.filter((control) =>
-    control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    control.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    control.location.address.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredControls = controls.filter(
+    (control) =>
+      control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      control.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      control.location.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const validCount = filteredControls.filter((c) => c.status === 'valid').length;
@@ -117,7 +122,9 @@ export default function ControlHistory() {
                 <SelectValue placeholder="Organization" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('backOfficeControlHistory.allOrganizations')}</SelectItem>
+                <SelectItem value="all">
+                  {t('backOfficeControlHistory.allOrganizations')}
+                </SelectItem>
                 <SelectItem value="alpha">{t('backOfficeControlHistory.brigadeAlpha')}</SelectItem>
                 <SelectItem value="beta">{t('backOfficeControlHistory.brigadeBeta')}</SelectItem>
                 <SelectItem value="gamma">{t('backOfficeControlHistory.brigadeGamma')}</SelectItem>

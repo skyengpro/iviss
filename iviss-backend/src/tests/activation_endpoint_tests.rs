@@ -42,7 +42,10 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
 async fn activation_flow_activates_user_and_issues_tokens() {
     let pg = Postgres::default().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
-    let db_url = format!("postgres://postgres:postgres@127.0.0.1:{}/postgres", pg_port);
+    let db_url = format!(
+        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        pg_port
+    );
 
     let db = PgPoolOptions::new()
         .max_connections(5)
@@ -150,12 +153,13 @@ async fn activation_flow_activates_user_and_issues_tokens() {
         .unwrap();
     assert_eq!(status, "ACTIVE");
 
-    let device_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM devices WHERE id = $1 AND user_id = $2")
-        .bind(device_id)
-        .bind(user_id)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let device_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM devices WHERE id = $1 AND user_id = $2")
+            .bind(device_id)
+            .bind(user_id)
+            .fetch_one(&db)
+            .await
+            .unwrap();
     assert_eq!(device_count, 1);
 
     let stored_hash: String = sqlx::query_scalar(
