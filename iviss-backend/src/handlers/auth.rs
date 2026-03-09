@@ -381,3 +381,285 @@ pub async fn activate(
         }),
     ))
 }
+
+// ─────────────────────────────────────────────────────────────
+//  Token Refresh — Challenge-Response with Device Signature
+// ─────────────────────────────────────────────────────────────
+
+const NONCE_TTL_SECS: u64 = 60;
+const NONCE_KEY_PREFIX: &str = "refresh_nonce";
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshRequest {
+    pub refresh_token: String,
+    pub device_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct RefreshChallengeResponse {
+    pub nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyRefreshRequest {
+    pub refresh_token: String,
+    pub device_id: Uuid,
+    pub signed_nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyRefreshResponse {
+    pub access_token: String,
+}
+
+/// Step 1 of the challenge-response refresh flow.
+///
+/// Validates the refresh token, generates a nonce, stores it in Redis,
+/// and returns it to the client for signing.
+#[utoipa::path(
+    post,
+    path = "/auth/refresh",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Challenge nonce issued", body = RefreshChallengeResponse),
+        (status = 401, description = "Invalid or expired refresh token", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "requestRefresh"
+)]
+pub async fn request_refresh(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Hash the incoming refresh token to match against DB
+    let token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    // Validate refresh token exists, is not revoked, and not expired
+    let token_row = sqlx::query(
+        r#"
+        SELECT user_id, device_id
+        FROM refresh_tokens
+        WHERE token_hash = $1
+          AND device_id = $2
+          AND revoked = FALSE
+          AND expires_at > NOW()
+        "#,
+    )
+    .bind(&token_hash)
+    .bind(payload.device_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
+    if token_row.is_none() {
+        return Err(AppError::Unauthorized(
+            "Invalid or expired refresh token".into(),
+        ));
+    }
+
+    // Generate a random 32-byte nonce
+    let nonce = {
+        let mut raw = [0u8; 32];
+        let mut rng = rand::thread_rng();
+        rng.fill_bytes(&mut raw);
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw)
+    };
+
+    // Store nonce in Redis with device_id as key, TTL 60s
+    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
+    {
+        use deadpool_redis::redis::AsyncCommands;
+        let mut conn = state
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e)))?;
+        conn.set_ex::<_, _, ()>(&nonce_key, &nonce, NONCE_TTL_SECS)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {}", e)))?;
+    }
+
+    tracing::info!(
+        device_id = %payload.device_id,
+        "Refresh nonce issued (TTL={}s)",
+        NONCE_TTL_SECS
+    );
+
+    Ok((
+        StatusCode::OK,
+        Json(RefreshChallengeResponse { nonce }),
+    ))
+}
+
+/// Step 2 of the challenge-response refresh flow.
+///
+/// Verifies the signed nonce against the device's registered public key,
+/// then issues a new access token.
+#[utoipa::path(
+    post,
+    path = "/auth/refresh/verify",
+    request_body = VerifyRefreshRequest,
+    responses(
+        (status = 200, description = "New access token issued", body = VerifyRefreshResponse),
+        (status = 401, description = "Signature verification failed", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "verifyRefresh"
+)]
+pub async fn verify_refresh(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<VerifyRefreshRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // 1. Retrieve and consume the nonce from Redis (one-time use)
+    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
+    let stored_nonce: Option<String> = {
+        use deadpool_redis::redis::AsyncCommands;
+        let mut conn = state
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e)))?;
+        let val: Option<String> = conn
+            .get(&nonce_key)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis GET error: {}", e)))?;
+        // Delete immediately to prevent replay
+        conn.del::<_, ()>(&nonce_key).await.ok();
+        val
+    };
+
+    let expected_nonce = stored_nonce.ok_or_else(|| {
+        AppError::Unauthorized("Nonce expired or not found — request a new challenge".into())
+    })?;
+
+    // 2. Validate the refresh token
+    let token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    let token_row = sqlx::query(
+        r#"
+        SELECT user_id
+        FROM refresh_tokens
+        WHERE token_hash = $1
+          AND device_id = $2
+          AND revoked = FALSE
+          AND expires_at > NOW()
+        "#,
+    )
+    .bind(&token_hash)
+    .bind(payload.device_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::Unauthorized("Invalid or expired refresh token".into()))?;
+
+    let user_id: Uuid = token_row.get("user_id");
+
+    // 3. Fetch the device's public key
+    let device_row = sqlx::query(
+        r#"
+        SELECT public_key
+        FROM devices
+        WHERE id = $1
+          AND user_id = $2
+          AND status = 'ACTIVE'::device_status
+        "#,
+    )
+    .bind(payload.device_id)
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::Unauthorized("Device not found or revoked".into()))?;
+
+    let public_key_b64: String = device_row.get("public_key");
+
+    // 4. Verify the JWS compact signature
+    verify_es256_jws(&payload.signed_nonce, &expected_nonce, &public_key_b64)?;
+
+    // 5. Issue a new access token
+    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+    let jwt_svc =
+        JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let access_token = jwt_svc
+        .issue_access_token(user_id, payload.device_id, user.role)
+        .map_err(AppError::Internal)?;
+
+    tracing::info!(
+        user_id = %user_id,
+        device_id = %payload.device_id,
+        "Token refresh verified — new access token issued"
+    );
+
+    Ok((
+        StatusCode::OK,
+        Json(VerifyRefreshResponse { access_token }),
+    ))
+}
+
+/// Verifies an ES256 (ECDSA P-256) compact JWS against a Base64-encoded public key.
+fn verify_es256_jws(
+    jws_compact: &str,
+    expected_nonce: &str,
+    public_key_b64: &str,
+) -> Result<(), AppError> {
+    use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+    use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+
+    // Split JWS into 3 parts: header.payload.signature
+    let parts: Vec<&str> = jws_compact.splitn(3, '.').collect();
+    if parts.len() != 3 {
+        return Err(AppError::Unauthorized("Malformed JWS".into()));
+    }
+
+    let (header_b64, payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
+
+    // Verify the payload matches the expected nonce
+    let payload_bytes = URL_SAFE_NO_PAD
+        .decode(payload_b64)
+        .map_err(|_| AppError::Unauthorized("Invalid JWS payload encoding".into()))?;
+    let payload_str = std::str::from_utf8(&payload_bytes)
+        .map_err(|_| AppError::Unauthorized("Invalid JWS payload".into()))?;
+
+    if payload_str != expected_nonce {
+        return Err(AppError::Unauthorized("Nonce mismatch".into()));
+    }
+
+    // Decode the public key from Base64 -> JWK JSON -> VerifyingKey
+    let pub_key_json = STANDARD
+        .decode(public_key_b64)
+        .map_err(|_| AppError::Unauthorized("Invalid public key encoding".into()))?;
+    let pub_key_str = std::str::from_utf8(&pub_key_json)
+        .map_err(|_| AppError::Unauthorized("Invalid public key data".into()))?;
+
+    let public_key = p256::PublicKey::from_jwk_str(pub_key_str)
+        .map_err(|_| AppError::Unauthorized("Invalid EC public key".into()))?;
+    let verifying_key = VerifyingKey::from(&public_key);
+
+    // Decode the signature (raw r||s, 64 bytes for P-256)
+    let sig_bytes = URL_SAFE_NO_PAD
+        .decode(sig_b64)
+        .map_err(|_| AppError::Unauthorized("Invalid JWS signature encoding".into()))?;
+
+    let signature = Signature::from_slice(&sig_bytes)
+        .map_err(|_| AppError::Unauthorized("Invalid ECDSA signature format".into()))?;
+
+    // The message that was signed is "<header>.<payload>" (the JWS signing input)
+    let signing_input = format!("{}.{}", header_b64, payload_b64);
+
+    verifying_key
+        .verify(signing_input.as_bytes(), &signature)
+        .map_err(|_| AppError::Unauthorized("Signature verification failed".into()))?;
+
+    Ok(())
+}
