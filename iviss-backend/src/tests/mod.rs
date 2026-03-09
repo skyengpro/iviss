@@ -1,3 +1,3 @@
 pub mod activation_endpoint_tests;
-#[cfg(test)]
-pub mod activation_service_tests;
+mod activation_service_tests;
+mod refresh_endpoint_tests;
