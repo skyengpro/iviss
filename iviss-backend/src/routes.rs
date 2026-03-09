@@ -51,6 +51,14 @@ pub fn assembly(state: AppState) -> Router {
         .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/logout", post(crate::handlers::auth::logout))
         .route(
+            "/auth/refresh",
+            post(crate::handlers::auth::request_refresh),
+        )
+        .route(
+            "/auth/refresh/verify",
+            post(crate::handlers::auth::verify_refresh),
+        )
+        .route(
             "/auth/send-activation",
             post(crate::handlers::auth::send_activation),
         )
