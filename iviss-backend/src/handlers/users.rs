@@ -1,4 +1,5 @@
 use crate::app_state::AppState;
+use crate::dto::location::{UpdateLocationRequest, UpdateLocationResponse};
 use crate::middleware::auth::AuthenticatedUser;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use std::sync::Arc;
@@ -24,4 +25,38 @@ pub async fn get_user_profile(
 ) -> Result<impl IntoResponse, AppError> {
     let profile = crate::queries::user_queries::get_user_by_id(&state.db, auth.user_id).await?;
     Ok((StatusCode::OK, Json(profile)))
+}
+
+// ── POST /users/location ───────────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/users/location",
+    tag = "users",
+    request_body = UpdateLocationRequest,
+    operation_id = "updateLocation",
+    responses(
+        (status = 200, description = "Location updated successfully", body = UpdateLocationResponse),
+        (status = 401, description = "Unauthorized",         body = AppErrorResponse),
+        (status = 500, description = "Internal server error",body = AppErrorResponse)
+    )
+)]
+pub async fn update_location(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<UpdateLocationRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    crate::queries::location_queries::update_agent_location_query(
+        &state.db,
+        payload.agent_id,
+        payload.latitude,
+        payload.longitude,
+    )
+    .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(UpdateLocationResponse {
+            message: "Location updated".to_string(),
+        }),
+    ))
 }

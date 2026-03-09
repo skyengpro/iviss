@@ -69,8 +69,9 @@ async fn main() -> anyhow::Result<()> {
         db_pool,
         redis_pool,
         sms_provider,
-        config.activation_code_pepper.clone(),
-        config.jwt_secret.clone(),
+        config.activation_code_pepper,
+        config.jwt_private_key_pem,
+        config.jwt_public_key_pem,
     );
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));

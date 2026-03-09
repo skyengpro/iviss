@@ -4,9 +4,31 @@ set -e
 # Load environment variables (to ensure DATABASE_URL is available if not using .env)
 # But sqlx reads .env automatically.
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+if [ -f "$ROOT_DIR/.env" ]; then
+    set -a
+    . "$ROOT_DIR/.env"
+    set +a
+fi
+
+if [ -f "$ROOT_DIR/iviss-backend/.env" ]; then
+    set -a
+    . "$ROOT_DIR/iviss-backend/.env"
+    set +a
+fi
+
+if [ -z "${DATABASE_URL:-}" ]; then
+    POSTGRES_USER_VALUE="${POSTGRES_USER:-iviss_user}"
+    POSTGRES_PASSWORD_VALUE="${POSTGRES_PASSWORD:-iviss_password}"
+    POSTGRES_DB_VALUE="${POSTGRES_DB:-iviss_db}"
+    DATABASE_URL="postgres://${POSTGRES_USER_VALUE}:${POSTGRES_PASSWORD_VALUE}@localhost:5435/${POSTGRES_DB_VALUE}"
+    export DATABASE_URL
+fi
+
 # Start docker containers
 echo "Starting Database & Adminer..."
-docker-compose up -d
+docker compose up -d
 
 # Check if sqlx-cli is installed
 if ! command -v sqlx &> /dev/null; then

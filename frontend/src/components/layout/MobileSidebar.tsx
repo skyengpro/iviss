@@ -67,8 +67,8 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               <User className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold">Agent Dupont</p>
-              <p className="text-sm text-sidebar-foreground/70">Brigade Alpha</p>
+              <p className="font-semibold">{user?.name || '—'}</p>
+              <p className="text-sm text-sidebar-foreground/70">{user?.organization || '—'}</p>
             </div>
             <div
               className="h-2 w-2 rounded-full bg-status-valid"
@@ -79,20 +79,25 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
 
         {/* Menu items */}
         <nav className="flex-1 p-4 space-y-1">
-          <SidebarLink icon={FileText} label={t('mobileProfile.myControlsToday')} badge="12" />
-          <SidebarLink icon={HelpCircle} label={t('mobileProfile.helpSupport')} />
+          <SidebarLink
+            icon={FileText}
+            label={t('mobileProfile.myControlsToday')}
+            onClick={() => {
+              navigate('/mobile/history', { state: { filter: 'today' } });
+              onClose();
+            }}
+          />
+          <SidebarLink
+            icon={HelpCircle}
+            label={t('mobileProfile.helpSupport')}
+            onClick={() => {
+              navigate('/mobile/support');
+              onClose();
+            }}
+          />
         </nav>
 
-        {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>{t('buttons.logout')}</span>
-          </Button>
           <p className="mt-4 text-center text-xs text-sidebar-foreground/50">
             {t('mobileSidebar.footer')}
           </p>
@@ -106,13 +111,18 @@ function SidebarLink({
   icon: Icon,
   label,
   badge,
+  onClick,
 }: {
   icon: React.ElementType;
   label: string;
   badge?: string;
+  onClick?: () => void;
 }) {
   return (
-    <button className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+    >
       <Icon className="h-5 w-5" />
       <span className="flex-1">{label}</span>
       {badge && (

@@ -3,6 +3,7 @@ import { MobileHeader } from './MobileHeader';
 import { MobileNavigation } from './MobileNavigation';
 import { MobileSidebar } from './MobileSidebar';
 import { cn } from '@/lib/utils';
+import { useLocationReporting } from '@/hooks/useLocationReporting';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,9 @@ export function MobileLayout({
   hideNavigation = false,
 }: MobileLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Enable automatic location reporting for agents
+  useLocationReporting();
 
   return (
     <div className="min-h-screen bg-background">
