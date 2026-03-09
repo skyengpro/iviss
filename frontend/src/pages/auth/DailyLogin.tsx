@@ -115,7 +115,7 @@ export default function DailyLogin() {
           <CardHeader>
             <CardTitle className="text-xl">Daily Agent Login</CardTitle>
             <CardDescription>
-              {step === 'REQUEST' 
+              {step === 'REQUEST'
                 ? 'Enter your badge number to receive a one-time password for your shift.'
                 : 'Enter the 6-digit OTP sent to your phone.'}
             </CardDescription>
@@ -173,9 +173,9 @@ export default function DailyLogin() {
                 <Button type="submit" disabled={!canVerify} className="w-full h-11">
                   {isLoading ? 'Verifying...' : 'Submit'}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
+                <Button
+                  type="button"
+                  variant="ghost"
                   className="w-full mt-2"
                   onClick={() => {
                     setStep('REQUEST');

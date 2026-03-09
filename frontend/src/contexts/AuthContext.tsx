@@ -66,28 +66,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!isInterceptorRegistered) {
       const interceptor = async (response: Response) => {
-      if (!response.ok && response.status === 401) {
-        try {
-          const resClone = response.clone();
-          const json = await resClone.json();
-          if (json?.message === 'Shift ended' || json?.reason === 'Shift ended' || json?.message?.includes('Shift ended')) {
-            setSession(null);
-            setUser(null);
-            applyAuthTokenToApiClient();
-            localStorage.removeItem(SESSION_KEY);
-            localStorage.removeItem(REFRESH_TOKEN_KEY);
-            globalThis.location.href = '/daily-login';
+        if (!response.ok && response.status === 401) {
+          try {
+            const resClone = response.clone();
+            const json = await resClone.json();
+            if (
+              json?.message === 'Shift ended' ||
+              json?.reason === 'Shift ended' ||
+              json?.message?.includes('Shift ended')
+            ) {
+              setSession(null);
+              setUser(null);
+              applyAuthTokenToApiClient();
+              localStorage.removeItem(SESSION_KEY);
+              localStorage.removeItem(REFRESH_TOKEN_KEY);
+              globalThis.location.href = '/daily-login';
+            }
+          } catch {
+            // ignore parse error
           }
-        } catch {
-          // ignore parse error
         }
-      }
-      return response;
+        return response;
       };
       client.interceptors.response.use(interceptor);
       isInterceptorRegistered = true;
     }
-
   }, []);
 
   const activate: AuthContextType['activate'] = async ({
@@ -189,7 +192,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const dailyLoginVerify: AuthContextType['dailyLoginVerify'] = async ({ badgeId, activationCode, deviceId }) => {
+  const dailyLoginVerify: AuthContextType['dailyLoginVerify'] = async ({
+    badgeId,
+    activationCode,
+    deviceId,
+  }) => {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
       const res = await fetch(`${baseUrl}/auth/daily-login/verify`, {
@@ -245,7 +252,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: err instanceof Error ? err.message : 'Verification failed' };
     }
   };
-
 
   const login = async (username: string, password: string) => {
     const result = await mockAuthService.login(username, password);
