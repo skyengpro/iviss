@@ -47,3 +47,20 @@ pub async fn get_auth_validation_context(
     .await
     .map_err(AppError::database)
 }
+
+pub async fn mark_device_inactive(pool: &PgPool, device_id: Uuid) -> Result<(), AppError> {
+    sqlx::query(
+        r#"
+        UPDATE devices
+        SET status = 'INACTIVE'::device_status,
+            revoked_at = NOW()
+        WHERE id = $1
+          AND status = 'ACTIVE'::device_status
+        "#,
+    )
+    .bind(device_id)
+    .execute(pool)
+    .await
+    .map(|_| ())
+    .map_err(AppError::database)
+}

@@ -2,6 +2,46 @@ import { useState, useCallback, useRef } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { DetectedPlate, PlateStatus } from './useScanPlate';
+import { fetchWithAuth } from '@/services/backendFetch';
+
+function normalizePlateCandidate(v: unknown): string {
+  if (typeof v !== 'string') return '';
+  return v
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .trim();
+}
+
+function extractPlateFromAny(json: unknown): {
+  plate: string;
+  confidence?: number;
+  formatValid?: boolean;
+} {
+  const obj = json && typeof json === 'object' ? (json as Record<string, unknown>) : undefined;
+  const data =
+    obj?.data && typeof obj.data === 'object' ? (obj.data as Record<string, unknown>) : undefined;
+
+  const fromData = normalizePlateCandidate(data?.plate);
+  const fromTop = normalizePlateCandidate(obj?.plate);
+  const fromAlt1 = normalizePlateCandidate(data?.plateNumber);
+  const fromAlt2 = normalizePlateCandidate(data?.license_plate);
+
+  const plate = fromData || fromTop || fromAlt1 || fromAlt2;
+
+  const rawText = typeof data?.raw_text === 'string' ? (data.raw_text as string) : '';
+  const cleanedRaw = rawText.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const match = cleanedRaw.match(/[A-Z]{2}\d{3}[A-Z]{2}/);
+
+  const finalPlate = plate || (match ? match[0] : '');
+
+  const confRaw = (data?.confidence ?? obj?.confidence) as unknown;
+  const confidence = typeof confRaw === 'number' ? confRaw : undefined;
+
+  const fvRaw = (data?.format_valid ?? obj?.format_valid) as unknown;
+  const formatValid = typeof fvRaw === 'boolean' ? fvRaw : undefined;
+
+  return { plate: finalPlate, confidence, formatValid };
+}
 
 type PhotoCaptureState = 'idle' | 'processing' | 'result' | 'error';
 
@@ -51,35 +91,42 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         // Save the raw captured frame for UI preview (freeze frame)
         setCapturedImageSrc(imageSrc);
 
-        // 1. Photo preprocessing (high-resolution)
-        const processed = await ImageProcessor.preprocessForHighRes(imageSrc, t);
+        const sendToOcr = async (processedDataUrl: string) => {
+          const fetchRes = await fetch(processedDataUrl);
+          const blob = await fetchRes.blob();
 
-        // 2. Convert data URL to blob for multipart upload
-        const fetchRes = await fetch(processed);
-        const blob = await fetchRes.blob();
+          const formData = new FormData();
+          formData.append('image', blob, 'photo.jpg');
 
-        const formData = new FormData();
-        formData.append('image', blob, 'photo.jpg');
+          const apiResponse = await fetchWithAuth('/api/v1/photo/plate', {
+            method: 'POST',
+            body: formData,
+          });
 
-        // 3. Call backend OCR API
-        const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
-        const apiResponse = await fetch(`${apiUrl}/api/v1/photo/plate`, {
-          method: 'POST',
-          body: formData,
-        });
+          if (!apiResponse.ok) {
+            throw new Error(t('mobileScan.photoError'));
+          }
 
-        if (!apiResponse.ok) {
-          throw new Error(t('mobileScan.photoError'));
+          return apiResponse.json();
+        };
+
+        const firstProcessed = await ImageProcessor.preprocessForHighRes(imageSrc, t);
+        let json = await sendToOcr(firstProcessed);
+
+        let extracted = extractPlateFromAny(json);
+        if ((!json?.success || extracted.plate === '') && json?.success !== false) {
+          const fallbackProcessed = await ImageProcessor.preprocessForPhotoCapture(imageSrc, t);
+          json = await sendToOcr(fallbackProcessed);
+          extracted = extractPlateFromAny(json);
         }
 
-        const json = await apiResponse.json();
-
-        if (json.success && json.data?.plate && json.data.plate.trim() !== '') {
-          const confidence = json.data.confidence * 100;
-          const status: PlateStatus = json.data.format_valid ? 'valid' : 'warning';
+        if (json?.success && extracted.plate !== '') {
+          const confidence =
+            (typeof extracted.confidence === 'number' ? extracted.confidence : 0) * 100;
+          const status: PlateStatus = extracted.formatValid ? 'valid' : 'warning';
 
           const plate: DetectedPlate = {
-            plateNumber: json.data.plate,
+            plateNumber: extracted.plate,
             confidence,
             status,
           };
@@ -88,7 +135,6 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
           setEditedPlate(plate.plateNumber);
           setState('result');
         } else {
-          // OCR returned nothing useful
           setError(t('mobileScan.noPlateDetected'));
           setState('error');
         }

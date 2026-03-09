@@ -10,7 +10,8 @@ pub struct AppState {
     pub redis: RedisPool,
     pub sms_pvd: Arc<dyn SmsProvider>,
     pub pepper: String,
-    pub jwt_secret: String,
+    pub jwt_private_key_pem: String,
+    pub jwt_public_key_pem: String,
 }
 
 impl AppState {
@@ -19,14 +20,16 @@ impl AppState {
         redis_pool: RedisPool,
         sms_pvd: Arc<dyn SmsProvider>,
         pepper: String,
-        jwt_secret: String,
+        jwt_private_key_pem: String,
+        jwt_public_key_pem: String,
     ) -> Self {
         Self {
             db: db_pool,
             redis: redis_pool,
             sms_pvd,
             pepper,
-            jwt_secret,
+            jwt_private_key_pem,
+            jwt_public_key_pem,
         }
     }
 }

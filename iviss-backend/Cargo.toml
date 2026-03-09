@@ -18,6 +18,8 @@ tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-
 anyhow = "1.0"
 thiserror = "1.0"
 
+base64 = "0.22"
+
 utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
 utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
 time = "0.3.47"
@@ -40,5 +42,7 @@ rand = "0.8"
 
 [dev-dependencies]
 testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["redis"] }
+testcontainers-modules = { version = "0.11", features = ["redis", "postgres"] }
 tokio-test = "0.4"
+tower = "0.5"
+rsa = { version = "0.9", features = ["pem"] }

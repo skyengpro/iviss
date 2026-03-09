@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Gitleaks Scan
-        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact
+        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact --config=/path/.gitleaks.toml
 
   backend_build:
     name: Backend Build
@@ -138,7 +138,7 @@ jobs:
         # and no fixed upgrade is available for this version chain.
         # Ignore RUSTSEC-2025-0111 (tokio-tar) because it is in testcontainers (dev/test tree),
         # and currently no fixed upgrade is available upstream.
-        run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111
+        run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111 --ignore RUSTSEC-2025-0111
         working-directory: iviss-backend
 
   backend_doc:

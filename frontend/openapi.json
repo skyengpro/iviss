@@ -455,6 +455,103 @@
         ]
       }
     },
+    "/api/v1/scan/plate": {
+      "post": {
+        "tags": ["scanning"],
+        "operationId": "scanPlate",
+        "responses": {
+          "200": {
+            "description": "OCR result (may have low confidence)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal OCR error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/activate": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Activate an agent account by validating OTP and registering device public key",
+        "operationId": "activateDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Activation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": ["auth"],
@@ -546,6 +643,55 @@
           },
           "400": {
             "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/send-activation": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Send activation code via SMS to a pending agent",
+        "operationId": "sendActivationCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Activation code sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendActivationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -754,6 +900,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DashboardStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/users/location": {
+      "post": {
+        "tags": ["users"],
+        "operationId": "updateLocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Location updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateLocationResponse"
                 }
               }
             }
@@ -1008,6 +1207,77 @@
         "type": "string",
         "enum": ["check", "flag", "citation", "impound", "release"]
       },
+      "ActivateRequest": {
+        "type": "object",
+        "required": ["badgeId", "activationCode", "deviceId", "publicKeyBase64"],
+        "properties": {
+          "activationCode": {
+            "type": "string"
+          },
+          "badgeId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicKeyBase64": {
+            "type": "string"
+          }
+        }
+      },
+      "ActivateResponse": {
+        "type": "object",
+        "required": ["accessToken", "refreshToken", "user"],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "ActivityData": {
+        "type": "object",
+        "required": ["hour", "count"],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hour": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentLocationDto": {
+        "type": "object",
+        "required": ["agentId", "agentName", "latitude", "longitude", "lastUpdated"],
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "lastUpdated": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "AppErrorResponse": {
         "type": "object",
         "required": ["code", "message"],
@@ -1219,11 +1489,30 @@
       },
       "DashboardStats": {
         "type": "object",
-        "required": ["todayControls", "activeAlerts", "totalVehicles", "onlineAgents"],
+        "required": [
+          "todayControls",
+          "activeAlerts",
+          "totalVehicles",
+          "onlineAgents",
+          "activity24h",
+          "liveAgents"
+        ],
         "properties": {
           "activeAlerts": {
             "type": "integer",
             "format": "int64"
+          },
+          "activity24h": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityData"
+            }
+          },
+          "liveAgents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentLocationDto"
+            }
           },
           "onlineAgents": {
             "type": "integer",
@@ -1598,6 +1887,90 @@
           }
         }
       },
+      "ScanErrorData": {
+        "type": "object",
+        "description": "Error detail returned inside the scan response envelope.",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code, e.g. `INVALID_IMAGE`."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error description."
+          }
+        }
+      },
+      "ScanPlateResponse": {
+        "type": "object",
+        "description": "Envelope response for `POST /api/v1/scan/plate`.",
+        "required": ["success"],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScanResultData"
+              }
+            ],
+            "nullable": true
+          },
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScanErrorData"
+              }
+            ],
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ScanResultData": {
+        "type": "object",
+        "description": "Successful OCR scan result data.",
+        "required": ["plate", "raw_text", "confidence", "format_valid"],
+        "properties": {
+          "confidence": {
+            "type": "number",
+            "format": "float",
+            "description": "Tesseract confidence score (0.0 – 1.0)."
+          },
+          "format_valid": {
+            "type": "boolean",
+            "description": "Whether the normalized plate matches the Cameroon format (XX###XX)."
+          },
+          "plate": {
+            "type": "string",
+            "description": "Normalized plate text (uppercase, no spaces). Empty if nothing detected."
+          },
+          "raw_text": {
+            "type": "string",
+            "description": "Raw text as returned by the OCR engine before normalization."
+          }
+        }
+      },
+      "SendActivationRequest": {
+        "type": "object",
+        "required": ["user_id"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SendActivationResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "Status": {
         "type": "string",
         "description": "Shared status across all partner API responses",
@@ -1680,6 +2053,33 @@
           },
           "status": {
             "$ref": "#/components/schemas/Status"
+          }
+        }
+      },
+      "UpdateLocationRequest": {
+        "type": "object",
+        "required": ["agentId", "latitude", "longitude"],
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "UpdateLocationResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
           }
         }
       },
@@ -1898,6 +2298,10 @@
     {
       "name": "controls",
       "description": "Roadside control tracking"
+    },
+    {
+      "name": "scanning",
+      "description": "License plate OCR scanning"
     },
     {
       "name": "stats",
