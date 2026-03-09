@@ -48,6 +48,17 @@ CMD ["cargo", "watch", "-x", "run", "-w", "src"]
 # ============================================
 FROM rust:latest AS builder
 
+# Install Tesseract OCR and Leptonica development headers for leptess C-bindings
+# Clang is required by bindgen to generate the Rust bindings
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libtesseract-dev \
+    libleptonica-dev \
+    tesseract-ocr-eng \
+    clang \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./

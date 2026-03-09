@@ -47,6 +47,10 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route("/users/me", get(crate::handlers::users::get_user_profile))
+        .route(
+            "/users/location",
+            post(crate::handlers::users::update_location),
+        )
         .route("/auth/login", post(crate::handlers::auth::login))
         .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/logout", post(crate::handlers::auth::logout))
@@ -54,6 +58,7 @@ pub fn assembly(state: AppState) -> Router {
             "/auth/send-activation",
             post(crate::handlers::auth::send_activation),
         )
+        .route("/auth/activate", post(crate::handlers::auth::activate))
         .route(
             "/admin/users",
             get(crate::handlers::user_management::list_users)

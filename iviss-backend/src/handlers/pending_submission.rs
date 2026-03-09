@@ -98,7 +98,7 @@ async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, 
 pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submissions =
+    let submissions: Vec<_> =
         crate::queries::submission_queries::get_pending_submissions(&state.db).await?;
     Ok((StatusCode::OK, Json(submissions)))
 }
@@ -122,7 +122,7 @@ pub async fn get_pending_submission(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submission =
+    let submission: crate::dto::pending_submission::PendingSubmissionRequest =
         crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
     Ok((StatusCode::OK, Json(submission)))
 }
