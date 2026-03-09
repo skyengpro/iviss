@@ -72,20 +72,13 @@ jobs:
         if: steps.cache-cargo-llvm-cov.outputs.cache-hit != 'true'
         run: cargo install cargo-llvm-cov
       - name: Generate coverage report
-        id: coverage
-        continue-on-error: true
         run: cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60
         working-directory: iviss-backend
-      - name: Coverage threshold notice
-        if: steps.coverage.outcome == 'failure'
-        run: echo "::warning::Line coverage is below 60%. Coverage report was uploaded for review."
       - name: Upload coverage report
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: iviss-backend/target/coverage/html/
-          retention-days: 30
 
   backend_fmt:
     name: Backend Format
