@@ -537,4 +537,51 @@ mod tests {
         let result = adaptive_threshold(&img, 2, 5);
         assert_eq!(result.get_pixel(2, 0)[0], 255);
     }
+
+    #[test]
+    fn test_extract_plate_fuzzy() {
+        assert_eq!(extract_plate_fuzzy("CE128BC"), Some("CE128BC".to_string()));
+        assert_eq!(
+            extract_plate_fuzzy("!CE128BC!"),
+            Some("CE128BC".to_string())
+        );
+        assert_eq!(extract_plate_fuzzy("CE12OBC"), Some("CE120BC".to_string())); // O -> 0 in middle
+        assert_eq!(extract_plate_fuzzy("1E128BC"), Some("IE128BC".to_string())); // 1 -> I at start
+        assert_eq!(extract_plate_fuzzy("CE12"), Some("CE12".to_string()));
+        assert_eq!(extract_plate_fuzzy(""), None);
+    }
+
+    #[test]
+    fn test_pick_best_ensemble() {
+        let cand1 = ScanResultData {
+            plate: "P1".into(),
+            raw_text: "P1".into(),
+            confidence: 0.5,
+            format_valid: false,
+        };
+        let cand2 = ScanResultData {
+            plate: "CE128BC".into(),
+            raw_text: "CE128BC".into(),
+            confidence: 0.8,
+            format_valid: true,
+        };
+
+        let best = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
+        assert!(best.format_valid);
+        assert_eq!(best.plate, "CE128BC");
+
+        let best_empty = pick_best_ensemble(vec![]);
+        assert_eq!(best_empty.plate, "");
+    }
+
+    #[test]
+    fn test_image_helpers() {
+        let img = GrayImage::from_pixel(10, 10, Luma([100]));
+        let inverted = invert_image(&img);
+        assert_eq!(inverted.get_pixel(0, 0)[0], 155);
+
+        let bordered = add_border(&img, 5, 255);
+        assert_eq!(bordered.width(), 20);
+        assert_eq!(bordered.height(), 20);
+    }
 }

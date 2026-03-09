@@ -256,12 +256,28 @@ mod tests {
     }
 
     #[test]
-    fn rejects_suspended_user_status() {
+    fn test_is_user_status_allowed() {
+        assert!(is_user_status_allowed("ACTIVE"));
         assert!(!is_user_status_allowed("SUSPENDED"));
+        assert!(!is_user_status_allowed("PENDING_ACTIVATION"));
     }
 
     #[test]
-    fn allows_active_user_status() {
-        assert!(is_user_status_allowed("ACTIVE"));
+    fn test_extract_bearer_token_missing_header() {
+        let result = extract_bearer_token(None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_extract_bearer_token_invalid_format() {
+        let header = HeaderValue::from_static("Bearer tok extra");
+        let result = extract_bearer_token(Some(&header));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_invalid_pem() {
+        let result = decode_access_token_rs256("token", "not a pem");
+        assert!(result.is_err());
     }
 }
