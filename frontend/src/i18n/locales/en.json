@@ -422,7 +422,8 @@
     "scan": "Scan",
     "search": "Search",
     "history": "History",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "Profile"
   },
   "backOfficeHeader": {
     "nationalPoliceHQ": "National Police HQ",
