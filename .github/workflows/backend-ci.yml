@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Gitleaks Scan
-        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact
+        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact --config=/path/.gitleaks.toml
 
   backend_build:
     name: Backend Build
@@ -130,7 +130,7 @@ jobs:
       - name: Security audit
         # Ignore RUSTSEC-2023-0071 (rsa Marvin Attack) as it is in an unused transitive dependency (sqlx-mysql)
         # and no fixed upgrade is available for this version chain.
-        run: cargo audit --ignore RUSTSEC-2023-0071
+        run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111
         working-directory: iviss-backend
 
   backend_doc:

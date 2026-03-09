@@ -10,6 +10,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct AuthUser {
     pub user_id: Uuid,
     #[allow(dead_code)]
