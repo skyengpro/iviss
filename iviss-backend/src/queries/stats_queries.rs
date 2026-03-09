@@ -57,7 +57,7 @@ pub async fn get_dashboard_stats_query(pool: &PgPool) -> Result<DashboardStats, 
         LEFT JOIN control_records c ON date_trunc('hour', c.created_at) = h.hour
         GROUP BY h.hour
         ORDER BY h.hour
-        "#
+        "#,
     )
     .fetch_all(pool)
     .await
@@ -75,7 +75,7 @@ pub async fn get_dashboard_stats_query(pool: &PgPool) -> Result<DashboardStats, 
         FROM agent_locations al
         JOIN users u ON al.agent_id = u.id
         WHERE al.updated_at >= NOW() - interval '30 minutes'
-        "#
+        "#,
     )
     .fetch_all(pool)
     .await

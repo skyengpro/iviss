@@ -134,7 +134,9 @@ export default function BackOfficeDashboard() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-status-critical/10">
                       <AlertTriangle className="h-4 w-4 text-status-critical" />
                     </div>
-                    <span className="text-sm font-bold">{t('backOfficeDashboard.recentAlerts')}</span>
+                    <span className="text-sm font-bold">
+                      {t('backOfficeDashboard.recentAlerts')}
+                    </span>
                   </div>
                   <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-lg px-2 text-xs">
                     {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
@@ -160,7 +162,10 @@ export default function BackOfficeDashboard() {
                             {alert.plateNumber}
                           </span>
                           <span className="shrink-0 text-[10px] text-muted-foreground">
-                            {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(alert.timestamp).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
                         </div>
                         <p className="mt-0.5 line-clamp-2 text-xs font-medium text-status-critical">
@@ -193,7 +198,9 @@ export default function BackOfficeDashboard() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
                       <Users className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-sm font-bold">{t('backOfficeDashboard.topAgentsToday')}</span>
+                    <span className="text-sm font-bold">
+                      {t('backOfficeDashboard.topAgentsToday')}
+                    </span>
                   </div>
                   <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-lg px-2 text-xs">
                     {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
@@ -209,14 +216,15 @@ export default function BackOfficeDashboard() {
                     >
                       {/* Rank */}
                       <div
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index === 0
-                          ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white'
-                          : index === 1
-                            ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-white'
-                            : index === 2
-                              ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          index === 0
+                            ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white'
+                            : index === 1
+                              ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-white'
+                              : index === 2
+                                ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
+                                : 'bg-muted text-muted-foreground'
+                        }`}
                       >
                         {index + 1}
                       </div>
@@ -228,8 +236,12 @@ export default function BackOfficeDashboard() {
 
                       {/* Info */}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{user.organization}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {user.name}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {user.organization}
+                        </p>
                       </div>
 
                       {user.isActive && (
@@ -254,7 +266,9 @@ export default function BackOfficeDashboard() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10">
                     <Clock className="h-4 w-4 text-accent" />
                   </div>
-                  <span className="text-sm font-bold">{t('backOfficeDashboard.realTimeActivityFeed')}</span>
+                  <span className="text-sm font-bold">
+                    {t('backOfficeDashboard.realTimeActivityFeed')}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 rounded-full border border-status-valid/20 bg-status-valid/10 px-3 py-1">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-valid" />
@@ -302,18 +316,23 @@ export default function BackOfficeDashboard() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div
-                        className={`h-2 w-2 shrink-0 rounded-full ${item.status === 'valid'
-                          ? 'bg-status-valid'
-                          : item.status === 'warning'
-                            ? 'bg-status-warning'
-                            : 'bg-status-critical'
-                          }`}
+                        className={`h-2 w-2 shrink-0 rounded-full ${
+                          item.status === 'valid'
+                            ? 'bg-status-valid'
+                            : item.status === 'warning'
+                              ? 'bg-status-warning'
+                              : 'bg-status-critical'
+                        }`}
                       />
                       <span className="ml-auto text-[10px] text-muted-foreground">{item.time}</span>
                     </div>
                     <div>
-                      <p className="font-mono text-sm font-bold tracking-widest text-foreground">{item.plate}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{item.action}</p>
+                      <p className="font-mono text-sm font-bold tracking-widest text-foreground">
+                        {item.plate}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+                        {item.action}
+                      </p>
                     </div>
                     <p className="text-[10px] font-medium text-muted-foreground">{item.agent}</p>
                   </div>

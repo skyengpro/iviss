@@ -31,9 +31,7 @@ export function BackOfficeHeader({ title, subtitle, actions, className }: BackOf
         {title && (
           <h1 className="truncate text-base font-semibold leading-none text-foreground">{title}</h1>
         )}
-        {subtitle && (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
-        )}
+        {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
       {/* Centre: Global search (hidden on small screens) */}
@@ -72,8 +70,14 @@ export function BackOfficeHeader({ title, subtitle, actions, className }: BackOf
         {/* Org selector */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="hidden h-8 gap-1.5 rounded-lg text-xs md:flex">
-              <span className="max-w-[120px] truncate">{t('backOfficeHeader.nationalPoliceHQ')}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden h-8 gap-1.5 rounded-lg text-xs md:flex"
+            >
+              <span className="max-w-[120px] truncate">
+                {t('backOfficeHeader.nationalPoliceHQ')}
+              </span>
               <ChevronDown className="h-3 w-3 shrink-0" />
             </Button>
           </DropdownMenuTrigger>

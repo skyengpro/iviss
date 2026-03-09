@@ -9,6 +9,10 @@ const MAX_IMAGE_SIZE: usize = 8 * 1024 * 1024;
 /// Allowed MIME types for the uploaded image.
 const ALLOWED_CONTENT_TYPES: &[&str] = &["image/jpeg", "image/png"];
 
+/// Hard OCR timeout budget (server-side).
+/// This keeps the photo endpoint responsive even if OCR gets slow.
+const OCR_TIMEOUT_MS: u64 = 9000;
+
 // ── POST /api/v1/photo/plate ─────────────────────────────────────────────────
 
 #[utoipa::path(
@@ -49,25 +53,41 @@ pub async fn photo_plate(mut multipart: Multipart) -> impl IntoResponse {
 
     // Photo is a single-shot high-res capture. We can afford a slightly heavier
     // pipeline than live scanning while still reusing the OCR engine.
-    let result =
-        tokio::task::spawn_blocking(move || photo_ocr_service::photo_plate(&image_bytes)).await;
+    // Still, we keep a hard timeout so the endpoint remains responsive.
+    let mut handle =
+        tokio::task::spawn_blocking(move || photo_ocr_service::photo_plate(&image_bytes));
+    let result = tokio::time::timeout(
+        std::time::Duration::from_millis(OCR_TIMEOUT_MS),
+        &mut handle,
+    )
+    .await;
 
     match result {
-        Ok(Ok(scan_data)) => success_response(scan_data),
-        Ok(Err(app_err)) => {
-            tracing::warn!("Photo OCR processing error: {app_err}");
+        Ok(joined) => match joined {
+            Ok(Ok(scan_data)) => success_response(scan_data),
+            Ok(Err(app_err)) => {
+                tracing::warn!("Photo OCR processing error: {app_err}");
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "OCR_ERROR",
+                    "OCR processing failed",
+                )
+            }
+            Err(join_err) => {
+                tracing::error!("Photo OCR task panicked: {join_err}");
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "OCR_ERROR",
+                    "Internal Server Error",
+                )
+            }
+        },
+        Err(_) => {
+            handle.abort();
             error_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "OCR_ERROR",
-                "OCR processing failed",
-            )
-        }
-        Err(join_err) => {
-            tracing::error!("Photo OCR task panicked: {join_err}");
-            error_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "OCR_ERROR",
-                "Internal Server Error",
+                StatusCode::GATEWAY_TIMEOUT,
+                "OCR_TIMEOUT",
+                "OCR processing timed out",
             )
         }
     }

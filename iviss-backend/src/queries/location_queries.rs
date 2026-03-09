@@ -12,12 +12,12 @@ pub async fn update_agent_location_query(
         r#"
         INSERT INTO agent_locations (agent_id, latitude, longitude, updated_at)
         VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (agent_id) 
-        DO UPDATE SET 
+        ON CONFLICT (agent_id)
+        DO UPDATE SET
             latitude = EXCLUDED.latitude,
             longitude = EXCLUDED.longitude,
             updated_at = EXCLUDED.updated_at
-        "#
+        "#,
     )
     .bind(agent_id)
     .bind(latitude)
