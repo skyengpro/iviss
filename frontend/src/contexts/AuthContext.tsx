@@ -39,6 +39,8 @@ function humanizeActivationError(payload: unknown): string | undefined {
   return message;
 }
 
+let isInterceptorRegistered = false;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<AuthResponse | null>(null);
@@ -61,6 +63,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initIdentity();
+
+    if (!isInterceptorRegistered) {
+      const interceptor = async (response: Response) => {
+      if (!response.ok && response.status === 401) {
+        try {
+          const resClone = response.clone();
+          const json = await resClone.json();
+          if (json?.message === 'Shift ended' || json?.reason === 'Shift ended' || json?.message?.includes('Shift ended')) {
+            setSession(null);
+            setUser(null);
+            applyAuthTokenToApiClient();
+            localStorage.removeItem(SESSION_KEY);
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+            globalThis.location.href = '/daily-login';
+          }
+        } catch {
+          // ignore parse error
+        }
+      }
+      return response;
+      };
+      client.interceptors.response.use(interceptor);
+      isInterceptorRegistered = true;
+    }
+
   }, []);
 
   const activate: AuthContextType['activate'] = async ({
@@ -137,6 +164,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const dailyLoginRequest: AuthContextType['dailyLoginRequest'] = async ({ badgeId }) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    try {
+      const res = await fetch(`${baseUrl}/auth/daily-login/request`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ badgeId }),
+      });
+
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const json = (await res.json()) as unknown;
+          const friendly = humanizeActivationError(json);
+          return { success: false, error: friendly || 'Failed to request OTP' };
+        }
+        const text = await res.text();
+        return { success: false, error: text || 'Failed to request OTP' };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Request failed' };
+    }
+  };
+
+  const dailyLoginVerify: AuthContextType['dailyLoginVerify'] = async ({ badgeId, activationCode, deviceId }) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    try {
+      const res = await fetch(`${baseUrl}/auth/daily-login/verify`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ badgeId, activationCode, deviceId }),
+      });
+
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const json = (await res.json()) as unknown;
+          const friendly = humanizeActivationError(json);
+          return { success: false, error: friendly || 'Verification failed' };
+        }
+        const text = await res.text();
+        return { success: false, error: text || 'Verification failed' };
+      }
+
+      const data = (await res.json()) as {
+        accessToken: string;
+        refreshToken: string;
+        user: UserProfile;
+      };
+
+      let resolvedUser: UserProfile = data.user;
+      try {
+        const meRes = await fetch(`${baseUrl}/users/me`, {
+          headers: { authorization: `Bearer ${data.accessToken}` },
+        });
+        if (meRes.ok) {
+          resolvedUser = (await meRes.json()) as UserProfile;
+        }
+      } catch {
+        // Ignore profile refresh errors
+      }
+
+      const newSession = {
+        token: data.accessToken,
+        user: resolvedUser,
+      } as unknown as AuthResponse;
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+
+      applyAuthTokenToApiClient(data.accessToken);
+
+      setSession(newSession);
+      setUser(resolvedUser);
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Verification failed' };
+    }
+  };
+
+
   const login = async (username: string, password: string) => {
     const result = await mockAuthService.login(username, password);
 
@@ -153,8 +263,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setSession(null);
     setUser(null);
-    applyAuthTokenToApiClient(undefined);
-    return;
+    applyAuthTokenToApiClient();
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   };
 
   const getMockCredentials = () => mockAuthService.getMockCredentials();
@@ -166,6 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!session,
     login,
     activate,
+    dailyLoginRequest,
+    dailyLoginVerify,
     logout,
     getMockCredentials,
   };
