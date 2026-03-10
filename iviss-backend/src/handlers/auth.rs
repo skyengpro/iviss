@@ -1,19 +1,18 @@
 use crate::app_state::AppState;
-use base64::Engine;
 use crate::dto::auth::{
-    VerifyDailyLoginResponse, RequestDailyLoginRequest, RequestDailyLoginResponse,
-    SendActivationResponse, VerifyDailyLoginRequest, SendActivationRequest,
+    RequestDailyLoginRequest, RequestDailyLoginResponse, SendActivationRequest,
+    SendActivationResponse, VerifyDailyLoginRequest, VerifyDailyLoginResponse,
 };
+use base64::Engine;
 
 use crate::dto::users::{UserProfile, UserRole};
 use crate::errors::AppError;
 use crate::queries::auth_queries;
 use crate::services::activation_service::ActivationService;
-use crate::services::otp_service::OtpService;
 use crate::services::jwt_service::JwtService;
+use crate::services::otp_service::OtpService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use base64::Engine;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -22,10 +21,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use crate::services::jwt_service::JwtService;
-use rand::RngCore;
-use time;
-use sqlx::Row;use uuid::Uuid;
 
 const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
 
@@ -150,7 +145,6 @@ pub struct RegisterRequest {
     pub full_name: String,
     pub role: UserRole,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -584,7 +578,7 @@ pub async fn request_daily_login(
     tracing::info!(
         target: "daily_login",
         user_id = %user.id,
-        device_id = %payload.device_id,
+        device_id = %device.id,
         "Daily login OTP requested"
     );
 
@@ -595,7 +589,6 @@ pub async fn request_daily_login(
         }),
     ))
 }
-
 
 #[utoipa::path(
     post,
@@ -614,7 +607,6 @@ pub async fn verify_daily_login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VerifyDailyLoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    
     if payload.badge_id.trim().is_empty() {
         return Err(AppError::bad_request("badgeId is required"));
     }
@@ -622,7 +614,6 @@ pub async fn verify_daily_login(
         return Err(AppError::bad_request("otp is required"));
     }
 
-    
     let row = sqlx::query(
         r#"
         SELECT
@@ -645,9 +636,9 @@ pub async fn verify_daily_login(
     .map_err(AppError::Database)?
     .ok_or_else(|| AppError::not_found("User or device not found"))?;
 
-    let user_id: Uuid         = row.get("user_id");
-    let user_role: String     = row.get("user_role");
-    let user_status: String   = row.get("user_status");
+    let user_id: Uuid = row.get("user_id");
+    let user_role: String = row.get("user_role");
+    let user_status: String = row.get("user_status");
     let device_status: String = row.get("device_status");
 
     // ── Status checks
@@ -667,7 +658,7 @@ pub async fn verify_daily_login(
         ));
     }
 
-    // ── Validate OTP 
+    // ── Validate OTP
     let otp_svc = OtpService::new(
         state.redis.clone(),
         state.sms_pvd.clone(),
@@ -675,9 +666,7 @@ pub async fn verify_daily_login(
     );
     otp_svc.validate_otp(&user_id, &payload.otp).await?;
 
-    // ── Compute static shift bounds (UTC+1 local time) ────────────────────────
-    // shift_start and shift_end are fixed daily windows from config —
-    // not relative to when the agent connects
+    // ── Compute static shift bounds (UTC+1 local time)
     let localt_time_offset = time::UtcOffset::from_hms(1, 0, 0)
         .map_err(|_| AppError::internal_error("Failed to build UTC+1 offset"))?;
 
@@ -685,31 +674,22 @@ pub async fn verify_daily_login(
         .to_offset(localt_time_offset)
         .date();
 
-    let shift_start_time =
-        time::Time::from_hms(state.shift_start_hour as u8, 0, 0)
-            .map_err(|_| AppError::internal_error("Invalid shift_start_hour in config"))?;
+    let shift_start_time = time::Time::from_hms(state.shift_start_hour as u8, 0, 0)
+        .map_err(|_| AppError::internal_error("Invalid shift_start_hour in config"))?;
 
-    let shift_end_time =
-        time::Time::from_hms(state.shift_end_hour as u8, 0, 0)
-            .map_err(|_| AppError::internal_error("Invalid shift_end_hour in config"))?;
+    let shift_end_time = time::Time::from_hms(state.shift_end_hour as u8, 0, 0)
+        .map_err(|_| AppError::internal_error("Invalid shift_end_hour in config"))?;
 
-    let shift_start: i64 = time::OffsetDateTime::new_in_offset(
-        today_local,
-        shift_start_time,
-        localt_time_offset,
-    )
-    .unix_timestamp();
+    let shift_start: i64 =
+        time::OffsetDateTime::new_in_offset(today_local, shift_start_time, localt_time_offset)
+            .unix_timestamp();
 
-    let shift_end: i64 = time::OffsetDateTime::new_in_offset(
-        today_local,
-        shift_end_time,
-        localt_time_offset,
-    )
-    .unix_timestamp();
+    let shift_end: i64 =
+        time::OffsetDateTime::new_in_offset(today_local, shift_end_time, localt_time_offset)
+            .unix_timestamp();
 
     // ── Issue access token (15 min, carries today's static shift bounds) ──────
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem)
-        .map_err(AppError::Internal)?;
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
 
     let role = user_role
         .parse::<crate::dto::users::UserRole>()
@@ -726,9 +706,10 @@ pub async fn verify_daily_login(
         .map_err(AppError::Internal)?;
 
     // ── Check if a valid refresh token already exists for this device
-    let has_valid_refresh: bool = auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?;
+    let has_valid_refresh: bool =
+        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?;
 
-    // ── Conditionally build new refresh token 
+    // ── Conditionally build new refresh token
     let new_refresh: Option<(String, String, time::PrimitiveDateTime)> = if !has_valid_refresh {
         let raw = {
             let mut bytes = [0u8; 32];
@@ -765,32 +746,19 @@ pub async fn verify_daily_login(
                 "#,
             )
             .bind(payload.device_id) // $1
-            .bind(hash)              // $2
-            .bind(user_id)           // $3
-            .bind(expires_at)        // $4
-            .bind(shift_start)       // $5
-            .bind(shift_end)         // $6
+            .bind(hash) // $2
+            .bind(user_id) // $3
+            .bind(expires_at) // $4
+            .bind(shift_start) // $5
+            .bind(shift_end) // $6
             .execute(&state.db)
             .await
             .map_err(AppError::Database)?;
         }
 
         None => {
-            sqlx::query(
-                r#"
-                UPDATE devices
-                SET    status       = 'ACTIVE'::device_status,
-                       metadata     = jsonb_build_object('shift_start', $2, 'shift_end', $3),
-                       last_seen_at = NOW()
-                WHERE  id = $1
-                "#,
-            )
-            .bind(payload.device_id) // $1
-            .bind(shift_start)       // $2
-            .bind(shift_end)         // $3
-            .execute(&state.db)
-            .await
-            .map_err(AppError::Database)?;
+            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
+                .await?;
         }
     }
 

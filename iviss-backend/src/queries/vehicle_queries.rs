@@ -155,7 +155,10 @@ mod tests {
         assert_eq!(status_row.technical_status, Some("valid".to_string()));
         assert!(status_row.technical_expiry.is_some());
         assert!(!status_row.stolen_status);
-        assert_eq!(status_row.vehicle_image_url, Some("http://example.com/vehicle.jpg".to_string()));
+        assert_eq!(
+            status_row.vehicle_image_url,
+            Some("http://example.com/vehicle.jpg".to_string())
+        );
         assert!(status_row.last_updated.is_some());
     }
 
@@ -249,8 +252,14 @@ mod tests {
         assert_eq!(vehicle_row.engine_power, Some("150 HP".to_string()));
         assert_eq!(vehicle_row.fuel_type, Some("Gasoline".to_string()));
         assert_eq!(vehicle_row.owner_address, Some("123 Main St".to_string()));
-        assert_eq!(vehicle_row.owner_national_id, Some("1234567890".to_string()));
-        assert_eq!(vehicle_row.carte_grise_expiry, Some("2024-12-31".to_string()));
+        assert_eq!(
+            vehicle_row.owner_national_id,
+            Some("1234567890".to_string())
+        );
+        assert_eq!(
+            vehicle_row.carte_grise_expiry,
+            Some("2024-12-31".to_string())
+        );
     }
 
     #[test]
@@ -289,7 +298,7 @@ mod tests {
     fn test_vehicle_status_debug_format() {
         let status_row = create_test_status_row();
         let debug_str = format!("{:?}", status_row);
-        
+
         // Debug format should contain key field information
         assert!(debug_str.contains("VehicleStatusRow"));
         assert!(debug_str.contains("valid"));
@@ -300,7 +309,7 @@ mod tests {
     fn test_vehicle_row_debug_format() {
         let vehicle_row = create_test_vehicle_row();
         let debug_str = format!("{:?}", vehicle_row);
-        
+
         // Debug format should contain key field information
         assert!(debug_str.contains("VehicleRow"));
         assert!(debug_str.contains("TEST123"));
@@ -392,6 +401,4 @@ mod tests {
             assert_eq!(status_row.vehicle_image_url, url);
         }
     }
-
 }
-

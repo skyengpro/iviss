@@ -1,5 +1,5 @@
 use crate::dto::users::UserRole;
-use crate::services::jwt_service::{AccessTokenClaims, JwtService, RefreshTokenClaims};
+use crate::services::jwt_service::{AccessTokenClaims, JwtService};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use uuid::Uuid;
 
@@ -27,19 +27,6 @@ fn decode_access_claims(token: &str) -> AccessTokenClaims {
         &validation,
     )
     .expect("Failed to decode access token")
-    .claims
-}
-
-fn decode_refresh_claims(token: &str) -> RefreshTokenClaims {
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.validate_exp = false;
-
-    decode::<RefreshTokenClaims>(
-        token,
-        &DecodingKey::from_rsa_pem(TEST_PUBLIC_KEY.as_bytes()).unwrap(),
-        &validation,
-    )
-    .expect("Failed to decode refresh token")
     .claims
 }
 
@@ -94,7 +81,7 @@ fn test_access_token_has_unique_jti() {
 }
 
 #[test]
-fn test_access_token_shift_expires_at_equals_exp() {
+fn test_access_token_contains_shift_bounds() {
     let svc = make_jwt_service();
 
     let token = svc
@@ -102,122 +89,43 @@ fn test_access_token_shift_expires_at_equals_exp() {
         .unwrap();
 
     let claims = decode_access_claims(&token);
-    assert_eq!(claims.shift_expires_at, claims.exp);
+    // shift_start should be set to current time
+    // shift_end should be shift_start + 8 hours
+    assert!(claims.shift_end > claims.shift_start);
 }
 
 // ─────────────────────────────────────────
-// issue_shift_token_pair
+// issue_access_token_with_shift
 // ─────────────────────────────────────────
 
 #[test]
-fn test_shift_token_pair_returns_non_empty_tokens() {
-    let svc = make_jwt_service();
-    let pair = svc
-        .issue_shift_token_pair(Uuid::new_v4(), Uuid::new_v4(), UserRole::Agent)
-        .unwrap();
-
-    assert!(!pair.access_token.is_empty());
-    assert!(!pair.refresh_token.is_empty());
-}
-
-#[test]
-fn test_shift_token_access_and_refresh_are_different() {
-    let svc = make_jwt_service();
-    let pair = svc
-        .issue_shift_token_pair(Uuid::new_v4(), Uuid::new_v4(), UserRole::Agent)
-        .unwrap();
-
-    assert_ne!(pair.access_token, pair.refresh_token);
-}
-
-#[test]
-fn test_shift_token_expires_at_is_8h_from_now() {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let svc = make_jwt_service();
-    let pair = svc
-        .issue_shift_token_pair(Uuid::new_v4(), Uuid::new_v4(), UserRole::Agent)
-        .unwrap();
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as usize;
-
-    let expected = now + (8 * 3600);
-
-    // Allow 5s tolerance
-    assert!(
-        pair.shift_expires_at >= expected - 5 && pair.shift_expires_at <= expected + 5,
-        "shift_expires_at must be ~8h from now"
-    );
-}
-
-#[test]
-fn test_shift_token_sub_and_device_id_are_correct() {
+fn test_access_token_with_shift_custom_bounds() {
     let svc = make_jwt_service();
     let user_id = Uuid::new_v4();
     let device_id = Uuid::new_v4();
 
-    let pair = svc
-        .issue_shift_token_pair(user_id, device_id, UserRole::Agent)
+    let token = svc
+        .issue_access_token_with_shift(user_id, device_id, UserRole::Manager, 1000, 5000)
         .unwrap();
 
-    let claims = decode_access_claims(&pair.access_token);
+    let claims = decode_access_claims(&token);
     assert_eq!(claims.sub, user_id);
     assert_eq!(claims.device_id, device_id);
-}
-
-// ─────────────────────────────────────────
-// issue_refresh_token
-// ─────────────────────────────────────────
-
-#[test]
-fn test_refresh_token_sub_and_device_id_are_correct() {
-    let svc = make_jwt_service();
-    let user_id = Uuid::new_v4();
-    let device_id = Uuid::new_v4();
-
-    let (token, _jti) = svc.issue_refresh_token(user_id, device_id).unwrap();
-
-    let claims = decode_refresh_claims(&token);
-    assert_eq!(claims.sub, user_id);
-    assert_eq!(claims.device_id, device_id);
+    assert_eq!(claims.role, UserRole::Manager.as_str());
+    assert_eq!(claims.shift_start, 1000);
+    assert_eq!(claims.shift_end, 5000);
 }
 
 #[test]
-fn test_refresh_token_jti_matches_returned_jti() {
+fn test_access_token_with_shift_different_roles() {
     let svc = make_jwt_service();
 
-    let (token, jti) = svc
-        .issue_refresh_token(Uuid::new_v4(), Uuid::new_v4())
-        .unwrap();
+    for role in [UserRole::Admin, UserRole::Agent, UserRole::Manager] {
+        let token = svc
+            .issue_access_token_with_shift(Uuid::new_v4(), Uuid::new_v4(), role, 0, 3600)
+            .unwrap();
 
-    let claims = decode_refresh_claims(&token);
-    assert_eq!(claims.jti, jti, "jti in claims must match returned jti");
-}
-
-#[test]
-fn test_refresh_token_expiry_is_30_days() {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let svc = make_jwt_service();
-    let (token, _) = svc
-        .issue_refresh_token(Uuid::new_v4(), Uuid::new_v4())
-        .unwrap();
-
-    let claims = decode_refresh_claims(&token);
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as usize;
-
-    let expected = now + (30 * 24 * 3600);
-
-    // Allow 5s tolerance
-    assert!(
-        claims.exp >= expected - 5 && claims.exp <= expected + 5,
-        "Refresh token must expire in ~30 days"
-    );
+        let claims = decode_access_claims(&token);
+        assert_eq!(claims.role, role.as_str());
+    }
 }

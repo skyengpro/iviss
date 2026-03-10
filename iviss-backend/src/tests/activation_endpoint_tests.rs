@@ -125,7 +125,7 @@ async fn activation_flow_activates_user_and_issues_tokens() {
         db.clone(),
         redis_pool.clone(),
         Arc::new(MockSmsProvider),
-        config,
+        &config,
     );
 
     let app = routes::assembly(state);
