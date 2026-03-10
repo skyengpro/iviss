@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const dailyLoginRequest: AuthContextType['dailyLoginRequest'] = async ({ badgeId }) => {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
-      const res = await fetch(`${baseUrl}/auth/daily-login/request`, {
+      const res = await fetch(`${baseUrl}/auth/request-daily-login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ badgeId }),
@@ -199,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }) => {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
-      const res = await fetch(`${baseUrl}/auth/daily-login/verify`, {
+      const res = await fetch(`${baseUrl}/auth/verify-daily-login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ badgeId, activationCode, deviceId }),
