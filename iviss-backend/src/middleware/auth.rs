@@ -78,28 +78,7 @@ pub async fn require_auth(
         .unwrap_or(0usize);
 
     if now > claims.shift_end {
-        tracing::warn!(
-            %method,
-            %path,
-            user_id = %claims.sub,
-            device_id = %claims.device_id,
-            shift_start = claims.shift_start,
-            shift_end = claims.shift_end,
-            now,
-            "auth: rejected (shift ended)"
-        );
-
-        if let Err(err) = auth_queries::mark_device_inactive(&state.db, claims.device_id).await {
-            tracing::error!(
-                %method,
-                %path,
-                device_id = %claims.device_id,
-                error = %err,
-                "auth: failed to mark device inactive after shift end"
-            );
-        }
-
-        return Err(AppError::unauthorized("Shift ended"));
+        return Err(crate::handlers::auth::on_shift_ended(&state.db, claims.device_id).await);
     }
 
     let validation_context = auth_queries::get_auth_validation_context(

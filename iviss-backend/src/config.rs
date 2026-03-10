@@ -89,6 +89,8 @@ pub struct Config {
     pub twilio_auth_token: String,
     pub twilio_from_number: String,
     pub activation_code_pepper: String,
+    pub shift_start_hour: u32,
+    pub shift_end_hour: u32,
 }
 
 impl Config {
@@ -173,6 +175,17 @@ impl Config {
                 "ACTIVATION_CODE_PEPPER must be at least 32 characters"
             ));
         }
+
+        let shift_start_hour = env::var("SHIFT_START_HOUR")
+            .unwrap_or_else(|_| "8".to_string())
+            .parse::<u32>()
+            .context("SHIFT_START_HOUR must be a valid number")?;
+
+        let shift_end_hour = env::var("SHIFT_END_HOUR")
+            .unwrap_or_else(|_| "18".to_string())
+            .parse::<u32>()
+            .context("SHIFT_END_HOUR must be a valid number")?;
+
         Ok(Self {
             database_url,
             redis_url,
@@ -187,6 +200,8 @@ impl Config {
             twilio_auth_token,
             twilio_from_number,
             activation_code_pepper,
+            shift_start_hour,
+            shift_end_hour,
         })
     }
 
@@ -279,6 +294,8 @@ mod tests {
             twilio_auth_token: "token".into(),
             twilio_from_number: "num".into(),
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
+            shift_start_hour: 8,
+            shift_end_hour: 18,
         };
 
         assert!(config.is_local());

@@ -17,6 +17,18 @@ use uuid::Uuid;
 
 const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
 
+/// Logic to execute when a shift has ended.
+/// Marks the device as inactive and returns an unauthorized error.
+pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
+    tracing::warn!(%device_id, "shift: ended logic triggered");
+
+    if let Err(err) = crate::queries::auth_queries::mark_device_inactive(pool, device_id).await {
+        tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
+    }
+
+    AppError::unauthorized("Shift ended")
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub email: String,
