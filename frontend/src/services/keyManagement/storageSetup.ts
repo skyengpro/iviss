@@ -135,10 +135,17 @@ storage.init().catch(() => {
 
 // Add a function to clear all stored data
 export async function clearAllStoredData() {
-  await storage.clear('keys');
-  // Clear other storage if needed
-  localStorage.removeItem('messages');
-  sessionStorage.removeItem('password');
+  try {
+    await storage.clear('keys');
+  } catch (err) {
+    console.error('Failed to clear keys store:', err);
+  }
+
+  try {
+    await storage.clear('metadata');
+  } catch (err) {
+    console.error('Failed to clear metadata store:', err);
+  }
 }
 
 export default storage;
