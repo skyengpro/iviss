@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
 use crate::handlers::{list_control::get_list_control, search_vehicle::search_vehicle};
 use crate::middleware::cors;
+use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
 use std::time::Duration;
@@ -52,10 +53,11 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route(
             "/auth/request-daily-login",
-            post(crate::handlers::auth::request_daily_login),
+            post(crate::handlers::auth::request_daily_login)
+            .layer(from_fn_with_state(state.clone(), crate::middleware::agent_work_scope::require_shift_hours)),
         )
         .route(
-            "//auth/verify-daily-login",
+            "/auth/verify-daily-login",
             post(crate::handlers::auth::verify_daily_login),
         )
         .route(
