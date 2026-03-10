@@ -58,7 +58,7 @@ async fn activation_flow_activates_user_and_issues_tokens() {
     let redis = Redis::default().start().await.unwrap();
     let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
     let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url);
+    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
     let redis_pool = redis_cfg
         .create_pool(Some(deadpool_redis::Runtime::Tokio1))
         .unwrap();
@@ -103,13 +103,29 @@ async fn activation_flow_activates_user_and_issues_tokens() {
 
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
+    let config = crate::config::Config {
+        database_url: db_url.clone(),
+        redis_url: redis_url.clone(),
+        server_host: "127.0.0.1".into(),
+        server_port: 0,
+        log_level: crate::config::LogLevel::Info,
+        jwt_secret: "dummy_testing_value_long_enough_to_pass_validation".into(),
+        jwt_private_key_pem: jwt_private_key_pem.clone(),
+        jwt_public_key_pem: jwt_public_key_pem.clone(),
+        environment: crate::config::Environment::Local,
+        twilio_account_sid: "mock".into(),
+        twilio_auth_token: "mock".into(),
+        twilio_from_number: "mock".into(),
+        activation_code_pepper: TEST_PEPPER.to_string(),
+        shift_start_hour: 8,
+        shift_end_hour: 18,
+    };
+
     let state = AppState::new(
         db.clone(),
         redis_pool.clone(),
         Arc::new(MockSmsProvider),
-        TEST_PEPPER.to_string(),
-        jwt_private_key_pem,
-        jwt_public_key_pem,
+        config,
     );
 
     let app = routes::assembly(state);

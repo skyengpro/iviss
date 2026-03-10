@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { DetectedPlate, PlateStatus } from './useScanPlate';
+import { fetchWithAuth } from '@/services/backendFetch';
 
 function normalizePlateCandidate(v: unknown): string {
   if (typeof v !== 'string') return '';
@@ -90,8 +91,6 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         // Save the raw captured frame for UI preview (freeze frame)
         setCapturedImageSrc(imageSrc);
 
-        const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
-
         const sendToOcr = async (processedDataUrl: string) => {
           const fetchRes = await fetch(processedDataUrl);
           const blob = await fetchRes.blob();
@@ -99,7 +98,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
           const formData = new FormData();
           formData.append('image', blob, 'photo.jpg');
 
-          const apiResponse = await fetch(`${apiUrl}/api/v1/photo/plate`, {
+          const apiResponse = await fetchWithAuth('/api/v1/photo/plate', {
             method: 'POST',
             body: formData,
           });

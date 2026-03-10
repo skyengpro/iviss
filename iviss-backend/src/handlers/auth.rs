@@ -10,14 +10,119 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
+
+/// Logic to execute when a shift has ended.
+/// Marks the device as inactive and returns an unauthorized error.
+pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
+    tracing::warn!(%device_id, "shift: ended logic triggered");
+
+    if let Err(err) = crate::queries::auth_queries::mark_device_inactive(pool, device_id).await {
+        tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
+    }
+
+    AppError::unauthorized("Shift ended")
+}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+}
+
+/// Refresh access token using refresh token
+#[utoipa::path(
+    post,
+    path = "/auth/refresh",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Token refreshed", body = RefreshResponse),
+        (status = 401, description = "Invalid refresh token", body = AppErrorResponse),
+        (status = 400, description = "Bad request", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "refreshToken"
+)]
+pub async fn refresh_token(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    if payload.refresh_token.trim().is_empty() {
+        return Err(AppError::bad_request("refreshToken is required"));
+    }
+
+    let refresh_token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    let row = sqlx::query(
+        r#"
+        SELECT
+            rt.user_id              AS user_id,
+            d.metadata              AS metadata,
+            d.status::text          AS device_status
+        FROM refresh_tokens rt
+        JOIN devices d ON d.id = rt.device_id
+        WHERE rt.token_hash = $1
+          AND rt.device_id = $2
+          AND rt.revoked = FALSE
+          AND rt.expires_at > NOW()
+        "#,
+    )
+    .bind(&refresh_token_hash)
+    .bind(payload.device_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::unauthorized("Invalid refresh token"))?;
+
+    let user_id: Uuid = row.get("user_id");
+    let device_status: String = row.get("device_status");
+    if device_status != "ACTIVE" {
+        return Err(AppError::unauthorized("Device is not active"));
+    }
+
+    let metadata: serde_json::Value = row.get("metadata");
+    let shift_start = metadata
+        .get("shift_start")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| AppError::internal_error("Device shift_start is missing"))?;
+    let shift_end = metadata
+        .get("shift_end")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| AppError::internal_error("Device shift_end is missing"))?;
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+        .as_secs() as i64;
+
+    if now > shift_end {
+        let _ =
+            crate::queries::auth_queries::mark_device_inactive(&state.db, payload.device_id).await;
+        return Err(AppError::unauthorized("Shift ended"));
+    }
+
+    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let access_token = jwt_svc
+        .issue_access_token_with_shift(
+            user_id,
+            payload.device_id,
+            user.role,
+            shift_start.try_into().unwrap_or(0usize),
+            shift_end.try_into().unwrap_or(0usize),
+        )
+        .map_err(AppError::Internal)?;
+
+    Ok((StatusCode::OK, Json(RefreshResponse { access_token })))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -59,6 +164,19 @@ pub struct ActivateResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub user: UserProfile,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshRequest {
+    pub refresh_token: String,
+    pub device_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshResponse {
+    pub access_token: String,
 }
 
 /// Login with email and password
@@ -301,6 +419,16 @@ pub async fn activate(
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+        .as_secs();
+    let shift_start: i64 = now.try_into().unwrap_or(0i64);
+    let shift_end: i64 = now
+        .saturating_add(SHIFT_TTL.as_secs())
+        .try_into()
+        .unwrap_or(0i64);
+
     sqlx::query(
         r#"
         UPDATE users
@@ -316,19 +444,28 @@ pub async fn activate(
 
     sqlx::query(
         r#"
-        INSERT INTO devices (id, user_id, public_key, status)
-        VALUES ($1, $2, $3, 'ACTIVE'::device_status)
+        INSERT INTO devices (id, user_id, public_key, status, metadata)
+        VALUES (
+            $1,
+            $2,
+            $3,
+            'ACTIVE'::device_status,
+            jsonb_build_object('shift_start', $4, 'shift_end', $5)
+        )
         ON CONFLICT (id)
         DO UPDATE SET
             user_id = EXCLUDED.user_id,
             public_key = EXCLUDED.public_key,
             status = 'ACTIVE'::device_status,
+            metadata = EXCLUDED.metadata,
             revoked_at = NULL
         "#,
     )
     .bind(payload.device_id)
     .bind(user_id)
     .bind(&payload.public_key_base64)
+    .bind(shift_start)
+    .bind(shift_end)
     .execute(&mut *tx)
     .await
     .map_err(AppError::Database)?;
@@ -369,7 +506,13 @@ pub async fn activate(
 
     let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
     let access_token = jwt_svc
-        .issue_access_token(user_id, payload.device_id, user.role)
+        .issue_access_token_with_shift(
+            user_id,
+            payload.device_id,
+            user.role,
+            shift_start.try_into().unwrap_or(0usize),
+            shift_end.try_into().unwrap_or(0usize),
+        )
         .map_err(AppError::Internal)?;
 
     Ok((
