@@ -12,7 +12,6 @@ pub struct AppState {
     pub pepper: String,
     pub jwt_private_key_pem: String,
     pub jwt_public_key_pem: String,
-    // pub jwt_service: Arc<JwtService>,
     pub shift_start_hour: u32,
     pub shift_end_hour: u32,
 }

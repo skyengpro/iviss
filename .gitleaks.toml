@@ -1,0 +1,14 @@
+title = "iviss gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''^\.env$''',
+  '''^\.env\.example$''',
+  '''^iviss-backend/\.env$''',
+  '''^iviss-backend/\.env\.example$''',
+  '''^iviss-backend/src/tests/fixtures/test_private_key\.pem$''',
+  '''^iviss-backend/src/tests/activation_endpoint_tests\.rs$''',
+]

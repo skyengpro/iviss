@@ -3,7 +3,7 @@ use std::str::FromStr;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {
     Admin,
@@ -43,7 +43,7 @@ impl UserRole {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UserStatus {
     PendingActivation,
@@ -113,4 +113,42 @@ pub struct UpdateUserRequest {
     pub email: Option<String>,
     pub badge_id: Option<String>,
     pub status: Option<UserStatus>,
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_user_role_conversion() {
+        assert_eq!(UserRole::Admin.as_str(), "admin");
+        assert_eq!(UserRole::Manager.as_str(), "manager");
+        assert_eq!(UserRole::Agent.as_str(), "agent");
+
+        assert!(matches!(UserRole::from_str("admin"), UserRole::Admin));
+        assert!(matches!(UserRole::from_str("ADMIN"), UserRole::Admin));
+        assert!(matches!(UserRole::from_str("manager"), UserRole::Manager));
+        assert!(matches!(UserRole::from_str("agent"), UserRole::Agent));
+        assert!(matches!(UserRole::from_str("unknown"), UserRole::Agent));
+    }
+
+    #[test]
+    fn test_user_status_conversion() {
+        assert_eq!(UserStatus::Active.as_str(), "ACTIVE");
+        assert_eq!(UserStatus::Suspended.as_str(), "SUSPENDED");
+        assert_eq!(UserStatus::PendingActivation.as_str(), "PENDING_ACTIVATION");
+
+        assert!(matches!(UserStatus::from_str("ACTIVE"), UserStatus::Active));
+        assert!(matches!(
+            UserStatus::from_str("SUSPENDED"),
+            UserStatus::Suspended
+        ));
+        assert!(matches!(
+            UserStatus::from_str("PENDING_ACTIVATION"),
+            UserStatus::PendingActivation
+        ));
+        assert!(matches!(
+            UserStatus::from_str("UNKNOWN"),
+            UserStatus::PendingActivation
+        ));
+    }
 }

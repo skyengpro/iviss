@@ -7,6 +7,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::sync::Arc;
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -79,12 +80,29 @@ impl ActivationService {
             .await
             .context("Failed to store activation code in Redis")?;
 
+        info!(
+            target: "activation",
+            user_id = %user_id,
+            ttl_secs = ACTIVATION_TTL_SECS,
+            "Activation code stored in Redis"
+        );
+
         Ok(code)
     }
 
     /// Validates a code submitted by the agent — returns Ok(()) if valid
     pub async fn validate(&self, user_id: &Uuid, submitted_code: &str) -> Result<()> {
-        let key = ActivationEntry::redis_key(self.prefix, user_id);
+        let submitted_code = submitted_code.trim();
+        if submitted_code.len() != 6 || !submitted_code.chars().all(|c| c.is_ascii_digit()) {
+            warn!(
+                target: "activation",
+                user_id = %user_id,
+                "Activation code has invalid format"
+            );
+            return Err(anyhow::anyhow!("Invalid activation code format"));
+        }
+
+        let key = ActivationEntry::redis_key(user_id);
         let mut conn = self
             .redis
             .get()
@@ -99,11 +117,27 @@ impl ActivationService {
             .await
             .context("Failed to fetch activation entry")?;
 
-        let raw = raw.ok_or_else(|| anyhow::anyhow!("Activation code expired or not found"))?;
+        let raw = match raw {
+            Some(v) => v,
+            None => {
+                warn!(
+                    target: "activation",
+                    user_id = %user_id,
+                    "Activation code not found in Redis"
+                );
+                return Err(anyhow::anyhow!("Activation code expired or not found"));
+            }
+        };
 
         let remaining_ttl = if ttl > 0 {
             ttl as u64
         } else {
+            warn!(
+                target: "activation",
+                user_id = %user_id,
+                ttl = ttl,
+                "Activation code expired (ttl <= 0)"
+            );
             return Err(anyhow::anyhow!("Activation code expired"));
         };
 
@@ -114,6 +148,12 @@ impl ActivationService {
         if entry.attempts >= MAX_ATTEMPTS {
             // Delete the key
             conn.del::<_, ()>(&key).await.ok();
+            warn!(
+                target: "activation",
+                user_id = %user_id,
+                attempts = entry.attempts,
+                "Activation code invalidated: max attempts reached"
+            );
             return Err(anyhow::anyhow!(
                 "Max attempts reached — activation code invalidated"
             ));
@@ -127,15 +167,37 @@ impl ActivationService {
 
             if entry.attempts >= MAX_ATTEMPTS {
                 conn.del::<_, ()>(&key).await.ok();
+                warn!(
+                    target: "activation",
+                    user_id = %user_id,
+                    attempts = entry.attempts,
+                    "Activation code invalidated: max attempts reached"
+                );
                 return Err(anyhow::anyhow!(
                     "Max attempts reached — activation code invalidated"
                 ));
             }
 
             let updated = serde_json::to_string(&entry)?;
-            conn.set_ex::<_, _, ()>(&key, updated, remaining_ttl)
-                .await
-                .context("Failed to update attempts")?;
+            if let Err(e) = conn.set_ex::<_, _, ()>(&key, updated, remaining_ttl).await {
+                error!(
+                    target: "activation",
+                    user_id = %user_id,
+                    attempts = entry.attempts,
+                    error = %e,
+                    "Failed to update activation attempts in Redis"
+                );
+                return Err(anyhow::anyhow!("Failed to update attempts"));
+            }
+
+            warn!(
+                target: "activation",
+                user_id = %user_id,
+                attempts = entry.attempts,
+                remaining_attempts = (MAX_ATTEMPTS - entry.attempts),
+                ttl_secs = remaining_ttl,
+                "Invalid activation code"
+            );
 
             return Err(anyhow::anyhow!(
                 "Invalid activation code — {} attempt(s) remaining",
@@ -145,6 +207,12 @@ impl ActivationService {
 
         // Success — delete the key
         conn.del::<_, ()>(&key).await.ok();
+
+        info!(
+            target: "activation",
+            user_id = %user_id,
+            "Activation code validated successfully"
+        );
 
         Ok(())
     }

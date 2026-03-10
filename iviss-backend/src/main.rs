@@ -46,7 +46,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let sms_provider: Arc<dyn SmsProvider> = match config.environment {
+    let sms_provider: Arc<dyn SmsProvider> = match &config.environment {
         Environment::Production => Arc::new(TwilioSmsProvider::new(
             config.twilio_account_sid.clone(),
             config.twilio_auth_token.clone(),
