@@ -3,6 +3,8 @@ use crate::dto::auth::{
     DailyLoginResponse, RequestDailyLoginRequest, RequestDailyLoginResponse,
     SendActivationResponse, VerifyDailyLoginRequest,
 };
+use crate::services::otp_service::OtpService;
+use crate::queries::auth_queries;
 use crate::dto::users::{UserProfile, UserRole};
 use crate::errors::AppError;
 use crate::services::activation_service::ActivationService;
@@ -200,16 +202,17 @@ pub async fn send_activation(
     ))
 }
 
-/// Request a daily OTP login code
+// Request a daily OTP login code
 #[utoipa::path(
     post,
     path = "/auth/request-daily-login",
     request_body = RequestDailyLoginRequest,
     responses(
         (status = 201, description = "OTP sent successfully", body = RequestDailyLoginResponse),
-        (status = 404, description = "User not found", body = AppErrorResponse),
-        (status = 400, description = "Bad request", body = AppErrorResponse),
-        (status = 429, description = "Too many requests", body = AppErrorResponse)
+        (status = 400, description = "Bad request — missing or invalid fields", body = AppErrorResponse),
+        (status = 401, description = "User or device is suspended", body = AppErrorResponse),
+        (status = 404, description = "User or device not found", body = AppErrorResponse),
+        (status = 429, description = "Too many OTP requests", body = AppErrorResponse),
     ),
     tag = "auth",
     operation_id = "requestDailyLogin"
@@ -218,54 +221,34 @@ pub async fn request_daily_login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RequestDailyLoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Fetch user by phone number
-    let user = sqlx::query!(
-        r#"
-        SELECT id, phone_number,
-               role AS "role: String",
-               status AS "status: String"
-        FROM users
-        WHERE phone_number = $1
-        AND deleted_at IS NULL
-        "#,
-        payload.phone_number
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
-    // Only active users can request OTP
-    if user.status != "ACTIVE" {
-        return Err(AppError::Unauthorized(format!(
-            "Account is not active — current status: {}",
-            user.status
-        )));
+    if payload.phone_number.trim().is_empty() {
+        return Err(AppError::bad_request("phoneNumber is required"));
     }
+    let user = auth_queries::get_user_by_phone(&state.db, &payload.phone_number).await?;
 
-    // Verify device exists and is ACTIVE
-    let device = sqlx::query!(
-        r#"
-        SELECT id, status AS "status: String"
-        FROM devices
-        WHERE id = $1
-        AND user_id = $2
-        "#,
-        payload.device_id,
-        user.id
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("Device not found".into()))?;
-
-    if device.status != "ACTIVE" {
-        return Err(AppError::Unauthorized(
-            "Device is revoked or inactive".into(),
+    // Only agents use the daily OTP flow
+    if user.role != "agent" {
+        return Err(AppError::unauthorized(
+            "Daily login is only available for agents",
         ));
     }
 
-    // Build OtpService and request OTP — rate limit enforced inside
+    if user.status == "SUSPENDED" {
+        return Err(AppError::unauthorized(
+            "Account suspended — contact your administrator",
+        ));
+    }
+
+    let device =
+        auth_queries::get_device_by_user(&state.db, payload.device_id, user.id).await?;
+
+    if device.status == "SUSPENDED" {
+        return Err(AppError::unauthorized(
+            "Device suspended — contact your administrator",
+        ));
+    }
+
     let otp_svc = OtpService::new(
         state.redis.clone(),
         state.sms_pvd.clone(),
@@ -274,15 +257,14 @@ pub async fn request_daily_login(
 
     otp_svc
         .request_otp(&user.id, &user.phone_number)
-        .await
-        .map_err(|e| {
-            // Distinguish rate limit error from other errors
-            if e.to_string().contains("Too many OTP requests") {
-                AppError::BadRequest(e.to_string())
-            } else {
-                AppError::Internal(e)
-            }
-        })?;
+        .await?;
+
+    tracing::info!(
+        target: "daily_login",
+        user_id = %user.id,
+        device_id = %payload.device_id,
+        "Daily login OTP requested"
+    );
 
     Ok((
         StatusCode::CREATED,
@@ -292,111 +274,3 @@ pub async fn request_daily_login(
     ))
 }
 
-/// Verify daily OTP and issue shift token pair
-#[utoipa::path(
-    post,
-    path = "/auth/verify-daily-login",
-    request_body = VerifyDailyLoginRequest,
-    responses(
-        (status = 200, description = "Login successful", body = DailyLoginResponse),
-        (status = 401, description = "Invalid or expired OTP", body = AppErrorResponse),
-        (status = 404, description = "User not found", body = AppErrorResponse)
-    ),
-    tag = "auth",
-    operation_id = "verifyDailyLogin"
-)]
-pub async fn verify_daily_login(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<VerifyDailyLoginRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    use sha2::{Digest, Sha256};
-
-    // Fetch user by phone number
-    let user = sqlx::query!(
-        r#"
-        SELECT id, phone_number,
-               status AS "status: String",
-               role AS "role: String"
-        FROM users
-        WHERE phone_number = $1
-        AND deleted_at IS NULL
-        "#,
-        payload.phone_number
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
-
-    // Verify device belongs to user and is ACTIVE
-    let device = sqlx::query!(
-        r#"
-        SELECT id, status AS "status: String"
-        FROM devices
-        WHERE id = $1
-        AND user_id = $2
-        "#,
-        payload.device_id,
-        user.id
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("Device not found".into()))?;
-
-    if device.status != "ACTIVE" {
-        return Err(AppError::Unauthorized(
-            "Device is revoked or inactive".into(),
-        ));
-    }
-
-    // Validate OTP — handles expiry + attempts
-    let otp_svc = OtpService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
-
-    otp_svc
-        .validate_otp(&user.id, &payload.otp)
-        .await
-        .map_err(|e| AppError::Unauthorized(e.to_string()))?;
-
-    // Parse role
-    let role = user
-        .role
-        .parse::<UserRole>()
-        .map_err(|_| AppError::Internal(anyhow::anyhow!("Invalid user role")))?;
-
-    // Issue shift token pair (8h access + 30d refresh)
-    let token_pair = state
-        .jwt_service
-        .issue_shift_token_pair(user.id, payload.device_id, role)
-        .map_err(AppError::Internal)?;
-
-    // Hash refresh token before storing (SHA-256)
-    let refresh_hash = format!("{:x}", Sha256::digest(token_pair.refresh_token.as_bytes()));
-
-    // Store hashed refresh token linked to device
-    sqlx::query!(
-        r#"
-    INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
-    VALUES ($1, $2, $3, NOW() + INTERVAL '30 days')
-    "#,
-        refresh_hash,
-        user.id,
-        payload.device_id,
-    )
-    .execute(&state.db)
-    .await
-    .map_err(AppError::Database)?;
-
-    Ok((
-        StatusCode::OK,
-        Json(DailyLoginResponse {
-            access_token: token_pair.access_token,
-            refresh_token: token_pair.refresh_token,
-            shift_expires_at: token_pair.shift_expires_at,
-        }),
-    ))
-}
