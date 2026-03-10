@@ -13,7 +13,7 @@ pub struct DeviceActionResponse {
     pub message: String,
 }
 
-// ── Suspend 
+// ── Suspend
 #[utoipa::path(
     post,
     path = "/admin/devices/{id}/suspend",
@@ -33,7 +33,7 @@ pub async fn suspend_device(
     State(state): State<Arc<AppState>>,
     Path(device_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    // ── Verify device exists and is not already suspended 
+    // ── Verify device exists and is not already suspended
     let row = sqlx::query(
         r#"
         SELECT status::TEXT AS status

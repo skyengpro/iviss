@@ -1,10 +1,10 @@
+use crate::db::RedisPool;
 use crate::errors::AppError;
+use deadpool_redis::redis::AsyncCommands;
 use sqlx::FromRow;
 use sqlx::PgPool;
-use uuid::Uuid;
-use deadpool_redis::redis::AsyncCommands;
-use crate::db::RedisPool;
 use time::PrimitiveDateTime;
+use uuid::Uuid;
 
 #[derive(Debug, FromRow)]
 pub struct AuthValidationContext {
@@ -68,7 +68,6 @@ pub async fn mark_device_inactive(pool: &PgPool, device_id: Uuid) -> Result<(), 
     .map_err(AppError::database)
 }
 
-
 #[derive(Debug, FromRow)]
 pub struct UserForLogin {
     pub id: Uuid,
@@ -98,10 +97,7 @@ pub async fn get_user_by_phone(
     .ok_or_else(|| AppError::not_found("User not found"))
 }
 
-pub async fn get_user_by_badge_id(
-    pool: &PgPool,
-    badge_id: &str,
-) -> Result<UserForLogin, AppError> {
+pub async fn get_user_by_badge_id(pool: &PgPool, badge_id: &str) -> Result<UserForLogin, AppError> {
     sqlx::query_as::<_, UserForLogin>(
         r#"
         SELECT id, role::TEXT AS role, status::TEXT AS status,
@@ -169,10 +165,7 @@ pub async fn mark_device_active(
     .map_err(AppError::database)
 }
 
-pub async fn mark_device_suspended(
-    pool: &PgPool,
-    device_id: Uuid,
-) -> Result<(), AppError> {
+pub async fn mark_device_suspended(pool: &PgPool, device_id: Uuid) -> Result<(), AppError> {
     sqlx::query(
         r#"
         UPDATE devices
@@ -232,11 +225,7 @@ pub async fn revoke_refresh_tokens_for_device(
     .map_err(AppError::database)
 }
 
-pub async fn blacklist_jti(
-    redis: &RedisPool,
-    jti: &str,
-    ttl_secs: u64,
-) -> Result<(), AppError> {
+pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Result<(), AppError> {
     let key = format!("blacklist:jti:{}", jti);
     let mut conn = redis
         .get()
@@ -248,4 +237,26 @@ pub async fn blacklist_jti(
         .map_err(|e| AppError::internal_error(format!("Redis SET failed: {e}")))?;
 
     Ok(())
+}
+
+pub async fn has_valid_refresh_token(
+    pool: &PgPool,
+    device_id: Uuid,
+) -> Result<bool, AppError> {
+    let valid_refresh: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1 FROM refresh_tokens
+            WHERE  device_id  = $1
+              AND  revoked    = FALSE
+              AND  expires_at > NOW()
+        )
+        "#,
+    )
+    .bind(device_id)
+    .fetch_one(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    Ok(valid_refresh)
 }

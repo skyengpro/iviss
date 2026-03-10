@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -8,6 +9,19 @@ pub enum UserRole {
     Admin,
     Agent,
     Manager,
+}
+
+impl FromStr for UserRole {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "admin" => Ok(Self::Admin),
+            "manager" => Ok(Self::Manager),
+            "agent" => Ok(Self::Agent),
+            _ => Err(format!("Invalid user role: {}", s)),
+        }
+    }
 }
 
 impl UserRole {

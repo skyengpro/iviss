@@ -3,6 +3,7 @@ use utoipa::{
     Modify, OpenApi,
 };
 
+
 use crate::dto::{
     auth::*,
     common::*,
@@ -49,9 +50,11 @@ impl Modify for SecurityAddon {
         (name = "vehicles", description = "Vehicle lookup and image upload"),
         (name = "controls", description = "Roadside control tracking"),
         (name = "scanning", description = "License plate OCR scanning"),
+        (name = "photo", description = "Photo-based plate recognition"),
         (name = "stats", description = "Dashboard statistics"),
         (name = "users", description = "User profile management"),
         (name = "auth", description = "Authentication and registration"),
+        (name = "admin", description = "Admin operations"),
     ),
     paths(
         crate::handlers::search_vehicle::search_vehicle,
@@ -61,6 +64,7 @@ impl Modify for SecurityAddon {
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,
         crate::handlers::scan::scan_plate,
+        crate::handlers::photo::photo_plate,
         crate::handlers::stats::get_dashboard_stats,
         crate::handlers::users::get_user_profile,
         crate::handlers::auth::login,
@@ -69,6 +73,8 @@ impl Modify for SecurityAddon {
         crate::handlers::auth::send_activation,
         crate::handlers::auth::request_daily_login,
         crate::handlers::auth::verify_daily_login,
+        crate::handlers::device_management::suspend_device,
+        crate::handlers::device_management::unsuspend_device,
         crate::handlers::user_management::provision_user,
         crate::handlers::user_management::list_users,
         crate::handlers::user_management::get_user,
@@ -121,12 +127,13 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::LoginRequest,
             crate::handlers::auth::AuthResponse,
             crate::handlers::auth::RegisterRequest,
-            crate::handlers::auth::SendActivationRequest,
+            SendActivationRequest,
             SendActivationResponse,
             RequestDailyLoginRequest,
             RequestDailyLoginResponse,
             VerifyDailyLoginRequest,
             DailyLoginResponse,
+            // ── user management ──
             ProvisionUserRequest,
             UpdateUserRequest,
             UserStatus,

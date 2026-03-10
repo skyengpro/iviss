@@ -37,6 +37,9 @@ sha2 = "0.10"
 hmac = "0.12"
 rand = "0.8"
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
+rsa = { version = "0.9", features = ["pem"] }
+base64 = "0.22.1"
+
 
 [dev-dependencies]
 testcontainers = "0.23"

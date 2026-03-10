@@ -12,9 +12,9 @@ use uuid::Uuid;
 
 type HmacSha256 = Hmac<Sha256>;
 
-const OTP_TTL_SECS: u64 = 300;          // 5 minutes — absolute, not sliding
+const OTP_TTL_SECS: u64 = 300; // 5 minutes — absolute, not sliding
 const MAX_ATTEMPTS: u8 = 5;
-const RATE_LIMIT_MAX: u64 = 3;          // max OTP requests per window
+const RATE_LIMIT_MAX: u64 = 3; // max OTP requests per window
 const RATE_LIMIT_WINDOW_SECS: i64 = 600; // 10 minutes
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,7 +41,10 @@ impl OtpService {
         let code = self.generate_code();
         let code_hash = self.hash_code(&code);
 
-        let entry = OtpEntry { code_hash, attempts: 0 };
+        let entry = OtpEntry {
+            code_hash,
+            attempts: 0,
+        };
         let value = serde_json::to_string(&entry)
             .map_err(|e| AppError::internal_error(format!("OTP serialization failed: {e}")))?;
 
@@ -57,10 +60,7 @@ impl OtpService {
             .await
             .map_err(|e| AppError::internal_error(format!("Redis SET failed: {e}")))?;
 
-        let message = format!(
-            "Your IVISS login code is: {}. Valid for 5 minutes.",
-            code
-        );
+        let message = format!("Your IVISS login code is: {}. Valid for 5 minutes.", code);
         self.sms
             .send_sms(phone, &message)
             .await
@@ -104,7 +104,9 @@ impl OtpService {
 
         if entry.attempts >= MAX_ATTEMPTS {
             conn.del::<_, ()>(&key).await.ok();
-            return Err(AppError::unauthorized("Max attempts reached — OTP invalidated"));
+            return Err(AppError::unauthorized(
+                "Max attempts reached — OTP invalidated",
+            ));
         }
 
         let submitted_hash = self.hash_code(submitted_code);
@@ -115,13 +117,16 @@ impl OtpService {
             if entry.attempts >= MAX_ATTEMPTS {
                 conn.del::<_, ()>(&key).await.ok();
                 warn!(target: "otp", user_id = %user_id, "OTP invalidated: max attempts reached");
-                return Err(AppError::unauthorized("Max attempts reached — OTP invalidated"));
+                return Err(AppError::unauthorized(
+                    "Max attempts reached — OTP invalidated",
+                ));
             }
 
             // Preserve absolute TTL — do not reset expiration
-            let updated = serde_json::to_string(&entry)
-                .unwrap_or_default();
-            conn.set_ex::<_, _, ()>(&key, updated, remaining_ttl).await.ok();
+            let updated = serde_json::to_string(&entry).unwrap_or_default();
+            conn.set_ex::<_, _, ()>(&key, updated, remaining_ttl)
+                .await
+                .ok();
 
             warn!(
                 target: "otp",
@@ -182,8 +187,8 @@ impl OtpService {
     }
 
     fn hash_code(&self, code: &str) -> String {
-        let mut mac = HmacSha256::new_from_slice(self.pepper.as_bytes())
-            .expect("HMAC accepts any key size");
+        let mut mac =
+            HmacSha256::new_from_slice(self.pepper.as_bytes()).expect("HMAC accepts any key size");
         mac.update(code.as_bytes());
         format!("{:x}", mac.finalize().into_bytes())
     }

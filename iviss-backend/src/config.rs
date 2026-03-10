@@ -80,13 +80,17 @@ pub struct Config {
     pub server_port: u16,
     pub log_level: LogLevel,
     #[allow(dead_code)]
+    pub jwt_secret: String,
     pub jwt_private_key_pem: String,
+    pub jwt_public_key_pem: String,
     pub environment: Environment,
     // SMS
     pub twilio_account_sid: String,
     pub twilio_auth_token: String,
     pub twilio_from_number: String,
     pub activation_code_pepper: String,
+    pub shift_start_hour: u32,
+    pub shift_end_hour: u32,
 }
 
 impl Config {
@@ -121,6 +125,18 @@ impl Config {
                 "JWT_PRIVATE_KEY_PEM must be at least 32 characters long for security. Current length: {}",
                 jwt_secret.len()
             ));
+        }
+
+        let jwt_private_key_pem =
+            env::var("JWT_PRIVATE_KEY_PEM").context("JWT_PRIVATE_KEY_PEM must be set")?;
+        if jwt_private_key_pem.trim().is_empty() {
+            return Err(anyhow!("JWT_PRIVATE_KEY_PEM cannot be empty"));
+        }
+
+        let jwt_public_key_pem =
+            env::var("JWT_PUBLIC_KEY_PEM").context("JWT_PUBLIC_KEY_PEM must be set")?;
+        if jwt_public_key_pem.trim().is_empty() {
+            return Err(anyhow!("JWT_PUBLIC_KEY_PEM cannot be empty"));
         }
 
         // Load SERVER_HOST with default
@@ -160,18 +176,44 @@ impl Config {
                 "ACTIVATION_CODE_PEPPER must be at least 32 characters"
             ));
         }
+        let shift_start_hour = env::var("SHIFT_START_HOUR")
+            .unwrap_or_else(|_| "6".to_string())
+            .parse::<u32>()
+            .context("SHIFT_START_HOUR must be a valid hour (0-23)")?;
+
+        let shift_end_hour = env::var("SHIFT_END_HOUR")
+            .unwrap_or_else(|_| "18".to_string())
+            .parse::<u32>()
+            .context("SHIFT_END_HOUR must be a valid hour (0-23)")?;
+
+        if shift_start_hour > 23 || shift_end_hour > 23 {
+            return Err(anyhow!(
+                "SHIFT_START_HOUR and SHIFT_END_HOUR must be between 0 and 23"
+            ));
+        }
+        if shift_start_hour >= shift_end_hour {
+            return Err(anyhow!(
+                "SHIFT_START_HOUR ({}) must be less than SHIFT_END_HOUR ({})",
+                shift_start_hour,
+                shift_end_hour
+            ));
+        }
         Ok(Self {
             database_url,
             redis_url,
             server_host,
             server_port,
             log_level,
-            jwt_private_key_pem: jwt_secret,
+            jwt_secret,
+            jwt_private_key_pem,
+            jwt_public_key_pem,
             environment,
             twilio_account_sid,
             twilio_auth_token,
             twilio_from_number,
             activation_code_pepper,
+            shift_start_hour,
+            shift_end_hour,
         })
     }
 
