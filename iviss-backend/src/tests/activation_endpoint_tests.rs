@@ -109,7 +109,7 @@ async fn activation_flow_activates_user_and_issues_tokens() {
         server_host: "127.0.0.1".into(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
-        jwt_secret: "test_secret_must_be_at_least_32_characters_long".into(),
+        jwt_secret: "dummy_testing_value_long_enough_to_pass_validation".into(),
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
