@@ -41,6 +41,14 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/organizations",
             get(crate::handlers::user_management::list_organizations),
+        )
+        .route(
+            "/admin/devices/{id}/suspend",
+            post(crate::handlers::device_management::suspend_device),
+        )
+        .route(
+            "/admin/devices/{id}/unsuspend",
+            post(crate::handlers::device_management::unsuspend_device),
         );
 
     let protected_routes = Router::new()
@@ -79,8 +87,10 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route(
             "/auth/request-daily-login",
-            post(crate::handlers::auth::request_daily_login)
-            .layer(from_fn_with_state(state.clone(), crate::middleware::agent_work_scope::require_shift_hours)),
+            post(crate::handlers::auth::request_daily_login).layer(from_fn_with_state(
+                state.clone(),
+                crate::middleware::agent_work_scope::require_shift_hours,
+            )),
         )
         .route(
             "/auth/verify-daily-login",

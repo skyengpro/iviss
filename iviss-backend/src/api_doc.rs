@@ -3,7 +3,6 @@ use utoipa::{
     Modify, OpenApi,
 };
 
-
 use crate::dto::{
     auth::*,
     common::*,

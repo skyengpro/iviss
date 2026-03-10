@@ -102,7 +102,7 @@ impl ActivationService {
             return Err(anyhow::anyhow!("Invalid activation code format"));
         }
 
-        let key = ActivationEntry::redis_key(user_id);
+        let key = ActivationEntry::redis_key(self.prefix, user_id);
         let mut conn = self
             .redis
             .get()

@@ -1,6 +1,10 @@
 use crate::app_state::AppState;
 use crate::errors::AppError;
-use axum::{extract::{Request, State}, middleware::Next, response::IntoResponse};
+use axum::{
+    extract::{Request, State},
+    middleware::Next,
+    response::IntoResponse,
+};
 use std::sync::Arc;
 use time::{OffsetDateTime, UtcOffset};
 

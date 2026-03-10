@@ -53,10 +53,8 @@ pub async fn suspend_device(
         return Err(AppError::bad_request("Device is already suspended"));
     }
 
-    auth_queries::revoke_refresh_tokens_for_device(&state.db, device_id).await?;
-
     // ── Set device status to SUSPENDED
-    auth_queries::mark_device_suspended(&state.db, device_id).await?;
+    auth_queries::suspend_device_and_revoke_tokens(&state.db, device_id).await?;
 
     tracing::info!(
         target: "device_management",
