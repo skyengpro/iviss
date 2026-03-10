@@ -4,12 +4,15 @@ import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/deviceId';
 import { client } from '@/openapi-rq/requests/services.gen';
+import { fetchWithAuth } from '@/services/backendFetch';
 
 const SESSION_KEY = 'iviss_session';
 const REFRESH_TOKEN_KEY = 'iviss_refresh_token';
 
 function applyAuthTokenToApiClient(token?: string) {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   client.setConfig({
+    baseUrl,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 }
@@ -69,10 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     deviceId,
     publicKeyBase64,
   }) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
     try {
-      const res = await fetch(`${baseUrl}/auth/activate`, {
+      const res = await fetchWithAuth('/auth/activate', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -106,10 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let resolvedUser: UserProfile = data.user;
       try {
-        const meRes = await fetch(`${baseUrl}/users/me`, {
-          headers: {
-            authorization: `Bearer ${data.accessToken}`,
-          },
+        const meRes = await fetchWithAuth('/users/me', {
+          headers: { Authorization: `Bearer ${data.accessToken}` },
         });
         if (meRes.ok) {
           resolvedUser = (await meRes.json()) as UserProfile;
@@ -141,7 +140,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await mockAuthService.login(username, password);
 
     if (result.success && result.session) {
-      const backendSession = result.session as unknown as AuthResponse;
+      const backendSession = {
+        token: result.session.token,
+        user: result.session.user as unknown as UserProfile,
+      } as unknown as AuthResponse;
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
+      applyAuthTokenToApiClient(backendSession.token);
+
       setSession(backendSession);
       setUser(backendSession.user);
       return { success: true };
@@ -154,6 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     applyAuthTokenToApiClient(undefined);
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     return;
   };
 
