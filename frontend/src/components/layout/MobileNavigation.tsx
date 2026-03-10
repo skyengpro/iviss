@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Camera, Search, ClipboardList, Settings } from 'lucide-react';
+import { Home, Camera, Search, ClipboardList, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
@@ -12,7 +12,7 @@ export function MobileNavigation() {
     { href: '/mobile/scan', icon: Camera, label: t('mobileNav.scan') },
     { href: '/mobile/search', icon: Search, label: t('mobileNav.search') },
     { href: '/mobile/history', icon: ClipboardList, label: t('mobileNav.history') },
-    { href: '/mobile/settings', icon: Settings, label: t('mobileNav.settings') },
+    { href: '/mobile/profile', icon: User, label: t('mobileNav.profile') },
   ];
 
   return (

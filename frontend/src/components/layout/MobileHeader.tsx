@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -17,6 +18,7 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileHeaderProps>) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -74,6 +76,7 @@ export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileH
             variant="ghost"
             size="icon"
             className="touch-target text-primary-foreground hover:bg-white/10"
+            onClick={() => navigate('/mobile/profile')}
           >
             <User className="h-5 w-5" />
           </Button>

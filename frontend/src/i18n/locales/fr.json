@@ -419,7 +419,8 @@
     "scan": "Scanner",
     "search": "Rechercher",
     "history": "Historique",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "profile": "Profil"
   },
   "backOfficeHeader": {
     "nationalPoliceHQ": "Direction Générale de la Police Nationale",

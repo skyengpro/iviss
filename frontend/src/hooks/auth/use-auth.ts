@@ -7,6 +7,12 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  activate: (params: {
+    badgeId: string;
+    activationCode: string;
+    deviceId: string;
+    publicKeyBase64: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   getMockCredentials: () => { role: string; username: string; password: string }[];
 }

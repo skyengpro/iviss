@@ -1,6 +1,5 @@
 import { ReactNode, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { UserRole } from '@/services/mockAuth';
 import { useAuth } from '@/hooks/auth/use-auth';
 
 export function RequireAuth({
@@ -8,7 +7,7 @@ export function RequireAuth({
   allowedRoles,
 }: {
   children: ReactNode;
-  allowedRoles?: UserRole[];
+  allowedRoles?: string[];
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -17,8 +16,8 @@ export function RequireAuth({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        navigate('/login', { state: { from: location.pathname } });
-      } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+        navigate('/activate', { state: { from: location.pathname } });
+      } else if (allowedRoles && user && !allowedRoles.includes(user.role as unknown as string)) {
         if (user.role === 'admin') {
           navigate('/backoffice');
         } else {
