@@ -92,6 +92,7 @@ else
     exit 1
 fi
 
+
 echo "📊 Step 7: Generating code coverage..."
 if command -v cargo-llvm-cov &> /dev/null; then
     echo "Running coverage with 60% minimum threshold..."
