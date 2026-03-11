@@ -3,8 +3,8 @@ use iviss_backend::app_state::AppState;
 use iviss_backend::config::{Config, Environment};
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::initialize_redis_pool;
-use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 use iviss_backend::routes;
+use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 
 use anyhow::Context;
 use std::net::SocketAddr;
