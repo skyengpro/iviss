@@ -29,10 +29,10 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     .ok_or_else(|| AppError::not_found("User not found"))?;
 
     let role_str: String = row.get("role");
-    let role = UserRole::from_str(&role_str);
+    let role = role_str.parse::<UserRole>().unwrap();
 
     let status_str: String = row.get("status");
-    let status = crate::dto::users::UserStatus::from_str(&status_str);
+    let status = status_str.parse::<crate::dto::users::UserStatus>().unwrap();
 
     Ok(UserProfile {
         id: row.get("id"),
@@ -117,10 +117,10 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
         .into_iter()
         .map(|row| {
             let role_str: String = row.get("role");
-            let role = UserRole::from_str(&role_str);
+            let role = role_str.parse::<UserRole>().unwrap();
 
             let status_str: String = row.get("status");
-            let status = crate::dto::users::UserStatus::from_str(&status_str);
+            let status = status_str.parse::<crate::dto::users::UserStatus>().unwrap();
 
             UserProfile {
                 id: row.get("id"),

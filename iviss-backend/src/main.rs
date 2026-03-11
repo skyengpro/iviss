@@ -1,24 +1,10 @@
-pub mod api_doc;
-mod app_state;
-mod config;
-mod db;
-mod dto;
-mod errors;
-mod handlers;
-mod middleware;
-mod models;
-mod queries;
-mod routes;
-mod services;
-#[cfg(test)]
-mod tests;
-
-use crate::api_doc::ApiDoc;
-use crate::app_state::AppState;
-use crate::config::{Config, Environment};
-use crate::db::initialize_pool;
-use crate::db::initialize_redis_pool;
-use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
+use iviss_backend::api_doc::ApiDoc;
+use iviss_backend::app_state::AppState;
+use iviss_backend::config::{Config, Environment};
+use iviss_backend::db::initialize_pool;
+use iviss_backend::db::initialize_redis_pool;
+use iviss_backend::routes;
+use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 
 use anyhow::Context;
 use std::net::SocketAddr;

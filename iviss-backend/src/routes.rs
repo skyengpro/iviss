@@ -41,6 +41,10 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/organizations",
             get(crate::handlers::user_management::list_organizations),
+        )
+        .route(
+            "/admin/terminate-session",
+            post(crate::handlers::user_management::terminate_session),
         );
 
     let protected_routes = Router::new()
