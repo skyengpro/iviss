@@ -4,18 +4,15 @@ import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/deviceId';
 import { client } from '@/openapi-rq/requests/services.gen';
-
-import { clearAllStoredData } from '@/services/keyManagement/storageSetup';
-import { toast } from 'sonner';
+import { fetchWithAuth } from '@/services/backendFetch';
 
 const SESSION_KEY = 'iviss_session';
 const REFRESH_TOKEN_KEY = 'iviss_refresh_token';
 
-// We manage a global logout reference to allow the interceptor to trigger a logout
-let globalLogout: (() => Promise<void>) | null = null;
-
 function applyAuthTokenToApiClient(token?: string) {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   client.setConfig({
+    baseUrl,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 }
@@ -50,71 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const logout = async (forced = false) => {
-    setSession(null);
-    setUser(null);
-
-    // Clear tokens from API client
-    applyAuthTokenToApiClient(undefined);
-
-    // Clear local storage
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-
-    // Clear IndexedDB securely
-    await clearAllStoredData();
-
-    if (forced) {
-      toast.error('Session Terminated', {
-        description: 'Your session has been terminated by an administrator or has expired. Please log in again.',
-      });
-      // Force redirect to login
-      window.location.href = '/login';
-    }
-  };
-
-  // Assign the global logout function to the instance logout so the interceptor can call it
-  useEffect(() => {
-    globalLogout = () => logout(true);
-  }, []);
-
-  // Set up the API response interceptor
-  useEffect(() => {
-    const responseInterceptor = async (response: Response) => {
-      if (!response.ok) {
-        let isSessionRevoked = false;
-
-        if (response.status === 401) {
-          isSessionRevoked = true;
-        } else {
-          try {
-            // Clone the response so we don't consume the body in case it's needed elsewhere
-            const clonedResponse = response.clone();
-            const body = await clonedResponse.json();
-            if (body && typeof body === 'object' && 'code' in body) {
-              if (body.code === 'SESSION_REVOKED') {
-                isSessionRevoked = true;
-              }
-            }
-          } catch (e) {
-            // Not a JSON response or unable to parse, ignore
-          }
-        }
-
-        if (isSessionRevoked && globalLogout) {
-          await globalLogout();
-        }
-      }
-      return response;
-    };
-
-    client.interceptors.response.use(responseInterceptor);
-
-    return () => {
-      client.interceptors.response.eject(responseInterceptor);
-    };
-  }, []);
-
   // Initialize identity and check for existing session on mount
   useEffect(() => {
     const initIdentity = async () => {
@@ -140,10 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     deviceId,
     publicKeyBase64,
   }) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
     try {
-      const res = await fetch(`${baseUrl}/auth/activate`, {
+      const res = await fetchWithAuth('/auth/activate', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -177,10 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let resolvedUser: UserProfile = data.user;
       try {
-        const meRes = await fetch(`${baseUrl}/users/me`, {
-          headers: {
-            authorization: `Bearer ${data.accessToken}`,
-          },
+        const meRes = await fetchWithAuth('/users/me', {
+          headers: { Authorization: `Bearer ${data.accessToken}` },
         });
         if (meRes.ok) {
           resolvedUser = (await meRes.json()) as UserProfile;
@@ -212,13 +140,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await mockAuthService.login(username, password);
 
     if (result.success && result.session) {
-      const backendSession = result.session as unknown as AuthResponse;
+      const backendSession = {
+        token: result.session.token,
+        user: result.session.user as unknown as UserProfile,
+      } as unknown as AuthResponse;
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
+      applyAuthTokenToApiClient(backendSession.token);
+
       setSession(backendSession);
       setUser(backendSession.user);
       return { success: true };
     }
 
     return { success: false, error: result.error };
+  };
+
+  const logout = async () => {
+    setSession(null);
+    setUser(null);
+    applyAuthTokenToApiClient(undefined);
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    return;
   };
 
   const getMockCredentials = () => mockAuthService.getMockCredentials();
