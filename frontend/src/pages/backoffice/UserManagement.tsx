@@ -65,6 +65,7 @@ import { useUsers } from '@/hooks/api/useUsers';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
 import { toast } from 'sonner';
+import { fetchWithAuth } from '@/services/backendFetch';
 import {
   UserProfile,
   UpdateUserRequest,
@@ -153,8 +154,7 @@ export default function UserManagement() {
   const handleResendActivationCode = async (user: UserProfile) => {
     setResendLoadingUserId(user.id);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const res = await fetch(`${baseUrl}/auth/send-activation`, {
+      const res = await fetchWithAuth('/auth/send-activation', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
