@@ -227,7 +227,7 @@ async fn seed_users_with_active_session(
 }
 
 #[tokio::test]
-async fn terminate_session_revokes_tokens_and_suspends_user() {
+async fn terminate_session_revokes_tokens_and_deactivates_devices() {
     let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
         setup_test_app().await;
 
@@ -267,14 +267,14 @@ async fn terminate_session_revokes_tokens_and_suspends_user() {
 
     // ── 2. Verify DB state ──
 
-    // User status should be SUSPENDED
+    // User status should remain ACTIVE (termination does not suspend the account)
     let user_status: String =
         sqlx::query_scalar("SELECT status::TEXT FROM users WHERE id = $1")
             .bind(agent_id)
             .fetch_one(&db)
             .await
             .unwrap();
-    assert_eq!(user_status, "SUSPENDED", "user should be SUSPENDED");
+    assert_eq!(user_status, "ACTIVE", "user status should remain ACTIVE after session termination");
 
     // All refresh tokens should be revoked
     let active_tokens: i64 = sqlx::query_scalar(
