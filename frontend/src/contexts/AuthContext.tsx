@@ -6,8 +6,14 @@ import { getDeviceId } from '@/services/deviceId';
 import { client } from '@/openapi-rq/requests/services.gen';
 import { fetchWithAuth } from '@/services/backendFetch';
 
+import { clearAllStoredData } from '@/services/keyManagement/storageSetup';
+import { toast } from 'sonner';
+
 const SESSION_KEY = 'iviss_session';
 const REFRESH_TOKEN_KEY = 'iviss_refresh_token';
+
+// We manage a global logout reference to allow the interceptor to trigger a logout
+let globalLogout: (() => Promise<void>) | null = null;
 
 function applyAuthTokenToApiClient(token?: string) {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -46,6 +52,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const logout = async (forced = false) => {
+    setSession(null);
+    setUser(null);
+
+    // Clear tokens from API client
+    applyAuthTokenToApiClient(undefined);
+
+    // Clear local storage
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+
+    // Clear IndexedDB securely
+    await clearAllStoredData();
+
+    if (forced) {
+      toast.error('Session Terminated', {
+        description: 'Your session has been terminated by an administrator or has expired. Please log in again.',
+      });
+      // Force redirect to login
+      window.location.href = '/login';
+    }
+  };
+
+  // Assign the global logout function to the instance logout so the interceptor can call it
+  useEffect(() => {
+    globalLogout = () => logout(true);
+  }, []);
+
+  // Set up the API response interceptor
+  useEffect(() => {
+    const responseInterceptor = async (response: Response) => {
+      if (!response.ok) {
+        let isSessionRevoked = false;
+
+        if (response.status === 401) {
+          isSessionRevoked = true;
+        } else {
+          try {
+            // Clone the response so we don't consume the body in case it's needed elsewhere
+            const clonedResponse = response.clone();
+            const body = await clonedResponse.json();
+            if (body && typeof body === 'object' && 'code' in body) {
+              if (body.code === 'SESSION_REVOKED') {
+                isSessionRevoked = true;
+              }
+            }
+          } catch (e) {
+            // Not a JSON response or unable to parse, ignore
+          }
+        }
+
+        if (isSessionRevoked && globalLogout) {
+          await globalLogout();
+        }
+      }
+      return response;
+    };
+
+    client.interceptors.response.use(responseInterceptor);
+
+    return () => {
+      client.interceptors.response.eject(responseInterceptor);
+    };
+  }, []);
 
   // Initialize identity and check for existing session on mount
   useEffect(() => {
@@ -154,15 +225,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return { success: false, error: result.error };
-  };
-
-  const logout = async () => {
-    setSession(null);
-    setUser(null);
-    applyAuthTokenToApiClient(undefined);
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    return;
   };
 
   const getMockCredentials = () => mockAuthService.getMockCredentials();
