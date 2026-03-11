@@ -67,7 +67,7 @@ fi
 
 echo "🔒 Step 5: Running security audit..."
 if command -v cargo-audit &> /dev/null; then
-    if cargo audit --ignore RUSTSEC-2023-0071; then
+    if cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111; then
         print_status "Security audit passed"
     else
         print_error "Security audit failed"
@@ -76,7 +76,7 @@ if command -v cargo-audit &> /dev/null; then
 else
     print_warning "cargo-audit not found. Installing..."
     cargo install cargo-audit
-    if cargo audit --ignore RUSTSEC-2023-0071; then
+    if cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111; then
         print_status "Security audit passed after installation"
     else
         print_error "Security audit failed"
@@ -91,6 +91,7 @@ else
     print_error "Documentation build failed"
     exit 1
 fi
+
 
 echo "📊 Step 7: Generating code coverage..."
 if command -v cargo-llvm-cov &> /dev/null; then

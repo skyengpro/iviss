@@ -14,6 +14,7 @@ pub enum ErrorCode {
     DatabaseError,
     NotFound,
     BadRequest,
+    TooManyRequests,
     ExternalApiFailure,
     InternalError,
 }
@@ -40,6 +41,9 @@ pub enum AppError {
     #[error("Bad request: {0}")]
     BadRequest(String),
 
+    #[error("Too many requests: {0}")]
+    TooManyRequests(String),
+
     #[error("External API failure: {0}")]
     ExternalApiFailure(String),
 
@@ -59,6 +63,9 @@ impl AppError {
 
     pub fn bad_request(msg: impl Into<String>) -> Self {
         Self::BadRequest(msg.into())
+    }
+    pub fn too_many_requests(msg: impl Into<String>) -> Self {
+        Self::TooManyRequests(msg.into())
     }
 
     pub fn unauthorized(msg: impl Into<String>) -> Self {
@@ -96,6 +103,11 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => {
                 (StatusCode::BAD_REQUEST, ErrorCode::BadRequest, msg.clone())
             }
+            AppError::TooManyRequests(msg) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                ErrorCode::TooManyRequests,
+                msg.clone(),
+            ),
             AppError::ExternalApiFailure(msg) => {
                 tracing::error!("External API failure: {}", msg);
                 (
@@ -168,5 +180,45 @@ mod tests {
         let body = get_body_json(response).await;
         assert_eq!(body["code"], "EXTERNAL_API_FAILURE");
         assert_eq!(body["message"], "External Service Unavailable");
+    }
+
+    #[tokio::test]
+    async fn test_bad_request_response() {
+        let err = AppError::bad_request("missing field");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = get_body_json(response).await;
+        assert_eq!(body["code"], "BAD_REQUEST");
+        assert_eq!(body["message"], "missing field");
+    }
+
+    #[tokio::test]
+    async fn test_internal_error_response() {
+        let err = AppError::internal_error("something broke");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let body = get_body_json(response).await;
+        assert_eq!(body["code"], "INTERNAL_ERROR");
+        assert_eq!(body["message"], "Internal Server Error");
+    }
+
+    #[tokio::test]
+    async fn test_database_error_response() {
+        let err = AppError::database(sqlx::Error::RowNotFound);
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let body = get_body_json(response).await;
+        assert_eq!(body["code"], "DATABASE_ERROR");
+        assert_eq!(body["message"], "Internal Server Error");
+    }
+
+    #[test]
+    fn test_error_display() {
+        assert_eq!(
+            AppError::unauthorized("fail").to_string(),
+            "Authentication failed: fail"
+        );
+        assert_eq!(AppError::not_found("lost").to_string(), "Not found: lost");
+        assert_eq!(AppError::bad_request("bad").to_string(), "Bad request: bad");
     }
 }
