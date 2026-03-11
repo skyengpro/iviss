@@ -129,13 +129,14 @@ async fn seed_users_with_active_session(
     let admin_id = Uuid::new_v4();
     sqlx::query(
         r#"
-        INSERT INTO users (id, organization_id, username, role, badge_id, full_name, phone_number, status)
-        VALUES ($1, $2, $3, $4::user_role, $5, $6, $7, 'ACTIVE'::user_status)
+        INSERT INTO users (id, organization_id, username, email, role, badge_id, full_name, phone_number, status)
+        VALUES ($1, $2, $3, $4, $5::user_role, $6, $7, $8, 'ACTIVE'::user_status)
         "#,
     )
     .bind(admin_id)
     .bind(org_id)
     .bind("admin001")
+    .bind("admin001@example.com")
     .bind("admin")
     .bind("ADMIN-001")
     .bind("Admin User")
@@ -191,8 +192,7 @@ async fn seed_users_with_active_session(
     // Create a refresh token for the agent
     let refresh_token = "test-refresh-token-value";
     let refresh_token_hash = format!("{:x}", sha2::Sha256::digest(refresh_token.as_bytes()));
-    let refresh_expires =
-        time::OffsetDateTime::now_utc() + time::Duration::days(30);
+    let refresh_expires = time::OffsetDateTime::now_utc() + time::Duration::days(30);
     let refresh_expires_primitive =
         time::PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
 
@@ -211,8 +211,7 @@ async fn seed_users_with_active_session(
     .unwrap();
 
     // Issue a JWT access token for the agent
-    let jwt_svc =
-        crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             agent_id,
@@ -261,20 +260,25 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     assert!(
-        body["message"].as_str().unwrap().contains(&agent_id.to_string()),
+        body["message"]
+            .as_str()
+            .unwrap()
+            .contains(&agent_id.to_string()),
         "response should mention the terminated user id"
     );
 
     // ── 2. Verify DB state ──
 
     // User status should remain ACTIVE (termination does not suspend the account)
-    let user_status: String =
-        sqlx::query_scalar("SELECT status::TEXT FROM users WHERE id = $1")
-            .bind(agent_id)
-            .fetch_one(&db)
-            .await
-            .unwrap();
-    assert_eq!(user_status, "ACTIVE", "user status should remain ACTIVE after session termination");
+    let user_status: String = sqlx::query_scalar("SELECT status::TEXT FROM users WHERE id = $1")
+        .bind(agent_id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(
+        user_status, "ACTIVE",
+        "user status should remain ACTIVE after session termination"
+    );
 
     // All refresh tokens should be revoked
     let active_tokens: i64 = sqlx::query_scalar(
