@@ -65,7 +65,7 @@ import { useUsers } from '@/hooks/api/useUsers';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
 import { toast } from 'sonner';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { fetchWithAuth } from '@/services/api/backendFetch';
 import {
   UserProfile,
   UpdateUserRequest,

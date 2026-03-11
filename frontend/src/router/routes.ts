@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { UserRole } from '@/services/mockAuth';
+import { UserRole } from '@/services/mock/mockAuth';
 
 // Lazy Pages
 const Activate = lazy(() => import('../pages/auth/Activate'));

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { useStabilityDetection, DetectionResult } from './useStabilityDetection';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { fetchWithAuth } from '@/services/api/backendFetch';
 
 export type PlateStatus = 'valid' | 'warning' | 'critical';
 

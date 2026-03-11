@@ -15,8 +15,8 @@
  * Prevents infinite retry loops via a single-attempt guard.
  */
 
-import { getAccessToken, getRefreshToken, setAccessToken, clearTokens } from './tokenManager';
-import { getDeviceId } from './deviceId';
+import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken } from './tokenManager';
+import { getDeviceId } from '../device/deviceId';
 import { signNonce } from './signatureService';
 
 // Custom header used to mark a request as a retry to prevent infinite loops
@@ -24,6 +24,21 @@ const RETRY_HEADER = 'X-Auth-Retry';
 
 // Module-level promise to track an ongoing refresh operation
 let refreshPromise: Promise<string | null> | null = null;
+
+const REFRESH_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error('Token refresh timed out'));
+    }, timeoutMs);
+
+    promise
+      .then((value) => resolve(value))
+      .catch((err) => reject(err))
+      .finally(() => window.clearTimeout(timeout));
+  });
+}
 
 /**
  * Perform the full token refresh with device signature challenge-response.
@@ -45,80 +60,88 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
   }
 
   // Create the refresh promise
-  refreshPromise = (async () => {
-    try {
-      const deviceId = await getDeviceId();
-      console.log('--- AuthInterceptor: Starting Token Refresh ---');
-      console.log('Base URL:', baseUrl);
-      console.log('Device ID:', deviceId);
-      console.log('Refresh Token length:', refreshToken.length);
+  refreshPromise = withTimeout(
+    (async () => {
+      try {
+        const deviceId = await getDeviceId();
+        console.log('--- AuthInterceptor: Starting Token Refresh ---');
+        console.log('Base URL:', baseUrl);
+        console.log('Device ID:', deviceId);
+        console.log('Refresh Token length:', refreshToken.length);
 
-      // Step 1: Send refresh token to get nonce challenge
-      const refreshResponse = await fetch(`${baseUrl}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          refreshToken: refreshToken,
-          deviceId: deviceId,
-        }),
-      });
+        // Step 1: Send refresh token to get nonce challenge
+        const refreshResponse = await fetch(`${baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            refreshToken: refreshToken,
+            deviceId: deviceId,
+          }),
+        });
 
-      console.log('Refresh Response Status:', refreshResponse.status);
+        console.log('Refresh Response Status:', refreshResponse.status);
 
-      if (!refreshResponse.ok) {
-        console.warn('AuthInterceptor: POST /auth/refresh failed');
+        if (!refreshResponse.ok) {
+          console.warn('AuthInterceptor: POST /auth/refresh failed');
+          return null;
+        }
+
+        const { nonce } = await refreshResponse.json();
+        console.log('Received Nonce:', nonce);
+
+        if (!nonce) {
+          console.warn('AuthInterceptor: No nonce in refresh response');
+          return null;
+        }
+
+        // Step 2: Sign the nonce with the device private key
+        console.log('Signing nonce...');
+        const signedNonce = await signNonce(nonce);
+        console.log('Nonce signed successfully');
+
+        // Step 3: Send signed nonce to complete the challenge
+        console.log('Sending signed nonce for verification...');
+        const verifyResponse = await fetch(`${baseUrl}/auth/refresh/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            refreshToken: refreshToken,
+            deviceId: deviceId,
+            signedNonce: signedNonce,
+          }),
+        });
+
+        console.log('Verify Response Status:', verifyResponse.status);
+
+        if (!verifyResponse.ok) {
+          console.warn('AuthInterceptor: POST /auth/refresh/verify failed');
+          return null;
+        }
+
+        const { accessToken, refreshToken: nextRefreshToken } = await verifyResponse.json();
+        if (!accessToken) {
+          console.warn('AuthInterceptor: No accessToken in verify response');
+          return null;
+        }
+
+        // Store the new access token
+        setAccessToken(accessToken);
+
+        // Persist rotated refresh token if backend returns one
+        if (typeof nextRefreshToken === 'string' && nextRefreshToken.length > 0) {
+          setRefreshToken(nextRefreshToken);
+        }
+        return accessToken;
+      } catch (err) {
+        console.error('AuthInterceptor: Unexpected error during refresh:', err);
         return null;
+      } finally {
+        // Clear the promise when done so future 401s can trigger a new refresh if needed
+        refreshPromise = null;
       }
-
-      const { nonce } = await refreshResponse.json();
-      console.log('Received Nonce:', nonce);
-
-      if (!nonce) {
-        console.warn('AuthInterceptor: No nonce in refresh response');
-        return null;
-      }
-
-      // Step 2: Sign the nonce with the device private key
-      console.log('Signing nonce...');
-      const signedNonce = await signNonce(nonce);
-      console.log('Nonce signed successfully');
-
-      // Step 3: Send signed nonce to complete the challenge
-      console.log('Sending signed nonce for verification...');
-      const verifyResponse = await fetch(`${baseUrl}/auth/refresh/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          refreshToken: refreshToken,
-          deviceId: deviceId,
-          signedNonce: signedNonce,
-        }),
-      });
-
-      console.log('Verify Response Status:', verifyResponse.status);
-
-      if (!verifyResponse.ok) {
-        console.warn('AuthInterceptor: POST /auth/refresh/verify failed');
-        return null;
-      }
-
-      const { accessToken } = await verifyResponse.json();
-      if (!accessToken) {
-        console.warn('AuthInterceptor: No accessToken in verify response');
-        return null;
-      }
-
-      // Store the new access token
-      setAccessToken(accessToken);
-      return accessToken;
-    } catch (err) {
-      console.error('AuthInterceptor: Unexpected error during refresh:', err);
-      return null;
-    } finally {
-      // Clear the promise when done so future 401s can trigger a new refresh if needed
-      refreshPromise = null;
-    }
-  })();
+  })(),
+    REFRESH_TIMEOUT_MS
+  );
 
   return refreshPromise;
 }

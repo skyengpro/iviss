@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { signNonce } from '../signatureService';
+import { webcrypto } from 'node:crypto';
+import { signNonce } from '../auth/signatureService';
 
 // Mock the storeKey module
 vi.mock('../keyManagement/storeKey', () => ({
@@ -12,13 +13,13 @@ const mockedRetrieveKeyPair = vi.mocked(retrieveKeyPair);
 
 // Generate a real ES256 key pair for testing
 async function generateTestKeyPair() {
-  const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+  const keyPair = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
     'sign',
     'verify',
   ]);
 
-  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
-  const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+  const publicJwk = await webcrypto.subtle.exportKey('jwk', keyPair.publicKey);
+  const privateJwk = await webcrypto.subtle.exportKey('jwk', keyPair.privateKey);
 
   return { publicKey: publicJwk, privateKey: privateJwk };
 }
@@ -26,6 +27,8 @@ async function generateTestKeyPair() {
 describe('signatureService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Ensure WebCrypto is available for jose in Node test runtime
+    globalThis.crypto = webcrypto as unknown as Crypto;
   });
 
   describe('signNonce', () => {
