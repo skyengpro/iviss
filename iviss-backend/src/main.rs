@@ -19,7 +19,6 @@ use crate::config::{Config, Environment};
 use crate::db::initialize_pool;
 use crate::db::initialize_redis_pool;
 use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
-
 use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -47,7 +46,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let sms_provider: Arc<dyn SmsProvider> = match config.environment {
+    let sms_provider: Arc<dyn SmsProvider> = match &config.environment {
         Environment::Production => Arc::new(TwilioSmsProvider::new(
             config.twilio_account_sid.clone(),
             config.twilio_auth_token.clone(),
@@ -65,14 +64,7 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&db_pool).await?;
     info!("Migrations completed");
 
-    let state = AppState::new(
-        db_pool,
-        redis_pool,
-        sms_provider,
-        config.activation_code_pepper,
-        config.jwt_private_key_pem,
-        config.jwt_public_key_pem,
-    );
+    let state = AppState::new(db_pool, redis_pool, sms_provider, &config);
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 

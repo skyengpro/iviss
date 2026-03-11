@@ -1,10 +1,10 @@
 use crate::app_state::AppState;
 use crate::dto::location::{UpdateLocationRequest, UpdateLocationResponse};
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use crate::middleware::auth::AuthenticatedUser;
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
 use std::sync::Arc;
 
 use crate::errors::AppError;
-use crate::middleware::auth::AuthUser;
 
 // ── GET /users/me ─────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ use crate::middleware::auth::AuthUser;
 )]
 pub async fn get_user_profile(
     State(state): State<Arc<AppState>>,
-    auth: AuthUser,
+    Extension(auth): Extension<AuthenticatedUser>,
 ) -> Result<impl IntoResponse, AppError> {
     let profile = crate::queries::user_queries::get_user_by_id(&state.db, auth.user_id).await?;
     Ok((StatusCode::OK, Json(profile)))
