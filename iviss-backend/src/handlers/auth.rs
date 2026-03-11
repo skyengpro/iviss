@@ -10,15 +10,32 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
+
+/// Logic to execute when a shift has ended.
+/// Marks the device as inactive and returns an unauthorized error.
+pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
+    tracing::warn!(%device_id, "shift: ended logic triggered");
+
+    if let Err(err) = crate::queries::auth_queries::mark_device_inactive(pool, device_id).await {
+        tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
+    }
+
+    AppError::unauthorized("Shift ended")
+}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
 }
+
+// refresh_token handler removed - replaced by request_refresh
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthResponse {
@@ -60,6 +77,15 @@ pub struct ActivateResponse {
     pub refresh_token: String,
     pub user: UserProfile,
 }
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshRequest {
+    pub refresh_token: String,
+    pub device_id: Uuid,
+}
+
+// RefreshResponse removed - no longer used
 
 /// Login with email and password
 #[utoipa::path(
@@ -301,6 +327,16 @@ pub async fn activate(
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+        .as_secs();
+    let shift_start: i64 = now.try_into().unwrap_or(0i64);
+    let shift_end: i64 = now
+        .saturating_add(SHIFT_TTL.as_secs())
+        .try_into()
+        .unwrap_or(0i64);
+
     sqlx::query(
         r#"
         UPDATE users
@@ -316,19 +352,28 @@ pub async fn activate(
 
     sqlx::query(
         r#"
-        INSERT INTO devices (id, user_id, public_key, status)
-        VALUES ($1, $2, $3, 'ACTIVE'::device_status)
+        INSERT INTO devices (id, user_id, public_key, status, metadata)
+        VALUES (
+            $1,
+            $2,
+            $3,
+            'ACTIVE'::device_status,
+            jsonb_build_object('shift_start', $4, 'shift_end', $5)
+        )
         ON CONFLICT (id)
         DO UPDATE SET
             user_id = EXCLUDED.user_id,
             public_key = EXCLUDED.public_key,
             status = 'ACTIVE'::device_status,
+            metadata = EXCLUDED.metadata,
             revoked_at = NULL
         "#,
     )
     .bind(payload.device_id)
     .bind(user_id)
     .bind(&payload.public_key_base64)
+    .bind(shift_start)
+    .bind(shift_end)
     .execute(&mut *tx)
     .await
     .map_err(AppError::Database)?;
@@ -369,7 +414,13 @@ pub async fn activate(
 
     let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
     let access_token = jwt_svc
-        .issue_access_token(user_id, payload.device_id, user.role)
+        .issue_access_token_with_shift(
+            user_id,
+            payload.device_id,
+            user.role,
+            shift_start.try_into().unwrap_or(0usize),
+            shift_end.try_into().unwrap_or(0usize),
+        )
         .map_err(AppError::Internal)?;
 
     Ok((
@@ -389,12 +440,8 @@ pub async fn activate(
 const NONCE_TTL_SECS: u64 = 60;
 const NONCE_KEY_PREFIX: &str = "refresh_nonce";
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct RefreshRequest {
-    pub refresh_token: String,
-    pub device_id: Uuid,
-}
+// RefreshRequest is already defined at line 171
+
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct RefreshChallengeResponse {
@@ -517,6 +564,8 @@ pub async fn verify_refresh(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VerifyRefreshRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    tracing::warn!(device_id = %payload.device_id, "--- [BACKEND] verify_refresh: Processing start ---");
+
     // 1. Retrieve and consume the nonce from Redis (one-time use)
     let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
     let stored_nonce: Option<String> = {
@@ -536,8 +585,11 @@ pub async fn verify_refresh(
     };
 
     let expected_nonce = stored_nonce.ok_or_else(|| {
+        tracing::warn!(device_id = %payload.device_id, "Verification failed: Nonce not found or expired");
         AppError::Unauthorized("Nonce expired or not found — request a new challenge".into())
     })?;
+
+    tracing::warn!(nonce = %expected_nonce, "Step 1: Nonce retrieved and consumed from Redis");
 
     // 2. Validate the refresh token
     let token_hash = {
@@ -561,14 +613,18 @@ pub async fn verify_refresh(
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::Unauthorized("Invalid or expired refresh token".into()))?;
+    .ok_or_else(|| {
+        tracing::warn!(device_id = %payload.device_id, "Verification failed: Invalid or expired refresh token");
+        AppError::Unauthorized("Invalid or expired refresh token".into())
+    })?;
 
     let user_id: Uuid = token_row.get("user_id");
+    tracing::warn!(user_id = %user_id, "Step 2: Refresh token validated in database");
 
-    // 3. Fetch the device's public key
+    // 3. Fetch the device's public key & shift metadata
     let device_row = sqlx::query(
         r#"
-        SELECT public_key
+        SELECT public_key, metadata
         FROM devices
         WHERE id = $1
           AND user_id = $2
@@ -580,9 +636,36 @@ pub async fn verify_refresh(
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::Unauthorized("Device not found or revoked".into()))?;
+    .ok_or_else(|| {
+        tracing::warn!(device_id = %payload.device_id, "Verification failed: Device not found or revoked");
+        AppError::Unauthorized("Device not found or revoked".into())
+    })?;
+
+    tracing::warn!("Step 3: Device public key and shift metadata fetched");
 
     let public_key_b64: String = device_row.get("public_key");
+    let metadata: serde_json::Value = device_row.get("metadata");
+
+    let shift_start = metadata
+        .get("shift_start")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| AppError::internal_error("Device shift_start is missing"))?;
+    let shift_end = metadata
+        .get("shift_end")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| AppError::internal_error("Device shift_end is missing"))?;
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+        .as_secs() as i64;
+
+    if now > shift_end {
+        tracing::warn!(device_id = %payload.device_id, now, shift_end, "Verification failed: Shift has ended");
+        return Err(on_shift_ended(&state.db, payload.device_id).await);
+    }
+
+    tracing::warn!("Step 4: Shift validity check passed");
 
     // 4. Verify the JWS compact signature
     verify_es256_jws(&payload.signed_nonce, &expected_nonce, &public_key_b64)?;
@@ -592,7 +675,13 @@ pub async fn verify_refresh(
     let jwt_svc =
         JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
     let access_token = jwt_svc
-        .issue_access_token(user_id, payload.device_id, user.role)
+        .issue_access_token_with_shift(
+            user_id,
+            payload.device_id,
+            user.role,
+            shift_start.try_into().unwrap_or(0usize),
+            shift_end.try_into().unwrap_or(0usize),
+        )
         .map_err(AppError::Internal)?;
 
     tracing::info!(
@@ -613,6 +702,7 @@ fn verify_es256_jws(
     expected_nonce: &str,
     public_key_b64: &str,
 ) -> Result<(), AppError> {
+    tracing::warn!("--- [BACKEND] verify_es256_jws: Starting cryptographic verification ---");
     use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
     use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 
@@ -632,8 +722,11 @@ fn verify_es256_jws(
         .map_err(|_| AppError::Unauthorized("Invalid JWS payload".into()))?;
 
     if payload_str != expected_nonce {
+        tracing::warn!(actual = %payload_str, expected = %expected_nonce, "Cryptographic failure: Nonce mismatch in JWS payload");
         return Err(AppError::Unauthorized("Nonce mismatch".into()));
     }
+
+    tracing::warn!("JWS Payload matches expected nonce");
 
     // Decode the public key from Base64 -> JWK JSON -> VerifyingKey
     let pub_key_json = STANDARD
@@ -651,15 +744,20 @@ fn verify_es256_jws(
         .decode(sig_b64)
         .map_err(|_| AppError::Unauthorized("Invalid JWS signature encoding".into()))?;
 
-    let signature = Signature::from_slice(&sig_bytes)
-        .map_err(|_| AppError::Unauthorized("Invalid ECDSA signature format".into()))?;
+    let signature = Signature::from_slice(&sig_bytes).map_err(|_| {
+        tracing::warn!("Cryptographic failure: Invalid ECDSA signature format");
+        AppError::Unauthorized("Invalid ECDSA signature format".into())
+    })?;
 
     // The message that was signed is "<header>.<payload>" (the JWS signing input)
     let signing_input = format!("{}.{}", header_b64, payload_b64);
 
-    verifying_key
-        .verify(signing_input.as_bytes(), &signature)
-        .map_err(|_| AppError::Unauthorized("Signature verification failed".into()))?;
+    verifying_key.verify(signing_input.as_bytes(), &signature).map_err(|e| {
+        tracing::warn!(error = %e, "Cryptographic failure: ES256 Signature verification failed");
+        AppError::Unauthorized("Signature verification failed".into())
+    })?;
+
+    tracing::warn!("ES256 Signature successfully verified against public key");
 
     Ok(())
 }

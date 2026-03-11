@@ -48,53 +48,71 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
   refreshPromise = (async () => {
     try {
       const deviceId = await getDeviceId();
+      console.log('--- AuthInterceptor: Starting Token Refresh ---');
+      console.log('Base URL:', baseUrl);
+      console.log('Device ID:', deviceId);
+      console.log('Refresh Token length:', refreshToken.length);
 
       // Step 1: Send refresh token to get nonce challenge
       const refreshResponse = await fetch(`${baseUrl}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          refresh_token: refreshToken,
-          device_id: deviceId,
+          refreshToken: refreshToken,
+          deviceId: deviceId,
         }),
       });
 
+      console.log('Refresh Response Status:', refreshResponse.status);
+
       if (!refreshResponse.ok) {
+        console.warn('AuthInterceptor: POST /auth/refresh failed');
         return null;
       }
 
       const { nonce } = await refreshResponse.json();
+      console.log('Received Nonce:', nonce);
+
       if (!nonce) {
+        console.warn('AuthInterceptor: No nonce in refresh response');
         return null;
       }
 
       // Step 2: Sign the nonce with the device private key
+      console.log('Signing nonce...');
       const signedNonce = await signNonce(nonce);
+      console.log('Nonce signed successfully');
 
       // Step 3: Send signed nonce to complete the challenge
+      console.log('Sending signed nonce for verification...');
       const verifyResponse = await fetch(`${baseUrl}/auth/refresh/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          refresh_token: refreshToken,
-          device_id: deviceId,
-          signed_nonce: signedNonce,
+          refreshToken: refreshToken,
+          deviceId: deviceId,
+          signedNonce: signedNonce,
         }),
       });
 
+      console.log('Verify Response Status:', verifyResponse.status);
+
       if (!verifyResponse.ok) {
+        console.warn('AuthInterceptor: POST /auth/refresh/verify failed');
         return null;
       }
 
-      const { access_token } = await verifyResponse.json();
-      if (!access_token) {
+      const { accessToken } = await verifyResponse.json();
+      if (!accessToken) {
+        console.warn('AuthInterceptor: No accessToken in verify response');
         return null;
       }
 
       // Store the new access token
-      setAccessToken(access_token);
-      return access_token;
-    } catch {
+      setAccessToken(accessToken);
+      return accessToken;
+    } catch (err) {
+      console.error('AuthInterceptor: Unexpected error during refresh:', err);
       return null;
     } finally {
       // Clear the promise when done so future 401s can trigger a new refresh if needed
@@ -151,8 +169,7 @@ export function setupAuthInterceptors(
 
     // Prevent infinite retry: if this is already a retry, give up
     if (request.headers.get(RETRY_HEADER)) {
-      clearTokens();
-      options.onSessionExpired?.();
+      console.warn('AuthInterceptor: 401 loop detected, giving up without clearing tokens');
       return response;
     }
 
@@ -161,8 +178,7 @@ export function setupAuthInterceptors(
 
     if (!newToken) {
       // Refresh failed — session is expired
-      clearTokens();
-      options.onSessionExpired?.();
+      console.error('AuthInterceptor: Token refresh failed, but keeping tokens as requested');
       return response;
     }
 
