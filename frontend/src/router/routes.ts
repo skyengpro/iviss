@@ -34,6 +34,7 @@ export interface AppRoute {
 
 export const publicRoutes: AppRoute[] = [
   { path: '/activate', component: Activate },
+  { path: '/login', component: Activate },
   { path: '/', component: null, redirectTo: '/activate', replace: true },
 ];
 

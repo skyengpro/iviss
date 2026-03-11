@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { useStabilityDetection, DetectionResult } from './useStabilityDetection';
+import { fetchWithAuth } from '@/services/backendFetch';
 
 export type PlateStatus = 'valid' | 'warning' | 'critical';
 
@@ -96,8 +97,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         formData.append('image', blob, 'frame.jpg');
 
         // 3. Call Backend OCR API
-        const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
-        const apiResponse = await fetch(`${apiUrl}/api/v1/scan/plate`, {
+        const apiResponse = await fetchWithAuth('/api/v1/scan/plate', {
           method: 'POST',
           body: formData,
           signal: controller.signal,

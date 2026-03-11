@@ -24,9 +24,7 @@ client.setConfig({
 setupAuthInterceptors(client, {
   baseUrl: apiBaseUrl,
   onSessionExpired: () => {
-    // Clear mock session and reload to trigger login screen
-    localStorage.removeItem('iviss_session');
-    window.location.href = '/login';
+    console.warn('AuthInterceptor: Session expired, but keeping tokens as requested');
   },
 });
 

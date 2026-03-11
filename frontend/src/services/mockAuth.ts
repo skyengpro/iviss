@@ -146,13 +146,14 @@ export const mockAuthService = {
 
       // Check if expired
       if (session.expiresAt < new Date()) {
-        localStorage.removeItem(SESSION_KEY);
-        return null;
+        console.warn('MockAuth: Session expired, but keeping it as requested');
+        // localStorage.removeItem(SESSION_KEY);
+        // return null;
       }
 
       return session;
     } catch {
-      localStorage.removeItem(SESSION_KEY);
+      // localStorage.removeItem(SESSION_KEY);
       return null;
     }
   },

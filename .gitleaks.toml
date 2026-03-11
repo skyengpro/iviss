@@ -10,4 +10,5 @@ paths = [
   '''^iviss-backend/\.env$''',
   '''^iviss-backend/\.env\.example$''',
   '''^iviss-backend/src/tests/fixtures/test_private_key\.pem$''',
+  '''^iviss-backend/src/tests/activation_endpoint_tests\.rs$''',
 ]

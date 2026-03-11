@@ -87,7 +87,7 @@ async fn setup_test_infrastructure() -> (
 
     let db = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&db_url)
+        .connect(&db_url.clone())
         .await
         .unwrap();
 
@@ -96,7 +96,7 @@ async fn setup_test_infrastructure() -> (
     let redis = Redis::default().start().await.unwrap();
     let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
     let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url);
+    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
     let redis_pool = redis_cfg
         .create_pool(Some(deadpool_redis::Runtime::Tokio1))
         .unwrap();
@@ -134,17 +134,25 @@ async fn setup_test_infrastructure() -> (
     let ec_signing_key = SigningKey::random(&mut OsRng);
     let public_key_b64 = ec_public_key_to_b64_jwk(&ec_signing_key);
 
-    // Create device with the EC public key
     let device_id = Uuid::new_v4();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let shift_start = now;
+    let shift_end = now + 3600;
+
     sqlx::query(
         r#"
-        INSERT INTO devices (id, user_id, public_key, status)
-        VALUES ($1, $2, $3, 'ACTIVE'::device_status)
+        INSERT INTO devices (id, user_id, public_key, status, metadata)
+        VALUES ($1, $2, $3, 'ACTIVE'::device_status, jsonb_build_object('shift_start', $4, 'shift_end', $5))
         "#,
     )
     .bind(device_id)
     .bind(user_id)
     .bind(&public_key_b64)
+    .bind(shift_start as i64)
+    .bind(shift_end as i64)
     .execute(&db)
     .await
     .unwrap();
@@ -177,13 +185,29 @@ async fn setup_test_infrastructure() -> (
 
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
+    let config = crate::config::Config {
+        database_url: db_url,
+        redis_url: redis_url,
+        server_host: "0.0.0.0".to_string(),
+        server_port: 0,
+        log_level: crate::config::LogLevel::Info,
+        jwt_secret: "secret_longer_than_32_characters_for_test".to_string(),
+        jwt_private_key_pem: jwt_private_key_pem.clone(),
+        jwt_public_key_pem: jwt_public_key_pem.clone(),
+        environment: crate::config::Environment::Local,
+        twilio_account_sid: "sid".to_string(),
+        twilio_auth_token: "token".to_string(),
+        twilio_from_number: "num".to_string(),
+        activation_code_pepper: TEST_PEPPER.to_string(),
+        shift_start_hour: 8,
+        shift_end_hour: 18,
+    };
+
     let state = AppState::new(
         db.clone(),
         redis_pool.clone(),
         Arc::new(MockSmsProvider),
-        TEST_PEPPER.to_string(),
-        jwt_private_key_pem,
-        jwt_public_key_pem,
+        config,
     );
 
     let app = routes::assembly(state);
