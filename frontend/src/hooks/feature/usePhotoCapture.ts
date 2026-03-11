@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { DetectedPlate, PlateStatus } from './useScanPlate';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { fetchWithAuth } from '@/services/api/backendFetch';
 
 function normalizePlateCandidate(v: unknown): string {
   if (typeof v !== 'string') return '';

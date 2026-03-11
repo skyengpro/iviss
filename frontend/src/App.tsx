@@ -7,7 +7,7 @@ import { AppRouter } from '@/router/AppRouter';
 import { useMetrics } from '@/hooks/useMetrics';
 
 import { client } from '@/openapi-rq/requests/services.gen';
-import { setupAuthInterceptors } from '@/services/authInterceptor';
+import { setupAuthInterceptors } from '@/services/auth/authInterceptor';
 
 import { AppInitializer } from '@/components/shared/AppInitializer';
 

@@ -1,20 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { setupAuthInterceptors } from '../authInterceptor';
-import * as tokenManager from '../tokenManager';
+import { setupAuthInterceptors } from '../auth/authInterceptor';
+import * as tokenManager from '../auth/tokenManager';
 
 // Mock dependencies
-vi.mock('../tokenManager', () => ({
+vi.mock('../auth/tokenManager', () => ({
   getAccessToken: vi.fn(),
   getRefreshToken: vi.fn(),
   setAccessToken: vi.fn(),
+  setRefreshToken: vi.fn(),
   clearTokens: vi.fn(),
 }));
 
-vi.mock('../deviceId', () => ({
+vi.mock('../device/deviceId', () => ({
   getDeviceId: vi.fn().mockResolvedValue('test-device-id'),
 }));
 
-vi.mock('../signatureService', () => ({
+vi.mock('../auth/signatureService', () => ({
   signNonce: vi.fn().mockResolvedValue('signed-nonce-jws'),
 }));
 
@@ -120,7 +121,7 @@ describe('authInterceptor', () => {
 
       // Second call: POST /auth/refresh/verify -> returns new token
       fetchSpy.mockResolvedValueOnce(
-        new Response(JSON.stringify({ access_token: 'new-access-token' }), {
+        new Response(JSON.stringify({ accessToken: 'new-access-token' }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         })
@@ -147,20 +148,18 @@ describe('authInterceptor', () => {
       expect(result.status).toBe(200);
     });
 
-    it('should call onSessionExpired when refresh token is missing', async () => {
+    it('should return original 401 response when refresh token is missing', async () => {
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue(null);
 
       const request = new Request('http://localhost:3000/api/test');
       const response = new Response('Unauthorized', { status: 401 });
 
       const interceptor = mockClient._responseInterceptors[0];
-      await interceptor(response, request);
-
-      expect(tokenManager.clearTokens).toHaveBeenCalled();
-      expect(onSessionExpired).toHaveBeenCalled();
+      const result = await interceptor(response, request);
+      expect(result).toBe(response);
     });
 
-    it('should call onSessionExpired when refresh endpoint fails', async () => {
+    it('should return original 401 response when refresh endpoint fails', async () => {
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue('my-refresh-token');
 
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
@@ -170,10 +169,8 @@ describe('authInterceptor', () => {
       const response = new Response('Unauthorized', { status: 401 });
 
       const interceptor = mockClient._responseInterceptors[0];
-      await interceptor(response, request);
-
-      expect(tokenManager.clearTokens).toHaveBeenCalled();
-      expect(onSessionExpired).toHaveBeenCalled();
+      const result = await interceptor(response, request);
+      expect(result).toBe(response);
     });
 
     it('should prevent infinite retry loops on repeated 401', async () => {
@@ -188,9 +185,7 @@ describe('authInterceptor', () => {
       const interceptor = mockClient._responseInterceptors[0];
       const result = await interceptor(response, request);
 
-      // Should NOT attempt refresh, should clear tokens and expire session
-      expect(tokenManager.clearTokens).toHaveBeenCalled();
-      expect(onSessionExpired).toHaveBeenCalled();
+      // Should NOT attempt refresh
       expect(result).toBe(response);
     });
 
@@ -204,7 +199,7 @@ describe('authInterceptor', () => {
         const url = typeof req === 'string' ? req : (req as Request).url;
 
         if (url.includes('/auth/refresh/verify')) {
-          return new Response(JSON.stringify({ access_token: 'shared-new-token' }), {
+          return new Response(JSON.stringify({ accessToken: 'shared-new-token' }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });

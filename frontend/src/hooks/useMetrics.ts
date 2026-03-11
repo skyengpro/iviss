@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { initMetrics, recordNavigation, destroyMetrics } from '@/services/metricsCollector';
+import { initMetrics, recordNavigation, destroyMetrics } from '@/services/metrics/metricsCollector';
 
 /**
  * React hook that initializes the frontend metrics collector

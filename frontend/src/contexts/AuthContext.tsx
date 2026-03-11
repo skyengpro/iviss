@@ -1,16 +1,16 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { mockAuthService } from '@/services/mockAuth';
+import { mockAuthService } from '@/services/mock/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
-import { getDeviceId } from '@/services/deviceId';
+import { getDeviceId } from '@/services/device/deviceId';
 import {
   setAccessToken,
   setRefreshToken,
   clearTokens,
   getAccessToken,
-} from '@/services/tokenManager';
+} from '@/services/auth/tokenManager';
 import { client } from '@/openapi-rq/requests/services.gen';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { fetchWithAuth } from '@/services/api/backendFetch';
 
 const SESSION_KEY = 'iviss_session';
 const REFRESH_TOKEN_KEY = 'iviss_refresh_token';

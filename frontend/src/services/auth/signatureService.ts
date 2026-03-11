@@ -9,7 +9,7 @@
  */
 
 import * as jose from 'jose';
-import { retrieveKeyPair } from './keyManagement/storeKey';
+import { retrieveKeyPair } from '../keyManagement/storeKey';
 
 /**
  * Signs a nonce string using the device's ES256 private key.

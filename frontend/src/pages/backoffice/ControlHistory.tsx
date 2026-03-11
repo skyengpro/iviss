@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
-import { mockControlService, ControlStatus } from '@/services/mockControls';
+import { mockControlService, ControlStatus } from '@/services/mock/mockControls';
 
 export default function ControlHistory() {
   const { t } = useTranslation();
