@@ -61,6 +61,11 @@ export default function DailyLogin() {
     e.preventDefault();
     setError('');
 
+    if (!badgeId.trim()) {
+      setError('Badge number is required');
+      return;
+    }
+
     if (!activationCode.trim() || !/^\d{6}$/.test(activationCode.trim())) {
       setError('OTP code must be exactly 6 digits');
       return;
@@ -117,7 +122,7 @@ export default function DailyLogin() {
             <CardDescription>
               {step === 'REQUEST'
                 ? 'Enter your badge number to receive a one-time password for your shift.'
-                : 'Enter the 6-digit OTP sent to your phone.'}
+                : 'Enter your badge number and the 6-digit OTP sent to your phone.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -143,11 +148,11 @@ export default function DailyLogin() {
                 <div className="space-y-2">
                   <Label htmlFor="badgeId">Badge number</Label>
                   <Input
-                    id="badgeId-readonly"
+                    id="badgeId"
                     value={badgeId}
-                    readOnly
-                    disabled
-                    className="bg-muted"
+                    onChange={(e) => setBadgeId(e.target.value)}
+                    placeholder="e.g. 12345"
+                    autoComplete="username"
                   />
                 </div>
                 <div className="space-y-2">
