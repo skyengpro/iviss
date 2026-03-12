@@ -1,9 +1,12 @@
 use crate::app_state::AppState;
 use crate::dto::auth::{
-    RequestDailyLoginRequest, RequestDailyLoginResponse,
-VerifyDailyLoginRequest, VerifyDailyLoginResponse,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RefreshResponse,
+    RegisterRequest,
 };
-use crate::dto::auth::{ActivateRequest, ActivateResponse, LoginRequest, AuthResponse, RegisterRequest, RefreshRequest, RefreshResponse};
+use crate::dto::auth::{
+    RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
+    VerifyDailyLoginResponse,
+};
 use base64::Engine;
 
 use crate::dto::users::{UserProfile, UserRole};
@@ -124,8 +127,6 @@ pub async fn refresh_token(
     Ok((StatusCode::OK, Json(RefreshResponse { access_token })))
 }
 
-
-
 /// Login with email and password
 #[utoipa::path(
     post,
@@ -217,7 +218,6 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
-
 
 /// Activate an agent account by validating OTP and registering device public key
 #[utoipa::path(

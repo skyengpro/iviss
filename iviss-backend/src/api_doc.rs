@@ -14,7 +14,10 @@ use crate::dto::{
     scan::*,
     search_vehicle::*,
     stats::{ActivityData, AgentLocationDto, DashboardStats},
-    users::{ProvisionUserRequest, UpdateUserRequest, UserProfile, UserRole, UserStatus, ResendActivationRequest, ResendActivationResponse},
+    users::{
+        ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, UpdateUserRequest,
+        UserProfile, UserRole, UserStatus,
+    },
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
 

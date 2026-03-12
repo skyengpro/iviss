@@ -1,7 +1,7 @@
+use crate::dto::users::{UserProfile, UserRole};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use crate::dto::users::{UserProfile, UserRole};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +31,6 @@ pub struct VerifyDailyLoginResponse {
     pub refresh_token: Option<String>,
     pub shift_end: i64,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginRequest {

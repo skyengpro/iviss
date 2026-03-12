@@ -1,22 +1,24 @@
 use crate::app_state::AppState;
-use crate::dto::users::{ProvisionUserRequest, UpdateUserRequest,ResendActivationRequest, ResendActivationResponse};
-use crate::services::otp_service::OtpService;
+use crate::dto::users::{
+    ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, UpdateUserRequest,
+};
 use crate::errors::AppError;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
 use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
+use crate::services::otp_service::OtpService;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use sqlx::Row;
 use std::sync::Arc;
 use tracing::warn;
 use uuid::Uuid;
-use sqlx::Row;
 
 /// Provision a new user (admin only)
 #[utoipa::path(
@@ -240,9 +242,7 @@ pub async fn resend_activation_code(
     );
 
     // Generate, store and send the activation code via SMS
-    otp_svc
-        .request_otp(&user_id, &phone_number)
-        .await?;
+    otp_svc.request_otp(&user_id, &phone_number).await?;
 
     Ok((
         StatusCode::CREATED,
