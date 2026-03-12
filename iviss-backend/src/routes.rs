@@ -60,6 +60,10 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/devices/{id}/unsuspend",
             post(crate::handlers::device_management::unsuspend_device),
+        )
+        .route(
+            "/admin/resend-activation-code",
+            post(crate::handlers::user_management::resend_activation_code),
         );
 
     let protected_routes = Router::new()
@@ -92,10 +96,6 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::users::update_location),
         )
         .route("/auth/logout", post(crate::handlers::auth::logout))
-        .route(
-            "/auth/send-activation",
-            post(crate::handlers::auth::send_activation),
-        )
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes

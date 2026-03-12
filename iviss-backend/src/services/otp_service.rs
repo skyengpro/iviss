@@ -18,12 +18,12 @@ const RATE_LIMIT_MAX: u64 = 3; // max OTP requests per window
 const RATE_LIMIT_WINDOW_SECS: i64 = 600; // 10 minutes
 
 #[derive(Debug, Serialize, Deserialize)]
-struct OtpEntry {
+pub(crate) struct OtpEntry {
     code_hash: String,
     attempts: u8,
 }
 
-pub struct OtpService {
+pub(crate) struct OtpService {
     redis: RedisPool,
     sms: Arc<dyn SmsProvider>,
     pepper: String,
@@ -160,7 +160,7 @@ impl OtpService {
             .await
             .map_err(|e| AppError::internal_error(format!("Redis INCR failed: {e}")))?;
 
-        // Set TTL only on the first request — absolute window, not sliding
+        // Set TTL only on the first request — absolute window,
         if count == 1 {
             conn.expire::<_, ()>(&key, RATE_LIMIT_WINDOW_SECS)
                 .await
@@ -178,7 +178,7 @@ impl OtpService {
     }
 
     fn otp_key(user_id: &Uuid) -> String {
-        format!("otp:{}", user_id)
+        format!("user_otp:{}", user_id)
     }
 
     fn generate_code(&self) -> String {
