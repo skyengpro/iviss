@@ -1,12 +1,12 @@
 use crate::app_state::AppState;
-use crate::dto::users::{ProvisionUserRequest, UpdateUserRequest};
+use crate::dto::users::{ProvisionUserRequest, UpdateUserRequest,ResendActivationRequest, ResendActivationResponse};
+use crate::services::otp_service::OtpService;
 use crate::errors::AppError;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
 use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
-use crate::services::activation_service::ActivationService;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -16,6 +16,7 @@ use axum::{
 use std::sync::Arc;
 use tracing::warn;
 use uuid::Uuid;
+use sqlx::Row;
 
 /// Provision a new user (admin only)
 #[utoipa::path(
@@ -45,9 +46,10 @@ pub async fn provision_user(
             let redis = state.redis.clone();
             let sms = state.sms_pvd.clone();
             let pepper = state.pepper.clone();
+
             tokio::spawn(async move {
-                let svc = ActivationService::new(redis, sms, pepper);
-                if let Err(e) = svc.generate_and_send(&user_id, &phone).await {
+                let svc = OtpService::new(redis, sms, pepper);
+                if let Err(e) = svc.request_otp(&user_id, &phone).await {
                     warn!("Failed to send activation code to {}: {}", phone, e);
                 }
             });
@@ -173,4 +175,79 @@ pub async fn list_organizations(
 ) -> Result<impl IntoResponse, AppError> {
     let orgs = list_organizations_query(&state.db).await?;
     Ok((StatusCode::OK, Json(orgs)))
+}
+
+///Resend activation code via SMS to a pending agent
+#[utoipa::path(
+    post,
+    path = "/admin/resend-activation",
+    request_body = ResendActivationRequest,
+    responses(
+        (status = 201, description = "Activation code sent", body = ResendActivationResponse),
+        (status = 404, description = "User not found", body = AppErrorResponse),
+        (status = 400, description = "Bad request", body = AppErrorResponse)
+    ),
+    tag = "admin",
+    operation_id = "resendActivationCode"
+)]
+pub async fn resend_activation_code(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<ResendActivationRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Fetch agent from DB
+    let user_raw = sqlx::query(
+        r#"
+        SELECT id,
+               phone_number,
+               role::TEXT AS role,
+               status::TEXT AS status
+        FROM users
+        WHERE id = $1
+        AND deleted_at IS NULL
+        "#,
+    )
+    .bind(payload.user_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    let user_id: Uuid = user_raw.get("id");
+    let phone_number: String = user_raw.get("phone_number");
+    let role: String = user_raw.get("role");
+    let status: String = user_raw.get("status");
+
+    // Only agents can receive an activation code
+    if role != "agent" {
+        return Err(AppError::BadRequest(
+            "Activation is only available for agents".into(),
+        ));
+    }
+
+    // Agent must be in PENDING_ACTIVATION status
+    if status != "PENDING_ACTIVATION" {
+        return Err(AppError::BadRequest(format!(
+            "User is not pending activation — current status: {}",
+            status
+        )));
+    }
+
+    // Build OtpService from shared state resources
+    let otp_svc = OtpService::new(
+        state.redis.clone(),
+        state.sms_pvd.clone(),
+        state.pepper.clone(),
+    );
+
+    // Generate, store and send the activation code via SMS
+    otp_svc
+        .request_otp(&user_id, &phone_number)
+        .await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(ResendActivationResponse {
+            message: "Activation code sent successfully".into(),
+        }),
+    ))
 }
