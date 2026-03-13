@@ -302,7 +302,6 @@ pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
 
-
 /// Activate an agent account by validating OTP and registering device public key
 #[utoipa::path(
     post,

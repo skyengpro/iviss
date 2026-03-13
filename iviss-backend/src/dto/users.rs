@@ -20,7 +20,6 @@ pub enum UserRole {
     Manager,
 }
 
-
 impl UserRole {
     pub fn as_str(&self) -> &'static str {
         match self {

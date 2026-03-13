@@ -265,8 +265,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
         // Note: Backend login might not return refresh token yet
-        if ((result.data as any).refreshToken) {
-          localStorage.setItem(REFRESH_TOKEN_KEY, (result.data as any).refreshToken);
+        const responseData = result.data as Record<string, unknown>;
+        if (responseData.refreshToken && typeof responseData.refreshToken === 'string') {
+          localStorage.setItem(REFRESH_TOKEN_KEY, responseData.refreshToken);
         }
         applyAuthTokenToApiClient(backendSession.token);
 

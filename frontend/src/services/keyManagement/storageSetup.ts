@@ -133,7 +133,10 @@ class SimpleStorage {
       } catch (err) {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           this.db = null;
-          this.getDB().then(() => this.findOne(storeName, key)).then(resolve as any).catch(reject);
+          this.getDB()
+            .then(() => this.findOne(storeName, key))
+            .then(resolve as (value: Record<string, unknown> | undefined) => void)
+            .catch(reject);
         } else {
           reject(err);
         }
