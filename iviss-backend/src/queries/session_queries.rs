@@ -8,7 +8,7 @@ use uuid::Uuid;
 /// 3. Sets user status to SUSPENDED.
 ///
 /// The auth middleware already rejects requests when `device_is_active = false`
-/// or when user status is not ACTIVE, so the very next request from the 
+/// or when user status is not ACTIVE, so the very next request from the
 /// terminated user will return 401.
 pub async fn terminate_user_sessions(pool: &PgPool, user_id: Uuid) -> Result<(), AppError> {
     let mut tx = pool.begin().await.map_err(AppError::Database)?;

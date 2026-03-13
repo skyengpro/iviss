@@ -197,9 +197,7 @@ pub async fn login(
 ) -> Result<impl IntoResponse, AppError> {
     // Development/test: Allow seed admin credentials to log in via the web back office.
     // Agents use the OTP activation flow instead.
-    if (payload.email == "admin" || payload.email == "admin01")
-        && payload.password == "admin123"
-    {
+    if (payload.email == "admin" || payload.email == "admin01") && payload.password == "admin123" {
         // LOOKUP the actual user in the DB instead of hardcoding UUIDs
         let user_row = sqlx::query(
             r#"
@@ -209,7 +207,7 @@ pub async fn login(
             LEFT JOIN organizations o ON u.organization_id = o.id
             WHERE u.email = 'admin01@iviss.gov' OR u.email = 'admin@iviss.gov'
             AND u.deleted_at IS NULL
-            "#
+            "#,
         )
         .fetch_optional(&state.db)
         .await
@@ -288,7 +286,9 @@ pub async fn login(
                     badge_id,
                     phone_number,
                     avatar_initials: Some(name.chars().next().unwrap_or('A').to_string()),
-                    status: status_str.parse().unwrap_or(crate::dto::users::UserStatus::Active),
+                    status: status_str
+                        .parse()
+                        .unwrap_or(crate::dto::users::UserStatus::Active),
                     is_active: true,
                 },
             }),
