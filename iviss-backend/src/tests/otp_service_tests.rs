@@ -88,10 +88,10 @@ async fn test_otp_key_prefix_is_otp_not_activation() {
 
     // Verify key uses "otp" prefix, not "activation"
     let mut conn = pool.get().await.unwrap();
-    let otp_key: Option<String> = conn.get(format!("otp:{}", user_id)).await.unwrap();
+    let otp_key: Option<String> = conn.get(format!("user_otp:{}", user_id)).await.unwrap();
     let activation_key: Option<String> = conn.get(format!("activation:{}", user_id)).await.unwrap();
 
-    assert!(otp_key.is_some(), "otp:{user_id} key must exist");
+    assert!(otp_key.is_some(), "user_otp:{user_id} key must exist");
     assert!(
         activation_key.is_none(),
         "activation:{user_id} must NOT exist"

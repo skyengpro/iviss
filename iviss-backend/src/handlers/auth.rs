@@ -1,25 +1,26 @@
 use crate::app_state::AppState;
 use crate::dto::auth::{
-    RequestDailyLoginRequest, RequestDailyLoginResponse, SendActivationRequest,
-    SendActivationResponse, VerifyDailyLoginRequest, VerifyDailyLoginResponse,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RefreshResponse,
+    RegisterRequest,
+};
+use crate::dto::auth::{
+    RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
+    VerifyDailyLoginResponse,
 };
 use base64::Engine;
 
 use crate::dto::users::{UserProfile, UserRole};
 use crate::errors::AppError;
 use crate::queries::auth_queries;
-use crate::services::activation_service::ActivationService;
 use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
@@ -34,12 +35,6 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     }
 
     AppError::unauthorized("Shift ended")
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
 }
 
 /// Refresh access token using refresh token
@@ -130,50 +125,6 @@ pub async fn refresh_token(
         .map_err(AppError::Internal)?;
 
     Ok((StatusCode::OK, Json(RefreshResponse { access_token })))
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AuthResponse {
-    pub token: String,
-    pub user: UserProfile,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct RegisterRequest {
-    pub email: String,
-    pub password: String,
-    pub full_name: String,
-    pub role: UserRole,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct ActivateRequest {
-    pub badge_id: String,
-    pub activation_code: String,
-    pub device_id: Uuid,
-    pub public_key_base64: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct ActivateResponse {
-    pub access_token: String,
-    pub refresh_token: String,
-    pub user: UserProfile,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct RefreshRequest {
-    pub refresh_token: String,
-    pub device_id: Uuid,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct RefreshResponse {
-    pub access_token: String,
 }
 
 /// Login with email and password
@@ -268,82 +219,6 @@ pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
 
-/// Send activation code via SMS to a pending agent
-#[utoipa::path(
-    post,
-    path = "/auth/send-activation",
-    request_body = SendActivationRequest,
-    responses(
-        (status = 201, description = "Activation code sent", body = SendActivationResponse),
-        (status = 404, description = "User not found", body = AppErrorResponse),
-        (status = 400, description = "Bad request", body = AppErrorResponse)
-    ),
-    tag = "auth",
-    operation_id = "sendActivationCode"
-)]
-pub async fn send_activation(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<SendActivationRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    // Fetch agent from DB
-    let user = sqlx::query(
-        r#"
-        SELECT id,
-               phone_number,
-               role::TEXT AS role,
-               status::TEXT AS status
-        FROM users
-        WHERE id = $1
-        AND deleted_at IS NULL
-        "#,
-    )
-    .bind(payload.user_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
-
-    let user_id: Uuid = user.get("id");
-    let phone_number: String = user.get("phone_number");
-    let role: String = user.get("role");
-    let status: String = user.get("status");
-
-    // Only agents can receive an activation code
-    if role != "agent" {
-        return Err(AppError::BadRequest(
-            "Activation is only available for agents".into(),
-        ));
-    }
-
-    // Agent must be in PENDING_ACTIVATION or SUSPENDED status
-    if status != "PENDING_ACTIVATION" && status != "SUSPENDED" {
-        return Err(AppError::BadRequest(format!(
-            "User is not pending activation or suspended — current status: {}",
-            status
-        )));
-    }
-
-    // Build ActivationService from shared state resources
-    let activation_svc = ActivationService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
-
-    // Generate, store and send the activation code via SMS
-    activation_svc
-        .generate_and_send(&user_id, &phone_number)
-        .await
-        .map_err(AppError::Internal)?;
-
-    Ok((
-        StatusCode::CREATED,
-        Json(SendActivationResponse {
-            message: "Activation code sent successfully".into(),
-        }),
-    ))
-}
-
 /// Activate an agent account by validating OTP and registering device public key
 #[utoipa::path(
     post,
@@ -406,13 +281,13 @@ pub async fn activate(
         )));
     }
 
-    let activation_svc = ActivationService::new(
+    let otp_svc = OtpService::new(
         state.redis.clone(),
         state.sms_pvd.clone(),
         state.pepper.clone(),
     );
-    activation_svc
-        .validate(&user_id, &payload.activation_code)
+    otp_svc
+        .validate_otp(&user_id, &payload.activation_code)
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
@@ -420,6 +295,7 @@ pub async fn activate(
         .duration_since(UNIX_EPOCH)
         .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
         .as_secs();
+
     let shift_start: i64 = now.try_into().unwrap_or(0i64);
     let shift_end: i64 = now
         .saturating_add(SHIFT_TTL.as_secs())
