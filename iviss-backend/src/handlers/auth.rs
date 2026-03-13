@@ -191,28 +191,90 @@ pub struct RefreshResponse {
     tag = "auth",
     operation_id = "loginUser"
 )]
-pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoResponse, AppError> {
-    // MOCK LOGIN
-    Ok((
-        StatusCode::OK,
-        Json(AuthResponse {
-            token: "mock-jwt-token".to_string(),
-            user: UserProfile {
-                id: uuid::Uuid::new_v4(),
-                username: "admin".to_string(),
-                email: Some("admin@iviss.com".to_string()),
-                name: "Admin User".to_string(),
-                role: UserRole::Admin,
-                organization_id: uuid::Uuid::new_v4(),
-                organization: Some("IVISS HQ".to_string()),
-                badge_id: Some("ADMIN-01".to_string()),
-                phone_number: Some("+237 600 000 000".to_string()),
-                avatar_initials: Some("AU".to_string()),
-                status: crate::dto::users::UserStatus::Active,
-                is_active: true,
-            },
-        }),
-    ))
+pub async fn login(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<LoginRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Development/test: Allow seed admin credentials to log in via the web back office.
+    // Agents use the OTP activation flow instead.
+    if (payload.email == "admin" || payload.email == "admin01")
+        && payload.password == "admin123"
+    {
+        let admin_id =
+            Uuid::parse_str("e390f1ee-6c54-4b01-90e6-d701748f0852").expect("valid seed uuid");
+        let org_id =
+            Uuid::parse_str("d290f1ee-6c54-4b01-90e6-d701748f0851").expect("valid seed uuid");
+
+        let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+        let device_id = Uuid::new_v4(); // Virtual device – one per web session
+
+        // Compute shift window (same TTL as agent activation)
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+            .as_secs();
+        let shift_start: i64 = now.try_into().unwrap_or(0);
+        let shift_end: i64 = now
+            .saturating_add(SHIFT_TTL.as_secs())
+            .try_into()
+            .unwrap_or(0);
+
+        let token = jwt_svc
+            .issue_access_token_with_shift(
+                admin_id,
+                device_id,
+                UserRole::Admin,
+                shift_start.try_into().unwrap_or(0usize),
+                shift_end.try_into().unwrap_or(0usize),
+            )
+            .map_err(AppError::Internal)?;
+
+        // Register the virtual device so the auth middleware's device_is_active check passes.
+        // Use device_id.to_string() as public_key — it's unique per session and satisfies the constraint.
+        sqlx::query(
+            r#"
+            INSERT INTO devices (id, user_id, public_key, status, metadata)
+            VALUES (
+                $1, $2, $3, 'ACTIVE'::device_status,
+                jsonb_build_object('shift_start', $4, 'shift_end', $5)
+            )
+            ON CONFLICT (id) DO UPDATE SET
+                status   = 'ACTIVE'::device_status,
+                metadata = EXCLUDED.metadata
+            "#,
+        )
+        .bind(device_id)
+        .bind(admin_id)
+        .bind(device_id.to_string()) // unique per session — satisfies the public_key unique index
+        .bind(shift_start)
+        .bind(shift_end)
+        .execute(&state.db)
+        .await
+        .map_err(AppError::Database)?;
+
+        return Ok((
+            StatusCode::OK,
+            Json(AuthResponse {
+                token,
+                user: UserProfile {
+                    id: admin_id,
+                    username: "admin".to_string(),
+                    email: Some("admin@iviss.gov".to_string()),
+                    name: "System Administrator".to_string(),
+                    role: UserRole::Admin,
+                    organization_id: org_id,
+                    organization: Some("National Police Service".to_string()),
+                    badge_id: Some("ADM-001".to_string()),
+                    phone_number: Some("+254700123456".to_string()),
+                    avatar_initials: Some("SA".to_string()),
+                    status: crate::dto::users::UserStatus::Active,
+                    is_active: true,
+                },
+            }),
+        ));
+    }
+
+    Err(AppError::unauthorized("Invalid credentials"))
 }
 
 /// Register a new user
