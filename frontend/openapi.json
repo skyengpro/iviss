@@ -663,7 +663,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendActivationRequest"
+                "$ref": "#/components/schemas/ResendActivationRequest"
               }
             }
           },
@@ -675,7 +675,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SendActivationResponse"
+                  "$ref": "#/components/schemas/ResendActivationResponse"
                 }
               }
             }
@@ -1952,7 +1952,7 @@
           }
         }
       },
-      "SendActivationRequest": {
+      "ResendActivationRequest": {
         "type": "object",
         "required": ["user_id"],
         "properties": {
@@ -1962,7 +1962,7 @@
           }
         }
       },
-      "SendActivationResponse": {
+      "ResendActivationResponse": {
         "type": "object",
         "required": ["message"],
         "properties": {
