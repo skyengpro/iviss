@@ -3,6 +3,15 @@ use std::str::FromStr;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ResendActivationRequest {
+    pub user_id: uuid::Uuid,
+}
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ResendActivationResponse {
+    pub message: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {

@@ -60,6 +60,10 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/devices/{id}/unsuspend",
             post(crate::handlers::device_management::unsuspend_device),
+        )
+        .route(
+            "/admin/resend-activation-code",
+            post(crate::handlers::user_management::resend_activation_code),
         );
 
     let protected_routes = Router::new()
