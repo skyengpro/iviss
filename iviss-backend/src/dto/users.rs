@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
+
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ResendActivationRequest {
+    pub user_id: uuid::Uuid,
+}
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ResendActivationResponse {
+    pub message: String,
+}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -9,6 +19,7 @@ pub enum UserRole {
     Agent,
     Manager,
 }
+
 
 impl UserRole {
     pub fn as_str(&self) -> &'static str {

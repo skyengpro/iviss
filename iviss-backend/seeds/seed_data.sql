@@ -358,3 +358,93 @@ VALUES
     'impound',
     'Vehicle reported stolen. Local authorities alerted.'
 ) ON CONFLICT DO NOTHING;
+
+-- 8. Devices (for agent users - needed for activation, daily login, device management)
+INSERT INTO devices (id, user_id, public_key, status, metadata, last_seen_at, created_at)
+VALUES 
+(
+    'd490f1ee-6c54-4b01-90e6-d701748f0853',
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1
+    'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtest',
+    'ACTIVE',
+    '{"os": "Android", "app_version": "1.0.0"}'::jsonb,
+    NOW(),
+    NOW()
+),
+(
+    'd590f1ee-6c54-4b01-90e6-d701748f0855',
+    'f690f1ee-6c54-4b01-90e6-d701748f0855', -- agent2 (INACTIVE - needs activation)
+    'MIIBIjANBgkqhkiG9w0BAQEFAA65AQ8AMIIBCgKCAQEAtest',
+    'INACTIVE',
+    '{}'::jsonb,
+    NULL,
+    NOW()
+),
+(
+    'd690f1ee-6c54-4b01-90e6-d701748f0856',
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1 second device
+    'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsuspended',
+    'SUSPENDED',
+    '{"os": "iOS", "app_version": "1.0.0", "suspension_reason": "Test suspension"}'::jsonb,
+    NOW() - INTERVAL '7 days',
+    NOW() - INTERVAL '30 days'
+) ON CONFLICT (id) DO NOTHING;
+
+-- 9. Refresh Tokens (for testing token refresh endpoint)
+INSERT INTO refresh_tokens (id, token_hash, user_id, device_id, expires_at, revoked, created_at)
+VALUES 
+(
+    'a190f1ee-6c54-4b01-90e6-d701748f0851',
+    'a1b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef0123456789a', -- 64 char hash
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1
+    'd490f1ee-6c54-4b01-90e6-d701748f0853',
+    NOW() + INTERVAL '30 days',
+    FALSE,
+    NOW()
+),
+(
+    'a290f1ee-6c54-4b01-90e6-d701748f0852',
+    'deadbeefcafebabe0123456789abcdef0123456789abcdef0123456789abcde', -- 64 char hash
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1
+    'd690f1ee-6c54-4b01-90e6-d701748f0856', -- suspended device
+    NOW() + INTERVAL '30 days',
+    TRUE, -- revoked
+    NOW() - INTERVAL '7 days'
+) ON CONFLICT (id) DO NOTHING;
+
+-- 10. Pending Submissions (for testing admin submission endpoints)
+INSERT INTO pending_submissions (id, agent_id, plate_number, front_image_url, back_image_url, notes, status, created_at, updated_at)
+VALUES 
+(
+    'a390f1ee-6c54-4b01-90e6-d701748f0851',
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1
+    'NEW 123 PL',
+    'https://example.com/front1.jpg',
+    'https://example.com/back1.jpg',
+    'New vehicle submission',
+    'pending',
+    NOW() - INTERVAL '2 hours',
+    NOW() - INTERVAL '2 hours'
+),
+(
+    'a490f1ee-6c54-4b01-90e6-d701748f0852',
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1
+    'OLD 456 QR',
+    'https://example.com/front2.jpg',
+    'https://example.com/back2.jpg',
+    'Old vehicle submission',
+    'pending',
+    NOW() - INTERVAL '1 day',
+    NOW() - INTERVAL '1 day'
+),
+(
+    'a590f1ee-6c54-4b01-90e6-d701748f0853',
+    'f490f1ee-6c54-4b01-90e6-d701748f0853', -- agent1
+    'LT128AB',
+    'https://example.com/front3.jpg',
+    'https://example.com/back3.jpg',
+    'Existing vehicle submission',
+    'pending',
+    NOW() - INTERVAL '3 hours',
+    NOW() - INTERVAL '3 hours'
+) ON CONFLICT (id) DO NOTHING;
