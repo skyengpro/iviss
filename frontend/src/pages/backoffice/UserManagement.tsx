@@ -73,11 +73,11 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    admin: 'destructive',
-    supervisor: 'secondary',
-    agent: 'outline',
-  };
+{
+  admin: 'destructive',
+  supervisor: 'secondary',
+  agent: 'outline',
+};
 
 export default function UserManagement() {
   const { t } = useTranslation();
@@ -87,6 +87,7 @@ export default function UserManagement() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isTerminateConfirmOpen, setIsTerminateConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [resendLoadingUserId, setResendLoadingUserId] = useState<string | null>(null);
 
@@ -148,6 +149,29 @@ export default function UserManagement() {
       setSelectedUser(null);
     } catch (error) {
       toast.error(t('backOfficeUserManagement.deleteError'));
+    }
+  };
+
+  const handleTerminateSession = async () => {
+    if (!selectedUser) return;
+    try {
+      const res = await fetchWithAuth('/admin/terminate-session', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ userId: selectedUser.id }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to terminate session');
+      }
+
+      toast.success(t('backOfficeUserManagement.terminateSuccess'));
+      setIsTerminateConfirmOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      toast.error(t('backOfficeUserManagement.terminateError'));
     }
   };
 
@@ -270,8 +294,8 @@ export default function UserManagement() {
               <AlertDialogHeader>
                 <AlertDialogTitle>{t('backOfficeUserManagement.deleteUser')}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently remove the user from the
-                  active directory.
+                  {t('backOfficeUserManagement.deleteDescription') ||
+                    'This action cannot be undone. This will permanently remove the user from the active directory.'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -284,6 +308,28 @@ export default function UserManagement() {
                 >
                   {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {t('backOfficeUserManagement.deleteUser')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('backOfficeUserManagement.terminateSession')}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('backOfficeUserManagement.terminateSessionDescription')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedUser(null)}>
+                  {t('backOfficeUserManagement.cancel')}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleTerminateSession}
+                  className="bg-destructive text-destructive-foreground"
+                >
+                  {t('backOfficeUserManagement.terminateSession')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -469,6 +515,17 @@ export default function UserManagement() {
                             <DropdownMenuItem>
                               <Shield className="mr-2 h-4 w-4" />
                               {t('backOfficeUserManagement.managePermissions')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsTerminateConfirmOpen(true);
+                              }}
+                              className="text-status-warning"
+                              disabled={user.role !== 'agent'}
+                            >
+                              <UserX className="mr-2 h-4 w-4" />
+                              {t('backOfficeUserManagement.terminateSession')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               disabled={
