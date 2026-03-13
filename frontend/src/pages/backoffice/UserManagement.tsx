@@ -73,11 +73,11 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
-{
-  admin: 'destructive',
-  supervisor: 'secondary',
-  agent: 'outline',
-};
+  {
+    admin: 'destructive',
+    supervisor: 'secondary',
+    agent: 'outline',
+  };
 
 export default function UserManagement() {
   const { t } = useTranslation();
@@ -316,7 +316,9 @@ export default function UserManagement() {
           <AlertDialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{t('backOfficeUserManagement.terminateSession')}?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {t('backOfficeUserManagement.terminateSession')}?
+                </AlertDialogTitle>
                 <AlertDialogDescription>
                   {t('backOfficeUserManagement.terminateSessionDescription')}
                 </AlertDialogDescription>

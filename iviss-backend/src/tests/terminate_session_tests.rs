@@ -94,7 +94,7 @@ async fn setup_test_app() -> (
         db.clone(),
         redis_pool.clone(),
         Arc::new(MockSmsProvider),
-        config,
+        &config,
     );
 
     let app = routes::assembly(state);
