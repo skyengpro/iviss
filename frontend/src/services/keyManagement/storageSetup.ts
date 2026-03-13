@@ -108,7 +108,10 @@ class SimpleStorage {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           // Connection likely closing, force refresh and retry once
           this.db = null;
-          this.getDB().then(() => this.insert(storeName, data)).then(resolve).catch(reject);
+          this.getDB()
+            .then(() => this.insert(storeName, data))
+            .then(resolve)
+            .catch(reject);
         } else {
           reject(err);
         }
@@ -158,7 +161,10 @@ class SimpleStorage {
       } catch (err) {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           this.db = null;
-          this.getDB().then(() => this.clear(storeName)).then(resolve).catch(reject);
+          this.getDB()
+            .then(() => this.clear(storeName))
+            .then(resolve)
+            .catch(reject);
         } else {
           reject(err);
         }
@@ -180,7 +186,10 @@ class SimpleStorage {
       } catch (err) {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           this.db = null;
-          this.getDB().then(() => this.count(storeName)).then(resolve).catch(reject);
+          this.getDB()
+            .then(() => this.count(storeName))
+            .then(resolve)
+            .catch(reject);
         } else {
           reject(err);
         }
@@ -193,7 +202,7 @@ class SimpleStorage {
 const storage = new SimpleStorage('EventKeyStorage', 2);
 
 // Initialize storage on module load
-storage.init().catch(() => { });
+storage.init().catch(() => {});
 
 // Add a function to clear all stored data
 export async function clearAllStoredData() {

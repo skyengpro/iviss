@@ -8,7 +8,7 @@ interface SidebarContextType {
 
 export const SidebarContext = createContext<SidebarContextType>({
   collapsed: false,
-  toggle: () => { },
+  toggle: () => {},
   sidebarWidth: '16rem',
 });
 

@@ -69,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (forced) {
       toast.error('Session Terminated', {
-        description: 'Your session has been terminated by an administrator or has expired. Please log in again.',
+        description:
+          'Your session has been terminated by an administrator or has expired. Please log in again.',
       });
       // Force redirect to login
       window.location.href = '/login';
