@@ -5,10 +5,11 @@ use uuid::Uuid;
 /// Terminates all sessions for a given user within a single transaction:
 /// 1. Revokes all refresh tokens.
 /// 2. Marks all devices as INACTIVE.
+/// 3. Sets user status to SUSPENDED.
 ///
-/// The auth middleware already rejects requests when `device_is_active = false`,
-/// so the very next request from the terminated user will return 401.
-/// The user's account status is left unchanged.
+/// The auth middleware already rejects requests when `device_is_active = false`
+/// or when user status is not ACTIVE, so the very next request from the 
+/// terminated user will return 401.
 pub async fn terminate_user_sessions(pool: &PgPool, user_id: Uuid) -> Result<(), AppError> {
     let mut tx = pool.begin().await.map_err(AppError::Database)?;
 
@@ -35,6 +36,20 @@ pub async fn terminate_user_sessions(pool: &PgPool, user_id: Uuid) -> Result<(),
             revoked_at = NOW()
         WHERE user_id = $1
           AND status = 'ACTIVE'::device_status
+        "#,
+    )
+    .bind(user_id)
+    .execute(&mut *tx)
+    .await
+    .map_err(AppError::Database)?;
+
+    // 3. Suspend the user account
+    sqlx::query(
+        r#"
+        UPDATE users
+        SET status = 'SUSPENDED'::user_status
+        WHERE id = $1
+          AND status = 'ACTIVE'::user_status
         "#,
     )
     .bind(user_id)
