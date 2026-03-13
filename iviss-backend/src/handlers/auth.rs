@@ -200,10 +200,32 @@ pub async fn login(
     if (payload.email == "admin" || payload.email == "admin01")
         && payload.password == "admin123"
     {
-        let admin_id =
-            Uuid::parse_str("e390f1ee-6c54-4b01-90e6-d701748f0852").expect("valid seed uuid");
-        let org_id =
-            Uuid::parse_str("d290f1ee-6c54-4b01-90e6-d701748f0851").expect("valid seed uuid");
+        // LOOKUP the actual user in the DB instead of hardcoding UUIDs
+        let user_row = sqlx::query(
+            r#"
+            SELECT u.id, u.username, u.email, u.full_name as name, u.role::TEXT, u.organization_id, 
+                   o.name as organization_name, u.badge_id, u.phone_number, u.status::TEXT
+            FROM users u
+            LEFT JOIN organizations o ON u.organization_id = o.id
+            WHERE u.email = 'admin01@iviss.gov' OR u.email = 'admin@iviss.gov'
+            AND u.deleted_at IS NULL
+            "#
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(AppError::Database)?
+        .ok_or_else(|| AppError::unauthorized("Admin user not found in database"))?;
+
+        let admin_id: Uuid = user_row.get("id");
+        let org_id: Uuid = user_row.get("organization_id");
+        let username: String = user_row.get("username");
+        let email: Option<String> = user_row.get("email");
+        let name: String = user_row.get("name");
+        let _role_str: String = user_row.get("role");
+        let org_name: Option<String> = user_row.get("organization_name");
+        let badge_id: Option<String> = user_row.get("badge_id");
+        let phone_number: Option<String> = user_row.get("phone_number");
+        let status_str: String = user_row.get("status");
 
         let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
         let device_id = Uuid::new_v4(); // Virtual device – one per web session
@@ -224,13 +246,12 @@ pub async fn login(
                 admin_id,
                 device_id,
                 UserRole::Admin,
-                shift_start.try_into().unwrap_or(0usize),
-                shift_end.try_into().unwrap_or(0usize),
+                shift_start.try_into().unwrap_or(0),
+                shift_end.try_into().unwrap_or(0),
             )
             .map_err(AppError::Internal)?;
 
         // Register the virtual device so the auth middleware's device_is_active check passes.
-        // Use device_id.to_string() as public_key — it's unique per session and satisfies the constraint.
         sqlx::query(
             r#"
             INSERT INTO devices (id, user_id, public_key, status, metadata)
@@ -245,7 +266,7 @@ pub async fn login(
         )
         .bind(device_id)
         .bind(admin_id)
-        .bind(device_id.to_string()) // unique per session — satisfies the public_key unique index
+        .bind(device_id.to_string())
         .bind(shift_start)
         .bind(shift_end)
         .execute(&state.db)
@@ -258,16 +279,16 @@ pub async fn login(
                 token,
                 user: UserProfile {
                     id: admin_id,
-                    username: "admin".to_string(),
-                    email: Some("admin@iviss.gov".to_string()),
-                    name: "System Administrator".to_string(),
+                    username,
+                    email,
+                    name: name.clone(),
                     role: UserRole::Admin,
                     organization_id: org_id,
-                    organization: Some("National Police Service".to_string()),
-                    badge_id: Some("ADM-001".to_string()),
-                    phone_number: Some("+254700123456".to_string()),
-                    avatar_initials: Some("SA".to_string()),
-                    status: crate::dto::users::UserStatus::Active,
+                    organization: org_name,
+                    badge_id,
+                    phone_number,
+                    avatar_initials: Some(name.chars().next().unwrap_or('A').to_string()),
+                    status: status_str.parse().unwrap_or(crate::dto::users::UserStatus::Active),
                     is_active: true,
                 },
             }),
