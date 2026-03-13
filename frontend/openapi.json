@@ -145,6 +145,63 @@
                 ]
             }
         },
+        "/admin/terminate-session": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Terminate all sessions for a user (admin only).",
+                "description": "Revokes all refresh tokens, deactivates all devices, and suspends\nthe user account. The next request from that user will return 401.",
+                "operationId": "terminateSession",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TerminateSessionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Session terminated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TerminateSessionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
         "/admin/users": {
             "get": {
                 "tags": [
@@ -2210,6 +2267,29 @@
                     },
                     "status": {
                         "$ref": "#/components/schemas/Status"
+                    }
+                }
+            },
+            "TerminateSessionRequest": {
+                "type": "object",
+                "required": [
+                    "userId"
+                ],
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                }
+            },
+            "TerminateSessionResponse": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
                     }
                 }
             },
