@@ -401,10 +401,10 @@ pub async fn send_activation(
         ));
     }
 
-    // Agent must be in PENDING_ACTIVATION or SUSPENDED status
-    if status != "PENDING_ACTIVATION" && status != "SUSPENDED" {
+    // Agent must be in PENDING_ACTIVATION, SUSPENDED, or ACTIVE status
+    if status != "PENDING_ACTIVATION" && status != "SUSPENDED" && status != "ACTIVE" {
         return Err(AppError::BadRequest(format!(
-            "User is not pending activation or suspended — current status: {}",
+            "User is not in an activatable state — current status: {}",
             status
         )));
     }
@@ -485,9 +485,10 @@ pub async fn activate(
             "Activation is only available for agents".into(),
         ));
     }
-    if user_status != "PENDING_ACTIVATION" && user_status != "SUSPENDED" {
+    if user_status != "PENDING_ACTIVATION" && user_status != "SUSPENDED" && user_status != "ACTIVE"
+    {
         return Err(AppError::BadRequest(format!(
-            "User is not pending activation or suspended — current status: {}",
+            "User is not in an activatable state — current status: {}",
             user_status
         )));
     }
