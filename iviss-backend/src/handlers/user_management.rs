@@ -259,7 +259,7 @@ pub async fn resend_activation_code(
         FROM users
         WHERE id = $1
         AND deleted_at IS NULL
-        "#
+        "#,
     )
     .bind(payload.user_id)
     .fetch_optional(&state.db)

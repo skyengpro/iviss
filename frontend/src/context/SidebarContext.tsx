@@ -6,9 +6,9 @@ interface SidebarContextType {
   sidebarWidth: string;
 }
 
-const SidebarContext = createContext<SidebarContextType>({
+export const SidebarContext = createContext<SidebarContextType>({
   collapsed: false,
-  toggle: () => {},
+  toggle: () => { },
   sidebarWidth: '16rem',
 });
 
@@ -25,8 +25,4 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       {children}
     </SidebarContext.Provider>
   );
-}
-
-export function useSidebar() {
-  return useContext(SidebarContext);
 }
