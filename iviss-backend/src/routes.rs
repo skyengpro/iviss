@@ -16,7 +16,18 @@ pub fn assembly(state: AppState) -> Router {
         .route("/auth/login", post(crate::handlers::auth::login))
         .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/activate", post(crate::handlers::auth::activate))
-        .route("/auth/refresh", post(crate::handlers::auth::refresh_token));
+        .route("/auth/refresh", post(crate::handlers::auth::refresh_token))
+        .route(
+            "/auth/request-daily-login",
+            post(crate::handlers::auth::request_daily_login).layer(from_fn_with_state(
+                state.clone(),
+                crate::middleware::agent_work_scope::require_shift_hours,
+            )),
+        )
+        .route(
+            "/auth/verify-daily-login",
+            post(crate::handlers::auth::verify_daily_login),
+        );
 
     let admin_routes = Router::new()
         .route(
@@ -45,6 +56,19 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/terminate-session",
             post(crate::handlers::user_management::terminate_session),
+        )
+        .route(
+            "/admin/devices/{id}/suspend",
+            post(crate::handlers::device_management::suspend_device),
+        )
+        .route(
+            "/admin/devices/{id}/unsuspend",
+            post(crate::handlers::device_management::unsuspend_device),
+        )
+        .route(
+            "/admin/resend-activation-code",
+            post(crate::handlers::user_management::resend_activation_code),
+
         );
 
     let protected_routes = Router::new()
@@ -77,10 +101,6 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::users::update_location),
         )
         .route("/auth/logout", post(crate::handlers::auth::logout))
-        .route(
-            "/auth/send-activation",
-            post(crate::handlers::auth::send_activation),
-        )
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes

@@ -14,6 +14,7 @@ pub enum ErrorCode {
     DatabaseError,
     NotFound,
     BadRequest,
+    TooManyRequests,
     ExternalApiFailure,
     InternalError,
 }
@@ -40,6 +41,9 @@ pub enum AppError {
     #[error("Bad request: {0}")]
     BadRequest(String),
 
+    #[error("Too many requests: {0}")]
+    TooManyRequests(String),
+
     #[error("External API failure: {0}")]
     ExternalApiFailure(String),
 
@@ -59,6 +63,9 @@ impl AppError {
 
     pub fn bad_request(msg: impl Into<String>) -> Self {
         Self::BadRequest(msg.into())
+    }
+    pub fn too_many_requests(msg: impl Into<String>) -> Self {
+        Self::TooManyRequests(msg.into())
     }
 
     pub fn unauthorized(msg: impl Into<String>) -> Self {
@@ -96,6 +103,11 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => {
                 (StatusCode::BAD_REQUEST, ErrorCode::BadRequest, msg.clone())
             }
+            AppError::TooManyRequests(msg) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                ErrorCode::TooManyRequests,
+                msg.clone(),
+            ),
             AppError::ExternalApiFailure(msg) => {
                 tracing::error!("External API failure: {}", msg);
                 (
