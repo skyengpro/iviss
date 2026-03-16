@@ -19,7 +19,7 @@ pub struct RequestDailyLoginResponse {
 #[serde(rename_all = "camelCase")]
 pub struct VerifyDailyLoginRequest {
     pub badge_id: String,
-    pub otp: String,
+    pub activation_code: String,
     pub device_id: Uuid,
 }
 
