@@ -4,7 +4,6 @@ use crate::config::Config;
 use crate::db::{redis::RedisPool, DbPool};
 use crate::services::sms_provider::SmsProvider;
 use std::sync::Arc;
-
 #[derive(Clone)]
 pub struct AppState {
     pub db: DbPool,
@@ -22,7 +21,7 @@ impl AppState {
         db_pool: DbPool,
         redis_pool: RedisPool,
         sms_pvd: Arc<dyn SmsProvider>,
-        config: Config,
+        config: &Config,
     ) -> Self {
         Self {
             db: db_pool,

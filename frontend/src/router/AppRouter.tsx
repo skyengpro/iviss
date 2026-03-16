@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { publicRoutes, mobileRoutes, backOfficeRoutes, catchAllRoute } from './routes';
 import { ProtectedRoute } from './ProtectedRoute';
+import { getAccessToken, getRefreshToken } from '@/services/auth/tokenManager';
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -12,10 +13,14 @@ const PageLoader = () => (
 
 export const AppRouter = () => {
   const allProtectedRoutes = [...mobileRoutes, ...backOfficeRoutes];
+  const accessToken = getAccessToken();
+  const refreshToken = getRefreshToken();
+  const entryRedirect = !refreshToken && !accessToken ? '/activate' : refreshToken && !accessToken ? '/daily-login' : '/daily-login';
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        <Route path="/" element={<Navigate to={entryRedirect} replace />} />
         {/* Public Routes */}
         {publicRoutes.map((route) => (
           <Route
