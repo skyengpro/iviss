@@ -88,6 +88,7 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::update_user,
         crate::handlers::user_management::delete_user,
         crate::handlers::user_management::list_organizations,
+        crate::handlers::user_management::terminate_session,
     ),
 
     components(
@@ -152,6 +153,8 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::VerifyRefreshResponse,
             ProvisionUserRequest,
             UpdateUserRequest,
+            crate::handlers::user_management::TerminateSessionRequest,
+            crate::handlers::user_management::TerminateSessionResponse,
             UserStatus,
             Organization,
             OrganizationType,
