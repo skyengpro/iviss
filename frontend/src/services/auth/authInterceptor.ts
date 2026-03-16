@@ -210,7 +210,8 @@ export function setupAuthInterceptors(
 
     if (!newToken) {
       // Refresh failed — session is expired
-      console.error('AuthInterceptor: Token refresh failed, but keeping tokens as requested');
+      console.error('AuthInterceptor: Token refresh failed; session expired');
+      options.onSessionExpired?.();
       return response;
     }
 
