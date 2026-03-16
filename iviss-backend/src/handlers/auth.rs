@@ -420,7 +420,7 @@ pub async fn request_daily_login(
     if payload.badge_id.trim().is_empty() {
         return Err(AppError::bad_request("badgeId is required"));
     }
-    let user = auth_queries::get_user_by_badge_id(&state.db, &payload.badge_id).await?;
+    let user = auth_queries::get_user_by_badge(&state.db, &payload.badge_id).await?;
 
     // Only agents use the daily OTP flow
     if user.role != "agent" {
@@ -435,12 +435,15 @@ pub async fn request_daily_login(
         ));
     }
 
-    let device = auth_queries::get_device_by_user(&state.db, payload.device_id, user.id).await?;
+    let device_opt =
+        auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
-    if device.status == "SUSPENDED" {
-        return Err(AppError::unauthorized(
-            "Device suspended — contact your administrator",
-        ));
+    if let Some(device) = device_opt {
+        if device.status == "SUSPENDED" {
+            return Err(AppError::unauthorized(
+                "Device suspended — contact your administrator",
+            ));
+        }
     }
 
     let otp_svc = OtpService::new(
@@ -454,7 +457,7 @@ pub async fn request_daily_login(
     tracing::info!(
         target: "daily_login",
         user_id = %user.id,
-        device_id = %device.id,
+        device_id = %payload.device_id,
         "Daily login OTP requested"
     );
 
@@ -486,8 +489,8 @@ pub async fn verify_daily_login(
     if payload.badge_id.trim().is_empty() {
         return Err(AppError::bad_request("badgeId is required"));
     }
-    if payload.otp.trim().is_empty() {
-        return Err(AppError::bad_request("otp is required"));
+    if payload.activation_code.trim().is_empty() {
+        return Err(AppError::bad_request("activationCode is required"));
     }
 
     let row = sqlx::query(
@@ -496,9 +499,9 @@ pub async fn verify_daily_login(
             u.id              AS user_id,
             u.role::TEXT      AS user_role,
             u.status::TEXT    AS user_status,
-            d.status::TEXT    AS device_status
+            COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
         FROM users u
-        JOIN devices d
+        LEFT JOIN devices d
             ON d.user_id = u.id
            AND d.id      = $2
         WHERE u.badge_id    = $1
@@ -523,24 +526,32 @@ pub async fn verify_daily_login(
             "Daily login is only available for agents",
         ));
     }
-    if user_status == "SUSPENDED" {
-        return Err(AppError::unauthorized(
-            "Account suspended — contact your administrator",
-        ));
+
+    if user_status != "ACTIVE" {
+        return Err(AppError::unauthorized(format!(
+            "User account is {}",
+            user_status.to_lowercase()
+        )));
     }
-    if device_status == "SUSPENDED" {
-        return Err(AppError::unauthorized(
-            "Device suspended — contact your administrator",
-        ));
+
+    // Daily login doesn't REQUIRE the device to be registered yet
+    // but if it IS registered, it must not be suspended/revoked
+    if device_status == "SUSPENDED" || device_status == "REVOKED" {
+        return Err(AppError::unauthorized(format!(
+            "Device status: {}",
+            device_status.to_lowercase()
+        )));
     }
 
     // ── Validate OTP
-    let otp_svc = OtpService::new(
+    let otp_svc = crate::services::otp_service::OtpService::new(
         state.redis.clone(),
         state.sms_pvd.clone(),
         state.pepper.clone(),
     );
-    otp_svc.validate_otp(&user_id, &payload.otp).await?;
+    otp_svc
+        .validate_otp(&user_id, &payload.activation_code)
+        .await?;
 
     // ── Compute static shift bounds (UTC+1 local time)
     let localt_time_offset = time::UtcOffset::from_hms(1, 0, 0)
@@ -581,29 +592,50 @@ pub async fn verify_daily_login(
         )
         .map_err(AppError::Internal)?;
 
+    let device_exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1
+            FROM devices
+            WHERE id = $1
+              AND user_id = $2
+              AND revoked_at IS NULL
+        )
+        "#,
+    )
+    .bind(payload.device_id)
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
     // ── Check if a valid refresh token already exists for this device
-    let has_valid_refresh: bool =
-        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?;
+    let has_valid_refresh: bool = if device_exists {
+        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?
+    } else {
+        false
+    };
 
     // ── Conditionally build new refresh token
-    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> = if !has_valid_refresh {
-        let raw = {
-            let mut bytes = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut bytes);
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> =
+        if device_exists && !has_valid_refresh {
+            let raw = {
+                let mut bytes = [0u8; 32];
+                rand::thread_rng().fill_bytes(&mut bytes);
+                base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+            };
+            let hash = {
+                use sha2::Digest;
+                format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
+            };
+            let expires_at = {
+                let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
+                time::PrimitiveDateTime::new(dt.date(), dt.time())
+            };
+            Some((raw, hash, expires_at))
+        } else {
+            None
         };
-        let hash = {
-            use sha2::Digest;
-            format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
-        };
-        let expires_at = {
-            let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-            time::PrimitiveDateTime::new(dt.date(), dt.time())
-        };
-        Some((raw, hash, expires_at))
-    } else {
-        None
-    };
 
     // ── Single CTE: optionally insert refresh token + activate device
     match &new_refresh {
@@ -633,8 +665,15 @@ pub async fn verify_daily_login(
         }
 
         None => {
-            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
+            if device_exists {
+                auth_queries::mark_device_active(
+                    &state.db,
+                    payload.device_id,
+                    shift_start,
+                    shift_end,
+                )
                 .await?;
+            }
         }
     }
 
