@@ -28,7 +28,7 @@ impl FromStr for UserRole {
             "admin" => Ok(Self::Admin),
             "manager" => Ok(Self::Manager),
             "agent" => Ok(Self::Agent),
-            _ => Err(format!("Invalid user role: {}", s)),
+            _ => Ok(Self::Agent),
         }
     }
 }
@@ -43,18 +43,6 @@ impl UserRole {
     }
 }
 
-impl std::str::FromStr for UserRole {
-    type Err = std::convert::Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "admin" => Self::Admin,
-            "manager" => Self::Manager,
-            "agent" => Self::Agent,
-            _ => Self::Agent,
-        })
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
