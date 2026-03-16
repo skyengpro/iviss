@@ -1,7 +1,6 @@
 use crate::app_state::AppState;
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RefreshResponse,
-    RegisterRequest,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RegisterRequest,
 };
 use crate::dto::auth::{
     RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
@@ -37,96 +36,6 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     }
 
     AppError::unauthorized("Shift ended")
-}
-
-/// Refresh access token using refresh token
-#[utoipa::path(
-    post,
-    path = "/auth/refresh",
-    request_body = RefreshRequest,
-    responses(
-        (status = 200, description = "Token refreshed", body = RefreshResponse),
-        (status = 401, description = "Invalid refresh token", body = AppErrorResponse),
-        (status = 400, description = "Bad request", body = AppErrorResponse)
-    ),
-    tag = "auth",
-    operation_id = "refreshToken"
-)]
-pub async fn refresh_token(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<RefreshRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    if payload.refresh_token.trim().is_empty() {
-        return Err(AppError::bad_request("refreshToken is required"));
-    }
-
-    let refresh_token_hash = {
-        use sha2::Digest;
-        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
-        format!("{:x}", digest)
-    };
-
-    let row = sqlx::query(
-        r#"
-        SELECT
-            rt.user_id              AS user_id,
-            d.metadata              AS metadata,
-            d.status::text          AS device_status
-        FROM refresh_tokens rt
-        JOIN devices d ON d.id = rt.device_id
-        WHERE rt.token_hash = $1
-          AND rt.device_id = $2
-          AND rt.revoked = FALSE
-          AND rt.expires_at > NOW()
-        "#,
-    )
-    .bind(&refresh_token_hash)
-    .bind(payload.device_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::unauthorized("Invalid refresh token"))?;
-
-    let user_id: Uuid = row.get("user_id");
-    let device_status: String = row.get("device_status");
-    if device_status != "ACTIVE" {
-        return Err(AppError::unauthorized("Device is not active"));
-    }
-
-    let metadata: serde_json::Value = row.get("metadata");
-    let shift_start = metadata
-        .get("shift_start")
-        .and_then(|v| v.as_i64())
-        .ok_or_else(|| AppError::internal_error("Device shift_start is missing"))?;
-    let shift_end = metadata
-        .get("shift_end")
-        .and_then(|v| v.as_i64())
-        .ok_or_else(|| AppError::internal_error("Device shift_end is missing"))?;
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
-        .as_secs() as i64;
-
-    if now > shift_end {
-        let _ =
-            crate::queries::auth_queries::mark_device_inactive(&state.db, payload.device_id).await;
-        return Err(AppError::unauthorized("Shift ended"));
-    }
-
-    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
-    let access_token = jwt_svc
-        .issue_access_token_with_shift(
-            user_id,
-            payload.device_id,
-            user.role,
-            shift_start.try_into().unwrap_or(0usize),
-            shift_end.try_into().unwrap_or(0usize),
-        )
-        .map_err(AppError::Internal)?;
-
-    Ok((StatusCode::OK, Json(RefreshResponse { access_token })))
 }
 
 /// Login with email and password
@@ -708,7 +617,6 @@ const NONCE_KEY_PREFIX: &str = "refresh_nonce";
 
 // RefreshRequest is already defined at line 171
 
-
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct RefreshChallengeResponse {
     pub nonce: String,
@@ -789,11 +697,10 @@ pub async fn request_refresh(
     let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
     {
         use deadpool_redis::redis::AsyncCommands;
-        let mut conn = state
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e)))?;
+        let mut conn =
+            state.redis.get().await.map_err(|e| {
+                AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e))
+            })?;
         conn.set_ex::<_, _, ()>(&nonce_key, &nonce, NONCE_TTL_SECS)
             .await
             .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {}", e)))?;
@@ -836,11 +743,10 @@ pub async fn verify_refresh(
     let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
     let stored_nonce: Option<String> = {
         use deadpool_redis::redis::AsyncCommands;
-        let mut conn = state
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e)))?;
+        let mut conn =
+            state.redis.get().await.map_err(|e| {
+                AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e))
+            })?;
         let val: Option<String> = conn
             .get(&nonce_key)
             .await
@@ -938,8 +844,7 @@ pub async fn verify_refresh(
 
     // 5. Issue a new access token
     let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
-    let jwt_svc =
-        JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             user_id,

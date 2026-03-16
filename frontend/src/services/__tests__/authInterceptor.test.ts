@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupAuthInterceptors } from '../auth/authInterceptor';
 import * as tokenManager from '../auth/tokenManager';
 
+vi.mock('@/openapi-rq/requests/services.gen', () => ({
+  requestRefresh: vi.fn(),
+  verifyRefresh: vi.fn(),
+}));
+
+import { requestRefresh, verifyRefresh } from '@/openapi-rq/requests/services.gen';
+
+type RequestRefreshResult = Awaited<ReturnType<typeof requestRefresh>>;
+type VerifyRefreshResult = Awaited<ReturnType<typeof verifyRefresh>>;
+
 // Mock dependencies
 vi.mock('../auth/tokenManager', () => ({
   getAccessToken: vi.fn(),
@@ -108,26 +118,18 @@ describe('authInterceptor', () => {
     it('should attempt refresh on 401 response', async () => {
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue('my-refresh-token');
 
-      // Mock the refresh endpoint
+      vi.mocked(requestRefresh).mockResolvedValueOnce({
+        data: { nonce: 'backend-nonce-123' },
+        error: undefined,
+      } as RequestRefreshResult);
+
+      vi.mocked(verifyRefresh).mockResolvedValueOnce({
+        data: { accessToken: 'new-access-token' },
+        error: undefined,
+      } as VerifyRefreshResult);
+
+      // Retry of original request
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
-
-      // First call: POST /auth/refresh -> returns nonce
-      fetchSpy.mockResolvedValueOnce(
-        new Response(JSON.stringify({ nonce: 'backend-nonce-123' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
-
-      // Second call: POST /auth/refresh/verify -> returns new token
-      fetchSpy.mockResolvedValueOnce(
-        new Response(JSON.stringify({ accessToken: 'new-access-token' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
-
-      // Third call: retry of original request
       fetchSpy.mockResolvedValueOnce(
         new Response('{"data":"success"}', {
           status: 200,
@@ -159,11 +161,27 @@ describe('authInterceptor', () => {
       expect(result).toBe(response);
     });
 
+    it('should not attempt refresh when the 401 comes from refresh endpoints', async () => {
+      vi.mocked(tokenManager.getRefreshToken).mockReturnValue('my-refresh-token');
+
+      const interceptor = mockClient._responseInterceptors[0];
+
+      const reqRefresh = new Request('http://localhost:3000/auth/refresh');
+      const res401 = new Response('Unauthorized', { status: 401 });
+      const out1 = await interceptor(res401, reqRefresh);
+
+      expect(out1).toBe(res401);
+      expect(requestRefresh).not.toHaveBeenCalled();
+      expect(verifyRefresh).not.toHaveBeenCalled();
+    });
+
     it('should return original 401 response when refresh endpoint fails', async () => {
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue('my-refresh-token');
 
-      const fetchSpy = vi.spyOn(globalThis, 'fetch');
-      fetchSpy.mockResolvedValueOnce(new Response('Server Error', { status: 500 }));
+      vi.mocked(requestRefresh).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Server Error' },
+      } as RequestRefreshResult);
 
       const request = new Request('http://localhost:3000/api/test');
       const response = new Response('Unauthorized', { status: 401 });
@@ -192,28 +210,18 @@ describe('authInterceptor', () => {
     it('should queue concurrent 401 requests and only perform one refresh flow', async () => {
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue('my-refresh-token');
 
+      vi.mocked(requestRefresh).mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return { data: { nonce: 'shared-nonce' }, error: undefined } as RequestRefreshResult;
+      });
+
+      vi.mocked(verifyRefresh).mockResolvedValueOnce({
+        data: { accessToken: 'shared-new-token' },
+        error: undefined,
+      } as VerifyRefreshResult);
+
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
-
-      // Mock implementation to track precisely what is called
-      fetchSpy.mockImplementation(async (req) => {
-        const url = typeof req === 'string' ? req : (req as Request).url;
-
-        if (url.includes('/auth/refresh/verify')) {
-          return new Response(JSON.stringify({ accessToken: 'shared-new-token' }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (url.includes('/auth/refresh')) {
-          // Add delay to ensure concurrency
-          await new Promise((resolve) => setTimeout(resolve, 50));
-          return new Response(JSON.stringify({ nonce: 'shared-nonce' }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-
+      fetchSpy.mockImplementation(async () => {
         return new Response(JSON.stringify({ data: 'success' }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -232,15 +240,12 @@ describe('authInterceptor', () => {
         interceptor(response401.clone(), req2),
       ]);
 
-      // Verify refresh calls: /auth/refresh should be called ONCE, /auth/refresh/verify ONCE
-      const refreshCalls = fetchSpy.mock.calls.filter((call) => {
-        const url = typeof call[0] === 'string' ? call[0] : (call[0] as Request).url;
-        return url.includes('/auth/refresh');
-      });
+      // Verify refresh calls happen only once each
+      expect(requestRefresh).toHaveBeenCalledTimes(1);
+      expect(verifyRefresh).toHaveBeenCalledTimes(1);
 
-      // Total of 2 calls for refresh flow (1 init, 1 verify)
-      // If queueing works, it's not 4 calls (2 init, 2 verify)
-      expect(refreshCalls).toHaveLength(2);
+      // Verify the original requests were retried (2 retries)
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
 
       // Verify retry calls: both should succeed with the same token
       expect(res1.status).toBe(200);

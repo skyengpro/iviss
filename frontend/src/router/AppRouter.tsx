@@ -15,7 +15,12 @@ export const AppRouter = () => {
   const allProtectedRoutes = [...mobileRoutes, ...backOfficeRoutes];
   const accessToken = getAccessToken();
   const refreshToken = getRefreshToken();
-  const entryRedirect = !refreshToken && !accessToken ? '/activate' : refreshToken && !accessToken ? '/daily-login' : '/daily-login';
+  const entryRedirect =
+    !refreshToken && !accessToken
+      ? '/activate'
+      : refreshToken && !accessToken
+        ? '/daily-login'
+        : '/daily-login';
 
   return (
     <Suspense fallback={<PageLoader />}>

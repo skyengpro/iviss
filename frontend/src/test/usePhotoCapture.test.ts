@@ -2,6 +2,12 @@ import { renderHook, act } from '@testing-library/react';
 import { usePhotoCapture } from '@/hooks/feature/usePhotoCapture';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+vi.mock('@/openapi-rq/requests/services.gen', () => ({
+  photoPlate: vi.fn(),
+}));
+
+import { photoPlate } from '@/openapi-rq/requests/services.gen';
+
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -41,24 +47,22 @@ describe('usePhotoCapture', () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
     const mockOnConfirm = vi.fn();
 
-    // Mock fetch: first call for blob conversion, second for API
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              plate: 'CE128BC',
-              confidence: 0.92,
-              format_valid: true,
-            },
-          }),
-      });
+    // Mock fetch for blob conversion (data URL -> Blob)
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: 'CE128BC',
+          confidence: 0.92,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
 
     const { result } = renderHook(() => usePhotoCapture({ onConfirm: mockOnConfirm }));
 
@@ -78,14 +82,14 @@ describe('usePhotoCapture', () => {
   it('should handle API errors gracefully', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-      });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Server Error' },
+    } as Awaited<ReturnType<typeof photoPlate>>);
 
     const { result } = renderHook(() => usePhotoCapture());
 
@@ -113,19 +117,17 @@ describe('usePhotoCapture', () => {
   it('should reset state on retry', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { plate: 'CE128BC', confidence: 0.9, format_valid: true },
-          }),
-      });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'CE128BC', confidence: 0.9, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
 
     const { result } = renderHook(() => usePhotoCapture());
 
@@ -150,19 +152,17 @@ describe('usePhotoCapture', () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
     const mockOnConfirm = vi.fn();
 
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { plate: 'CE128BC', confidence: 0.85, format_valid: true },
-          }),
-      });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'CE128BC', confidence: 0.85, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
 
     const { result } = renderHook(() => usePhotoCapture({ onConfirm: mockOnConfirm }));
 
@@ -193,19 +193,17 @@ describe('usePhotoCapture', () => {
   it('should set status to warning for invalid format plates', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { plate: 'ABC123', confidence: 0.7, format_valid: false },
-          }),
-      });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'ABC123', confidence: 0.7, format_valid: false },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
 
     const { result } = renderHook(() => usePhotoCapture());
 

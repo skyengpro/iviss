@@ -50,6 +50,7 @@ impl Modify for SecurityAddon {
         description = "Vehicle identification, carte grise submissions and back-office dashboard.",
     ),
     tags(
+        (name = "health", description = "Service health check"),
         (name = "vehicles", description = "Vehicle lookup and image upload"),
         (name = "controls", description = "Roadside control tracking"),
         (name = "scanning", description = "License plate OCR scanning"),
@@ -60,10 +61,13 @@ impl Modify for SecurityAddon {
         (name = "admin", description = "Admin operations"),
     ),
     paths(
+        crate::handlers::health::health_check,
         crate::handlers::search_vehicle::search_vehicle,
+        crate::handlers::search_vehicle::search_vehicle_v1,
         crate::handlers::list_control::get_list_control,
         crate::handlers::list_control::create_control,
         crate::handlers::pending_submission::submit_vehicle,
+        crate::handlers::pending_submission::submit_vehicle_v1,
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,
         crate::handlers::scan::scan_plate,
@@ -134,6 +138,7 @@ impl Modify for SecurityAddon {
             ScanPlateResponse,
             ScanResultData,
             ScanErrorData,
+            ImageUploadRequest,
             // ── auth ──
             LoginRequest,
             AuthResponse,
@@ -143,6 +148,7 @@ impl Modify for SecurityAddon {
             RequestDailyLoginRequest,
             RequestDailyLoginResponse,
             VerifyDailyLoginRequest,
+            VerifyDailyLoginResponse,
             // ── user management ──
             ActivateRequest,
             ActivateResponse,
@@ -155,6 +161,7 @@ impl Modify for SecurityAddon {
             UserStatus,
             Organization,
             OrganizationType,
+            crate::handlers::device_management::DeviceActionResponse,
         )
     ),
     modifiers(&SecurityAddon),
