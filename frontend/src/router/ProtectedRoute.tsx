@@ -1,6 +1,6 @@
 import React from 'react';
 import { RequireAuth } from '@/router/RequireAuth';
-import { UserRole } from '@/services/mockAuth';
+import { UserRole } from '@/services/mock/mockAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

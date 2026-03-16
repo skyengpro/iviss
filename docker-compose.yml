@@ -159,6 +159,31 @@ services:
     networks:
       - iviss-network
 
+  # Metrics Collector Service (Bridges browser metrics to Prometheus)
+  metrics:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.metrics
+    container_name: iviss-metrics-server
+    restart: unless-stopped
+    ports:
+      - "9091:9091"
+    environment:
+      - NODE_ENV=development
+      - METRICS_PORT=9091
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:9091/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - iviss-network
+
 networks:
   iviss-network:
     driver: bridge

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { ShieldCheck, Building2 } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/use-auth';
-import { getDeviceId } from '@/services/deviceId';
+import { getDeviceId } from '@/services/device/deviceId';
 
 export default function DailyLogin() {
   const navigate = useNavigate();

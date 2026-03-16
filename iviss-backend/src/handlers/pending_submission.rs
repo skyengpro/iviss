@@ -60,6 +60,30 @@ pub async fn submit_vehicle(
     Ok((StatusCode::ACCEPTED, Json(response)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/vehicles/pending",
+    tag = "vehicles",
+    operation_id = "submitVehicleV1",
+    request_body = CreatePendingSubmissionRequest,
+    responses(
+        (status = 202, description = "Submission accepted for review", body = DataEntryResponse),
+        (status = 400, description = "Invalid request",        body = AppErrorResponse,
+             example = json!({ "code": "INVALID_REQUEST", "message": "Missing required field 'plate'" })),
+         (status = 401, description = "Unauthorized",          body = AppErrorResponse,
+             example = json!({ "code": "UNAUTHORIZED", "message": "Invalid token" })),
+         (status = 500, description = "Internal server error", body = AppErrorResponse,
+              example = json!({ "code": "INTERNAL_ERROR", "message": "Internal Server Error" })),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn submit_vehicle_v1(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<super::super::dto::pending_submission::CreatePendingSubmissionRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    submit_vehicle(State(state), Json(payload)).await
+}
+
 async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, AppError> {
     let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
         .bind(requested)

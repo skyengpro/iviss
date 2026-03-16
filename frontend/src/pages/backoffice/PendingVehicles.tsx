@@ -14,7 +14,8 @@ import {
   Eye,
   AlertCircle,
 } from 'lucide-react';
-import { mockVehicleService, PendingVehicle, Translatable } from '@/services/mockVehicles';
+import { mockVehicleService, PendingVehicle } from '@/services/mock/mockVehicles';
+import { Translatable } from '@/services/mock/mockControls';
 import { toast } from '@/hooks/ui/use-toast';
 
 export default function PendingVehicles() {
