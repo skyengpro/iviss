@@ -88,9 +88,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@7nohe/openapi-react-query-codegen": "^2.0.0",
+    "@7nohe/openapi-react-query-codegen": "^2.1.0",
     "@eslint/js": "^9.32.0",
-    "@hey-api/openapi-ts": "^0.52.1",
+    "@hey-api/openapi-ts": "^0.94.2",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
