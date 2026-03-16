@@ -28,7 +28,7 @@ impl FromStr for UserRole {
             "admin" => Ok(Self::Admin),
             "manager" => Ok(Self::Manager),
             "agent" => Ok(Self::Agent),
-            _ => Err(format!("Invalid user role: {}", s)),
+            _ => Ok(Self::Agent),
         }
     }
 }
@@ -39,15 +39,6 @@ impl UserRole {
             Self::Admin => "admin",
             Self::Manager => "manager",
             Self::Agent => "agent",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "admin" => Self::Admin,
-            "manager" => Self::Manager,
-            "agent" => Self::Agent,
-            _ => Self::Agent,
         }
     }
 }
@@ -68,14 +59,18 @@ impl UserStatus {
             Self::Suspended => "SUSPENDED",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Self {
-        match s {
+impl std::str::FromStr for UserStatus {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
             "PENDING_ACTIVATION" => Self::PendingActivation,
             "ACTIVE" => Self::Active,
             "SUSPENDED" => Self::Suspended,
             _ => Self::PendingActivation,
-        }
+        })
     }
 }
 
@@ -133,11 +128,27 @@ mod tests {
         assert_eq!(UserRole::Manager.as_str(), "manager");
         assert_eq!(UserRole::Agent.as_str(), "agent");
 
-        assert!(matches!(UserRole::from_str("admin"), UserRole::Admin));
-        assert!(matches!(UserRole::from_str("ADMIN"), UserRole::Admin));
-        assert!(matches!(UserRole::from_str("manager"), UserRole::Manager));
-        assert!(matches!(UserRole::from_str("agent"), UserRole::Agent));
-        assert!(matches!(UserRole::from_str("unknown"), UserRole::Agent));
+        use std::str::FromStr;
+        assert!(matches!(
+            UserRole::from_str("admin").unwrap(),
+            UserRole::Admin
+        ));
+        assert!(matches!(
+            UserRole::from_str("ADMIN").unwrap(),
+            UserRole::Admin
+        ));
+        assert!(matches!(
+            UserRole::from_str("manager").unwrap(),
+            UserRole::Manager
+        ));
+        assert!(matches!(
+            UserRole::from_str("agent").unwrap(),
+            UserRole::Agent
+        ));
+        assert!(matches!(
+            UserRole::from_str("unknown").unwrap(),
+            UserRole::Agent
+        ));
     }
 
     #[test]
@@ -146,17 +157,21 @@ mod tests {
         assert_eq!(UserStatus::Suspended.as_str(), "SUSPENDED");
         assert_eq!(UserStatus::PendingActivation.as_str(), "PENDING_ACTIVATION");
 
-        assert!(matches!(UserStatus::from_str("ACTIVE"), UserStatus::Active));
+        use std::str::FromStr;
         assert!(matches!(
-            UserStatus::from_str("SUSPENDED"),
+            UserStatus::from_str("ACTIVE").unwrap(),
+            UserStatus::Active
+        ));
+        assert!(matches!(
+            UserStatus::from_str("SUSPENDED").unwrap(),
             UserStatus::Suspended
         ));
         assert!(matches!(
-            UserStatus::from_str("PENDING_ACTIVATION"),
+            UserStatus::from_str("PENDING_ACTIVATION").unwrap(),
             UserStatus::PendingActivation
         ));
         assert!(matches!(
-            UserStatus::from_str("UNKNOWN"),
+            UserStatus::from_str("UNKNOWN").unwrap(),
             UserStatus::PendingActivation
         ));
     }

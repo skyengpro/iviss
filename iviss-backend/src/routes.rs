@@ -55,6 +55,10 @@ pub fn assembly(state: AppState) -> Router {
             get(crate::handlers::user_management::list_organizations),
         )
         .route(
+            "/admin/terminate-session",
+            post(crate::handlers::user_management::terminate_session),
+        )
+        .route(
             "/admin/devices/{id}/suspend",
             post(crate::handlers::device_management::suspend_device),
         )
