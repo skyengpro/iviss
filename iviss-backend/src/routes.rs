@@ -68,7 +68,6 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
-
         );
 
     let protected_routes = Router::new()

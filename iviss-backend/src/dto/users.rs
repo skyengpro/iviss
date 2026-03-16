@@ -43,7 +43,6 @@ impl UserRole {
     }
 }
 
-
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UserStatus {
