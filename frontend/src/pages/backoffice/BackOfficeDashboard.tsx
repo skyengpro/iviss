@@ -23,8 +23,8 @@ import { useEffect } from 'react';
 
 // Mock data for charts and lists
 import { useQuery } from '@tanstack/react-query';
-import { mockControlService, Translatable } from '@/services/mockControls';
-import { mockAuthService } from '@/services/mockAuth';
+import { mockControlService, Translatable } from '@/services/mock/mockControls';
+import { mockAuthService } from '@/services/mock/mockAuth';
 
 export default function BackOfficeDashboard() {
   const { t } = useTranslation();

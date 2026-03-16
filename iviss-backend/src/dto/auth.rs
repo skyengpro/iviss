@@ -75,9 +75,3 @@ pub struct RefreshRequest {
     pub refresh_token: String,
     pub device_id: Uuid,
 }
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct RefreshResponse {
-    pub access_token: String,
-}

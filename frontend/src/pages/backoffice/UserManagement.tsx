@@ -65,7 +65,7 @@ import { useUsers } from '@/hooks/api/useUsers';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
 import { toast } from 'sonner';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { resendActivationCode } from '@/openapi-rq/requests/services.gen';
 import {
   UserProfile,
   UpdateUserRequest,
@@ -154,27 +154,21 @@ export default function UserManagement() {
   const handleResendActivationCode = async (user: UserProfile) => {
     setResendLoadingUserId(user.id);
     try {
-      const res = await fetchWithAuth('/auth/send-activation', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ user_id: user.id }),
+      const res = await resendActivationCode({
+        body: { user_id: user.id },
+        throwOnError: false,
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const json = (await res.json()) as { code?: string; message?: string };
-          toast.error(json?.message || 'Failed to resend activation code');
-          return;
-        }
-        const text = await res.text();
-        toast.error(text || 'Failed to resend activation code');
+      if (res.error) {
+        const msg =
+          typeof (res.error as { message?: unknown })?.message === 'string'
+            ? String((res.error as { message?: unknown }).message)
+            : 'Failed to resend activation code';
+        toast.error(msg);
         return;
       }
 
-      toast.success('Activation code sent');
+      toast.success(res.data?.message || 'Activation code sent');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to resend activation code');
     } finally {

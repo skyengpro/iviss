@@ -9,6 +9,116 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/admin/devices/{id}/suspend": {
+      "post": {
+        "tags": ["admin"],
+        "operationId": "suspendDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device UUID to suspend",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Device is already suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/admin/devices/{id}/unsuspend": {
+      "post": {
+        "tags": ["admin"],
+        "operationId": "unsuspendDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device UUID to unsuspend",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device restored to INACTIVE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Device is not suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/admin/organizations": {
       "get": {
         "tags": ["admin"],
@@ -54,6 +164,55 @@
             "bearer_auth": []
           }
         ]
+      }
+    },
+    "/admin/resend-activation": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Resend activation code via SMS to a pending agent",
+        "operationId": "resendActivationCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Activation code sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendActivationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/admin/submissions": {
@@ -455,10 +614,78 @@
         ]
       }
     },
+    "/api/v1/photo/plate": {
+      "post": {
+        "tags": ["photo"],
+        "operationId": "photoPlate",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OCR result (photo capture)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal OCR error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/scan/plate": {
       "post": {
         "tags": ["scanning"],
         "operationId": "scanPlate",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OCR result (may have low confidence)",
@@ -501,6 +728,170 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/vehicles/pending": {
+      "post": {
+        "tags": ["vehicles"],
+        "operationId": "submitVehicleV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePendingSubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Submission accepted for review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Missing required field 'plate'"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Invalid token"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/vehicles/search": {
+      "post": {
+        "tags": ["vehicles"],
+        "operationId": "searchVehicleV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Vehicle found with status results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleSearchResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid plate format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_PLATE",
+                  "message": "Plate number must be 6-8 alphanumeric characters"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Invalid token"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plate not found in registry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "No vehicle found with the provided plate  number"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/auth/activate": {
@@ -615,6 +1006,86 @@
         ]
       }
     },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Step 1 of the challenge-response refresh flow.",
+        "description": "Validates the refresh token, generates a nonce, stores it in Redis,\nand returns it to the client for signing.",
+        "operationId": "requestRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge nonce issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshChallengeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired refresh token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh/verify": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Step 2 of the challenge-response refresh flow.",
+        "description": "Verifies the signed nonce against the device's registered public key,\nthen issues a new access token.",
+        "operationId": "verifyRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "New access token issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyRefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Signature verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/register": {
       "post": {
         "tags": ["auth"],
@@ -654,16 +1125,15 @@
         }
       }
     },
-    "/auth/send-activation": {
+    "/auth/request-daily-login": {
       "post": {
         "tags": ["auth"],
-        "summary": "Send activation code via SMS to a pending agent",
-        "operationId": "sendActivationCode",
+        "operationId": "requestDailyLogin",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResendActivationRequest"
+                "$ref": "#/components/schemas/RequestDailyLoginRequest"
               }
             }
           },
@@ -671,17 +1141,27 @@
         },
         "responses": {
           "201": {
-            "description": "Activation code sent",
+            "description": "OTP sent successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResendActivationResponse"
+                  "$ref": "#/components/schemas/RequestDailyLoginResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request — missing or invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User or device is suspended",
             "content": {
               "application/json": {
                 "schema": {
@@ -691,7 +1171,75 @@
             }
           },
           "404": {
-            "description": "User not found",
+            "description": "User or device not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many OTP requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/verify-daily-login": {
+      "post": {
+        "tags": ["auth"],
+        "operationId": "verifyDailyLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyDailyLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyDailyLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — missing or invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid OTP, expired, or device suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User or device not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -889,6 +1437,24 @@
         ]
       }
     },
+    "/health": {
+      "get": {
+        "tags": ["health"],
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/stats": {
       "get": {
         "tags": ["stats"],
@@ -977,12 +1543,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        }
       }
     },
     "/users/me": {
@@ -1546,6 +2107,15 @@
           }
         }
       },
+      "DeviceActionResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "ErrorCode": {
         "type": "string",
         "enum": [
@@ -1553,6 +2123,7 @@
           "DATABASE_ERROR",
           "NOT_FOUND",
           "BAD_REQUEST",
+          "TOO_MANY_REQUESTS",
           "EXTERNAL_API_FAILURE",
           "INTERNAL_ERROR"
         ]
@@ -1561,6 +2132,16 @@
         "type": "string",
         "description": "How the plate was identified by the agent",
         "enum": ["manual", "photo", "live"]
+      },
+      "ImageUploadRequest": {
+        "type": "object",
+        "required": ["image"],
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary"
+          }
+        }
       },
       "InsuranceStatus": {
         "type": "object",
@@ -1869,6 +2450,28 @@
           }
         }
       },
+      "RefreshChallengeResponse": {
+        "type": "object",
+        "required": ["nonce"],
+        "properties": {
+          "nonce": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken", "deviceId"],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
       "RegisterRequest": {
         "type": "object",
         "required": ["email", "password", "full_name", "role"],
@@ -1884,6 +2487,47 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
+          }
+        }
+      },
+      "RequestDailyLoginRequest": {
+        "type": "object",
+        "required": ["badgeId", "deviceId"],
+        "properties": {
+          "badgeId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "RequestDailyLoginResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ResendActivationRequest": {
+        "type": "object",
+        "required": ["user_id"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ResendActivationResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
           }
         }
       },
@@ -1949,25 +2593,6 @@
           "raw_text": {
             "type": "string",
             "description": "Raw text as returned by the OCR engine before normalization."
-          }
-        }
-      },
-      "ResendActivationRequest": {
-        "type": "object",
-        "required": ["user_id"],
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
-      "ResendActivationResponse": {
-        "type": "object",
-        "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
           }
         }
       },
@@ -2280,6 +2905,64 @@
             "$ref": "#/components/schemas/VehicleInfo"
           }
         }
+      },
+      "VerifyDailyLoginRequest": {
+        "type": "object",
+        "required": ["badgeId", "activationCode", "deviceId"],
+        "properties": {
+          "activationCode": {
+            "type": "string"
+          },
+          "badgeId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "VerifyDailyLoginResponse": {
+        "type": "object",
+        "required": ["accessToken", "shiftEnd"],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "shiftEnd": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "VerifyRefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken", "deviceId", "signedNonce"],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "signedNonce": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyRefreshResponse": {
+        "type": "object",
+        "required": ["accessToken"],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -2291,6 +2974,10 @@
     }
   },
   "tags": [
+    {
+      "name": "health",
+      "description": "Service health check"
+    },
     {
       "name": "vehicles",
       "description": "Vehicle lookup and image upload"
@@ -2304,6 +2991,10 @@
       "description": "License plate OCR scanning"
     },
     {
+      "name": "photo",
+      "description": "Photo-based plate recognition"
+    },
+    {
       "name": "stats",
       "description": "Dashboard statistics"
     },
@@ -2314,6 +3005,10 @@
     {
       "name": "auth",
       "description": "Authentication and registration"
+    },
+    {
+      "name": "admin",
+      "description": "Admin operations"
     }
   ]
 }
