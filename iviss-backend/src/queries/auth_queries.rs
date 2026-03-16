@@ -75,23 +75,6 @@ pub struct UserForLogin {
     pub phone_number: String,
 }
 
-pub async fn get_user_by_badge_id(pool: &PgPool, badge_id: &str) -> Result<UserForLogin, AppError> {
-    sqlx::query_as::<_, UserForLogin>(
-        r#"
-        SELECT id, role::TEXT AS role, status::TEXT AS status,
-               phone_number, badge_id
-        FROM users
-        WHERE badge_id = $1
-          AND deleted_at IS NULL
-        "#,
-    )
-    .bind(badge_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(AppError::database)?
-    .ok_or_else(|| AppError::not_found("User not found"))
-}
-
 pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForLogin, AppError> {
     sqlx::query_as::<_, UserForLogin>(
         r#"
@@ -111,7 +94,6 @@ pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForL
 
 #[derive(Debug, FromRow)]
 pub struct DeviceForLogin {
-    pub id: Uuid,
     pub status: String,
 }
 
@@ -122,7 +104,7 @@ pub async fn get_device_by_user_optional(
 ) -> Result<Option<DeviceForLogin>, AppError> {
     sqlx::query_as::<_, DeviceForLogin>(
         r#"
-        SELECT id, status::TEXT AS status
+        SELECT status::TEXT AS status
         FROM devices
         WHERE id = $1
           AND user_id = $2
@@ -133,16 +115,6 @@ pub async fn get_device_by_user_optional(
     .fetch_optional(pool)
     .await
     .map_err(AppError::database)
-}
-
-pub async fn get_device_by_user(
-    pool: &PgPool,
-    device_id: Uuid,
-    user_id: Uuid,
-) -> Result<DeviceForLogin, AppError> {
-    get_device_by_user_optional(pool, device_id, user_id)
-        .await?
-        .ok_or_else(|| AppError::not_found("Device not found"))
 }
 
 pub async fn mark_device_active(
