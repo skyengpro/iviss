@@ -1,7 +1,6 @@
 use crate::app_state::AppState;
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RefreshResponse,
-    RegisterRequest,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RegisterRequest,
 };
 use crate::dto::auth::{
     RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
@@ -17,10 +16,12 @@ use crate::services::otp_service::OtpService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
@@ -35,96 +36,6 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     }
 
     AppError::unauthorized("Shift ended")
-}
-
-/// Refresh access token using refresh token
-#[utoipa::path(
-    post,
-    path = "/auth/refresh",
-    request_body = RefreshRequest,
-    responses(
-        (status = 200, description = "Token refreshed", body = RefreshResponse),
-        (status = 401, description = "Invalid refresh token", body = AppErrorResponse),
-        (status = 400, description = "Bad request", body = AppErrorResponse)
-    ),
-    tag = "auth",
-    operation_id = "refreshToken"
-)]
-pub async fn refresh_token(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<RefreshRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    if payload.refresh_token.trim().is_empty() {
-        return Err(AppError::bad_request("refreshToken is required"));
-    }
-
-    let refresh_token_hash = {
-        use sha2::Digest;
-        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
-        format!("{:x}", digest)
-    };
-
-    let row = sqlx::query(
-        r#"
-        SELECT
-            rt.user_id              AS user_id,
-            d.metadata              AS metadata,
-            d.status::text          AS device_status
-        FROM refresh_tokens rt
-        JOIN devices d ON d.id = rt.device_id
-        WHERE rt.token_hash = $1
-          AND rt.device_id = $2
-          AND rt.revoked = FALSE
-          AND rt.expires_at > NOW()
-        "#,
-    )
-    .bind(&refresh_token_hash)
-    .bind(payload.device_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::unauthorized("Invalid refresh token"))?;
-
-    let user_id: Uuid = row.get("user_id");
-    let device_status: String = row.get("device_status");
-    if device_status != "ACTIVE" {
-        return Err(AppError::unauthorized("Device is not active"));
-    }
-
-    let metadata: serde_json::Value = row.get("metadata");
-    let shift_start = metadata
-        .get("shift_start")
-        .and_then(|v| v.as_i64())
-        .ok_or_else(|| AppError::internal_error("Device shift_start is missing"))?;
-    let shift_end = metadata
-        .get("shift_end")
-        .and_then(|v| v.as_i64())
-        .ok_or_else(|| AppError::internal_error("Device shift_end is missing"))?;
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
-        .as_secs() as i64;
-
-    if now > shift_end {
-        let _ =
-            crate::queries::auth_queries::mark_device_inactive(&state.db, payload.device_id).await;
-        return Err(AppError::unauthorized("Shift ended"));
-    }
-
-    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
-    let access_token = jwt_svc
-        .issue_access_token_with_shift(
-            user_id,
-            payload.device_id,
-            user.role,
-            shift_start.try_into().unwrap_or(0usize),
-            shift_end.try_into().unwrap_or(0usize),
-        )
-        .map_err(AppError::Internal)?;
-
-    Ok((StatusCode::OK, Json(RefreshResponse { access_token })))
 }
 
 /// Login with email and password
@@ -504,7 +415,7 @@ pub async fn request_daily_login(
     if payload.badge_id.trim().is_empty() {
         return Err(AppError::bad_request("badgeId is required"));
     }
-    let user = auth_queries::get_user_by_badge_id(&state.db, &payload.badge_id).await?;
+    let user = auth_queries::get_user_by_badge(&state.db, &payload.badge_id).await?;
 
     // Only agents use the daily OTP flow
     if user.role != "agent" {
@@ -519,12 +430,15 @@ pub async fn request_daily_login(
         ));
     }
 
-    let device = auth_queries::get_device_by_user(&state.db, payload.device_id, user.id).await?;
+    let device_opt =
+        auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
-    if device.status == "SUSPENDED" {
-        return Err(AppError::unauthorized(
-            "Device suspended — contact your administrator",
-        ));
+    if let Some(device) = device_opt {
+        if device.status == "SUSPENDED" {
+            return Err(AppError::unauthorized(
+                "Device suspended — contact your administrator",
+            ));
+        }
     }
 
     let otp_svc = OtpService::new(
@@ -538,7 +452,7 @@ pub async fn request_daily_login(
     tracing::info!(
         target: "daily_login",
         user_id = %user.id,
-        device_id = %device.id,
+        device_id = %payload.device_id,
         "Daily login OTP requested"
     );
 
@@ -570,8 +484,8 @@ pub async fn verify_daily_login(
     if payload.badge_id.trim().is_empty() {
         return Err(AppError::bad_request("badgeId is required"));
     }
-    if payload.otp.trim().is_empty() {
-        return Err(AppError::bad_request("otp is required"));
+    if payload.activation_code.trim().is_empty() {
+        return Err(AppError::bad_request("activationCode is required"));
     }
 
     let row = sqlx::query(
@@ -580,9 +494,9 @@ pub async fn verify_daily_login(
             u.id              AS user_id,
             u.role::TEXT      AS user_role,
             u.status::TEXT    AS user_status,
-            d.status::TEXT    AS device_status
+            COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
         FROM users u
-        JOIN devices d
+        LEFT JOIN devices d
             ON d.user_id = u.id
            AND d.id      = $2
         WHERE u.badge_id    = $1
@@ -607,24 +521,32 @@ pub async fn verify_daily_login(
             "Daily login is only available for agents",
         ));
     }
-    if user_status == "SUSPENDED" {
-        return Err(AppError::unauthorized(
-            "Account suspended — contact your administrator",
-        ));
+
+    if user_status != "ACTIVE" {
+        return Err(AppError::unauthorized(format!(
+            "User account is {}",
+            user_status.to_lowercase()
+        )));
     }
-    if device_status == "SUSPENDED" {
-        return Err(AppError::unauthorized(
-            "Device suspended — contact your administrator",
-        ));
+
+    // Daily login doesn't REQUIRE the device to be registered yet
+    // but if it IS registered, it must not be suspended/revoked
+    if device_status == "SUSPENDED" || device_status == "REVOKED" {
+        return Err(AppError::unauthorized(format!(
+            "Device status: {}",
+            device_status.to_lowercase()
+        )));
     }
 
     // ── Validate OTP
-    let otp_svc = OtpService::new(
+    let otp_svc = crate::services::otp_service::OtpService::new(
         state.redis.clone(),
         state.sms_pvd.clone(),
         state.pepper.clone(),
     );
-    otp_svc.validate_otp(&user_id, &payload.otp).await?;
+    otp_svc
+        .validate_otp(&user_id, &payload.activation_code)
+        .await?;
 
     // ── Compute static shift bounds (UTC+1 local time)
     let localt_time_offset = time::UtcOffset::from_hms(1, 0, 0)
@@ -665,29 +587,50 @@ pub async fn verify_daily_login(
         )
         .map_err(AppError::Internal)?;
 
+    let device_exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1
+            FROM devices
+            WHERE id = $1
+              AND user_id = $2
+              AND revoked_at IS NULL
+        )
+        "#,
+    )
+    .bind(payload.device_id)
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
     // ── Check if a valid refresh token already exists for this device
-    let has_valid_refresh: bool =
-        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?;
+    let has_valid_refresh: bool = if device_exists {
+        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?
+    } else {
+        false
+    };
 
     // ── Conditionally build new refresh token
-    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> = if !has_valid_refresh {
-        let raw = {
-            let mut bytes = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut bytes);
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> =
+        if device_exists && !has_valid_refresh {
+            let raw = {
+                let mut bytes = [0u8; 32];
+                rand::thread_rng().fill_bytes(&mut bytes);
+                base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+            };
+            let hash = {
+                use sha2::Digest;
+                format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
+            };
+            let expires_at = {
+                let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
+                time::PrimitiveDateTime::new(dt.date(), dt.time())
+            };
+            Some((raw, hash, expires_at))
+        } else {
+            None
         };
-        let hash = {
-            use sha2::Digest;
-            format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
-        };
-        let expires_at = {
-            let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-            time::PrimitiveDateTime::new(dt.date(), dt.time())
-        };
-        Some((raw, hash, expires_at))
-    } else {
-        None
-    };
 
     // ── Single CTE: optionally insert refresh token + activate device
     match &new_refresh {
@@ -717,8 +660,15 @@ pub async fn verify_daily_login(
         }
 
         None => {
-            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
+            if device_exists {
+                auth_queries::mark_device_active(
+                    &state.db,
+                    payload.device_id,
+                    shift_start,
+                    shift_end,
+                )
                 .await?;
+            }
         }
     }
 
@@ -740,4 +690,329 @@ pub async fn verify_daily_login(
             shift_end,
         }),
     ))
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Token Refresh — Challenge-Response with Device Signature
+// ─────────────────────────────────────────────────────────────
+
+const NONCE_TTL_SECS: u64 = 60;
+const NONCE_KEY_PREFIX: &str = "refresh_nonce";
+
+// RefreshRequest is already defined at line 171
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct RefreshChallengeResponse {
+    pub nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyRefreshRequest {
+    pub refresh_token: String,
+    pub device_id: Uuid,
+    pub signed_nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyRefreshResponse {
+    pub access_token: String,
+}
+
+/// Step 1 of the challenge-response refresh flow.
+///
+/// Validates the refresh token, generates a nonce, stores it in Redis,
+/// and returns it to the client for signing.
+#[utoipa::path(
+    post,
+    path = "/auth/refresh",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Challenge nonce issued", body = RefreshChallengeResponse),
+        (status = 401, description = "Invalid or expired refresh token", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "requestRefresh"
+)]
+pub async fn request_refresh(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Hash the incoming refresh token to match against DB
+    let token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    // Validate refresh token exists, is not revoked, and not expired
+    let token_row = sqlx::query(
+        r#"
+        SELECT user_id, device_id
+        FROM refresh_tokens
+        WHERE token_hash = $1
+          AND device_id = $2
+          AND revoked = FALSE
+          AND expires_at > NOW()
+        "#,
+    )
+    .bind(&token_hash)
+    .bind(payload.device_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
+    if token_row.is_none() {
+        return Err(AppError::Unauthorized(
+            "Invalid or expired refresh token".into(),
+        ));
+    }
+
+    // Generate a random 32-byte nonce
+    let nonce = {
+        let mut raw = [0u8; 32];
+        let mut rng = rand::thread_rng();
+        rng.fill_bytes(&mut raw);
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw)
+    };
+
+    // Store nonce in Redis with device_id as key, TTL 60s
+    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
+    {
+        use deadpool_redis::redis::AsyncCommands;
+        let mut conn =
+            state.redis.get().await.map_err(|e| {
+                AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e))
+            })?;
+        conn.set_ex::<_, _, ()>(&nonce_key, &nonce, NONCE_TTL_SECS)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {}", e)))?;
+    }
+
+    tracing::info!(
+        device_id = %payload.device_id,
+        "Refresh nonce issued (TTL={}s)",
+        NONCE_TTL_SECS
+    );
+
+    Ok((
+        axum::http::StatusCode::OK,
+        Json(RefreshChallengeResponse { nonce }),
+    ))
+}
+
+/// Step 2 of the challenge-response refresh flow.
+///
+/// Verifies the signed nonce against the device's registered public key,
+/// then issues a new access token.
+#[utoipa::path(
+    post,
+    path = "/auth/refresh/verify",
+    request_body = VerifyRefreshRequest,
+    responses(
+        (status = 200, description = "New access token issued", body = VerifyRefreshResponse),
+        (status = 401, description = "Signature verification failed", body = AppErrorResponse)
+    ),
+    tag = "auth",
+    operation_id = "verifyRefresh"
+)]
+pub async fn verify_refresh(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<VerifyRefreshRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::warn!(device_id = %payload.device_id, "--- [BACKEND] verify_refresh: Processing start ---");
+
+    // 1. Retrieve and consume the nonce from Redis (one-time use)
+    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
+    let stored_nonce: Option<String> = {
+        use deadpool_redis::redis::AsyncCommands;
+        let mut conn =
+            state.redis.get().await.map_err(|e| {
+                AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e))
+            })?;
+        let val: Option<String> = conn
+            .get(&nonce_key)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis GET error: {}", e)))?;
+        // Delete immediately to prevent replay
+        conn.del::<_, ()>(&nonce_key).await.ok();
+        val
+    };
+
+    let expected_nonce = stored_nonce.ok_or_else(|| {
+        tracing::warn!(device_id = %payload.device_id, "Verification failed: Nonce not found or expired");
+        AppError::Unauthorized("Nonce expired or not found — request a new challenge".into())
+    })?;
+
+    tracing::warn!(nonce = %expected_nonce, "Step 1: Nonce retrieved and consumed from Redis");
+
+    // 2. Validate the refresh token
+    let token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    let token_row = sqlx::query(
+        r#"
+        SELECT user_id
+        FROM refresh_tokens
+        WHERE token_hash = $1
+          AND device_id = $2
+          AND revoked = FALSE
+          AND expires_at > NOW()
+        "#,
+    )
+    .bind(&token_hash)
+    .bind(payload.device_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| {
+        tracing::warn!(device_id = %payload.device_id, "Verification failed: Invalid or expired refresh token");
+        AppError::Unauthorized("Invalid or expired refresh token".into())
+    })?;
+
+    let user_id: Uuid = token_row.get("user_id");
+    tracing::warn!(user_id = %user_id, "Step 2: Refresh token validated in database");
+
+    // 3. Fetch the device's public key & shift metadata
+    let device_row = sqlx::query(
+        r#"
+        SELECT public_key, metadata
+        FROM devices
+        WHERE id = $1
+          AND user_id = $2
+          AND status = 'ACTIVE'::device_status
+        "#,
+    )
+    .bind(payload.device_id)
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| {
+        tracing::warn!(device_id = %payload.device_id, "Verification failed: Device not found or revoked");
+        AppError::Unauthorized("Device not found or revoked".into())
+    })?;
+
+    tracing::warn!("Step 3: Device public key and shift metadata fetched");
+
+    let public_key_b64: String = device_row.get("public_key");
+    let metadata: serde_json::Value = device_row.get("metadata");
+
+    let shift_start = metadata
+        .get("shift_start")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| AppError::internal_error("Device shift_start is missing"))?;
+    let shift_end = metadata
+        .get("shift_end")
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| AppError::internal_error("Device shift_end is missing"))?;
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+        .as_secs() as i64;
+
+    if now > shift_end {
+        tracing::warn!(device_id = %payload.device_id, now, shift_end, "Verification failed: Shift has ended");
+        return Err(on_shift_ended(&state.db, payload.device_id).await);
+    }
+
+    tracing::warn!("Step 4: Shift validity check passed");
+
+    // 4. Verify the JWS compact signature
+    verify_es256_jws(&payload.signed_nonce, &expected_nonce, &public_key_b64)?;
+
+    // 5. Issue a new access token
+    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let access_token = jwt_svc
+        .issue_access_token_with_shift(
+            user_id,
+            payload.device_id,
+            user.role,
+            shift_start.try_into().unwrap_or(0usize),
+            shift_end.try_into().unwrap_or(0usize),
+        )
+        .map_err(AppError::Internal)?;
+
+    tracing::info!(
+        user_id = %user_id,
+        device_id = %payload.device_id,
+        "Token refresh verified — new access token issued"
+    );
+
+    Ok((
+        axum::http::StatusCode::OK,
+        Json(VerifyRefreshResponse { access_token }),
+    ))
+}
+
+/// Verifies an ES256 (ECDSA P-256) compact JWS against a Base64-encoded public key.
+fn verify_es256_jws(
+    jws_compact: &str,
+    expected_nonce: &str,
+    public_key_b64: &str,
+) -> Result<(), AppError> {
+    tracing::warn!("--- [BACKEND] verify_es256_jws: Starting cryptographic verification ---");
+    use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+    use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+
+    // Split JWS into 3 parts: header.payload.signature
+    let parts: Vec<&str> = jws_compact.splitn(3, '.').collect();
+    if parts.len() != 3 {
+        return Err(AppError::Unauthorized("Malformed JWS".into()));
+    }
+
+    let (header_b64, payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
+
+    // Verify the payload matches the expected nonce
+    let payload_bytes = URL_SAFE_NO_PAD
+        .decode(payload_b64)
+        .map_err(|_| AppError::Unauthorized("Invalid JWS payload encoding".into()))?;
+    let payload_str = std::str::from_utf8(&payload_bytes)
+        .map_err(|_| AppError::Unauthorized("Invalid JWS payload".into()))?;
+
+    if payload_str != expected_nonce {
+        tracing::warn!(actual = %payload_str, expected = %expected_nonce, "Cryptographic failure: Nonce mismatch in JWS payload");
+        return Err(AppError::Unauthorized("Nonce mismatch".into()));
+    }
+
+    tracing::warn!("JWS Payload matches expected nonce");
+
+    // Decode the public key from Base64 -> JWK JSON -> VerifyingKey
+    let pub_key_json = STANDARD
+        .decode(public_key_b64)
+        .map_err(|_| AppError::Unauthorized("Invalid public key encoding".into()))?;
+    let pub_key_str = std::str::from_utf8(&pub_key_json)
+        .map_err(|_| AppError::Unauthorized("Invalid public key data".into()))?;
+
+    let public_key = p256::PublicKey::from_jwk_str(pub_key_str)
+        .map_err(|_| AppError::Unauthorized("Invalid EC public key".into()))?;
+    let verifying_key = VerifyingKey::from(&public_key);
+
+    // Decode the signature (raw r||s, 64 bytes for P-256)
+    let sig_bytes = URL_SAFE_NO_PAD
+        .decode(sig_b64)
+        .map_err(|_| AppError::Unauthorized("Invalid JWS signature encoding".into()))?;
+
+    let signature = Signature::from_slice(&sig_bytes).map_err(|_| {
+        tracing::warn!("Cryptographic failure: Invalid ECDSA signature format");
+        AppError::Unauthorized("Invalid ECDSA signature format".into())
+    })?;
+
+    // The message that was signed is "<header>.<payload>" (the JWS signing input)
+    let signing_input = format!("{}.{}", header_b64, payload_b64);
+
+    verifying_key.verify(signing_input.as_bytes(), &signature).map_err(|e| {
+        tracing::warn!(error = %e, "Cryptographic failure: ES256 Signature verification failed");
+        AppError::Unauthorized("Signature verification failed".into())
+    })?;
+
+    tracing::warn!("ES256 Signature successfully verified against public key");
+
+    Ok(())
 }

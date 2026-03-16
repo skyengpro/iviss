@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ResendActivationRequest {
     pub user_id: uuid::Uuid,
 }
@@ -20,6 +21,18 @@ pub enum UserRole {
     Manager,
 }
 
+impl std::str::FromStr for UserRole {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "admin" => Ok(Self::Admin),
+            "manager" => Ok(Self::Manager),
+            "agent" => Ok(Self::Agent),
+            _ => Ok(Self::Agent),
+        }
+    }
+}
 impl UserRole {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -27,19 +40,6 @@ impl UserRole {
             Self::Manager => "manager",
             Self::Agent => "agent",
         }
-    }
-}
-
-impl std::str::FromStr for UserRole {
-    type Err = std::convert::Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "admin" => Self::Admin,
-            "manager" => Self::Manager,
-            "agent" => Self::Agent,
-            _ => Self::Agent,
-        })
     }
 }
 

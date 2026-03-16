@@ -18,7 +18,7 @@ import {
   AlertCircle,
   Download,
 } from 'lucide-react';
-import { mockControlService, ControlRecord, Translatable } from '@/services/mockControls';
+import { mockControlService, ControlRecord, Translatable } from '@/services/mock/mockControls';
 
 export default function ControlDetail() {
   const { controlId } = useParams<{ controlId: string }>();

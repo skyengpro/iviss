@@ -9,9 +9,125 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/admin/devices/{id}/suspend": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "suspendDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device UUID to suspend",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Device is already suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/admin/devices/{id}/unsuspend": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "unsuspendDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device UUID to unsuspend",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device restored to INACTIVE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Device is not suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/admin/organizations": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List all organizations (admin only)",
         "operationId": "listOrganizations",
         "responses": {
@@ -56,9 +172,62 @@
         ]
       }
     },
+    "/admin/resend-activation": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Resend activation code via SMS to a pending agent",
+        "operationId": "resendActivationCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Activation code sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendActivationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/submissions": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "List all pending submissions for admin review",
         "operationId": "listPendingSubmissions",
         "responses": {
@@ -95,7 +264,9 @@
     },
     "/admin/submissions/{id}": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "Get details of a single pending submission",
         "operationId": "getPendingSubmission",
         "parameters": [
@@ -141,7 +312,9 @@
     },
     "/admin/terminate-session": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Terminate all sessions for a user (admin only).",
         "description": "Revokes all refresh tokens, deactivates all devices, and suspends\nthe user account. The next request from that user will return 401.",
         "operationId": "terminateSession",
@@ -196,7 +369,9 @@
     },
     "/admin/users": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List all users (admin only)",
         "operationId": "listUsers",
         "responses": {
@@ -241,7 +416,9 @@
         ]
       },
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Provision a new user (admin only)",
         "operationId": "provisionUser",
         "requestBody": {
@@ -305,7 +482,9 @@
     },
     "/admin/users/{id}": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Get a specific user by ID (admin only)",
         "operationId": "getUser",
         "parameters": [
@@ -369,7 +548,9 @@
         ]
       },
       "put": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Update a user (admin only)",
         "operationId": "updateUser",
         "parameters": [
@@ -453,7 +634,9 @@
         ]
       },
       "delete": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Delete a user (admin only)",
         "operationId": "deleteUser",
         "parameters": [
@@ -510,10 +693,82 @@
         ]
       }
     },
+    "/api/v1/photo/plate": {
+      "post": {
+        "tags": [
+          "photo"
+        ],
+        "operationId": "photoPlate",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OCR result (photo capture)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal OCR error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanPlateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/scan/plate": {
       "post": {
-        "tags": ["scanning"],
+        "tags": [
+          "scanning"
+        ],
         "operationId": "scanPlate",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OCR result (may have low confidence)",
@@ -558,9 +813,179 @@
         }
       }
     },
+    "/api/v1/vehicles/pending": {
+      "post": {
+        "tags": [
+          "vehicles"
+        ],
+        "operationId": "submitVehicleV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePendingSubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Submission accepted for review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Missing required field 'plate'"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Invalid token"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/vehicles/search": {
+      "post": {
+        "tags": [
+          "vehicles"
+        ],
+        "operationId": "searchVehicleV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Vehicle found with status results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleSearchResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid plate format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_PLATE",
+                  "message": "Plate number must be 6-8 alphanumeric characters"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Invalid token"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plate not found in registry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "No vehicle found with the provided plate  number"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                },
+                "example": {
+                  "code": "INTERNAL_ERROR",
+                  "message": "Internal Server Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/auth/activate": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Activate an agent account by validating OTP and registering device public key",
         "operationId": "activateDevice",
         "requestBody": {
@@ -609,7 +1034,9 @@
     },
     "/auth/login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Login with email and password",
         "operationId": "loginUser",
         "requestBody": {
@@ -648,7 +1075,9 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Logout and invalidate session",
         "operationId": "logoutUser",
         "responses": {
@@ -670,9 +1099,95 @@
         ]
       }
     },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Step 1 of the challenge-response refresh flow.",
+        "description": "Validates the refresh token, generates a nonce, stores it in Redis,\nand returns it to the client for signing.",
+        "operationId": "requestRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge nonce issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshChallengeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired refresh token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Step 2 of the challenge-response refresh flow.",
+        "description": "Verifies the signed nonce against the device's registered public key,\nthen issues a new access token.",
+        "operationId": "verifyRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "New access token issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyRefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Signature verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/register": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Register a new user",
         "operationId": "registerUser",
         "requestBody": {
@@ -709,16 +1224,17 @@
         }
       }
     },
-    "/auth/send-activation": {
+    "/auth/request-daily-login": {
       "post": {
-        "tags": ["auth"],
-        "summary": "Send activation code via SMS to a pending agent",
-        "operationId": "sendActivationCode",
+        "tags": [
+          "auth"
+        ],
+        "operationId": "requestDailyLogin",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendActivationRequest"
+                "$ref": "#/components/schemas/RequestDailyLoginRequest"
               }
             }
           },
@@ -726,17 +1242,27 @@
         },
         "responses": {
           "201": {
-            "description": "Activation code sent",
+            "description": "OTP sent successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SendActivationResponse"
+                  "$ref": "#/components/schemas/RequestDailyLoginResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request — missing or invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User or device is suspended",
             "content": {
               "application/json": {
                 "schema": {
@@ -746,7 +1272,77 @@
             }
           },
           "404": {
-            "description": "User not found",
+            "description": "User or device not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many OTP requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/verify-daily-login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "verifyDailyLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyDailyLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyDailyLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — missing or invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid OTP, expired, or device suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User or device not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -760,7 +1356,9 @@
     },
     "/controls": {
       "get": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "getControls",
         "parameters": [
           {
@@ -883,7 +1481,9 @@
         ]
       },
       "post": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "createControl",
         "requestBody": {
           "content": {
@@ -944,9 +1544,31 @@
         ]
       }
     },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/stats": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getDashboardStats",
         "responses": {
           "200": {
@@ -989,7 +1611,9 @@
     },
     "/users/location": {
       "post": {
-        "tags": ["users"],
+        "tags": [
+          "users"
+        ],
         "operationId": "updateLocation",
         "requestBody": {
           "content": {
@@ -1037,7 +1661,9 @@
     },
     "/users/me": {
       "get": {
-        "tags": ["users"],
+        "tags": [
+          "users"
+        ],
         "operationId": "getUserProfile",
         "responses": {
           "200": {
@@ -1088,7 +1714,9 @@
     },
     "/vehicles/pending": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "submitVehicle",
         "requestBody": {
           "content": {
@@ -1163,7 +1791,9 @@
     },
     "/vehicles/search": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "searchVehicle",
         "requestBody": {
           "content": {
@@ -1255,11 +1885,22 @@
     "schemas": {
       "ActionType": {
         "type": "string",
-        "enum": ["check", "flag", "citation", "impound", "release"]
+        "enum": [
+          "check",
+          "flag",
+          "citation",
+          "impound",
+          "release"
+        ]
       },
       "ActivateRequest": {
         "type": "object",
-        "required": ["badgeId", "activationCode", "deviceId", "publicKeyBase64"],
+        "required": [
+          "badgeId",
+          "activationCode",
+          "deviceId",
+          "publicKeyBase64"
+        ],
         "properties": {
           "activationCode": {
             "type": "string"
@@ -1278,7 +1919,11 @@
       },
       "ActivateResponse": {
         "type": "object",
-        "required": ["accessToken", "refreshToken", "user"],
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -1293,7 +1938,10 @@
       },
       "ActivityData": {
         "type": "object",
-        "required": ["hour", "count"],
+        "required": [
+          "hour",
+          "count"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -1306,7 +1954,13 @@
       },
       "AgentLocationDto": {
         "type": "object",
-        "required": ["agentId", "agentName", "latitude", "longitude", "lastUpdated"],
+        "required": [
+          "agentId",
+          "agentName",
+          "latitude",
+          "longitude",
+          "lastUpdated"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -1330,7 +1984,10 @@
       },
       "AppErrorResponse": {
         "type": "object",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "$ref": "#/components/schemas/ErrorCode"
@@ -1342,7 +1999,10 @@
       },
       "AuthResponse": {
         "type": "object",
-        "required": ["token", "user"],
+        "required": [
+          "token",
+          "user"
+        ],
         "properties": {
           "token": {
             "type": "string"
@@ -1354,7 +2014,10 @@
       },
       "ControlAction": {
         "type": "object",
-        "required": ["action_type", "timestamp"],
+        "required": [
+          "action_type",
+          "timestamp"
+        ],
         "properties": {
           "action_type": {
             "$ref": "#/components/schemas/ActionType"
@@ -1468,7 +2131,10 @@
       },
       "CreateControlResponse": {
         "type": "object",
-        "required": ["id", "message"],
+        "required": [
+          "id",
+          "message"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -1482,7 +2148,12 @@
       "CreatePendingSubmissionRequest": {
         "type": "object",
         "description": "Request payload for creating a new pending submission",
-        "required": ["plateNumber", "agentId", "frontImageUrl", "backImageUrl"],
+        "required": [
+          "plateNumber",
+          "agentId",
+          "frontImageUrl",
+          "backImageUrl"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -1515,7 +2186,10 @@
       },
       "CustomsStatus": {
         "type": "object",
-        "required": ["status", "is_cleared"],
+        "required": [
+          "status",
+          "is_cleared"
+        ],
         "properties": {
           "declaration_number": {
             "type": "string",
@@ -1581,7 +2255,11 @@
       "DataEntryResponse": {
         "type": "object",
         "description": "Response after approved and enters vehicle data",
-        "required": ["message", "submission_id", "plate_number"],
+        "required": [
+          "message",
+          "submission_id",
+          "plate_number"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -1596,6 +2274,17 @@
           }
         }
       },
+      "DeviceActionResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "ErrorCode": {
         "type": "string",
         "enum": [
@@ -1603,6 +2292,7 @@
           "DATABASE_ERROR",
           "NOT_FOUND",
           "BAD_REQUEST",
+          "TOO_MANY_REQUESTS",
           "EXTERNAL_API_FAILURE",
           "INTERNAL_ERROR"
         ]
@@ -1610,11 +2300,29 @@
       "IdentificationMode": {
         "type": "string",
         "description": "How the plate was identified by the agent",
-        "enum": ["manual", "photo", "live"]
+        "enum": [
+          "manual",
+          "photo",
+          "live"
+        ]
+      },
+      "ImageUploadRequest": {
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary"
+          }
+        }
       },
       "InsuranceStatus": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "coverage_type": {
             "type": "string",
@@ -1717,7 +2425,10 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string"
@@ -1729,7 +2440,11 @@
       },
       "Organization": {
         "type": "object",
-        "required": ["id", "name", "orgType"],
+        "required": [
+          "id",
+          "name",
+          "orgType"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -1749,11 +2464,18 @@
       },
       "OrganizationType": {
         "type": "string",
-        "enum": ["police", "customs", "bordercontrol", "other"]
+        "enum": [
+          "police",
+          "customs",
+          "bordercontrol",
+          "other"
+        ]
       },
       "OwnerInfo": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "address": {
             "type": "string",
@@ -1771,7 +2493,12 @@
       "PendingSubmissionListItem": {
         "type": "object",
         "description": "Lightweight list item for admin dashboard",
-        "required": ["id", "plate_number", "status", "submitted_at"],
+        "required": [
+          "id",
+          "plate_number",
+          "status",
+          "submitted_at"
+        ],
         "properties": {
           "agent_name": {
             "type": "string",
@@ -1863,7 +2590,11 @@
       },
       "PoliceStatus": {
         "type": "object",
-        "required": ["status", "is_wanted", "is_stolen"],
+        "required": [
+          "status",
+          "is_wanted",
+          "is_stolen"
+        ],
         "properties": {
           "is_stolen": {
             "type": "boolean"
@@ -1891,7 +2622,13 @@
       "ProvisionUserRequest": {
         "type": "object",
         "description": "Request for POST /admin/users (provisioning)",
-        "required": ["username", "phoneNumber", "fullName", "role", "organizationId"],
+        "required": [
+          "username",
+          "phoneNumber",
+          "fullName",
+          "role",
+          "organizationId"
+        ],
         "properties": {
           "badgeId": {
             "type": "string",
@@ -1919,9 +2656,41 @@
           }
         }
       },
+      "RefreshChallengeResponse": {
+        "type": "object",
+        "required": [
+          "nonce"
+        ],
+        "properties": {
+          "nonce": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": [
+          "refreshToken",
+          "deviceId"
+        ],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
       "RegisterRequest": {
         "type": "object",
-        "required": ["email", "password", "full_name", "role"],
+        "required": [
+          "email",
+          "password",
+          "full_name",
+          "role"
+        ],
         "properties": {
           "email": {
             "type": "string"
@@ -1937,10 +2706,63 @@
           }
         }
       },
+      "RequestDailyLoginRequest": {
+        "type": "object",
+        "required": [
+          "badgeId",
+          "deviceId"
+        ],
+        "properties": {
+          "badgeId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "RequestDailyLoginResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ResendActivationRequest": {
+        "type": "object",
+        "required": [
+          "userId"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ResendActivationResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "ScanErrorData": {
         "type": "object",
         "description": "Error detail returned inside the scan response envelope.",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -1955,7 +2777,9 @@
       "ScanPlateResponse": {
         "type": "object",
         "description": "Envelope response for `POST /api/v1/scan/plate`.",
-        "required": ["success"],
+        "required": [
+          "success"
+        ],
         "properties": {
           "data": {
             "allOf": [
@@ -1981,7 +2805,12 @@
       "ScanResultData": {
         "type": "object",
         "description": "Successful OCR scan result data.",
-        "required": ["plate", "raw_text", "confidence", "format_valid"],
+        "required": [
+          "plate",
+          "raw_text",
+          "confidence",
+          "format_valid"
+        ],
         "properties": {
           "confidence": {
             "type": "number",
@@ -2002,33 +2831,25 @@
           }
         }
       },
-      "SendActivationRequest": {
-        "type": "object",
-        "required": ["user_id"],
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
-      "SendActivationResponse": {
-        "type": "object",
-        "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
-      },
       "Status": {
         "type": "string",
         "description": "Shared status across all partner API responses",
-        "enum": ["valid", "warning", "critical", "pending"]
+        "enum": [
+          "valid",
+          "warning",
+          "critical",
+          "pending"
+        ]
       },
       "StatusResults": {
         "type": "object",
-        "required": ["overall_status", "insurance", "police", "customs", "technical"],
+        "required": [
+          "overall_status",
+          "insurance",
+          "police",
+          "customs",
+          "technical"
+        ],
         "properties": {
           "customs": {
             "$ref": "#/components/schemas/CustomsStatus"
@@ -2072,11 +2893,18 @@
       },
       "SubmissionStatus": {
         "type": "string",
-        "enum": ["pending", "approved", "rejected"]
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
       },
       "TechnicalStatus": {
         "type": "object",
-        "required": ["status", "defects"],
+        "required": [
+          "status",
+          "defects"
+        ],
         "properties": {
           "defects": {
             "type": "array",
@@ -2108,7 +2936,9 @@
       },
       "TerminateSessionRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -2118,7 +2948,9 @@
       },
       "TerminateSessionResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2127,7 +2959,11 @@
       },
       "UpdateLocationRequest": {
         "type": "object",
-        "required": ["agentId", "latitude", "longitude"],
+        "required": [
+          "agentId",
+          "latitude",
+          "longitude"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -2145,7 +2981,9 @@
       },
       "UpdateLocationResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2201,7 +3039,10 @@
       },
       "UploadResponse": {
         "type": "object",
-        "required": ["message", "submission_id"],
+        "required": [
+          "message",
+          "submission_id"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2214,7 +3055,15 @@
       "UserProfile": {
         "type": "object",
         "description": "Response for GET /users/me",
-        "required": ["id", "username", "name", "role", "organizationId", "status", "isActive"],
+        "required": [
+          "id",
+          "username",
+          "name",
+          "role",
+          "organizationId",
+          "status",
+          "isActive"
+        ],
         "properties": {
           "avatarInitials": {
             "type": "string",
@@ -2263,15 +3112,29 @@
       },
       "UserRole": {
         "type": "string",
-        "enum": ["admin", "agent", "manager"]
+        "enum": [
+          "admin",
+          "agent",
+          "manager"
+        ]
       },
       "UserStatus": {
         "type": "string",
-        "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
+        "enum": [
+          "PENDING_ACTIVATION",
+          "ACTIVE",
+          "SUSPENDED"
+        ]
       },
       "VehicleInfo": {
         "type": "object",
-        "required": ["brand", "model", "year", "chassis_number", "owner"],
+        "required": [
+          "brand",
+          "model",
+          "year",
+          "chassis_number",
+          "owner"
+        ],
         "properties": {
           "brand": {
             "type": "string"
@@ -2305,7 +3168,9 @@
       },
       "VehicleSearchRequest": {
         "type": "object",
-        "required": ["plate"],
+        "required": [
+          "plate"
+        ],
         "properties": {
           "latitude": {
             "type": "number",
@@ -2324,7 +3189,11 @@
       },
       "VehicleSearchResult": {
         "type": "object",
-        "required": ["plate_number", "vehicle", "status_results"],
+        "required": [
+          "plate_number",
+          "vehicle",
+          "status_results"
+        ],
         "properties": {
           "confidence": {
             "type": "number",
@@ -2349,6 +3218,77 @@
             "$ref": "#/components/schemas/VehicleInfo"
           }
         }
+      },
+      "VerifyDailyLoginRequest": {
+        "type": "object",
+        "required": [
+          "badgeId",
+          "activationCode",
+          "deviceId"
+        ],
+        "properties": {
+          "activationCode": {
+            "type": "string"
+          },
+          "badgeId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "VerifyDailyLoginResponse": {
+        "type": "object",
+        "required": [
+          "accessToken",
+          "shiftEnd"
+        ],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "shiftEnd": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "VerifyRefreshRequest": {
+        "type": "object",
+        "required": [
+          "refreshToken",
+          "deviceId",
+          "signedNonce"
+        ],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "signedNonce": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyRefreshResponse": {
+        "type": "object",
+        "required": [
+          "accessToken"
+        ],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -2360,6 +3300,10 @@
     }
   },
   "tags": [
+    {
+      "name": "health",
+      "description": "Service health check"
+    },
     {
       "name": "vehicles",
       "description": "Vehicle lookup and image upload"
@@ -2373,6 +3317,10 @@
       "description": "License plate OCR scanning"
     },
     {
+      "name": "photo",
+      "description": "Photo-based plate recognition"
+    },
+    {
       "name": "stats",
       "description": "Dashboard statistics"
     },
@@ -2383,6 +3331,10 @@
     {
       "name": "auth",
       "description": "Authentication and registration"
+    },
+    {
+      "name": "admin",
+      "description": "Admin operations"
     }
   ]
 }

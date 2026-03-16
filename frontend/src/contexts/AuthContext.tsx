@@ -1,10 +1,23 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { loginUser } from '@/openapi-rq/requests/services.gen';
+import { mockAuthService } from '@/services/mock/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
-import { getDeviceId } from '@/services/deviceId';
+import { getDeviceId } from '@/services/device/deviceId';
+import {
+  setAccessToken,
+  setRefreshToken,
+  clearTokens,
+  getAccessToken,
+  clearAccessToken,
+} from '@/services/auth/tokenManager';
 import { client } from '@/openapi-rq/requests/services.gen';
-import { fetchWithAuth } from '@/services/backendFetch';
+import {
+  activateDevice,
+  getUserProfile,
+  requestDailyLogin,
+  verifyDailyLogin,
+} from '@/openapi-rq/requests/services.gen';
 
 import { clearAllStoredData } from '@/services/keyManagement/storageSetup';
 import { toast } from 'sonner';
@@ -47,6 +60,8 @@ function humanizeActivationError(payload: unknown): string | undefined {
 
   return message;
 }
+
+let isInterceptorRegistered = false;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -162,6 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(sessionData);
             setUser(sessionData.user);
             applyAuthTokenToApiClient(sessionData.token);
+
+            // Sync token manager with existing session token
+            if (sessionData.token && !getAccessToken()) {
+              setAccessToken(sessionData.token);
+            }
           } else {
             // Silently clear the stale/expired session
             localStorage.removeItem(SESSION_KEY);
@@ -176,6 +196,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initIdentity();
+
+    if (!isInterceptorRegistered) {
+      const interceptor = async (response: Response) => {
+        if (!response.ok && response.status === 401) {
+          try {
+            const resClone = response.clone();
+            const json = await resClone.json();
+            if (
+              json?.message === 'Shift ended' ||
+              json?.reason === 'Shift ended' ||
+              json?.message?.includes('Shift ended')
+            ) {
+              setSession(null);
+              setUser(null);
+              applyAuthTokenToApiClient();
+              localStorage.removeItem(SESSION_KEY);
+              clearAccessToken();
+              globalThis.location.href = '/daily-login';
+            }
+          } catch {
+            // ignore parse error
+          }
+        }
+        return response;
+      };
+      client.interceptors.response.use(interceptor);
+      isInterceptorRegistered = true;
+    }
   }, []);
 
   const activate: AuthContextType['activate'] = async ({
@@ -185,46 +233,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     publicKeyBase64,
   }) => {
     try {
-      const res = await fetchWithAuth('/auth/activate', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
+      const res = await activateDevice({
+        body: {
           badgeId,
           activationCode,
           deviceId,
           publicKeyBase64,
-        }),
+        },
+        throwOnError: false,
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-
-        if (contentType.includes('application/json')) {
-          const json = (await res.json()) as unknown;
-          const friendly = humanizeActivationError(json);
-          return { success: false, error: friendly || 'Activation failed' };
-        }
-
-        const text = await res.text();
-        return { success: false, error: text || 'Activation failed' };
+      if (res.error) {
+        const friendly = humanizeActivationError(res.error);
+        return { success: false, error: friendly || 'Activation failed' };
       }
 
-      const data = (await res.json()) as {
-        accessToken: string;
-        refreshToken: string;
-        user: UserProfile;
-      };
+      const data = res.data;
+      if (!data) {
+        return { success: false, error: 'Activation failed' };
+      }
 
       let resolvedUser: UserProfile = data.user;
       try {
-        const meRes = await fetchWithAuth('/users/me', {
+        const meRes = await getUserProfile({
           headers: { Authorization: `Bearer ${data.accessToken}` },
+          throwOnError: false,
         });
-        if (meRes.ok) {
-          resolvedUser = (await meRes.json()) as UserProfile;
-        }
+        if (meRes.data) resolvedUser = meRes.data;
       } catch {
         // Ignore profile refresh errors
       }
@@ -237,6 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
       localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
 
+      // Sync with token manager
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+
       applyAuthTokenToApiClient(data.accessToken);
 
       setSession(newSession);
@@ -245,6 +284,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Activation failed' };
+    }
+  };
+
+  const dailyLoginRequest: AuthContextType['dailyLoginRequest'] = async ({ badgeId }) => {
+    try {
+      const deviceId = await getDeviceId();
+
+      const res = await requestDailyLogin({
+        body: { badgeId, deviceId },
+        throwOnError: false,
+      });
+
+      if (res.error) {
+        const friendly = humanizeActivationError(res.error);
+        return { success: false, error: friendly || 'Failed to request OTP' };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Request failed' };
+    }
+  };
+
+  const dailyLoginVerify: AuthContextType['dailyLoginVerify'] = async ({
+    badgeId,
+    activationCode,
+    deviceId,
+  }) => {
+    try {
+      const res = await verifyDailyLogin({
+        body: { badgeId, activationCode, deviceId },
+        throwOnError: false,
+      });
+
+      if (res.error) {
+        const friendly = humanizeActivationError(res.error);
+        return { success: false, error: friendly || 'Verification failed' };
+      }
+
+      const data = res.data;
+      if (!data) {
+        return { success: false, error: 'Verification failed' };
+      }
+
+      // Daily login returns tokens only; user profile is fetched separately.
+      // Keep behavior consistent with activation: best-effort refresh profile.
+      let resolvedUser: UserProfile | null = null;
+      try {
+        const meRes = await getUserProfile({
+          headers: { Authorization: `Bearer ${data.accessToken}` },
+          throwOnError: false,
+        });
+        if (meRes.data) resolvedUser = meRes.data;
+      } catch {
+        // Ignore profile refresh errors
+      }
+
+      const newSession = {
+        token: data.accessToken,
+        user: resolvedUser,
+      } as unknown as AuthResponse;
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+
+      applyAuthTokenToApiClient(data.accessToken);
+
+      setSession(newSession);
+      setUser(resolvedUser);
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Verification failed' };
     }
   };
 
@@ -274,6 +388,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(backendSession);
         setUser(backendSession.user);
+
+        // Persist tokens for the auth interceptor and token manager
+        if (backendSession.token) {
+          setAccessToken(backendSession.token);
+          // In a real flow, the backend would also return a refresh_token
+          // For now with mock auth, we store the same token as refresh
+          setRefreshToken(backendSession.token);
+
+          // Ensure session persistence matching activation flow
+          localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
+        }
+
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -283,13 +409,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: err instanceof Error ? err.message : 'Invalid credentials',
       };
     }
-  };
-
-  const getMockCredentials = () => [
-    { role: 'Agent', username: 'agent1', password: '(Activation flow)' },
-    { role: 'Supervisor', username: 'manager1', password: 'admin123' },
-    { role: 'Admin', username: 'admin', password: 'admin123' },
-  ];
+  }
+  const getMockCredentials = () => mockAuthService.getMockCredentials();
 
   const value: AuthContextType = {
     user,
@@ -298,6 +419,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!session,
     login,
     activate,
+    dailyLoginRequest,
+    dailyLoginVerify,
     logout,
     getMockCredentials,
   };

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-const ACCESS_TOKEN_TTL: Duration = Duration::from_secs(15 * 60);
+const ACCESS_TOKEN_TTL: Duration = Duration::from_secs(3 * 60);
 const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
 
 #[derive(Debug, Serialize, Deserialize)]
