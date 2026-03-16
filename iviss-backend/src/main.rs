@@ -15,7 +15,7 @@ mod tests;
 
 use crate::api_doc::ApiDoc;
 use crate::app_state::AppState;
-use crate::config::{Config, Environment};
+use crate::config::Config;
 use crate::db::initialize_pool;
 use crate::db::initialize_redis_pool;
 use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};

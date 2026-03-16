@@ -92,10 +92,7 @@ pub async fn get_user_by_badge_id(pool: &PgPool, badge_id: &str) -> Result<UserF
     .ok_or_else(|| AppError::not_found("User not found"))
 }
 
-pub async fn get_user_by_badge(
-    pool: &PgPool,
-    badge_id: &str,
-) -> Result<UserForLogin, AppError> {
+pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForLogin, AppError> {
     sqlx::query_as::<_, UserForLogin>(
         r#"
         SELECT id, role::TEXT AS role, status::TEXT AS status,

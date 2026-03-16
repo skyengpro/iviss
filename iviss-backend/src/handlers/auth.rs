@@ -435,7 +435,8 @@ pub async fn request_daily_login(
         ));
     }
 
-    let device_opt = auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
+    let device_opt =
+        auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
     if let Some(device) = device_opt {
         if device.status == "SUSPENDED" {
@@ -548,7 +549,9 @@ pub async fn verify_daily_login(
         state.sms_pvd.clone(),
         state.pepper.clone(),
     );
-    otp_svc.validate_otp(&user_id, &payload.activation_code).await?;
+    otp_svc
+        .validate_otp(&user_id, &payload.activation_code)
+        .await?;
 
     // ── Compute static shift bounds (UTC+1 local time)
     let localt_time_offset = time::UtcOffset::from_hms(1, 0, 0)
@@ -589,29 +592,50 @@ pub async fn verify_daily_login(
         )
         .map_err(AppError::Internal)?;
 
+    let device_exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1
+            FROM devices
+            WHERE id = $1
+              AND user_id = $2
+              AND revoked_at IS NULL
+        )
+        "#,
+    )
+    .bind(payload.device_id)
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
     // ── Check if a valid refresh token already exists for this device
-    let has_valid_refresh: bool =
-        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?;
+    let has_valid_refresh: bool = if device_exists {
+        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?
+    } else {
+        false
+    };
 
     // ── Conditionally build new refresh token
-    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> = if !has_valid_refresh {
-        let raw = {
-            let mut bytes = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut bytes);
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> =
+        if device_exists && !has_valid_refresh {
+            let raw = {
+                let mut bytes = [0u8; 32];
+                rand::thread_rng().fill_bytes(&mut bytes);
+                base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+            };
+            let hash = {
+                use sha2::Digest;
+                format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
+            };
+            let expires_at = {
+                let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
+                time::PrimitiveDateTime::new(dt.date(), dt.time())
+            };
+            Some((raw, hash, expires_at))
+        } else {
+            None
         };
-        let hash = {
-            use sha2::Digest;
-            format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
-        };
-        let expires_at = {
-            let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-            time::PrimitiveDateTime::new(dt.date(), dt.time())
-        };
-        Some((raw, hash, expires_at))
-    } else {
-        None
-    };
 
     // ── Single CTE: optionally insert refresh token + activate device
     match &new_refresh {
@@ -641,8 +665,15 @@ pub async fn verify_daily_login(
         }
 
         None => {
-            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
+            if device_exists {
+                auth_queries::mark_device_active(
+                    &state.db,
+                    payload.device_id,
+                    shift_start,
+                    shift_end,
+                )
                 .await?;
+            }
         }
     }
 
