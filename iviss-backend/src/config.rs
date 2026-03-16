@@ -127,15 +127,15 @@ impl Config {
             ));
         }
 
-        let jwt_private_key_pem =
-            env::var("JWT_PRIVATE_KEY_PEM").context("JWT_PRIVATE_KEY_PEM must be set")?
+        let jwt_private_key_pem = env::var("JWT_PRIVATE_KEY_PEM")
+            .context("JWT_PRIVATE_KEY_PEM must be set")?
             .replace("\\n", "\n");
         if jwt_private_key_pem.trim().is_empty() {
             return Err(anyhow!("JWT_PRIVATE_KEY_PEM cannot be empty"));
         }
 
-        let jwt_public_key_pem =
-            env::var("JWT_PUBLIC_KEY_PEM").context("JWT_PUBLIC_KEY_PEM must be set")?
+        let jwt_public_key_pem = env::var("JWT_PUBLIC_KEY_PEM")
+            .context("JWT_PUBLIC_KEY_PEM must be set")?
             .replace("\\n", "\n");
         if jwt_public_key_pem.trim().is_empty() {
             return Err(anyhow!("JWT_PUBLIC_KEY_PEM cannot be empty"));
