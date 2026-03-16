@@ -159,6 +159,7 @@ describe('authInterceptor', () => {
       const interceptor = mockClient._responseInterceptors[0];
       const result = await interceptor(response, request);
       expect(result).toBe(response);
+      expect(onSessionExpired).toHaveBeenCalledTimes(1);
     });
 
     it('should not attempt refresh when the 401 comes from refresh endpoints', async () => {
@@ -189,6 +190,7 @@ describe('authInterceptor', () => {
       const interceptor = mockClient._responseInterceptors[0];
       const result = await interceptor(response, request);
       expect(result).toBe(response);
+      expect(onSessionExpired).toHaveBeenCalledTimes(1);
     });
 
     it('should prevent infinite retry loops on repeated 401', async () => {

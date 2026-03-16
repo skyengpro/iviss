@@ -8,6 +8,7 @@ import { useMetrics } from '@/hooks/useMetrics';
 
 import { client } from '@/openapi-rq/requests/services.gen';
 import { setupAuthInterceptors } from '@/services/auth/authInterceptor';
+import { clearTokens } from '@/services/auth/tokenManager';
 
 import { AppInitializer } from '@/components/shared/AppInitializer';
 
@@ -24,7 +25,10 @@ client.setConfig({
 setupAuthInterceptors(client, {
   baseUrl: apiBaseUrl,
   onSessionExpired: () => {
-    console.warn('AuthInterceptor: Session expired, but keeping tokens as requested');
+    clearTokens();
+    localStorage.removeItem('iviss_session');
+    localStorage.removeItem('iviss_refresh_token');
+    globalThis.location.href = '/activate';
   },
 });
 
