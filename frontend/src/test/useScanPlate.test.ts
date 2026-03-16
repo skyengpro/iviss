@@ -4,6 +4,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useScanPlate } from '@/hooks/feature/useScanPlate';
 import { ImageProcessor } from '@/utils/imageProcessor';
 
+vi.mock('@/openapi-rq/requests/services.gen', () => ({
+  scanPlate: vi.fn(),
+}));
+
+import { scanPlate } from '@/openapi-rq/requests/services.gen';
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -35,20 +41,34 @@ describe('useScanPlate', () => {
         } as unknown as Response;
       }
 
-      return {
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            plate: 'CE128BC',
-            confidence: 0.9,
-            format_valid: true,
-          },
-        }),
-      } as unknown as Response;
+      throw new Error('Unexpected fetch call in test');
     });
 
     vi.stubGlobal('fetch', fetchMock);
+
+    vi.mocked(scanPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: 'CE128BC',
+          confidence: 0.9,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
+
+    vi.mocked(scanPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: 'CE128BC',
+          confidence: 0.9,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
 
     const { result } = renderHook(() => useScanPlate({ onSuccess }));
 
@@ -90,20 +110,22 @@ describe('useScanPlate', () => {
         } as unknown as Response;
       }
 
-      return {
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            plate: 'CE128BC',
-            confidence: 0.5,
-            format_valid: false,
-          },
-        }),
-      } as unknown as Response;
+      throw new Error('Unexpected fetch call in test');
     });
 
     vi.stubGlobal('fetch', fetchMock);
+
+    vi.mocked(scanPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: 'CE128BC',
+          confidence: 0.5,
+          format_valid: false,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
 
     const { result } = renderHook(() => useScanPlate({ onSuccess }));
 
@@ -137,10 +159,14 @@ describe('useScanPlate', () => {
         } as unknown as Response;
       }
 
-      throw new DOMException('signal is aborted without reason', 'AbortError');
+      throw new Error('Unexpected fetch call in test');
     });
 
     vi.stubGlobal('fetch', fetchMock);
+
+    vi.mocked(scanPlate).mockRejectedValue(
+      new DOMException('signal is aborted without reason', 'AbortError')
+    );
 
     const { result } = renderHook(() => useScanPlate());
     const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');

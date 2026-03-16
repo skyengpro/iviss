@@ -11,7 +11,12 @@ import {
   clearAccessToken,
 } from '@/services/auth/tokenManager';
 import { client } from '@/openapi-rq/requests/services.gen';
-import { fetchWithAuth } from '@/services/api/backendFetch';
+import {
+  activateDevice,
+  getUserProfile,
+  requestDailyLogin,
+  verifyDailyLogin,
+} from '@/openapi-rq/requests/services.gen';
 
 const SESSION_KEY = 'iviss_session';
 const REFRESH_TOKEN_KEY = 'iviss_refresh_token';
@@ -115,46 +120,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     publicKeyBase64,
   }) => {
     try {
-      const res = await fetchWithAuth('/auth/activate', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
+      const res = await activateDevice({
+        body: {
           badgeId,
           activationCode,
           deviceId,
           publicKeyBase64,
-        }),
+        },
+        throwOnError: false,
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-
-        if (contentType.includes('application/json')) {
-          const json = (await res.json()) as unknown;
-          const friendly = humanizeActivationError(json);
-          return { success: false, error: friendly || 'Activation failed' };
-        }
-
-        const text = await res.text();
-        return { success: false, error: text || 'Activation failed' };
+      if (res.error) {
+        const friendly = humanizeActivationError(res.error);
+        return { success: false, error: friendly || 'Activation failed' };
       }
 
-      const data = (await res.json()) as {
-        accessToken: string;
-        refreshToken: string;
-        user: UserProfile;
-      };
+      const data = res.data;
+      if (!data) {
+        return { success: false, error: 'Activation failed' };
+      }
 
       let resolvedUser: UserProfile = data.user;
       try {
-        const meRes = await fetchWithAuth('/users/me', {
+        const meRes = await getUserProfile({
           headers: { Authorization: `Bearer ${data.accessToken}` },
+          throwOnError: false,
         });
-        if (meRes.ok) {
-          resolvedUser = (await meRes.json()) as UserProfile;
-        }
+        if (meRes.data) resolvedUser = meRes.data;
       } catch {
         // Ignore profile refresh errors
       }
@@ -183,24 +175,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const dailyLoginRequest: AuthContextType['dailyLoginRequest'] = async ({ badgeId }) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
       const deviceId = await getDeviceId();
-      const res = await fetch(`${baseUrl}/auth/request-daily-login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ badgeId, deviceId }),
+
+      const res = await requestDailyLogin({
+        body: { badgeId, deviceId },
+        throwOnError: false,
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const json = (await res.json()) as unknown;
-          const friendly = humanizeActivationError(json);
-          return { success: false, error: friendly || 'Failed to request OTP' };
-        }
-        const text = await res.text();
-        return { success: false, error: text || 'Failed to request OTP' };
+      if (res.error) {
+        const friendly = humanizeActivationError(res.error);
+        return { success: false, error: friendly || 'Failed to request OTP' };
       }
       return { success: true };
     } catch (err) {
@@ -213,39 +198,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     activationCode,
     deviceId,
   }) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
-      const res = await fetch(`${baseUrl}/auth/verify-daily-login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ badgeId, activationCode, deviceId }),
+      const res = await verifyDailyLogin({
+        body: { badgeId, activationCode, deviceId },
+        throwOnError: false,
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const json = (await res.json()) as unknown;
-          const friendly = humanizeActivationError(json);
-          return { success: false, error: friendly || 'Verification failed' };
-        }
-        const text = await res.text();
-        return { success: false, error: text || 'Verification failed' };
+      if (res.error) {
+        const friendly = humanizeActivationError(res.error);
+        return { success: false, error: friendly || 'Verification failed' };
       }
 
-      const data = (await res.json()) as {
-        accessToken: string;
-        refreshToken: string;
-        user: UserProfile;
-      };
+      const data = res.data;
+      if (!data) {
+        return { success: false, error: 'Verification failed' };
+      }
 
-      let resolvedUser: UserProfile = data.user;
+      // Daily login returns tokens only; user profile is fetched separately.
+      // Keep behavior consistent with activation: best-effort refresh profile.
+      let resolvedUser: UserProfile | null = null;
       try {
-        const meRes = await fetch(`${baseUrl}/users/me`, {
-          headers: { authorization: `Bearer ${data.accessToken}` },
+        const meRes = await getUserProfile({
+          headers: { Authorization: `Bearer ${data.accessToken}` },
+          throwOnError: false,
         });
-        if (meRes.ok) {
-          resolvedUser = (await meRes.json()) as UserProfile;
-        }
+        if (meRes.data) resolvedUser = meRes.data;
       } catch {
         // Ignore profile refresh errors
       }

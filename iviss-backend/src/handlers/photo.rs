@@ -1,5 +1,7 @@
 use axum::{extract::Multipart, http::StatusCode, response::IntoResponse, Json};
 
+#[allow(unused_imports)]
+use crate::dto::scan::ImageUploadRequest;
 use crate::dto::scan::{ScanErrorData, ScanPlateResponse, ScanResultData};
 use crate::services::photo_ocr_service;
 
@@ -20,6 +22,10 @@ const OCR_TIMEOUT_MS: u64 = 9000;
     path = "/api/v1/photo/plate",
     tag = "photo",
     operation_id = "photoPlate",
+    request_body(
+        content = ImageUploadRequest,
+        content_type = "multipart/form-data"
+    ),
     responses(
         (status = 200, description = "OCR result (photo capture)",      body = ScanPlateResponse),
         (status = 400, description = "Invalid or missing image",         body = ScanPlateResponse),

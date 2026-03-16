@@ -89,6 +89,32 @@ pub async fn search_vehicle(
     Ok((StatusCode::OK, Json(response)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/vehicles/search",
+    tag = "vehicles",
+    operation_id = "searchVehicleV1",
+    request_body = VehicleSearchRequest,
+    responses(
+        (status = 200, description = "Vehicle found with status results", body = VehicleSearchResult),
+        (status = 400, description = "Invalid plate format",              body = AppErrorResponse,
+             example = json!({ "code": "INVALID_PLATE", "message": "Plate number must be 6-8 alphanumeric characters" })),
+         (status = 401, description = "Unauthorized",                      body = AppErrorResponse,
+             example = json!({ "code": "UNAUTHORIZED", "message": "Invalid token" })),
+         (status = 404, description = "Plate not found in registry",       body = AppErrorResponse,
+             example = json!({ "code": "NOT_FOUND", "message": "No vehicle found with the provided plate  number" })),
+         (status = 500, description = "Internal server error",             body = AppErrorResponse,
+             example = json!({ "code": "INTERNAL_ERROR", "message": "Internal Server Error" })),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn search_vehicle_v1(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<VehicleSearchRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    search_vehicle(State(state), Json(payload)).await
+}
+
 pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {
     // Normalize: remove all whitespace/dashes for internal lookup
     let normalized = plate.trim().to_uppercase().replace([' ', '-'], "");

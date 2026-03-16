@@ -18,9 +18,12 @@
 import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken } from './tokenManager';
 import { getDeviceId } from '../device/deviceId';
 import { signNonce } from './signatureService';
+import { requestRefresh, verifyRefresh } from '@/openapi-rq/requests/services.gen';
 
 // Custom header used to mark a request as a retry to prevent infinite loops
 const RETRY_HEADER = 'X-Auth-Retry';
+
+const REFRESH_PATHS = ['/auth/refresh', '/auth/refresh/verify'];
 
 // Module-level promise to track an ongoing refresh operation
 let refreshPromise: Promise<string | null> | null = null;
@@ -70,23 +73,20 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
         console.log('Refresh Token length:', refreshToken.length);
 
         // Step 1: Send refresh token to get nonce challenge
-        const refreshResponse = await fetch(`${baseUrl}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const refreshResponse = await requestRefresh({
+          body: {
             refreshToken: refreshToken,
             deviceId: deviceId,
-          }),
+          },
+          throwOnError: false,
         });
 
-        console.log('Refresh Response Status:', refreshResponse.status);
-
-        if (!refreshResponse.ok) {
+        if (refreshResponse.error || !refreshResponse.data) {
           console.warn('AuthInterceptor: POST /auth/refresh failed');
           return null;
         }
 
-        const { nonce } = await refreshResponse.json();
+        const { nonce } = refreshResponse.data as { nonce?: string };
         console.log('Received Nonce:', nonce);
 
         if (!nonce) {
@@ -101,24 +101,24 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
 
         // Step 3: Send signed nonce to complete the challenge
         console.log('Sending signed nonce for verification...');
-        const verifyResponse = await fetch(`${baseUrl}/auth/refresh/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const verifyResponse = await verifyRefresh({
+          body: {
             refreshToken: refreshToken,
             deviceId: deviceId,
             signedNonce: signedNonce,
-          }),
+          },
+          throwOnError: false,
         });
 
-        console.log('Verify Response Status:', verifyResponse.status);
-
-        if (!verifyResponse.ok) {
+        if (verifyResponse.error || !verifyResponse.data) {
           console.warn('AuthInterceptor: POST /auth/refresh/verify failed');
           return null;
         }
 
-        const { accessToken, refreshToken: nextRefreshToken } = await verifyResponse.json();
+        const { accessToken, refreshToken: nextRefreshToken } = verifyResponse.data as {
+          accessToken?: string;
+          refreshToken?: string;
+        };
         if (!accessToken) {
           console.warn('AuthInterceptor: No accessToken in verify response');
           return null;
@@ -139,7 +139,7 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
         // Clear the promise when done so future 401s can trigger a new refresh if needed
         refreshPromise = null;
       }
-  })(),
+    })(),
     REFRESH_TIMEOUT_MS
   );
 
@@ -154,7 +154,6 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
  * @param options.baseUrl - API base URL for refresh calls
  * @param options.onSessionExpired - Callback when refresh fails (e.g. redirect to login)
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type HeyApiClient = {
   interceptors: {
     request: { use: (fn: (request: Request) => Promise<Request> | Request) => void };
@@ -188,6 +187,16 @@ export function setupAuthInterceptors(
     // Only handle 401 Unauthorized
     if (response.status !== 401) {
       return response;
+    }
+
+    // Never attempt refresh while calling refresh endpoints; avoids recursion.
+    try {
+      const url = new URL(request.url);
+      if (REFRESH_PATHS.includes(url.pathname)) {
+        return response;
+      }
+    } catch {
+      // If request.url isn't parseable, fall through to the normal logic.
     }
 
     // Prevent infinite retry: if this is already a retry, give up

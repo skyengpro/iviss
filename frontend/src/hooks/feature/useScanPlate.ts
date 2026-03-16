@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { useStabilityDetection, DetectionResult } from './useStabilityDetection';
-import { fetchWithAuth } from '@/services/api/backendFetch';
+import { scanPlate } from '@/openapi-rq/requests/services.gen';
+import type { ScanPlateResponse } from '@/openapi-rq/requests/types.gen';
 
 export type PlateStatus = 'valid' | 'warning' | 'critical';
 
@@ -93,19 +94,20 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         const response = await fetch(compressedImage);
         const blob = await response.blob();
 
-        const formData = new FormData();
-        formData.append('image', blob, 'frame.jpg');
-
-        // 3. Call Backend OCR API
-        const apiResponse = await fetchWithAuth('/api/v1/scan/plate', {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal,
+        const file = new File([blob], 'frame.jpg', {
+          type: blob.type || 'image/jpeg',
         });
 
-        if (!apiResponse.ok) throw new Error('OCR API failed');
+        // 3. Call Backend OCR API
+        const apiResponse = await scanPlate({
+          body: { image: file },
+          signal: controller.signal,
+          throwOnError: false,
+        });
 
-        const json = await apiResponse.json();
+        if (apiResponse.error || !apiResponse.data) throw new Error('OCR API failed');
+
+        const json = apiResponse.data as ScanPlateResponse;
 
         if (json.success && json.data?.plate) {
           const result: DetectionResult = {
@@ -119,7 +121,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
           if (result.plateNumber.trim() !== '') {
             setLiveDetections((prev) => {
               if (prev.some((d) => d.plateNumber === result.plateNumber)) return prev;
-              const status: PlateStatus = json.data.format_valid ? 'valid' : 'warning';
+              const status: PlateStatus = json.data?.format_valid ? 'valid' : 'warning';
               return [
                 {
                   plateNumber: result.plateNumber,
