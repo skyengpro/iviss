@@ -1,6 +1,6 @@
 use iviss_backend::api_doc::ApiDoc;
 use iviss_backend::app_state::AppState;
-use iviss_backend::config::{Config, Environment};
+use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::initialize_redis_pool;
 use iviss_backend::routes;
@@ -33,13 +33,19 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let sms_provider: Arc<dyn SmsProvider> = match &config.environment {
-        Environment::Production => Arc::new(TwilioSmsProvider::new(
+    let sms_provider: Arc<dyn SmsProvider> = if !config.twilio_account_sid.is_empty()
+        && !config.twilio_auth_token.is_empty()
+        && !config.twilio_from_number.is_empty()
+    {
+        info!("Using Twilio SMS provider");
+        Arc::new(TwilioSmsProvider::new(
             config.twilio_account_sid.clone(),
             config.twilio_auth_token.clone(),
             config.twilio_from_number.clone(),
-        )),
-        _ => Arc::new(MockSmsProvider),
+        ))
+    } else {
+        info!("Using Mock SMS provider (logs OTP to console)");
+        Arc::new(MockSmsProvider)
     };
     let db_pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
