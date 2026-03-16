@@ -2,7 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { ImageProcessor } from '@/utils/imageProcessor';
 import { useTranslation } from 'react-i18next';
 import { DetectedPlate, PlateStatus } from './useScanPlate';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { photoPlate } from '@/openapi-rq/requests/services.gen';
+import type { ScanPlateResponse } from '@/openapi-rq/requests/types.gen';
 
 function normalizePlateCandidate(v: unknown): string {
   if (typeof v !== 'string') return '';
@@ -95,19 +96,20 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
           const fetchRes = await fetch(processedDataUrl);
           const blob = await fetchRes.blob();
 
-          const formData = new FormData();
-          formData.append('image', blob, 'photo.jpg');
-
-          const apiResponse = await fetchWithAuth('/api/v1/photo/plate', {
-            method: 'POST',
-            body: formData,
+          const file = new File([blob], 'photo.jpg', {
+            type: blob.type || 'image/jpeg',
           });
 
-          if (!apiResponse.ok) {
+          const apiResponse = await photoPlate({
+            body: { image: file },
+            throwOnError: false,
+          });
+
+          if (apiResponse.error || !apiResponse.data) {
             throw new Error(t('mobileScan.photoError'));
           }
 
-          return apiResponse.json();
+          return apiResponse.data as ScanPlateResponse;
         };
 
         const firstProcessed = await ImageProcessor.preprocessForHighRes(imageSrc, t);

@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/use-auth';
+import { getAccessToken, getRefreshToken } from '@/services/auth/tokenManager';
 
 export function RequireAuth({
   children,
@@ -16,7 +17,15 @@ export function RequireAuth({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        navigate('/activate', { state: { from: location.pathname } });
+        const accessToken = getAccessToken();
+        const refreshToken = getRefreshToken();
+        if (!refreshToken && !accessToken) {
+          navigate('/activate', { state: { from: location.pathname } });
+        } else if (refreshToken && !accessToken) {
+          navigate('/daily-login', { state: { from: location.pathname } });
+        } else {
+          navigate('/activate', { state: { from: location.pathname } });
+        }
       } else if (allowedRoles && user && !allowedRoles.includes(user.role as unknown as string)) {
         if (user.role === 'admin') {
           navigate('/backoffice');

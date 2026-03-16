@@ -36,9 +36,15 @@ pub async fn require_auth(
     next: Next,
 ) -> Result<Response, AppError> {
     let method = request.method().clone();
-    let path = request.uri().path().to_string();
+    let path = request.uri().path();
 
     tracing::info!(%method, %path, "auth: start");
+
+    // Exclude admin and stats routes from auth for now as requested
+    if path.starts_with("/admin/") || path == "/stats" {
+        tracing::info!(%method, %path, "auth: skipping auth for admin route");
+        return Ok(next.run(request).await);
+    }
 
     let token = match extract_bearer_token(request.headers().get(AUTHORIZATION)) {
         Ok(token) => {

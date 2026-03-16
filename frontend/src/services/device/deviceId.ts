@@ -1,4 +1,4 @@
-import storage from './keyManagement/storageSetup';
+import storage from '../keyManagement/storageSetup';
 
 /**
  * Service to manage unique device identification.

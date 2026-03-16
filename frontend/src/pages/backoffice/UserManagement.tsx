@@ -65,7 +65,8 @@ import { useUsers } from '@/hooks/api/useUsers';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
 import { toast } from 'sonner';
-import { fetchWithAuth } from '@/services/backendFetch';
+import { fetchWithAuth } from '@/services/api/backendFetch';
+import { resendActivationCode, terminateSession } from '@/openapi-rq/requests/services.gen';
 import {
   UserProfile,
   UpdateUserRequest,
@@ -73,11 +74,11 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    admin: 'destructive',
-    supervisor: 'secondary',
-    agent: 'outline',
-  };
+{
+  admin: 'destructive',
+  supervisor: 'secondary',
+  agent: 'outline',
+};
 
 export default function UserManagement() {
   const { t } = useTranslation();
@@ -155,15 +156,12 @@ export default function UserManagement() {
   const handleTerminateSession = async () => {
     if (!selectedUser) return;
     try {
-      const res = await fetchWithAuth('/admin/terminate-session', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ userId: selectedUser.id }),
+      const res = await terminateSession({
+        body: { userId: selectedUser.id },
+        throwOnError: true,
       });
 
-      if (!res.ok) {
+      if (res.error) {
         throw new Error('Failed to terminate session');
       }
 
@@ -178,27 +176,21 @@ export default function UserManagement() {
   const handleResendActivationCode = async (user: UserProfile) => {
     setResendLoadingUserId(user.id);
     try {
-      const res = await fetchWithAuth('/auth/send-activation', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ user_id: user.id }),
+      const res = await resendActivationCode({
+        body: { userId: user.id },
+        throwOnError: false,
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const json = (await res.json()) as { code?: string; message?: string };
-          toast.error(json?.message || 'Failed to resend activation code');
-          return;
-        }
-        const text = await res.text();
-        toast.error(text || 'Failed to resend activation code');
+      if (res.error) {
+        const msg =
+          typeof (res.error as { message?: unknown })?.message === 'string'
+            ? String((res.error as { message?: unknown }).message)
+            : 'Failed to resend activation code';
+        toast.error(msg);
         return;
       }
 
-      toast.success('Activation code sent');
+      toast.success(res.data?.message || 'Activation code sent');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to resend activation code');
     } finally {

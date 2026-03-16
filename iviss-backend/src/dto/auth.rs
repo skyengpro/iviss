@@ -19,7 +19,7 @@ pub struct RequestDailyLoginResponse {
 #[serde(rename_all = "camelCase")]
 pub struct VerifyDailyLoginRequest {
     pub badge_id: String,
-    pub otp: String,
+    pub activation_code: String,
     pub device_id: Uuid,
 }
 
@@ -74,10 +74,4 @@ pub struct ActivateResponse {
 pub struct RefreshRequest {
     pub refresh_token: String,
     pub device_id: Uuid,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct RefreshResponse {
-    pub access_token: String,
 }
