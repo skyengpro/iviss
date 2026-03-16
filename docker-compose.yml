@@ -77,6 +77,9 @@ services:
       target: development
     container_name: iviss-backend
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     depends_on:
       db:
         condition: service_healthy

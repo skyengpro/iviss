@@ -37,6 +37,10 @@ export function setRefreshToken(token: string): void {
   localStorage.setItem(REFRESH_TOKEN_KEY, token);
 }
 
+export function clearAccessToken(): void {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
 /**
  * Clear both tokens. Used on logout or when refresh fails.
  */
