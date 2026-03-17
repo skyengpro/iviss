@@ -26,8 +26,10 @@ export function BackOfficeSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [adminOpen, setAdminOpen] = useState(true);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { collapsed, toggle } = useSidebar();
+
+  const isAdmin = user?.role === 'admin';
 
   const mainNavItems = [
     { href: '/backoffice', icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
@@ -57,7 +59,7 @@ export function BackOfficeSidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/admin-login');
   };
 
   return (
@@ -125,7 +127,8 @@ export function BackOfficeSidebar() {
             ))}
           </div>
 
-          {/* Admin section */}
+          {/* Admin section — only visible to admin users */}
+          {isAdmin && (
           <div className="mt-4">
             {collapsed ? (
               <div className="space-y-0.5">
@@ -168,6 +171,7 @@ export function BackOfficeSidebar() {
               </Collapsible>
             )}
           </div>
+          )}
         </nav>
 
         {/* User section */}

@@ -18,8 +18,8 @@ export const AppRouter = () => {
   const entryRedirect =
     !refreshToken && !accessToken
       ? '/activate'
-      : refreshToken && !accessToken
-        ? '/daily-login'
+      : accessToken
+        ? '/backoffice'
         : '/daily-login';
 
   return (
