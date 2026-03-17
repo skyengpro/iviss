@@ -7,13 +7,12 @@ import { useAuth } from '@/hooks/auth/use-auth';
 import { useVehicles } from '@/hooks/api/useVehicles';
 import { VehicleSearchResult } from '@/openapi-rq/requests/types.gen';
 
-import { useLogControl } from '@/hooks/api/useLogControl';
 import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';
 import { VehicleStatusGrid } from '@/components/mobile/vehicle/VehicleStatusGrid';
 import { VehicleImageCollapsible } from '@/components/mobile/vehicle/VehicleImageCollapsible';
-import { VehicleActionFooter } from '@/components/mobile/vehicle/VehicleActionFooter';
 import { VehicleLoadingState, VehicleErrorState } from '@/components/mobile/vehicle/VehicleStates';
 import { VehicleNotFound } from '@/components/mobile/vehicle/VehicleNotFound';
+import { Button } from '@/components/ui/button';
 
 export default function MobileVehicleResult() {
   const { plateNumber } = useParams<{ plateNumber: string }>();
@@ -94,8 +93,6 @@ export default function MobileVehicleResult() {
       performSearch(plateNumber);
     }
   }, [plateNumber, performSearch]);
-
-  const { isLoggingControl, controlLogged, logControl } = useLogControl();
 
   const handleRetry = () => {
     performSearch(plateNumber, true);
@@ -191,14 +188,16 @@ export default function MobileVehicleResult() {
         </div>
       </div>
 
-      <VehicleActionFooter
-        controlLogged={controlLogged}
-        isLoggingControl={isLoggingControl}
-        onLogControl={() =>
-          user && logControl(user, plateNumber, result.status_results, result.vehicle)
-        }
-        onNewSearch={() => navigate('/mobile/search')}
-      />
+      {/* New Search Button Only */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background p-4 z-30">
+        <Button
+          variant="outline"
+          className="w-full h-12"
+          onClick={() => navigate('/mobile/search')}
+        >
+          {t('vehicleResult.newSearch')}
+        </Button>
+      </div>
     </MobileLayout>
   );
 }
