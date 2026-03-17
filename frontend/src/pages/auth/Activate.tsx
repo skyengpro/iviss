@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, Building2 } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getDeviceId } from '@/services/device/deviceId';
 import { KeyManagement } from '@/services/keyManagement/keyManagement';
@@ -16,7 +15,7 @@ function base64EncodeUtf8(input: string) {
 
 export default function Activate() {
   const navigate = useNavigate();
-  const { login, activate, isAuthenticated, user } = useAuth();
+  const { activate, isAuthenticated, user } = useAuth();
 
   const [badgeId, setBadgeId] = useState('');
   const [activationCode, setActivationCode] = useState('');
@@ -75,18 +74,6 @@ export default function Activate() {
       setError(err instanceof Error ? err.message : 'Activation failed');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleAdminLogin = async () => {
-    setIsLoading(true);
-    const result = await login('admin01', 'admin123');
-    setIsLoading(false);
-
-    if (result.success) {
-      navigate('/backoffice');
-    } else {
-      setError(result.error || 'Admin login failed');
     }
   };
 
@@ -151,25 +138,17 @@ export default function Activate() {
                 {isLoading ? 'Activating…' : 'Activate'}
               </Button>
 
-              <div className="pt-1">
-                <Separator />
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAdminLogin}
-                className="w-full h-11 gap-2"
-                disabled={isLoading}
-              >
-                <Building2 className="h-4 w-4" />
-                Admin login
-              </Button>
             </form>
           </CardContent>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link to="/admin-login" className="text-primary hover:underline">
+            Admin? Sign in here
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
           Secured government system. Unauthorized access prohibited.
         </p>
       </div>
