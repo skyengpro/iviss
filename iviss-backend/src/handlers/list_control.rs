@@ -10,7 +10,7 @@ use crate::{
     app_state::AppState,
     dto::{
         create_control::{CreateControlRequest, CreateControlResponse},
-        list_control::ControlListQuery,
+        list_control::{ControlListQuery, ControlPagedQuery, PagedControlsResponse},
     },
     errors::AppError,
 };
@@ -82,4 +82,44 @@ pub async fn get_list_control(
     .await?;
 
     Ok((StatusCode::OK, Json(controls)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/controls/paged",
+    tag = "controls",
+    params(ControlPagedQuery),
+    operation_id = "getControlsPaged",
+    responses(
+        (status = 200, description = "Paged control records", body = PagedControlsResponse),
+        (status = 400, description = "Invalid request", body = AppErrorResponse),
+        (status = 401, description = "Unauthorized", body = AppErrorResponse),
+        (status = 500, description = "Internal server error", body = AppErrorResponse)
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_list_control_paged(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ControlPagedQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(10).clamp(1, 100);
+
+    let (items, total) = crate::queries::control_queries::get_paged_control_records(
+        &state.db,
+        &query,
+        page,
+        page_size,
+    )
+    .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(PagedControlsResponse {
+            items,
+            total,
+            page,
+            page_size,
+        }),
+    ))
 }
