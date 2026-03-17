@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::handlers::{list_control::get_list_control, search_vehicle::search_vehicle};
-use crate::middleware::{auth, cors};
+use crate::middleware::{auth, cors, rbac};
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
@@ -36,6 +36,7 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::auth::verify_daily_login),
         );
 
+    // Admin routes require both web auth (JWT) and admin role check
     let admin_routes = Router::new()
         .route(
             "/admin/submissions",
@@ -75,7 +76,10 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
-        );
+        )
+        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
+        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web))
+        .layer(from_fn_with_state(state.clone(), rbac::require_admin));
 
     let protected_routes = Router::new()
         .route(
@@ -103,7 +107,6 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle_v1),
         )
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route("/users/me", get(crate::handlers::users::get_user_profile))
         .route(
             "/users/location",

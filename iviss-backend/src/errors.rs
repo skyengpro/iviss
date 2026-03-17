@@ -11,6 +11,7 @@ use utoipa::ToSchema;
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
     Unauthorized,
+    Forbidden,
     DatabaseError,
     NotFound,
     BadRequest,
@@ -34,6 +35,9 @@ pub enum AppError {
 
     #[error("Authentication failed: {0}")]
     Unauthorized(String),
+
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
 
     #[error("Not found: {0}")]
     NotFound(String),
@@ -72,6 +76,10 @@ impl AppError {
         Self::Unauthorized(msg.into())
     }
 
+    pub fn forbidden(msg: impl Into<String>) -> Self {
+        Self::Forbidden(msg.into())
+    }
+
     pub fn external_api_failure(msg: impl Into<String>) -> Self {
         Self::ExternalApiFailure(msg.into())
     }
@@ -99,6 +107,7 @@ impl IntoResponse for AppError {
                 ErrorCode::Unauthorized,
                 msg.clone(),
             ),
+            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, ErrorCode::Forbidden, msg.clone()),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, ErrorCode::NotFound, msg.clone()),
             AppError::BadRequest(msg) => {
                 (StatusCode::BAD_REQUEST, ErrorCode::BadRequest, msg.clone())
@@ -168,6 +177,18 @@ mod tests {
         let body = get_body_json(response).await;
         assert_eq!(body["code"], "UNAUTHORIZED");
         assert_eq!(body["message"], "Invalid token");
+    }
+
+    #[tokio::test]
+    async fn test_forbidden_response() {
+        let err = AppError::Forbidden("Admin access required".into());
+        let response = err.into_response();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+        let body = get_body_json(response).await;
+        assert_eq!(body["code"], "FORBIDDEN");
+        assert_eq!(body["message"], "Admin access required");
     }
 
     #[tokio::test]

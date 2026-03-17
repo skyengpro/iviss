@@ -50,26 +50,84 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     tag = "auth",
     operation_id = "loginUser"
 )]
-pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoResponse, AppError> {
-    // MOCK LOGIN
+pub async fn login(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<LoginRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Validate payload
+    if payload.email.trim().is_empty() {
+        return Err(AppError::bad_request("Email is required"));
+    }
+    if payload.password.trim().is_empty() {
+        return Err(AppError::bad_request("Password is required"));
+    }
+
+    // Find admin/manager user by email
+    let admin = crate::queries::auth_queries::find_admin_by_email(&state.db, &payload.email)
+        .await?
+        .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
+
+    // Check user status
+    if admin.status != "ACTIVE" {
+        tracing::warn!(
+            email = %payload.email,
+            status = %admin.status,
+            "Admin login failed: account not active"
+        );
+        return Err(AppError::unauthorized("Account is not active"));
+    }
+
+    // Verify password
+    let password_valid =
+        crate::utils::password::verify_password(&payload.password, &admin.password_hash).await?;
+
+    if !password_valid {
+        tracing::warn!(email = %payload.email, "Admin login failed: invalid password");
+        return Err(AppError::unauthorized("Invalid credentials"));
+    }
+
+    // Parse role
+    let role = admin.role.parse::<UserRole>().map_err(|_| {
+        tracing::error!(role = %admin.role, "Invalid role in database");
+        AppError::internal_error("Invalid user role")
+    })?;
+
+    // Issue JWT token - use Uuid::nil() for device_id since admins don't have devices
+    let jwt_svc = crate::services::jwt_service::JwtService::new(&state.jwt_private_key_pem)
+        .map_err(AppError::Internal)?;
+
+    let access_token = jwt_svc
+        .issue_access_token(
+            admin.id,
+            uuid::Uuid::nil(), // Admins have no device - use nil UUID
+            role,
+        )
+        .map_err(AppError::Internal)?;
+
+    // Build user profile
+    let user = UserProfile {
+        id: admin.id,
+        username: admin.username,
+        email: Some(admin.email),
+        name: admin.full_name,
+        role,
+        organization_id: admin.organization_id,
+        organization: None, // Could fetch from organizations table if needed
+        badge_id: None,
+        phone_number: None,
+        avatar_initials: None,
+        status: crate::dto::users::UserStatus::Active,
+        is_active: true,
+    };
+
+    tracing::info!(user_id = %admin.id, role = %admin.role, "Admin login successful");
+
     Ok((
         StatusCode::OK,
         Json(AuthResponse {
-            token: "mock-jwt-token".to_string(),
-            user: UserProfile {
-                id: uuid::Uuid::new_v4(),
-                username: "admin".to_string(),
-                email: Some("admin@iviss.com".to_string()),
-                name: "Admin User".to_string(),
-                role: UserRole::Admin,
-                organization_id: uuid::Uuid::new_v4(),
-                organization: Some("IVISS HQ".to_string()),
-                badge_id: Some("ADMIN-01".to_string()),
-                phone_number: Some("+237 600 000 000".to_string()),
-                avatar_initials: Some("AU".to_string()),
-                status: crate::dto::users::UserStatus::Active,
-                is_active: true,
-            },
+            access_token,
+            refresh_token: None, // Could implement refresh token for admins if needed
+            user,
         }),
     ))
 }
@@ -87,11 +145,13 @@ pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoRespon
     operation_id = "registerUser"
 )]
 pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoResponse, AppError> {
-    // MOCK REGISTER
+    // MOCK REGISTER - Note: Registration is not implemented for admin login
+    // This is kept as a placeholder for potential future implementation
     Ok((
         StatusCode::CREATED,
         Json(AuthResponse {
-            token: "mock-jwt-token".to_string(),
+            access_token: "mock-jwt-token".to_string(),
+            refresh_token: None,
             user: UserProfile {
                 id: uuid::Uuid::new_v4(),
                 username: payload

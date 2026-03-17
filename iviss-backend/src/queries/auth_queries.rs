@@ -201,3 +201,49 @@ pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<b
 
     Ok(valid_refresh)
 }
+
+/// Admin authentication row - contains credentials for email/password login
+#[derive(Debug, FromRow)]
+pub struct AdminAuthRow {
+    pub id: Uuid,
+    pub password_hash: String,
+    pub role: String,
+    pub status: String,
+    pub organization_id: Uuid,
+    pub full_name: String,
+    pub email: String,
+    pub username: String,
+}
+
+/// Find admin/manager user by email for email/password login.
+///
+/// This function explicitly excludes agents - they cannot log in via email/password.
+/// Only returns users with role 'admin' or 'manager'.
+pub async fn find_admin_by_email(
+    pool: &PgPool,
+    email: &str,
+) -> Result<Option<AdminAuthRow>, AppError> {
+    let result = sqlx::query_as::<_, AdminAuthRow>(
+        r#"
+        SELECT 
+            id,
+            password_hash,
+            role::TEXT AS role,
+            status::TEXT AS status,
+            organization_id,
+            full_name,
+            email,
+            username
+        FROM users
+        WHERE email = $1
+          AND role IN ('admin', 'manager')
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(email)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    Ok(result)
+}
