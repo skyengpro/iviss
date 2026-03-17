@@ -1,5 +1,4 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { mockAuthService } from '@/services/mock/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/device/deviceId';
@@ -16,6 +15,8 @@ import {
   getUserProfile,
   requestDailyLogin,
   verifyDailyLogin,
+  loginUser,
+  logoutUser,
 } from '@/openapi-rq/requests/services.gen';
 
 const SESSION_KEY = 'iviss_session';
@@ -249,40 +250,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
-    const result = await mockAuthService.login(username, password);
+  const login = async (email: string, password: string) => {
+    try {
+      const res = await loginUser({
+        body: { email, password },
+        throwOnError: false,
+      });
 
-    if (result.success && result.session) {
-      const backendSession = {
-        token: result.session.token,
-        user: result.session.user as unknown as UserProfile,
-      } as unknown as AuthResponse;
-
-      localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
-      applyAuthTokenToApiClient(backendSession.token);
-
-      setSession(backendSession);
-      setUser(backendSession.user);
-
-      // Persist tokens for the auth interceptor and token manager
-      if (backendSession.token) {
-        setAccessToken(backendSession.token);
-        // In a real flow, the backend would also return a refresh_token
-        // For now with mock auth, we store the same token as refresh
-        setRefreshToken(backendSession.token);
-
-        // Ensure session persistence matching activation flow
-        localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
+      if (res.error) {
+        const errPayload = res.error as { message?: string };
+        return { success: false, error: errPayload?.message || 'Login failed' };
       }
 
-      return { success: true };
-    }
+      const data = res.data;
+      if (!data) {
+        return { success: false, error: 'Login failed' };
+      }
 
-    return { success: false, error: result.error };
+      const newSession = {
+        token: data.token,
+        user: data.user,
+      };
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+      // Admin login returns token only (no separate refreshToken in AuthResponse)
+      setAccessToken(data.token);
+      setRefreshToken(data.token);
+
+      applyAuthTokenToApiClient(data.token);
+
+      setSession(newSession);
+      setUser(data.user);
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Login failed' };
+    }
   };
 
   const logout = async () => {
-    await mockAuthService.logout();
+    try {
+      await logoutUser({ throwOnError: false });
+    } catch {
+      // best-effort logout — clear client-side state regardless
+    }
     clearTokens();
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -291,8 +302,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     applyAuthTokenToApiClient(undefined);
     return;
   };
-
-  const getMockCredentials = () => mockAuthService.getMockCredentials();
 
   const value: AuthContextType = {
     user,
@@ -304,7 +313,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dailyLoginRequest,
     dailyLoginVerify,
     logout,
-    getMockCredentials,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
