@@ -69,6 +69,7 @@ impl Modify for SecurityAddon {
         crate::handlers::search_vehicle::search_vehicle,
         crate::handlers::search_vehicle::search_vehicle_v1,
         crate::handlers::list_control::get_list_control,
+        crate::handlers::list_control::get_list_control_paged,
         crate::handlers::list_control::create_control,
         crate::handlers::pending_submission::submit_vehicle,
         crate::handlers::pending_submission::submit_vehicle_v1,
@@ -122,6 +123,7 @@ impl Modify for SecurityAddon {
             UploadResponse,
             // ── control ──
             ListControlResponse,
+            PagedControlsResponse,
             ControlLocation,
             ControlResults,
             ControlAction,

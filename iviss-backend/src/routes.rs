@@ -1,5 +1,8 @@
 use crate::app_state::AppState;
-use crate::handlers::{list_control::get_list_control, search_vehicle::search_vehicle};
+use crate::handlers::{
+    list_control::{get_list_control, get_list_control_paged},
+    search_vehicle::search_vehicle,
+};
 use crate::middleware::{auth, cors};
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
@@ -75,6 +78,10 @@ pub fn assembly(state: AppState) -> Router {
         .route(
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
+        )
+        .route(
+            "/admin/controls/paged",
+            get(get_list_control_paged),
         );
 
     let protected_routes = Router::new()
