@@ -110,6 +110,7 @@ services:
       - ./iviss-backend/Cargo.lock:/app/Cargo.lock:ro
       - ./iviss-backend/migrations:/app/migrations:ro
       - ./iviss-backend/.sqlx:/app/.sqlx:ro
+      - ./iviss-backend/seeds:/app/seeds:ro
       # Cache dependencies in named volume for faster builds
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target

@@ -9,11 +9,21 @@ import {
   TooltipProps,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ActivityData } from '@/openapi-rq/requests/types.gen';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ControlActivityPoint, DashboardRange } from '@/openapi-rq/requests/types.gen';
 import { Activity } from 'lucide-react';
 
 interface ControlActivityChartProps {
-  data: ActivityData[];
+  data: ControlActivityPoint[];
+  range: DashboardRange;
+  onRangeChange: (range: DashboardRange) => void;
+  loading?: boolean;
 }
 
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
@@ -31,8 +41,16 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   return null;
 }
 
-export function ControlActivityChart({ data }: ControlActivityChartProps) {
+export function ControlActivityChart({
+  data,
+  range,
+  onRangeChange,
+  loading,
+}: ControlActivityChartProps) {
   const maxCount = data.length > 0 ? Math.max(...data.map((d) => d.count)) : 0;
+
+  const rangeLabel =
+    range === '24h' ? 'Last 24 Hours' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days';
 
   return (
     <Card className="col-span-1 lg:col-span-3 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md">
@@ -45,20 +63,37 @@ export function ControlActivityChart({ data }: ControlActivityChartProps) {
             <div>
               <p className="text-sm font-bold text-foreground">Control Activity</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                Last 24 Hours
+                {rangeLabel}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-status-valid/20 bg-status-valid/10 px-3 py-1.5">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-valid" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-status-valid">
-              Live
-            </span>
+          <div className="flex items-center gap-2">
+            <Select value={range} onValueChange={(v) => onRangeChange(v as DashboardRange)}>
+              <SelectTrigger className="h-8 w-[140px] rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24h">Last 24h</SelectItem>
+                <SelectItem value="7d">Last 7d</SelectItem>
+                <SelectItem value="30d">Last 30d</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2 rounded-full border border-status-valid/20 bg-status-valid/10 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-valid" />
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-status-valid">
+                Live
+              </span>
+            </div>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-2 pb-4 pt-6 h-[280px]">
-        {data.length === 0 ? (
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading activity…</p>
+          </div>
+        ) : data.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-muted-foreground">No activity data yet</p>
           </div>
@@ -80,7 +115,7 @@ export function ControlActivityChart({ data }: ControlActivityChartProps) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis
-                dataKey="hour"
+                dataKey="label"
                 axisLine={false}
                 tickLine={false}
                 tick={{
