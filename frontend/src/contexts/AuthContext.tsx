@@ -7,7 +7,6 @@ import { getDeviceId } from '@/services/device/deviceId';
 import {
   setAccessToken,
   setRefreshToken,
-  clearTokens,
   getAccessToken,
   clearAccessToken,
 } from '@/services/auth/tokenManager';
@@ -18,8 +17,6 @@ import {
   requestDailyLogin,
   verifyDailyLogin,
 } from '@/openapi-rq/requests/services.gen';
-
-import { clearAllStoredData } from '@/services/keyManagement/storageSetup';
 import { toast } from 'sonner';
 
 const SESSION_KEY = 'iviss_session';
@@ -79,16 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
 
-    // Clear IndexedDB securely
-    await clearAllStoredData();
+    // Preserve IndexedDB state here:
+    // - device_id must remain stable so a terminated browser can request a new daily login
+    // - key material must remain stable so refresh flows keep working after re-login
+    // Session termination only revokes auth state, not device identity.
 
     if (forced) {
       toast.error('Session Terminated', {
         description:
           'Your session has been terminated by an administrator or has expired. Please log in again.',
       });
-      // Force redirect to login
-      window.location.href = '/login';
+      // Force redirect to the daily login flow.
+      window.location.href = '/daily-login';
     }
   };
 

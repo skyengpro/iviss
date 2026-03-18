@@ -57,7 +57,7 @@ export function BackOfficeSidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/daily-login');
   };
 
   return (
