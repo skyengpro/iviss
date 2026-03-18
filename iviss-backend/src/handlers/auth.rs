@@ -8,7 +8,7 @@ use crate::dto::auth::{
 };
 use base64::Engine;
 
-use crate::dto::users::{UserProfile, UserRole};
+use crate::dto::users::{UserProfile, UserStatus, UserRole};
 use crate::errors::AppError;
 use crate::queries::auth_queries;
 use crate::services::jwt_service::JwtService;
@@ -38,7 +38,7 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     AppError::unauthorized("Shift ended")
 }
 
-/// Login with email and password
+/// Login with email and password (admin / manager only)
 #[utoipa::path(
     post,
     path = "/auth/login",
@@ -54,80 +54,122 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Validate payload
-    if payload.email.trim().is_empty() {
-        return Err(AppError::bad_request("Email is required"));
-    }
-    if payload.password.trim().is_empty() {
-        return Err(AppError::bad_request("Password is required"));
+
+    if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
+        return Err(AppError::bad_request("Email and password are required"));
     }
 
-    // Find admin/manager user by email
-    let admin = crate::queries::auth_queries::find_admin_by_email(&state.db, &payload.email)
+    let user = auth_queries::find_admin_by_email(&state.db, &payload.email)
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
-
-    // Check user status
-    if admin.status != "ACTIVE" {
+    
+    if user.status != "ACTIVE" {
         tracing::warn!(
             email = %payload.email,
-            status = %admin.status,
-            "Admin login failed: account not active"
+            status = %user.status,
+            "login: rejected — account not active"
         );
         return Err(AppError::unauthorized("Account is not active"));
     }
 
     // Verify password
-    let password_valid =
-        crate::utils::password::verify_password(&payload.password, &admin.password_hash).await?;
+    let password_hash = user.password_hash.clone();
+    let password_input = payload.password.clone();
+    let matches = crate::utils::password::verify_password(&password_input, &password_hash)
+        .await
+        .map_err(|_| AppError::unauthorized("Invalid credentials"))?;
 
-    if !password_valid {
-        tracing::warn!(email = %payload.email, "Admin login failed: invalid password");
+    if !matches {
+        tracing::warn!(email = %payload.email, "login: rejected — wrong password");
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
-    // Parse role
-    let role = admin.role.parse::<UserRole>().map_err(|_| {
-        tracing::error!(role = %admin.role, "Invalid role in database");
-        AppError::internal_error("Invalid user role")
-    })?;
+    //    Issue access token
+    //    Admins have no device — use Uuid::nil() as sentinel
+    //    Admins have no shift — use a far future shift_end (24h from now)
+    let role = user.role.parse::<UserRole>()
+        .unwrap_or(UserRole::Admin);
 
-    // Issue JWT token - use Uuid::nil() for device_id since admins don't have devices
-    let jwt_svc = crate::services::jwt_service::JwtService::new(&state.jwt_private_key_pem)
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time error"))?
+        .as_secs();
+
+    // shift_end = 24 hours from now for web sessions
+    let shift_start = now as usize;
+    let shift_end = (now + 86_400) as usize;
+
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem)
         .map_err(AppError::Internal)?;
 
     let access_token = jwt_svc
-        .issue_access_token(
-            admin.id,
-            uuid::Uuid::nil(), // Admins have no device - use nil UUID
+        .issue_access_token_with_shift(
+            user.id,
+            Uuid::nil(),
             role,
+            shift_start,
+            shift_end,
         )
         .map_err(AppError::Internal)?;
 
-    // Build user profile
-    let user = UserProfile {
-        id: admin.id,
-        username: admin.username,
-        email: Some(admin.email),
-        name: admin.full_name,
+    // Generate refresh token
+    let mut raw_token = [0u8; 32];
+    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut raw_token);
+    let refresh_token = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw_token);
+
+    //    Store refresh token hash in DB
+    //    device_id = Uuid::nil() for admin (no physical device)
+    let token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    let expires_at = time::OffsetDateTime::now_utc() + time::Duration::days(30);
+
+    sqlx::query(
+        r#"
+        INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
+        VALUES ($1, $2, $3, $4)
+        "#,
+    )
+    .bind(&token_hash)
+    .bind(user.id)
+    .bind(Option::<Uuid>::None) // No device for admin login
+    .bind(expires_at)
+    .execute(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
+    // 8. Build user profile — admin has no org
+    let user_profile = UserProfile {
+        id: user.id,
+        username: user.username.clone(),
+        name: user.full_name.clone(),
+        email: Some(user.email.clone()),
         role,
-        organization_id: admin.organization_id,
-        organization: None, // Could fetch from organizations table if needed
+        organization_id: user.organization_id,
+        organization: None,
         badge_id: None,
-        phone_number: None,
+        phone_number: Some(user.phone_number.clone()),
         avatar_initials: None,
-        status: crate::dto::users::UserStatus::Active,
+        status: UserStatus::Active,
         is_active: true,
     };
 
-    tracing::info!(user_id = %admin.id, role = %admin.role, "Admin login successful");
+    tracing::info!(
+        user_id = %user.id,
+        email = %user.email,
+        role = %user.role,
+        "login: success"
+    );
 
     Ok((
         StatusCode::OK,
         Json(AuthResponse {
             access_token,
-            refresh_token: None, // Could implement refresh token for admins if needed
-            user,
+            refresh_token,
+            user: user_profile,
         }),
     ))
 }
@@ -151,7 +193,7 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
         StatusCode::CREATED,
         Json(AuthResponse {
             access_token: "mock-jwt-token".to_string(),
-            refresh_token: None,
+            refresh_token: "mock-refresh-token".to_string(),
             user: UserProfile {
                 id: uuid::Uuid::new_v4(),
                 username: payload

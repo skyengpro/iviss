@@ -23,6 +23,7 @@ pub struct AdminAuthRow {
     pub full_name: String,
     pub email: String,
     pub username: String,
+    pub phone_number: String,
 }
 
 pub async fn get_auth_validation_context(
@@ -234,7 +235,8 @@ pub async fn find_admin_by_email(
             organization_id,
             full_name,
             email,
-            username
+            username,
+            phone_number
         FROM users
         WHERE email = $1
           AND role IN ('admin', 'manager')

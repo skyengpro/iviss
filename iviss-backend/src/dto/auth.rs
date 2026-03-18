@@ -42,7 +42,7 @@ pub struct LoginRequest {
 #[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
     pub access_token: String,
-    pub refresh_token: Option<String>,
+    pub refresh_token: String,
     pub user: UserProfile,
 }
 
