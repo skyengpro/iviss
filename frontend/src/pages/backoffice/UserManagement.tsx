@@ -66,7 +66,11 @@ import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/services/api/backendFetch';
-import { resendActivationCode, terminateSession } from '@/openapi-rq/requests/services.gen';
+import {
+  resendActivationCode,
+  terminateSession,
+  restartSession,
+} from '@/openapi-rq/requests/services.gen';
 import {
   UserProfile,
   UpdateUserRequest,
@@ -89,6 +93,7 @@ export default function UserManagement() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isTerminateConfirmOpen, setIsTerminateConfirmOpen] = useState(false);
+  const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [resendLoadingUserId, setResendLoadingUserId] = useState<string | null>(null);
 
@@ -156,20 +161,32 @@ export default function UserManagement() {
   const handleTerminateSession = async () => {
     if (!selectedUser) return;
     try {
-      const res = await terminateSession({
+      await terminateSession({
         body: { userId: selectedUser.id },
         throwOnError: true,
       });
-
-      if (res.error) {
-        throw new Error('Failed to terminate session');
-      }
 
       toast.success(t('backOfficeUserManagement.terminateSuccess'));
       setIsTerminateConfirmOpen(false);
       setSelectedUser(null);
     } catch (error) {
       toast.error(t('backOfficeUserManagement.terminateError'));
+    }
+  };
+
+  const handleRestartSession = async () => {
+    if (!selectedUser) return;
+    try {
+      await restartSession({
+        body: { userId: selectedUser.id },
+        throwOnError: true,
+      });
+
+      toast.success(t('backOfficeUserManagement.restartSuccess'));
+      setIsRestartConfirmOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      toast.error(t('backOfficeUserManagement.restartError'));
     }
   };
 
@@ -324,6 +341,28 @@ export default function UserManagement() {
                   className="bg-destructive text-destructive-foreground"
                 >
                   {t('backOfficeUserManagement.terminateSession')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={isRestartConfirmOpen} onOpenChange={setIsRestartConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('backOfficeUserManagement.restartSession')}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('backOfficeUserManagement.restartSessionDescription')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedUser(null)}>
+                  {t('backOfficeUserManagement.cancel')}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleRestartSession}
+                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  {t('backOfficeUserManagement.restartSession')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -520,6 +559,17 @@ export default function UserManagement() {
                             >
                               <UserX className="mr-2 h-4 w-4" />
                               {t('backOfficeUserManagement.terminateSession')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsRestartConfirmOpen(true);
+                              }}
+                              className="text-status-valid"
+                              disabled={user.role !== 'agent'}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              {t('backOfficeUserManagement.restartSession')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               disabled={
