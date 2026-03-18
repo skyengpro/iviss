@@ -408,7 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: err instanceof Error ? err.message : 'Invalid credentials',
       };
     }
-  }
+  };
   const getMockCredentials = () => mockAuthService.getMockCredentials();
 
   const value: AuthContextType = {

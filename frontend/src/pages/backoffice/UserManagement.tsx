@@ -74,11 +74,11 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
-{
-  admin: 'destructive',
-  supervisor: 'secondary',
-  agent: 'outline',
-};
+  {
+    admin: 'destructive',
+    supervisor: 'secondary',
+    agent: 'outline',
+  };
 
 export default function UserManagement() {
   const { t } = useTranslation();

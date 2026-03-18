@@ -5,6 +5,7 @@ This document details the data structures and constants used throughout the IVIS
 ## 1. Core Data Models
 
 ### 1.1 Vehicle
+
 The central entity representing a vehicle in the registry.
 
 ```typescript
@@ -69,6 +70,7 @@ export interface TechnicalStatus {
 ```
 
 ### 1.2 Control Record
+
 A log of a vehicle check performed by an agent.
 
 ```typescript
@@ -87,7 +89,7 @@ export interface ControlRecord {
     longitude: number;
   };
   status: VehicleStatus;
-  identificationMode: 'manual' | 'photo' | 'live';
+  identificationMode: "manual" | "photo" | "live";
   confidence?: number;
   results: {
     registration: VehicleStatus;
@@ -102,13 +104,14 @@ export interface ControlRecord {
 }
 
 export interface ControlAction {
-  type: 'check' | 'flag' | 'citation' | 'impound' | 'release';
+  type: "check" | "flag" | "citation" | "impound" | "release";
   description: string;
   timestamp: Date;
 }
 ```
 
 ### 1.3 User
+
 The authenticated user (agent or back-office staff).
 
 ```typescript
@@ -116,7 +119,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'agent' | 'manager';
+  role: "admin" | "agent" | "manager";
   organizationId: string;
   organization: string;
   badgeId: string;
@@ -129,23 +132,25 @@ export interface User {
 ## 2. Enums and Constants
 
 ### 2.1 Vehicle Status
+
 Used to indicate the compliance level of various vehicle requirements.
 
-| Value | Description |
-| :--- | :--- |
-| `valid` | Fully compliant, no issues. |
-| `warning` | Issue detected but not critical (e.g., expiring soon). |
+| Value      | Description                                                      |
+| :--------- | :--------------------------------------------------------------- |
+| `valid`    | Fully compliant, no issues.                                      |
+| `warning`  | Issue detected but not critical (e.g., expiring soon).           |
 | `critical` | Major violation or dangerous state (e.g., stolen, no insurance). |
-| `pending` | Awaiting validation or processing. |
+| `pending`  | Awaiting validation or processing.                               |
 
 ### 2.2 Identification Modes
+
 How the vehicle was identified during the control.
 
-| Value | Description |
-| :--- | :--- |
-| `manual` | Agent typed the plate number. |
-| `photo` | OCR performed on a static image. |
-| `live` | OCR performed on a live video stream. |
+| Value    | Description                           |
+| :------- | :------------------------------------ |
+| `manual` | Agent typed the plate number.         |
+| `photo`  | OCR performed on a static image.      |
+| `live`   | OCR performed on a live video stream. |
 
 ## 3. API Query Parameters for Filters
 
