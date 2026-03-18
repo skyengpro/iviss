@@ -172,6 +172,14 @@ export function setupAuthInterceptors(
 ): void {
   // --- Request Interceptor: Attach Bearer token ---
   client.interceptors.request.use(async (request: Request) => {
+    // Preserve an explicit Authorization header set by the caller.
+    // This is important for flows that already have a freshly issued token
+    // before the shared token store is updated.
+    const existingAuth = request.headers.get('Authorization');
+    if (existingAuth) {
+      return request;
+    }
+
     const token = getAccessToken();
     if (token) {
       // Clone the request to add the Authorization header

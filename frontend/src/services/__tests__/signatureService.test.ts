@@ -27,8 +27,10 @@ async function generateTestKeyPair() {
 describe('signatureService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Ensure WebCrypto is available for jose in Node test runtime
-    globalThis.crypto = webcrypto as unknown as Crypto;
+    // Ensure WebCrypto is available for jose in Node test runtime.
+    // Node exposes `crypto` as a read-only getter in this environment, so use
+    // Vitest's global stubbing helper instead of direct assignment.
+    vi.stubGlobal('crypto', webcrypto as unknown as Crypto);
   });
 
   describe('signNonce', () => {
