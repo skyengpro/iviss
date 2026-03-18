@@ -85,7 +85,7 @@ pub async fn login(
     }
 
     //    Issue access token
-    //    Admins have no device — use Uuid::nil() as sentinel
+    //    Admins have no device
     //    Admins have no shift — use a far future shift_end (24h from now)
     let role = user.role.parse::<UserRole>()
         .unwrap_or(UserRole::Admin);

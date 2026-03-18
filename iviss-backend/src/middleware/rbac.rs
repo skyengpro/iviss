@@ -1,12 +1,28 @@
 use crate::app_state::AppState;
 use crate::errors::AppError;
-use crate::middleware::auth::{extract_bearer_token, decode_access_token_rs256, AuthenticatedUser};
+use crate::services::jwt_service::AccessTokenClaims;
+use crate::middleware::auth::{extract_bearer_token, decode_access_token_rs256,};
 use axum::extract::{Request, State};
 use axum::http::header::AUTHORIZATION;
 use axum::middleware::Next;
 use axum::response::Response;
 use std::sync::Arc;
+use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub struct AuthenticatedAdmin {
+    pub user_id: Uuid,
+    pub role: String,
+}
+
+impl From<&AccessTokenClaims> for AuthenticatedAdmin {
+    fn from(claims: &AccessTokenClaims) -> Self {
+        Self {
+            user_id: claims.sub,
+            role: claims.role.clone(),
+        }
+    }
+}
 /// JWT middleware for web users (admin / manager).
 ///
 /// Validates JWT signature and expiry — NO device check, NO shift check.
@@ -41,16 +57,15 @@ pub async fn require_auth_web(
         "rbac: jwt verified"
     );
 
-    request.extensions_mut().insert(AuthenticatedUser {
+    request.extensions_mut().insert(AuthenticatedAdmin {
         user_id: claims.sub,
-        device_id: claims.device_id,
         role: claims.role.clone(),
     });
 
     Ok(next.run(request).await)
 }
 
-/// Role guard — must run AFTER `require_auth_web`.
+/// Role guard.
 ///
 /// Returns 403 if the user is not an admin.
 pub async fn require_admin(
@@ -62,10 +77,10 @@ pub async fn require_admin(
 
     let user = request
         .extensions()
-        .get::<AuthenticatedUser>()
+        .get::<AuthenticatedAdmin>()
         .cloned()
         .ok_or_else(|| {
-            tracing::error!(%method, %path, "rbac: AuthenticatedUser missing — require_auth_web must run first");
+            tracing::error!(%method, %path, "rbac: AuthenticatedAdmin missing — require_auth_web must run first");
             AppError::internal_error("Authentication context missing")
         })?;
 
