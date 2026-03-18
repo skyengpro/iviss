@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  publicRoutes,
-  mobileRoutes,
-  backOfficeRoutes,
-  catchAllRoute,
-} from '../routes';
+import { publicRoutes, mobileRoutes, backOfficeRoutes, catchAllRoute } from '../routes';
 
 describe('route configuration', () => {
   describe('publicRoutes', () => {
