@@ -16,6 +16,7 @@ use axum::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::sync::Arc;
+use uuid::Uuid;
 
 // ── GET /vehicles/{plate_number} ──────────────────────────────────────────────
 
@@ -73,6 +74,59 @@ pub async fn search_vehicle(
     } else {
         tracing::info!("Vehicle search for plate {} (no location provided)", plate);
     }
+
+    // Auto-log control record for successful search
+    let control_id = Uuid::new_v4();
+    let current_time = time::OffsetDateTime::now_utc();
+
+    // Use original plate_number with spaces from database for display
+    let original_plate = &vehicle_row.plate_number;
+
+    let status_str = if status_row.as_ref().is_some_and(|s| s.stolen_status) {
+        "critical"
+    } else if status_row.as_ref().is_some_and(|s| {
+        s.insurance_status.as_ref().is_some_and(|i| i == "expired")
+            || s.technical_status.as_ref().is_some_and(|t| t == "expired")
+    }) {
+        "warning"
+    } else {
+        "valid"
+    };
+
+    // Insert control record
+    let _ = sqlx::query(
+        r#"
+        INSERT INTO control_records (
+            id, plate_number, agent_id, organization_id, timestamp,
+            latitude, longitude, address, identification_mode, ocr_confidence,
+            overall_status, results_json, notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        "#,
+    )
+    .bind(control_id)
+    .bind(original_plate)
+    .bind(payload.agent_id.unwrap_or_else(Uuid::new_v4))
+    .bind(payload.organization_id.unwrap_or_else(Uuid::new_v4))
+    .bind(current_time)
+    .bind(payload.latitude)
+    .bind(payload.longitude)
+    .bind(payload.address.clone())
+    .bind("manual")
+    .bind(1.0)
+    .bind(status_str)
+    .bind(serde_json::json!({
+        "insurance": status_row.as_ref().and_then(|s| s.insurance_status.clone()),
+        "technical": status_row.as_ref().and_then(|s| s.technical_status.clone()),
+        "stolen": status_row.as_ref().map(|s| s.stolen_status),
+    }))
+    .bind("Auto-logged via vehicle search")
+    .execute(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to auto-log control: {}", e);
+        e
+    });
 
     // Determine identification mode and confidence (simplified for now)
     let identification_mode = IdentificationMode::Manual;
