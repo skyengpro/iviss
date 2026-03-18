@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { reducer } from '../ui/use-toast';
+import type { ToastProps } from '@/components/ui/toast';
+
+type ToasterToast = ToastProps & {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+};
 
 // Helper to create a toast-like object for testing
-function makeToast(id: string, open = true) {
-  return { id, open, onOpenChange: () => {} } as any;
+function makeToast(id: string, open = true): ToasterToast {
+  return { id, open, onOpenChange: () => {} };
 }
 
 describe('use-toast reducer', () => {
@@ -32,7 +39,7 @@ describe('use-toast reducer', () => {
       const state = { toasts: [makeToast('1')] };
       const result = reducer(state, {
         type: 'UPDATE_TOAST',
-        toast: { id: '1', title: 'Updated Title' } as any,
+        toast: { id: '1', title: 'Updated Title' },
       });
 
       expect(result.toasts[0].title).toBe('Updated Title');
@@ -43,10 +50,10 @@ describe('use-toast reducer', () => {
       const state = { toasts: [makeToast('1'), makeToast('2')] };
       const result = reducer(state, {
         type: 'UPDATE_TOAST',
-        toast: { id: '1', title: 'Only for 1' } as any,
+        toast: { id: '1', title: 'Only for 1' },
       });
 
-      expect((result.toasts[1] as any).title).toBeUndefined();
+      expect(result.toasts[1].title).toBeUndefined();
     });
   });
 
@@ -62,7 +69,7 @@ describe('use-toast reducer', () => {
       const state = { toasts: [makeToast('1', true)] };
       const result = reducer(state, { type: 'DISMISS_TOAST' });
 
-      expect(result.toasts.every((t: any) => t.open === false)).toBe(true);
+      expect(result.toasts.every((t) => t.open === false)).toBe(true);
     });
   });
 
