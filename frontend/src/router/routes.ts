@@ -24,6 +24,7 @@ const ControlHistory = lazy(() => import('../pages/backoffice/ControlHistory'));
 const ControlDetail = lazy(() => import('../pages/backoffice/ControlDetail'));
 const UserManagement = lazy(() => import('../pages/backoffice/UserManagement'));
 const PendingVehicles = lazy(() => import('../pages/backoffice/PendingVehicles'));
+const BackOfficeReports = lazy(() => import('../pages/backoffice/BackOfficeReports'));
 
 export interface AppRoute {
   path: string;
@@ -97,6 +98,11 @@ export const backOfficeRoutes: AppRoute[] = [
   },
   { path: '/backoffice/users', component: UserManagement, allowedRoles: ['admin'] },
   { path: '/backoffice/validation', component: PendingVehicles, allowedRoles: ['admin'] },
+  {
+    path: '/backoffice/reports',
+    component: BackOfficeReports,
+    allowedRoles: ['admin', 'supervisor'],
+  },
   { path: '/backoffice/vehicles', component: BackOfficeDashboard, allowedRoles: ['admin'] },
   {
     path: '/backoffice/organizations',
