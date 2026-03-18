@@ -48,3 +48,48 @@ pub async fn terminate_user_sessions(pool: &PgPool, user_id: Uuid) -> Result<(),
 
     Ok(())
 }
+
+/// Reactivates the most recent device for a user and extends its shift.
+/// This allows an agent to resume work without a full OTP re-activation.
+pub async fn restart_user_session(
+    pool: &PgPool,
+    user_id: Uuid,
+    shift_duration: std::time::Duration,
+) -> Result<(), AppError> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
+        .as_secs();
+
+    let shift_start: i64 = now.try_into().unwrap_or(0);
+    let shift_end: i64 = now
+        .saturating_add(shift_duration.as_secs())
+        .try_into()
+        .unwrap_or(0);
+
+    // Update the most recently updated device for this user
+    sqlx::query(
+        r#"
+        UPDATE devices
+        SET status = 'ACTIVE'::device_status,
+            revoked_at = NULL,
+            metadata = metadata || jsonb_build_object('shift_start', $2, 'shift_end', $3)
+        WHERE id = (
+            SELECT id FROM devices 
+            WHERE user_id = $1 
+            ORDER BY updated_at DESC 
+            LIMIT 1
+        )
+        "#,
+    )
+    .bind(user_id)
+    .bind(shift_start)
+    .bind(shift_end)
+    .execute(pool)
+    .await
+    .map_err(AppError::Database)?;
+
+    tracing::info!(%user_id, "session: session restarted for user");
+
+    Ok(())
+}
