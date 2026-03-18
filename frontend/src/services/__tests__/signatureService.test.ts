@@ -28,7 +28,22 @@ describe('signatureService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Ensure WebCrypto is available for jose in Node test runtime
-    globalThis.crypto = webcrypto as unknown as Crypto;
+    // In some Node versions / CI runtimes, globalThis.crypto is defined as a read-only getter.
+    // Only polyfill when missing.
+    const hasUsableSubtle =
+      !!globalThis.crypto &&
+      !!globalThis.crypto.subtle &&
+      typeof globalThis.crypto.subtle.importKey === 'function';
+
+    if (!hasUsableSubtle) {
+      const desc = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+      if (!desc || desc.configurable) {
+        Object.defineProperty(globalThis, 'crypto', {
+          value: webcrypto as unknown as Crypto,
+          configurable: true,
+        });
+      }
+    }
   });
 
   describe('signNonce', () => {

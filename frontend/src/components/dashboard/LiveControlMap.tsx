@@ -14,6 +14,9 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
+const DEFAULT_CENTER: [number, number] = [3.848, 11.5021]; // Yaounde
+const DEFAULT_ZOOM = 12;
+
 const leafletIconProto = L.Icon.Default.prototype as unknown as Record<string, unknown>;
 delete leafletIconProto._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -109,8 +112,8 @@ function MapInvalidateSize({ active }: { active: boolean }) {
 
 export function LiveControlMap({
   agents,
-  center = [3.848, 11.5021], // Default to Yaounde
-  zoom = 12,
+  center = DEFAULT_CENTER,
+  zoom = DEFAULT_ZOOM,
 }: LiveControlMapProps) {
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [view, setView] = useState<{ center: [number, number]; zoom: number }>({
@@ -119,10 +122,20 @@ export function LiveControlMap({
   });
 
   useEffect(() => {
-    setView((prev) => ({
-      center: prev.center ?? center,
-      zoom: prev.zoom ?? zoom,
-    }));
+    setView((prev) => {
+      const nextCenter: [number, number] = prev.center ?? center;
+      const nextZoom = prev.zoom ?? zoom;
+
+      const centerUnchanged =
+        prev.center?.[0] === nextCenter[0] && prev.center?.[1] === nextCenter[1];
+      const zoomUnchanged = prev.zoom === nextZoom;
+      if (centerUnchanged && zoomUnchanged) return prev;
+
+      return {
+        center: nextCenter,
+        zoom: nextZoom,
+      };
+    });
   }, [center, zoom]);
 
   const mostRecentUpdate = useMemo(() => {
