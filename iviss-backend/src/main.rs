@@ -32,13 +32,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let sms_provider: Arc<dyn SmsProvider> = if !config.twilio_account_sid.is_empty()
-        && config.twilio_account_sid != "mock"
-        && !config.twilio_auth_token.is_empty()
-        && config.twilio_auth_token != "mock"
-        && !config.twilio_from_number.is_empty()
-        && config.twilio_from_number != "mock"
-    {
+    let sms_provider: Arc<dyn SmsProvider> = if !config.use_mock_sms() {
         info!("Using Twilio SMS provider");
         Arc::new(TwilioSmsProvider::new(
             config.twilio_account_sid.clone(),

@@ -13,6 +13,17 @@ pub struct ResendActivationResponse {
     pub message: String,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminateSessionRequest {
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct TerminateSessionResponse {
+    pub message: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {

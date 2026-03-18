@@ -15,8 +15,9 @@ use crate::dto::{
     search_vehicle::*,
     stats::{ActivityData, AgentLocationDto, DashboardStats},
     users::{
-        ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, UpdateUserRequest,
-        UserProfile, UserRole, UserStatus,
+        ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
+        TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest, UserProfile,
+        UserRole, UserStatus,
     },
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
@@ -159,8 +160,8 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::VerifyRefreshResponse,
             ProvisionUserRequest,
             UpdateUserRequest,
-            crate::handlers::user_management::TerminateSessionRequest,
-            crate::handlers::user_management::TerminateSessionResponse,
+            TerminateSessionRequest,
+            TerminateSessionResponse,
             UserStatus,
             Organization,
             OrganizationType,
