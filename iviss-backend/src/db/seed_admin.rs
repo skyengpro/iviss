@@ -2,6 +2,11 @@ use crate::config::Config;
 use crate::utils::password::hash_password;
 use sqlx::PgPool;
 
+enum BootstrapResult {
+    Created(String),
+    AlreadyExists,
+    Skipped,
+}
 /// Run the admin bootstrap seed at application startup.
 ///
 /// Idempotent — skips silently if an admin already exists.
@@ -31,11 +36,7 @@ pub async fn run_bootstrap_seed(pool: &PgPool, config: &Config) {
     }
 }
 
-enum BootstrapResult {
-    Created(String),
-    AlreadyExists,
-    Skipped,
-}
+
 
 async fn try_bootstrap(pool: &PgPool, config: &Config) -> anyhow::Result<BootstrapResult> {
     // Skip silently if any env var is missing

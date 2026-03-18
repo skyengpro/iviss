@@ -757,6 +757,22 @@ pub async fn request_refresh(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RefreshRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    if payload.refresh_token.trim().is_empty() {
+        return Err(AppError::bad_request("refresh_token is required"));
+    }
+
+    match payload.device_id {
+        Some(_) => request_refresh_agent(state, payload).await,
+        None => request_refresh_admin(state, payload.refresh_token).await,
+    }
+}
+
+
+async fn request_refresh_agent(
+    state: Arc<AppState>,
+    payload: RefreshRequest,
+) -> Result<axum::response::Response, AppError> {
+    let device_id = payload.device_id.unwrap();
     // Hash the incoming refresh token to match against DB
     let token_hash = {
         use sha2::Digest;
@@ -776,7 +792,7 @@ pub async fn request_refresh(
         "#,
     )
     .bind(&token_hash)
-    .bind(payload.device_id)
+    .bind(device_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::Database)?;
@@ -796,7 +812,7 @@ pub async fn request_refresh(
     };
 
     // Store nonce in Redis with device_id as key, TTL 60s
-    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
+    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, device_id);
     {
         use deadpool_redis::redis::AsyncCommands;
         let mut conn =
@@ -809,17 +825,101 @@ pub async fn request_refresh(
     }
 
     tracing::info!(
-        device_id = %payload.device_id,
+        %device_id,
         "Refresh nonce issued (TTL={}s)",
         NONCE_TTL_SECS
     );
 
     Ok((
         axum::http::StatusCode::OK,
-        Json(RefreshChallengeResponse { nonce }),
-    ))
+        Json(RefreshChallengeResponse { nonce })).into_response()
+    )
 }
 
+async fn request_refresh_admin(
+    state: Arc<AppState>,
+    refresh_token: String,
+) -> Result<axum::response::Response, AppError> {
+    // 1. Hash the refresh token
+    let token_hash = {
+        use sha2::Digest;
+        let digest = sha2::Sha256::digest(refresh_token.as_bytes());
+        format!("{:x}", digest)
+    };
+
+    // 2. Validate refresh token — device_id must be NULL (admin token)
+    let row = sqlx::query(
+        r#"
+        SELECT
+            rt.user_id,
+            u.role::TEXT AS role,
+            u.status::TEXT AS status
+        FROM refresh_tokens rt
+        JOIN users u ON u.id = rt.user_id
+        WHERE rt.token_hash = $1
+          AND rt.device_id IS NULL
+          AND rt.revoked = FALSE
+          AND rt.expires_at > NOW()
+          AND u.deleted_at IS NULL
+        "#,
+    )
+    .bind(&token_hash)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::Unauthorized("Invalid or expired refresh token".into()))?;
+
+    let user_id: Uuid = row.get("user_id");
+    let role_str: String = row.get("role");
+    let status: String = row.get("status");
+
+    // 3. Check account still active
+    if status != "ACTIVE" {
+        return Err(AppError::Unauthorized("Account is not active".into()));
+    }
+
+    // 4. Only admin/manager can use this flow
+    let role = role_str
+        .parse::<UserRole>()
+        .unwrap_or(UserRole::Admin);
+
+    if !matches!(role, UserRole::Admin | UserRole::Manager) {
+        return Err(AppError::forbidden("Not authorized for web refresh"));
+    }
+
+    // 5. Issue new access token — same sentinel values as login
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time error"))?
+        .as_secs();
+
+    let shift_start = now as usize;
+    let shift_end = (now + 86_400) as usize;
+
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem)
+        .map_err(AppError::Internal)?;
+
+    let access_token = jwt_svc
+        .issue_access_token_with_shift(
+            user_id,
+            Uuid::nil(),
+            role,
+            shift_start,
+            shift_end,
+        )
+        .map_err(AppError::Internal)?;
+
+    tracing::info!(
+        %user_id,
+        role = %role_str,
+        "admin refresh: new access token issued"
+    );
+
+    Ok((
+        axum::http::StatusCode::OK,
+        Json(serde_json::json!({ "accessToken": access_token }))).into_response()
+    )
+}
 /// Step 2 of the challenge-response refresh flow.
 ///
 /// Verifies the signed nonce against the device's registered public key,
