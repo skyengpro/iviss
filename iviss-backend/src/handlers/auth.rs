@@ -50,111 +50,28 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     tag = "auth",
     operation_id = "loginUser"
 )]
-pub async fn login(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<LoginRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    // Development/test: Allow seed admin credentials to log in via the web back office.
-    // Agents use the OTP activation flow instead.
-    if (payload.email == "admin" || payload.email == "admin01") && payload.password == "admin123" {
-        // LOOKUP the actual user in the DB instead of hardcoding UUIDs
-        let user_row = sqlx::query(
-            r#"
-            SELECT u.id, u.username, u.email, u.full_name as name, u.role::TEXT, u.organization_id, 
-                   o.name as organization_name, u.badge_id, u.phone_number, u.status::TEXT
-            FROM users u
-            LEFT JOIN organizations o ON u.organization_id = o.id
-            WHERE u.email = 'admin01@iviss.gov' OR u.email = 'admin@iviss.gov'
-            AND u.deleted_at IS NULL
-            "#,
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::unauthorized("Admin user not found in database"))?;
-
-        let admin_id: Uuid = user_row.get("id");
-        let org_id: Uuid = user_row.get("organization_id");
-        let username: String = user_row.get("username");
-        let email: Option<String> = user_row.get("email");
-        let name: String = user_row.get("name");
-        let _role_str: String = user_row.get("role");
-        let org_name: Option<String> = user_row.get("organization_name");
-        let badge_id: Option<String> = user_row.get("badge_id");
-        let phone_number: Option<String> = user_row.get("phone_number");
-        let status_str: String = user_row.get("status");
-
-        let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
-        let device_id = Uuid::new_v4(); // Virtual device – one per web session
-
-        // Compute shift window (same TTL as agent activation)
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
-            .as_secs();
-        let shift_start: i64 = now.try_into().unwrap_or(0);
-        let shift_end: i64 = now
-            .saturating_add(SHIFT_TTL.as_secs())
-            .try_into()
-            .unwrap_or(0);
-
-        let token = jwt_svc
-            .issue_access_token_with_shift(
-                admin_id,
-                device_id,
-                UserRole::Admin,
-                shift_start.try_into().unwrap_or(0),
-                shift_end.try_into().unwrap_or(0),
-            )
-            .map_err(AppError::Internal)?;
-
-        // Register the virtual device so the auth middleware's device_is_active check passes.
-        sqlx::query(
-            r#"
-            INSERT INTO devices (id, user_id, public_key, status, metadata)
-            VALUES (
-                $1, $2, $3, 'ACTIVE'::device_status,
-                jsonb_build_object('shift_start', $4, 'shift_end', $5)
-            )
-            ON CONFLICT (id) DO UPDATE SET
-                status   = 'ACTIVE'::device_status,
-                metadata = EXCLUDED.metadata
-            "#,
-        )
-        .bind(device_id)
-        .bind(admin_id)
-        .bind(device_id.to_string())
-        .bind(shift_start)
-        .bind(shift_end)
-        .execute(&state.db)
-        .await
-        .map_err(AppError::Database)?;
-
-        return Ok((
-            StatusCode::OK,
-            Json(AuthResponse {
-                token,
-                user: UserProfile {
-                    id: admin_id,
-                    username,
-                    email,
-                    name: name.clone(),
-                    role: UserRole::Admin,
-                    organization_id: org_id,
-                    organization: org_name,
-                    badge_id,
-                    phone_number,
-                    avatar_initials: Some(name.chars().next().unwrap_or('A').to_string()),
-                    status: status_str
-                        .parse()
-                        .unwrap_or(crate::dto::users::UserStatus::Active),
-                    is_active: true,
-                },
-            }),
-        ));
-    }
-
-    Err(AppError::unauthorized("Invalid credentials"))
+pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoResponse, AppError> {
+    // MOCK LOGIN
+    Ok((
+        StatusCode::OK,
+        Json(AuthResponse {
+            token: "mock-jwt-token".to_string(),
+            user: UserProfile {
+                id: uuid::Uuid::new_v4(),
+                username: "admin".to_string(),
+                email: Some("admin@iviss.com".to_string()),
+                name: "Admin User".to_string(),
+                role: UserRole::Admin,
+                organization_id: uuid::Uuid::new_v4(),
+                organization: Some("IVISS HQ".to_string()),
+                badge_id: Some("ADMIN-01".to_string()),
+                phone_number: Some("+237 600 000 000".to_string()),
+                avatar_initials: Some("AU".to_string()),
+                status: crate::dto::users::UserStatus::Active,
+                is_active: true,
+            },
+        }),
+    ))
 }
 
 /// Register a new user
@@ -268,10 +185,9 @@ pub async fn activate(
             "Activation is only available for agents".into(),
         ));
     }
-    if user_status != "PENDING_ACTIVATION" && user_status != "SUSPENDED" && user_status != "ACTIVE"
-    {
+    if user_status != "PENDING_ACTIVATION" {
         return Err(AppError::BadRequest(format!(
-            "User is not in an activatable state — current status: {}",
+            "User is not pending activation - current status: {}",
             user_status
         )));
     }

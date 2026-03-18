@@ -233,7 +233,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
     let (_org_id, _admin_id, agent_id, device_id, agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
 
-    // ── 1. Call POST /admin/terminate-session ──
+    // -- 1. Call POST /admin/terminate-session ──
     let terminate_body = json!({ "userId": agent_id });
 
     let response = app

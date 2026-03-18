@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
 use crate::dto::users::{
-    ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, UpdateUserRequest,
+    ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
+    TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest,
 };
 use crate::errors::AppError;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
@@ -181,17 +182,6 @@ pub async fn list_organizations(
 
 // ── Session Termination ──
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TerminateSessionRequest {
-    pub user_id: Uuid,
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-pub struct TerminateSessionResponse {
-    pub message: String,
-}
-
 /// Terminate all sessions for a user (admin only).
 ///
 /// Revokes all refresh tokens, deactivates all devices, and suspends
@@ -279,10 +269,10 @@ pub async fn resend_activation_code(
         ));
     }
 
-    // Agent must be in PENDING_ACTIVATION, SUSPENDED, or ACTIVE status
-    if status != "PENDING_ACTIVATION" && status != "SUSPENDED" && status != "ACTIVE" {
+    // Only agents in PENDING_ACTIVATION status can receive a new code
+    if status != "PENDING_ACTIVATION" {
         return Err(AppError::BadRequest(format!(
-            "User is not in an activatable state — current status: {}",
+            "Resending activation code is only allowed for users in PENDING_ACTIVATION state (current: {})",
             status
         )));
     }
