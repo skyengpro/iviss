@@ -75,5 +75,5 @@ pub struct ActivateResponse {
 #[serde(rename_all = "camelCase")]
 pub struct RefreshRequest {
     pub refresh_token: String,
-    pub device_id: Uuid,
+    pub device_id: Option<Uuid>,
 }

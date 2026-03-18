@@ -25,8 +25,7 @@ impl From<&AccessTokenClaims> for AuthenticatedAdmin {
 }
 /// JWT middleware for web users (admin / manager).
 ///
-/// Validates JWT signature and expiry — NO device check, NO shift check.
-/// Injects `AuthenticatedUser` into request extensions.
+/// Validates JWT signature and expiry.
 pub async fn require_auth_web(
     State(state): State<Arc<AppState>>,
     mut request: Request,
@@ -57,10 +56,7 @@ pub async fn require_auth_web(
         "rbac: jwt verified"
     );
 
-    request.extensions_mut().insert(AuthenticatedAdmin {
-        user_id: claims.sub,
-        role: claims.role.clone(),
-    });
+    request.extensions_mut().insert(AuthenticatedAdmin::from(&claims));
 
     Ok(next.run(request).await)
 }
