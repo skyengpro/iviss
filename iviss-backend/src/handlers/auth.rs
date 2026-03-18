@@ -163,7 +163,7 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
                 email: Some(payload.email),
                 name: payload.full_name,
                 role: payload.role,
-                organization_id: uuid::Uuid::new_v4(),
+                organization_id: Some(uuid::Uuid::new_v4()),
                 organization: Some("Independent".to_string()),
                 badge_id: Some("TEMP-01".to_string()),
                 phone_number: None,

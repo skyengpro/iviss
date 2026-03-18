@@ -40,12 +40,6 @@ pub async fn require_auth(
 
     tracing::info!(%method, %path, "auth: start");
 
-    // Exclude admin and stats routes from auth for now as requested
-    if path.starts_with("/admin/") || path == "/stats" {
-        tracing::info!(%method, %path, "auth: skipping auth for admin route");
-        return Ok(next.run(request).await);
-    }
-
     let token = match extract_bearer_token(request.headers().get(AUTHORIZATION)) {
         Ok(token) => {
             tracing::info!(%method, %path, "auth: bearer token present");
@@ -165,7 +159,7 @@ pub async fn require_auth(
     Ok(next.run(request).await)
 }
 
-fn extract_bearer_token(header: Option<&HeaderValue>) -> Result<&str, AppError> {
+pub fn extract_bearer_token(header: Option<&HeaderValue>) -> Result<&str, AppError> {
     let auth_header = header
         .ok_or_else(|| AppError::unauthorized("Missing Authorization header"))?
         .to_str()
@@ -192,7 +186,7 @@ fn extract_bearer_token(header: Option<&HeaderValue>) -> Result<&str, AppError> 
     Ok(token)
 }
 
-fn decode_access_token_rs256(
+pub fn decode_access_token_rs256(
     token: &str,
     jwt_public_key_pem: &str,
 ) -> Result<AccessTokenClaims, AppError> {

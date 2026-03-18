@@ -78,8 +78,8 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::user_management::resend_activation_code),
         )
         .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
-        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web))
-        .layer(from_fn_with_state(state.clone(), rbac::require_admin));
+        .layer(from_fn_with_state(state.clone(), rbac::require_admin))
+        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
     let protected_routes = Router::new()
         .route(
