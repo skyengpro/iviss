@@ -17,7 +17,7 @@ import {
 import { useDashboard } from '@/hooks/api/useDashboard';
 import { LiveControlMap } from '@/components/dashboard/LiveControlMap';
 import { ControlActivityChart } from '@/components/dashboard/ControlActivityChart';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   useGetActivityFeed,
   useGetControlActivity,
@@ -35,15 +35,14 @@ import { useNavigate } from 'react-router-dom';
 export default function BackOfficeDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { stats, isLoading: statsLoading, refetch: refetchStats } = useDashboard();
-
-  // Auto-refresh stats every 30 seconds for "live" feel
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetchStats();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refetchStats]);
+  const {
+    stats,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+    isFetching: statsIsFetching,
+    isRefetching: statsIsRefetching,
+    dataUpdatedAt: statsUpdatedAt,
+  } = useDashboard();
 
   const recentAlertsQuery = useGetRecentAlerts(
     {
@@ -120,10 +119,51 @@ export default function BackOfficeDashboard() {
     return t(notes.key, notes.params);
   };
 
+  const isAnyUpdating =
+    statsIsFetching ||
+    statsIsRefetching ||
+    recentAlertsQuery.isFetching ||
+    recentAlertsQuery.isRefetching ||
+    controlActivityQuery.isFetching ||
+    controlActivityQuery.isRefetching ||
+    topAgentsQuery.isFetching ||
+    topAgentsQuery.isRefetching ||
+    activityFeedQuery.isFetching ||
+    activityFeedQuery.isRefetching;
+
+  const handleRefreshAll = async () => {
+    await Promise.all([
+      refetchStats(),
+      recentAlertsQuery.refetch(),
+      controlActivityQuery.refetch(),
+      topAgentsQuery.refetch(),
+      activityFeedQuery.refetch(),
+    ]);
+  };
+
+  const lastUpdatedText = (dataUpdatedAt?: number) => {
+    if (!dataUpdatedAt) return null;
+    return `Last updated ${formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true })}`;
+  };
+
   return (
     <BackOfficeLayout
       title={t('backOfficeDashboard.title')}
       subtitle={t('backOfficeDashboard.subtitle')}
+      actions={
+        <div className="flex items-center gap-3">
+          {isAnyUpdating && <span className="text-xs text-muted-foreground">Updating…</span>}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-xl"
+            onClick={handleRefreshAll}
+            disabled={isAnyUpdating}
+          >
+            Refresh
+          </Button>
+        </div>
+      }
     >
       <div className="space-y-6">
         {/* ── Stats Grid ── */}
@@ -199,18 +239,39 @@ export default function BackOfficeDashboard() {
                       {t('backOfficeDashboard.recentAlerts')}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1 rounded-lg px-2 text-xs"
-                    onClick={() => navigate('/backoffice/controls?status=alerts')}
-                  >
-                    {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {recentAlertsQuery.isFetching && !recentAlertsQuery.isLoading && (
+                      <span className="text-xs text-muted-foreground">Updating…</span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 rounded-lg px-2 text-xs"
+                      onClick={() => navigate('/backoffice/controls?status=alerts')}
+                    >
+                      {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2.5 px-4 pb-4">
-                {recentAlertsQuery.isLoading ? (
+                {recentAlertsQuery.isError ? (
+                  <div className="flex flex-col items-center gap-3 py-8 text-center text-muted-foreground">
+                    <p className="text-sm">Failed to load alerts</p>
+                    <p className="text-xs">
+                      {lastUpdatedText(recentAlertsQuery.dataUpdatedAt) ?? '—'}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-xl"
+                      onClick={() => recentAlertsQuery.refetch()}
+                      disabled={recentAlertsQuery.isFetching || recentAlertsQuery.isRefetching}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : recentAlertsQuery.isLoading ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
                     <Zap className="h-8 w-8 opacity-30" />
                     <p className="text-sm">Loading alerts…</p>
@@ -219,6 +280,9 @@ export default function BackOfficeDashboard() {
                   <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
                     <Zap className="h-8 w-8 opacity-30" />
                     <p className="text-sm">No recent alerts</p>
+                    <p className="text-xs">
+                      {lastUpdatedText(recentAlertsQuery.dataUpdatedAt) ?? '—'}
+                    </p>
                   </div>
                 ) : (
                   recentAlertsItems.map((alert) => (
@@ -274,6 +338,20 @@ export default function BackOfficeDashboard() {
               onRangeChange={setDashboardRange}
               loading={controlActivityQuery.isLoading}
             />
+            {controlActivityQuery.isError && (
+              <div className="mt-2 flex items-center justify-between rounded-xl border border-border/60 bg-card px-3 py-2 text-xs text-muted-foreground">
+                <span>{lastUpdatedText(controlActivityQuery.dataUpdatedAt) ?? '—'}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-xl"
+                  onClick={() => controlActivityQuery.refetch()}
+                  disabled={controlActivityQuery.isFetching || controlActivityQuery.isRefetching}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Top Performing Agents */}
@@ -289,16 +367,40 @@ export default function BackOfficeDashboard() {
                       {t('backOfficeDashboard.topAgentsToday')}
                     </span>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-lg px-2 text-xs">
-                    {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {topAgentsQuery.isFetching && !topAgentsQuery.isLoading && (
+                      <span className="text-xs text-muted-foreground">Updating…</span>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-lg px-2 text-xs">
+                      {t('backOfficeDashboard.viewAll')} <ArrowUpRight className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {topAgents.length === 0 ? (
+                  {topAgentsQuery.isError ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                      <p className="text-sm text-muted-foreground">Failed to load agents</p>
+                      <p className="text-xs text-muted-foreground">
+                        {lastUpdatedText(topAgentsQuery.dataUpdatedAt) ?? '—'}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-xl"
+                        onClick={() => topAgentsQuery.refetch()}
+                        disabled={topAgentsQuery.isFetching || topAgentsQuery.isRefetching}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  ) : topAgents.length === 0 ? (
                     <div className="flex items-center justify-center py-10">
                       <p className="text-sm text-muted-foreground">No activity yet</p>
+                      <p className="text-xs text-muted-foreground">
+                        {lastUpdatedText(topAgentsQuery.dataUpdatedAt) ?? '—'}
+                      </p>
                     </div>
                   ) : (
                     topAgents.map((agent, index) => (
@@ -363,23 +465,49 @@ export default function BackOfficeDashboard() {
                     {t('backOfficeDashboard.realTimeActivityFeed')}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-status-valid/20 bg-status-valid/10 px-3 py-1">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-valid" />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-status-valid">
-                    {t('backOfficeDashboard.autoUpdating')}
-                  </span>
+                <div className="flex items-center gap-2">
+                  {activityFeedQuery.isFetching && !activityFeedQuery.isLoading && (
+                    <span className="text-xs text-muted-foreground">Updating…</span>
+                  )}
+                  <div className="flex items-center gap-2 rounded-full border border-status-valid/20 bg-status-valid/10 px-3 py-1">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-valid" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-status-valid">
+                      {t('backOfficeDashboard.autoUpdating')}
+                    </span>
+                  </div>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                {activityFeedQuery.isLoading ? (
+                {activityFeedQuery.isError ? (
+                  <div className="col-span-full flex flex-col items-center justify-center gap-3 py-10 text-center">
+                    <p className="text-sm text-muted-foreground">Failed to load activity</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lastUpdatedText(activityFeedQuery.dataUpdatedAt) ?? '—'}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-xl"
+                      onClick={() => activityFeedQuery.refetch()}
+                      disabled={activityFeedQuery.isFetching || activityFeedQuery.isRefetching}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : activityFeedQuery.isLoading ? (
                   <div className="col-span-full flex items-center justify-center py-10">
                     <p className="text-sm text-muted-foreground">Loading activity…</p>
                   </div>
                 ) : activityFeedItems.length === 0 ? (
                   <div className="col-span-full flex items-center justify-center py-10">
-                    <p className="text-sm text-muted-foreground">No activity yet</p>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">No activity yet</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {lastUpdatedText(activityFeedQuery.dataUpdatedAt) ?? '—'}
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   activityFeedItems.map((item) => {
@@ -421,6 +549,9 @@ export default function BackOfficeDashboard() {
                     );
                   })
                 )}
+              </div>
+              <div className="mt-3 text-[10px] text-muted-foreground">
+                {lastUpdatedText(activityFeedQuery.dataUpdatedAt) ?? ''}
               </div>
             </CardContent>
           </Card>
