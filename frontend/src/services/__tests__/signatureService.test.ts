@@ -28,7 +28,7 @@ describe('signatureService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Ensure WebCrypto is available for jose in Node test runtime
-    globalThis.crypto = webcrypto as unknown as Crypto;
+    vi.stubGlobal('crypto', webcrypto);
   });
 
   describe('signNonce', () => {
