@@ -14,9 +14,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
     pub user_id: Uuid,
-    #[allow(dead_code)]
     pub device_id: Uuid,
-    #[allow(dead_code)]
     pub role: String,
 }
 
