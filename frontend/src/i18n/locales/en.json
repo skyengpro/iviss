@@ -381,7 +381,11 @@
     "terminateSession": "Terminate Session",
     "terminateSessionDescription": "Are you sure you want to terminate all active sessions for this agent? This will immediately log them out of all devices.",
     "terminateSuccess": "Agent sessions terminated successfully",
-    "terminateError": "Failed to terminate agent sessions"
+    "terminateError": "Failed to terminate agent sessions",
+    "restartSession": "Restart Session",
+    "restartSessionDescription": "Are you sure you want to restart the session for this agent? This will extend their shift and allow them to continue working without re-activation.",
+    "restartSuccess": "Agent session restarted successfully",
+    "restartError": "Failed to restart agent session"
   },
   "mobileSidebar": {
     "frontOffice": "Front Office",
