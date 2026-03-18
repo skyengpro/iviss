@@ -11,6 +11,7 @@ const PageLoader = () => (
   </div>
 );
 
+
 export const AppRouter = () => {
   const allProtectedRoutes = [...mobileRoutes, ...backOfficeRoutes];
   const accessToken = getAccessToken();
