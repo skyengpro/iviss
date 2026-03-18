@@ -1,10 +1,6 @@
 use crate::config::Config;
 use crate::utils::password::hash_password;
 use sqlx::PgPool;
-use uuid::Uuid;
-
-// Fixed UUID — must match the one in the bootstrap_org migration
-const BOOTSTRAP_ORG_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// Run the admin bootstrap seed at application startup.
 ///
@@ -27,7 +23,10 @@ pub async fn run_bootstrap_seed(pool: &PgPool, config: &Config) {
             );
         }
         Err(e) => {
-            tracing::warn!(error = %e, "Bootstrap: seed failed — check ADMIN_BOOTSTRAP_* env vars");
+            tracing::warn!(
+                error = %e,
+                "Bootstrap: seed failed — check ADMIN_BOOTSTRAP_* env vars"
+            );
         }
     }
 }
@@ -61,12 +60,8 @@ async fn try_bootstrap(pool: &PgPool, config: &Config) -> anyhow::Result<Bootstr
         return Ok(BootstrapResult::AlreadyExists);
     }
 
-    // Hash password with argon2id — spawn_blocking handled inside
+    // Hash password with argon2id
     let password_hash = hash_password(&password).await?;
-
-    let org_id: Uuid = BOOTSTRAP_ORG_ID
-        .parse()
-        .expect("BOOTSTRAP_ORG_ID is a valid UUID");
 
     sqlx::query(
         r#"
@@ -83,19 +78,18 @@ async fn try_bootstrap(pool: &PgPool, config: &Config) -> anyhow::Result<Bootstr
         )
         VALUES (
             uuid_generate_v4(),
+            NULL,
             $1,
             $2,
             $3,
-            $4,
             'admin'::user_role,
             'System Administrator',
-            $5,
+            $4,
             'ACTIVE'::user_status
         )
         ON CONFLICT (email) DO NOTHING
         "#,
     )
-    .bind(org_id)
     .bind(&username)
     .bind(&email)
     .bind(&password_hash)

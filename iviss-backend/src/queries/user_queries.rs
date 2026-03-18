@@ -18,7 +18,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
             u.status::TEXT as status,
             u.username
         FROM users u
-        JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN organizations o ON u.organization_id = o.id
         WHERE u.id = $1 AND u.deleted_at IS NULL
         "#,
     )
@@ -104,7 +104,7 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.status::TEXT as status,
             u.username
         FROM users u
-        JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN organizations o ON u.organization_id = o.id
         WHERE u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         "#,

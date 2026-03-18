@@ -12,6 +12,19 @@ pub struct AuthValidationContext {
     pub device_is_active: bool,
 }
 
+/// Admin authentication row - contains credentials for email/password login
+#[derive(Debug, FromRow)]
+pub struct AdminAuthRow {
+    pub id: Uuid,
+    pub password_hash: String,
+    pub role: String,
+    pub status: String,
+    pub organization_id: Option<Uuid>,
+    pub full_name: String,
+    pub email: String,
+    pub username: String,
+}
+
 pub async fn get_auth_validation_context(
     pool: &PgPool,
     user_id: Uuid,
@@ -202,18 +215,6 @@ pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<b
     Ok(valid_refresh)
 }
 
-/// Admin authentication row - contains credentials for email/password login
-#[derive(Debug, FromRow)]
-pub struct AdminAuthRow {
-    pub id: Uuid,
-    pub password_hash: String,
-    pub role: String,
-    pub status: String,
-    pub organization_id: Uuid,
-    pub full_name: String,
-    pub email: String,
-    pub username: String,
-}
 
 /// Find admin/manager user by email for email/password login.
 ///

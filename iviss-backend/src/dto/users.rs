@@ -83,7 +83,7 @@ pub struct UserProfile {
     pub name: String,
     pub email: Option<String>,
     pub role: UserRole,
-    pub organization_id: Uuid,
+    pub organization_id: Option<Uuid>,
     pub organization: Option<String>,
     pub badge_id: Option<String>,
     pub phone_number: Option<String>,
