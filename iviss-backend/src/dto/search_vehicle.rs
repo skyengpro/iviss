@@ -1,6 +1,7 @@
 use crate::dto::common::{IdentificationMode, Status};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 // Request
 
@@ -9,6 +10,9 @@ pub struct VehicleSearchRequest {
     pub plate: String,
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,
+    pub address: Option<String>,
+    pub agent_id: Option<Uuid>,
+    pub organization_id: Option<Uuid>,
 }
 
 // Sub-objects

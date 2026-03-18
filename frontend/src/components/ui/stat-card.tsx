@@ -8,6 +8,17 @@ const statCardVariants = cva(
     variants: {
       variant: {
         default: 'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground',
+        soft: 'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground',
+        softPrimary:
+          'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground border-l-4 border-l-primary',
+        softAccent:
+          'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground border-l-4 border-l-[hsl(186,72%,40%)]',
+        softValid:
+          'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground border-l-4 border-l-[hsl(142,71%,45%)]',
+        softWarning:
+          'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground border-l-4 border-l-[hsl(38,92%,52%)]',
+        softCritical:
+          'bg-white border border-border/60 shadow-sm hover:shadow-md text-foreground border-l-4 border-l-[hsl(0,84%,60%)]',
         primary:
           'bg-gradient-to-br from-[hsl(222,47%,20%)] to-[hsl(222,47%,32%)] text-white shadow-lg hover:shadow-xl',
         accent:
@@ -51,7 +62,25 @@ export function StatCard({
   className,
   loading,
 }: StatCardProps) {
-  const isColored = variant && variant !== 'default';
+  const isColored =
+    variant && ['primary', 'accent', 'valid', 'warning', 'critical', 'gradient'].includes(variant);
+
+  const iconTone = (() => {
+    switch (variant) {
+      case 'softPrimary':
+        return { bg: 'bg-primary/10', fg: 'text-primary' };
+      case 'softAccent':
+        return { bg: 'bg-[hsl(186,72%,40%)]/10', fg: 'text-[hsl(186,72%,40%)]' };
+      case 'softValid':
+        return { bg: 'bg-[hsl(142,71%,45%)]/10', fg: 'text-[hsl(142,71%,45%)]' };
+      case 'softWarning':
+        return { bg: 'bg-[hsl(38,92%,52%)]/10', fg: 'text-[hsl(38,92%,52%)]' };
+      case 'softCritical':
+        return { bg: 'bg-[hsl(0,84%,60%)]/10', fg: 'text-[hsl(0,84%,60%)]' };
+      default:
+        return { bg: 'bg-primary/10', fg: 'text-primary' };
+    }
+  })();
 
   if (loading) {
     return (
@@ -94,10 +123,10 @@ export function StatCard({
             <div
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                isColored ? 'bg-white/15 backdrop-blur-sm' : 'bg-primary/10'
+                isColored ? 'bg-white/15 backdrop-blur-sm' : iconTone.bg
               )}
             >
-              <Icon className={cn('h-5 w-5', isColored ? 'text-white' : 'text-primary')} />
+              <Icon className={cn('h-5 w-5', isColored ? 'text-white' : iconTone.fg)} />
             </div>
           )}
         </div>

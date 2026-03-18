@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { useSearchVehicle, useSubmitVehicle } from '../../openapi-rq/queries/queries';
 import {
   VehicleSearchRequest,
@@ -6,6 +7,7 @@ import {
 } from '../../openapi-rq/requests/types.gen';
 
 export function useVehicles() {
+  const { user } = useAuth();
   const {
     mutateAsync: searchMutate,
     isPending: isSearching,
@@ -21,12 +23,18 @@ export function useVehicles() {
 
   const search = useCallback(
     async (request: VehicleSearchRequest) => {
+      // Auto-inject agent info for control logging
+      const enrichedRequest = {
+        ...request,
+        agent_id: user?.id,
+        organization_id: user?.organizationId,
+      };
       return searchMutate({
-        body: request,
+        body: enrichedRequest,
         throwOnError: true,
       });
     },
-    [searchMutate]
+    [searchMutate, user]
   );
 
   const submit = useCallback(
