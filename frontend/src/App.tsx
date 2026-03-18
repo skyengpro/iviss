@@ -28,7 +28,7 @@ setupAuthInterceptors(client, {
     clearTokens();
     localStorage.removeItem('iviss_session');
     localStorage.removeItem('iviss_refresh_token');
-    globalThis.location.href = '/activate';
+    globalThis.location.href = '/daily-login';
   },
 });
 
