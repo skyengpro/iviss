@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Running admin bootstrap seed...");
     run_bootstrap_seed(&db_pool, &config).await;
-    
+
     let state = AppState::new(db_pool, redis_pool, sms_provider, &config);
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));

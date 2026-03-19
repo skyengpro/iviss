@@ -216,7 +216,6 @@ pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<b
     Ok(valid_refresh)
 }
 
-
 /// Find admin/manager user by email for email/password login.
 ///
 /// This function explicitly excludes agents - they cannot log in via email/password.
