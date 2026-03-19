@@ -107,6 +107,23 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle_v1),
         )
+        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
+        .route(
+            "/stats/activity",
+            get(crate::handlers::stats::get_control_activity),
+        )
+        .route(
+            "/stats/top-agents",
+            get(crate::handlers::stats::get_top_agents),
+        )
+        .route(
+            "/stats/activity-feed",
+            get(crate::handlers::stats::get_activity_feed),
+        )
+        .route(
+            "/stats/recent-alerts",
+            get(crate::handlers::stats::get_recent_alerts),
+        )
         .route("/users/me", get(crate::handlers::users::get_user_profile))
         .route(
             "/users/location",

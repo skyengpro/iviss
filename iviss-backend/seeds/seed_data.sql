@@ -102,7 +102,7 @@ VALUES
     'Michael Johnson',
     '+237671210292',
     'PENDING_ACTIVATION'
-) ON CONFLICT (username) DO NOTHING;
+) ON CONFLICT (id) DO NOTHING;
 
 -- 3. Insert Vehicles (5 diverse plates in format: AD 345 CE)
 INSERT INTO vehicles (id, plate_number, chassis_number, brand, model, year, color, fuel_type)
