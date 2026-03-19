@@ -13,6 +13,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -43,6 +44,11 @@ export function BackOfficeSidebar() {
       href: '/backoffice/validation',
       icon: FileSearch,
       label: t('backOfficeSidebar.pendingValidation'),
+    },
+    {
+      href: '/backoffice/reports',
+      icon: TrendingUp,
+      label: t('backOfficeSidebar.generateReport'),
     },
   ];
 
@@ -129,34 +135,9 @@ export function BackOfficeSidebar() {
 
           {/* Admin section — only visible to admin users */}
           {isAdmin && (
-          <div className="mt-4">
-            {collapsed ? (
-              <div className="space-y-0.5">
-                {adminNavItems.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    label={item.label}
-                    isActive={location.pathname === item.href}
-                    collapsed={collapsed}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
-                <CollapsibleTrigger asChild>
-                  <button className="flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors">
-                    {t('backOfficeSidebar.administration')}
-                    <ChevronDown
-                      className={cn(
-                        'h-3.5 w-3.5 transition-transform duration-200',
-                        adminOpen && 'rotate-180'
-                      )}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-0.5">
+            <div className="mt-4">
+              {collapsed ? (
+                <div className="space-y-0.5">
                   {adminNavItems.map((item) => (
                     <NavLink
                       key={item.href}
@@ -167,10 +148,35 @@ export function BackOfficeSidebar() {
                       collapsed={collapsed}
                     />
                   ))}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-          </div>
+                </div>
+              ) : (
+                <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors">
+                      {t('backOfficeSidebar.administration')}
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 transition-transform duration-200',
+                          adminOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-0.5">
+                    {adminNavItems.map((item) => (
+                      <NavLink
+                        key={item.href}
+                        href={item.href}
+                        icon={item.icon}
+                        label={item.label}
+                        isActive={location.pathname === item.href}
+                        collapsed={collapsed}
+                      />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
           )}
         </nav>
 

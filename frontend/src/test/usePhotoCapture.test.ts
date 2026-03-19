@@ -82,6 +82,8 @@ describe('usePhotoCapture', () => {
   it('should handle API errors gracefully', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
     global.fetch = vi.fn().mockResolvedValueOnce({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -103,6 +105,8 @@ describe('usePhotoCapture', () => {
 
   it('should handle no screenshot gracefully', async () => {
     const mockGetScreenshot = () => null;
+
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     const { result } = renderHook(() => usePhotoCapture());
 
