@@ -4,7 +4,6 @@ use utoipa::ToSchema;
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateLocationRequest {
-    pub agent_id: uuid::Uuid,
     pub latitude: f64,
     pub longitude: f64,
 }

@@ -11,7 +11,9 @@
   "paths": {
     "/admin/devices/{id}/suspend": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "operationId": "suspendDevice",
         "parameters": [
           {
@@ -66,7 +68,9 @@
     },
     "/admin/devices/{id}/unsuspend": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "operationId": "unsuspendDevice",
         "parameters": [
           {
@@ -121,7 +125,9 @@
     },
     "/admin/organizations": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List all organizations (admin only)",
         "operationId": "listOrganizations",
         "responses": {
@@ -168,7 +174,9 @@
     },
     "/admin/resend-activation-code": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Resend activation code via SMS to a pending agent",
         "operationId": "resendActivationCode",
         "requestBody": {
@@ -217,7 +225,9 @@
     },
     "/admin/restart-session": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Restarts/Extends a session for an agent",
         "operationId": "restartSession",
         "requestBody": {
@@ -271,7 +281,9 @@
     },
     "/admin/submissions": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "List all pending submissions for admin review",
         "operationId": "listPendingSubmissions",
         "responses": {
@@ -308,7 +320,9 @@
     },
     "/admin/submissions/{id}": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "Get details of a single pending submission",
         "operationId": "getPendingSubmission",
         "parameters": [
@@ -354,7 +368,9 @@
     },
     "/admin/terminate-session": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Terminate all sessions for a user (admin only).",
         "description": "Revokes all refresh tokens, deactivates all devices, and suspends\nthe user account. The next request from that user will return 401.",
         "operationId": "terminateSession",
@@ -409,7 +425,9 @@
     },
     "/admin/users": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List all users (admin only)",
         "operationId": "listUsers",
         "responses": {
@@ -454,7 +472,9 @@
         ]
       },
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Provision a new user (admin only)",
         "operationId": "provisionUser",
         "requestBody": {
@@ -518,7 +538,9 @@
     },
     "/admin/users/{id}": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Get a specific user by ID (admin only)",
         "operationId": "getUser",
         "parameters": [
@@ -582,7 +604,9 @@
         ]
       },
       "put": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Update a user (admin only)",
         "operationId": "updateUser",
         "parameters": [
@@ -666,7 +690,9 @@
         ]
       },
       "delete": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Delete a user (admin only)",
         "operationId": "deleteUser",
         "parameters": [
@@ -725,7 +751,9 @@
     },
     "/api/v1/photo/plate": {
       "post": {
-        "tags": ["photo"],
+        "tags": [
+          "photo"
+        ],
         "operationId": "photoPlate",
         "requestBody": {
           "content": {
@@ -783,7 +811,9 @@
     },
     "/api/v1/scan/plate": {
       "post": {
-        "tags": ["scanning"],
+        "tags": [
+          "scanning"
+        ],
         "operationId": "scanPlate",
         "requestBody": {
           "content": {
@@ -841,7 +871,9 @@
     },
     "/api/v1/vehicles/pending": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "submitVehicleV1",
         "requestBody": {
           "content": {
@@ -916,7 +948,9 @@
     },
     "/api/v1/vehicles/search": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "searchVehicleV1",
         "requestBody": {
           "content": {
@@ -1005,7 +1039,9 @@
     },
     "/auth/activate": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Activate an agent account by validating OTP and registering device public key",
         "operationId": "activateDevice",
         "requestBody": {
@@ -1054,7 +1090,9 @@
     },
     "/auth/login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Login with email and password",
         "operationId": "loginUser",
         "requestBody": {
@@ -1093,7 +1131,9 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Logout and invalidate session",
         "operationId": "logoutUser",
         "responses": {
@@ -1117,7 +1157,9 @@
     },
     "/auth/refresh": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Step 1 of the challenge-response refresh flow.",
         "description": "Validates the refresh token, generates a nonce, stores it in Redis,\nand returns it to the client for signing.",
         "operationId": "requestRefresh",
@@ -1157,7 +1199,9 @@
     },
     "/auth/refresh/verify": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Step 2 of the challenge-response refresh flow.",
         "description": "Verifies the signed nonce against the device's registered public key,\nthen issues a new access token.",
         "operationId": "verifyRefresh",
@@ -1197,7 +1241,9 @@
     },
     "/auth/register": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Register a new user",
         "operationId": "registerUser",
         "requestBody": {
@@ -1236,7 +1282,9 @@
     },
     "/auth/request-daily-login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "operationId": "requestDailyLogin",
         "requestBody": {
           "content": {
@@ -1304,7 +1352,9 @@
     },
     "/auth/verify-daily-login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "operationId": "verifyDailyLogin",
         "requestBody": {
           "content": {
@@ -1362,7 +1412,9 @@
     },
     "/controls": {
       "get": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "getControls",
         "parameters": [
           {
@@ -1485,7 +1537,9 @@
         ]
       },
       "post": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "createControl",
         "requestBody": {
           "content": {
@@ -1548,7 +1602,9 @@
     },
     "/health": {
       "get": {
-        "tags": ["health"],
+        "tags": [
+          "health"
+        ],
         "operationId": "health",
         "responses": {
           "200": {
@@ -1566,7 +1622,9 @@
     },
     "/stats": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getDashboardStats",
         "responses": {
           "200": {
@@ -1607,9 +1665,255 @@
         ]
       }
     },
+    "/stats/activity": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "operationId": "getControlActivity",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/DashboardRange"
+                }
+              ],
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Control activity series retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlActivityResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/stats/activity-feed": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "operationId": "getActivityFeed",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity feed retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityFeedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/stats/recent-alerts": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "operationId": "getRecentAlerts",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent alerts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentAlertsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/stats/top-agents": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "operationId": "getTopAgents",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/DashboardRange"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top agents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopAgentsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/users/location": {
       "post": {
-        "tags": ["users"],
+        "tags": [
+          "users"
+        ],
         "operationId": "updateLocation",
         "requestBody": {
           "content": {
@@ -1657,7 +1961,9 @@
     },
     "/users/me": {
       "get": {
-        "tags": ["users"],
+        "tags": [
+          "users"
+        ],
         "operationId": "getUserProfile",
         "responses": {
           "200": {
@@ -1708,7 +2014,9 @@
     },
     "/vehicles/pending": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "submitVehicle",
         "requestBody": {
           "content": {
@@ -1783,7 +2091,9 @@
     },
     "/vehicles/search": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "searchVehicle",
         "requestBody": {
           "content": {
@@ -1875,11 +2185,22 @@
     "schemas": {
       "ActionType": {
         "type": "string",
-        "enum": ["check", "flag", "citation", "impound", "release"]
+        "enum": [
+          "check",
+          "flag",
+          "citation",
+          "impound",
+          "release"
+        ]
       },
       "ActivateRequest": {
         "type": "object",
-        "required": ["badgeId", "activationCode", "deviceId", "publicKeyBase64"],
+        "required": [
+          "badgeId",
+          "activationCode",
+          "deviceId",
+          "publicKeyBase64"
+        ],
         "properties": {
           "activationCode": {
             "type": "string"
@@ -1898,7 +2219,11 @@
       },
       "ActivateResponse": {
         "type": "object",
-        "required": ["accessToken", "refreshToken", "user"],
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -1913,7 +2238,10 @@
       },
       "ActivityData": {
         "type": "object",
-        "required": ["hour", "count"],
+        "required": [
+          "hour",
+          "count"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -1924,9 +2252,57 @@
           }
         }
       },
+      "ActivityFeedItemDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "plateNumber",
+          "overallStatus",
+          "createdAt",
+          "agentName"
+        ],
+        "properties": {
+          "agentName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "overallStatus": {
+            "type": "string"
+          },
+          "plateNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "ActivityFeedResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityFeedItemDto"
+            }
+          }
+        }
+      },
       "AgentLocationDto": {
         "type": "object",
-        "required": ["agentId", "agentName", "latitude", "longitude", "lastUpdated"],
+        "required": [
+          "agentId",
+          "agentName",
+          "latitude",
+          "longitude",
+          "lastUpdated"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -1950,7 +2326,10 @@
       },
       "AppErrorResponse": {
         "type": "object",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "$ref": "#/components/schemas/ErrorCode"
@@ -1962,7 +2341,10 @@
       },
       "AuthResponse": {
         "type": "object",
-        "required": ["token", "user"],
+        "required": [
+          "token",
+          "user"
+        ],
         "properties": {
           "token": {
             "type": "string"
@@ -1974,7 +2356,10 @@
       },
       "ControlAction": {
         "type": "object",
-        "required": ["action_type", "timestamp"],
+        "required": [
+          "action_type",
+          "timestamp"
+        ],
         "properties": {
           "action_type": {
             "$ref": "#/components/schemas/ActionType"
@@ -1985,6 +2370,40 @@
           },
           "timestamp": {
             "type": "string"
+          }
+        }
+      },
+      "ControlActivityPoint": {
+        "type": "object",
+        "required": [
+          "label",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "ControlActivityResponse": {
+        "type": "object",
+        "required": [
+          "range",
+          "series"
+        ],
+        "properties": {
+          "range": {
+            "$ref": "#/components/schemas/DashboardRange"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ControlActivityPoint"
+            }
           }
         }
       },
@@ -2088,7 +2507,10 @@
       },
       "CreateControlResponse": {
         "type": "object",
-        "required": ["id", "message"],
+        "required": [
+          "id",
+          "message"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -2102,7 +2524,12 @@
       "CreatePendingSubmissionRequest": {
         "type": "object",
         "description": "Request payload for creating a new pending submission",
-        "required": ["plateNumber", "agentId", "frontImageUrl", "backImageUrl"],
+        "required": [
+          "plateNumber",
+          "agentId",
+          "frontImageUrl",
+          "backImageUrl"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -2135,7 +2562,10 @@
       },
       "CustomsStatus": {
         "type": "object",
-        "required": ["status", "is_cleared"],
+        "required": [
+          "status",
+          "is_cleared"
+        ],
         "properties": {
           "declaration_number": {
             "type": "string",
@@ -2157,6 +2587,14 @@
           }
         }
       },
+      "DashboardRange": {
+        "type": "string",
+        "enum": [
+          "24h",
+          "7d",
+          "30d"
+        ]
+      },
       "DashboardStats": {
         "type": "object",
         "required": [
@@ -2164,6 +2602,8 @@
           "activeAlerts",
           "totalVehicles",
           "onlineAgents",
+          "pendingSubmissions",
+          "organizationsCount",
           "activity24h",
           "liveAgents"
         ],
@@ -2188,6 +2628,14 @@
             "type": "integer",
             "format": "int64"
           },
+          "organizationsCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingSubmissions": {
+            "type": "integer",
+            "format": "int64"
+          },
           "todayControls": {
             "type": "integer",
             "format": "int64"
@@ -2201,7 +2649,11 @@
       "DataEntryResponse": {
         "type": "object",
         "description": "Response after approved and enters vehicle data",
-        "required": ["message", "submission_id", "plate_number"],
+        "required": [
+          "message",
+          "submission_id",
+          "plate_number"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2218,7 +2670,9 @@
       },
       "DeviceActionResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2229,6 +2683,7 @@
         "type": "string",
         "enum": [
           "UNAUTHORIZED",
+          "FORBIDDEN",
           "DATABASE_ERROR",
           "NOT_FOUND",
           "BAD_REQUEST",
@@ -2240,11 +2695,17 @@
       "IdentificationMode": {
         "type": "string",
         "description": "How the plate was identified by the agent",
-        "enum": ["manual", "photo", "live"]
+        "enum": [
+          "manual",
+          "photo",
+          "live"
+        ]
       },
       "ImageUploadRequest": {
         "type": "object",
-        "required": ["image"],
+        "required": [
+          "image"
+        ],
         "properties": {
           "image": {
             "type": "string",
@@ -2254,7 +2715,9 @@
       },
       "InsuranceStatus": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "coverage_type": {
             "type": "string",
@@ -2357,7 +2820,10 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string"
@@ -2369,7 +2835,11 @@
       },
       "Organization": {
         "type": "object",
-        "required": ["id", "name", "orgType"],
+        "required": [
+          "id",
+          "name",
+          "orgType"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -2389,11 +2859,18 @@
       },
       "OrganizationType": {
         "type": "string",
-        "enum": ["police", "customs", "bordercontrol", "other"]
+        "enum": [
+          "police",
+          "customs",
+          "bordercontrol",
+          "other"
+        ]
       },
       "OwnerInfo": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "address": {
             "type": "string",
@@ -2411,7 +2888,12 @@
       "PendingSubmissionListItem": {
         "type": "object",
         "description": "Lightweight list item for admin dashboard",
-        "required": ["id", "plate_number", "status", "submitted_at"],
+        "required": [
+          "id",
+          "plate_number",
+          "status",
+          "submitted_at"
+        ],
         "properties": {
           "agent_name": {
             "type": "string",
@@ -2503,7 +2985,11 @@
       },
       "PoliceStatus": {
         "type": "object",
-        "required": ["status", "is_wanted", "is_stolen"],
+        "required": [
+          "status",
+          "is_wanted",
+          "is_stolen"
+        ],
         "properties": {
           "is_stolen": {
             "type": "boolean"
@@ -2531,7 +3017,13 @@
       "ProvisionUserRequest": {
         "type": "object",
         "description": "Request for POST /admin/users (provisioning)",
-        "required": ["username", "phoneNumber", "fullName", "role", "organizationId"],
+        "required": [
+          "username",
+          "phoneNumber",
+          "fullName",
+          "role",
+          "organizationId"
+        ],
         "properties": {
           "badgeId": {
             "type": "string",
@@ -2559,9 +3051,57 @@
           }
         }
       },
+      "RecentAlertItemDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "plateNumber",
+          "overallStatus",
+          "createdAt",
+          "agentName"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "overallStatus": {
+            "type": "string"
+          },
+          "plateNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "RecentAlertsResponse": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentAlertItemDto"
+            }
+          }
+        }
+      },
       "RefreshChallengeResponse": {
         "type": "object",
-        "required": ["nonce"],
+        "required": [
+          "nonce"
+        ],
         "properties": {
           "nonce": {
             "type": "string"
@@ -2570,7 +3110,10 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": ["refreshToken", "deviceId"],
+        "required": [
+          "refreshToken",
+          "deviceId"
+        ],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -2583,7 +3126,12 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": ["email", "password", "full_name", "role"],
+        "required": [
+          "email",
+          "password",
+          "full_name",
+          "role"
+        ],
         "properties": {
           "email": {
             "type": "string"
@@ -2601,7 +3149,10 @@
       },
       "RequestDailyLoginRequest": {
         "type": "object",
-        "required": ["badgeId", "deviceId"],
+        "required": [
+          "badgeId",
+          "deviceId"
+        ],
         "properties": {
           "badgeId": {
             "type": "string"
@@ -2614,7 +3165,9 @@
       },
       "RequestDailyLoginResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2623,7 +3176,9 @@
       },
       "ResendActivationRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -2633,7 +3188,9 @@
       },
       "ResendActivationResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2642,7 +3199,9 @@
       },
       "RestartSessionRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -2652,7 +3211,9 @@
       },
       "RestartSessionResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2662,7 +3223,10 @@
       "ScanErrorData": {
         "type": "object",
         "description": "Error detail returned inside the scan response envelope.",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -2677,7 +3241,9 @@
       "ScanPlateResponse": {
         "type": "object",
         "description": "Envelope response for `POST /api/v1/scan/plate`.",
-        "required": ["success"],
+        "required": [
+          "success"
+        ],
         "properties": {
           "data": {
             "allOf": [
@@ -2703,7 +3269,12 @@
       "ScanResultData": {
         "type": "object",
         "description": "Successful OCR scan result data.",
-        "required": ["plate", "raw_text", "confidence", "format_valid"],
+        "required": [
+          "plate",
+          "raw_text",
+          "confidence",
+          "format_valid"
+        ],
         "properties": {
           "confidence": {
             "type": "number",
@@ -2727,11 +3298,22 @@
       "Status": {
         "type": "string",
         "description": "Shared status across all partner API responses",
-        "enum": ["valid", "warning", "critical", "pending"]
+        "enum": [
+          "valid",
+          "warning",
+          "critical",
+          "pending"
+        ]
       },
       "StatusResults": {
         "type": "object",
-        "required": ["overall_status", "insurance", "police", "customs", "technical"],
+        "required": [
+          "overall_status",
+          "insurance",
+          "police",
+          "customs",
+          "technical"
+        ],
         "properties": {
           "customs": {
             "$ref": "#/components/schemas/CustomsStatus"
@@ -2775,11 +3357,18 @@
       },
       "SubmissionStatus": {
         "type": "string",
-        "enum": ["pending", "approved", "rejected"]
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
       },
       "TechnicalStatus": {
         "type": "object",
-        "required": ["status", "defects"],
+        "required": [
+          "status",
+          "defects"
+        ],
         "properties": {
           "defects": {
             "type": "array",
@@ -2811,7 +3400,9 @@
       },
       "TerminateSessionRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -2821,21 +3412,69 @@
       },
       "TerminateSessionResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
           }
         }
       },
-      "UpdateLocationRequest": {
+      "TopAgentDto": {
         "type": "object",
-        "required": ["agentId", "latitude", "longitude"],
+        "required": [
+          "agentId",
+          "agentName",
+          "organizationName",
+          "controlsCount",
+          "isOnline"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
             "format": "uuid"
           },
+          "agentName": {
+            "type": "string"
+          },
+          "controlsCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "isOnline": {
+            "type": "boolean"
+          },
+          "organizationName": {
+            "type": "string"
+          }
+        }
+      },
+      "TopAgentsResponse": {
+        "type": "object",
+        "required": [
+          "range",
+          "agents"
+        ],
+        "properties": {
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopAgentDto"
+            }
+          },
+          "range": {
+            "$ref": "#/components/schemas/DashboardRange"
+          }
+        }
+      },
+      "UpdateLocationRequest": {
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "properties": {
           "latitude": {
             "type": "number",
             "format": "double"
@@ -2848,7 +3487,9 @@
       },
       "UpdateLocationResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2904,7 +3545,10 @@
       },
       "UploadResponse": {
         "type": "object",
-        "required": ["message", "submission_id"],
+        "required": [
+          "message",
+          "submission_id"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -2917,7 +3561,15 @@
       "UserProfile": {
         "type": "object",
         "description": "Response for GET /users/me",
-        "required": ["id", "username", "name", "role", "organizationId", "status", "isActive"],
+        "required": [
+          "id",
+          "username",
+          "name",
+          "role",
+          "organizationId",
+          "status",
+          "isActive"
+        ],
         "properties": {
           "avatarInitials": {
             "type": "string",
@@ -2966,15 +3618,29 @@
       },
       "UserRole": {
         "type": "string",
-        "enum": ["admin", "agent", "manager"]
+        "enum": [
+          "admin",
+          "agent",
+          "manager"
+        ]
       },
       "UserStatus": {
         "type": "string",
-        "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
+        "enum": [
+          "PENDING_ACTIVATION",
+          "ACTIVE",
+          "SUSPENDED"
+        ]
       },
       "VehicleInfo": {
         "type": "object",
-        "required": ["brand", "model", "year", "chassis_number", "owner"],
+        "required": [
+          "brand",
+          "model",
+          "year",
+          "chassis_number",
+          "owner"
+        ],
         "properties": {
           "brand": {
             "type": "string"
@@ -3008,7 +3674,9 @@
       },
       "VehicleSearchRequest": {
         "type": "object",
-        "required": ["plate"],
+        "required": [
+          "plate"
+        ],
         "properties": {
           "latitude": {
             "type": "number",
@@ -3027,7 +3695,11 @@
       },
       "VehicleSearchResult": {
         "type": "object",
-        "required": ["plate_number", "vehicle", "status_results"],
+        "required": [
+          "plate_number",
+          "vehicle",
+          "status_results"
+        ],
         "properties": {
           "confidence": {
             "type": "number",
@@ -3055,7 +3727,11 @@
       },
       "VerifyDailyLoginRequest": {
         "type": "object",
-        "required": ["badgeId", "activationCode", "deviceId"],
+        "required": [
+          "badgeId",
+          "activationCode",
+          "deviceId"
+        ],
         "properties": {
           "activationCode": {
             "type": "string"
@@ -3071,7 +3747,10 @@
       },
       "VerifyDailyLoginResponse": {
         "type": "object",
-        "required": ["accessToken", "shiftEnd"],
+        "required": [
+          "accessToken",
+          "shiftEnd"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -3088,7 +3767,11 @@
       },
       "VerifyRefreshRequest": {
         "type": "object",
-        "required": ["refreshToken", "deviceId", "signedNonce"],
+        "required": [
+          "refreshToken",
+          "deviceId",
+          "signedNonce"
+        ],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -3104,7 +3787,9 @@
       },
       "VerifyRefreshResponse": {
         "type": "object",
-        "required": ["accessToken"],
+        "required": [
+          "accessToken"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
