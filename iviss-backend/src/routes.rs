@@ -77,7 +77,10 @@ pub fn assembly(state: AppState) -> Router {
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
+        .route(
+            "/admin/stats",
+            get(crate::handlers::stats::get_dashboard_stats),
+        )
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
@@ -107,7 +110,6 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle_v1),
         )
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route(
             "/stats/activity",
             get(crate::handlers::stats::get_control_activity),
