@@ -13,6 +13,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -41,6 +42,11 @@ export function BackOfficeSidebar() {
       href: '/backoffice/validation',
       icon: FileSearch,
       label: t('backOfficeSidebar.pendingValidation'),
+    },
+    {
+      href: '/backoffice/reports',
+      icon: TrendingUp,
+      label: t('backOfficeSidebar.generateReport'),
     },
   ];
 

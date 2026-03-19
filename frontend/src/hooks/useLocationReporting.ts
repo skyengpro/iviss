@@ -43,7 +43,6 @@ export function useLocationReporting(intervalMs = 30000) {
       updateLocation(
         {
           body: {
-            agentId: user.id,
             latitude: lat,
             longitude: lng,
           },

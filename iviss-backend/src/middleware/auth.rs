@@ -41,7 +41,7 @@ pub async fn require_auth(
     tracing::info!(%method, %path, "auth: start");
 
     // Exclude admin and stats routes from auth for now as requested
-    if path.starts_with("/admin/") || path == "/stats" {
+    if path.starts_with("/admin/") || path == "/stats" || path.starts_with("/stats/") {
         tracing::info!(%method, %path, "auth: skipping auth for admin route");
         return Ok(next.run(request).await);
     }
