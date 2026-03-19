@@ -66,9 +66,7 @@ export default function AdminLogin() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">IVISS</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Back-Office Administration
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Back-Office Administration</p>
         </div>
 
         <Card className="w-full">

@@ -43,11 +43,16 @@ pub async fn get_user_profile(
 )]
 pub async fn update_location(
     State(state): State<Arc<AppState>>,
+    Extension(auth): Extension<AuthenticatedUser>,
     Json(payload): Json<UpdateLocationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    if auth.role != "agent" {
+        return Err(AppError::forbidden("Only agents can update location"));
+    }
+
     crate::queries::location_queries::update_agent_location_query(
         &state.db,
-        payload.agent_id,
+        auth.user_id,
         payload.latitude,
         payload.longitude,
     )

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -29,15 +29,24 @@ import {
   ChevronRight,
   SlidersHorizontal,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 import { useQuery } from '@tanstack/react-query';
 import { mockControlService, ControlStatus } from '@/services/mock/mockControls';
 
 export default function ControlHistory() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [organizationFilter, setOrganizationFilter] = useState('all');
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status === 'alerts') {
+      setStatusFilter('alerts');
+    }
+  }, [searchParams]);
 
   const {
     data: controls = [],
@@ -47,7 +56,10 @@ export default function ControlHistory() {
     queryKey: ['controls', 'all', statusFilter, organizationFilter],
     queryFn: () =>
       mockControlService.getAllControls({
-        status: statusFilter !== 'all' ? (statusFilter as ControlStatus) : undefined,
+        status:
+          statusFilter !== 'all' && statusFilter !== 'alerts'
+            ? (statusFilter as ControlStatus)
+            : undefined,
         organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
       }),
   });
@@ -59,9 +71,14 @@ export default function ControlHistory() {
       control.location.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const validCount = filteredControls.filter((c) => c.status === 'valid').length;
-  const warningCount = filteredControls.filter((c) => c.status === 'warning').length;
-  const criticalCount = filteredControls.filter((c) => c.status === 'critical').length;
+  const statusFilteredControls =
+    statusFilter === 'alerts'
+      ? filteredControls.filter((c) => c.status === 'warning' || c.status === 'critical')
+      : filteredControls;
+
+  const validCount = statusFilteredControls.filter((c) => c.status === 'valid').length;
+  const warningCount = statusFilteredControls.filter((c) => c.status === 'warning').length;
+  const criticalCount = statusFilteredControls.filter((c) => c.status === 'critical').length;
 
   return (
     <BackOfficeLayout
@@ -111,6 +128,7 @@ export default function ControlHistory() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('backOfficeControlHistory.allStatus')}</SelectItem>
+                <SelectItem value="alerts">Alerts</SelectItem>
                 <SelectItem value="valid">{t('backOfficeControlHistory.valid')}</SelectItem>
                 <SelectItem value="warning">{t('backOfficeControlHistory.warning')}</SelectItem>
                 <SelectItem value="critical">{t('backOfficeControlHistory.critical')}</SelectItem>
@@ -146,7 +164,9 @@ export default function ControlHistory() {
         {/* ── Summary pills ── */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {t('backOfficeControlHistory.showingControls', { count: filteredControls.length })}
+            {t('backOfficeControlHistory.showingControls', {
+              count: statusFilteredControls.length,
+            })}
           </p>
           <div className="flex gap-2">
             <StatusBadge variant="valid" size="sm">
@@ -201,8 +221,8 @@ export default function ControlHistory() {
                     ))}
                   </TableRow>
                 ))
-              ) : filteredControls.length > 0 ? (
-                filteredControls.map((control) => (
+              ) : statusFilteredControls.length > 0 ? (
+                statusFilteredControls.map((control) => (
                   <TableRow
                     key={control.id}
                     className="group cursor-pointer border-border/40 transition-colors hover:bg-muted/40"

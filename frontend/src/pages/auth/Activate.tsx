@@ -137,7 +137,6 @@ export default function Activate() {
               <Button type="submit" disabled={!canSubmit} className="w-full h-11">
                 {isLoading ? 'Activating…' : 'Activate'}
               </Button>
-
             </form>
           </CardContent>
         </Card>
