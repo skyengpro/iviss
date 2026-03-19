@@ -253,13 +253,11 @@ impl Config {
     }
 
     /// Check if running in production environment
-
     pub fn is_production(&self) -> bool {
         self.environment == Environment::Production
     }
 
     /// Check if running in local environment
-
     pub fn is_local(&self) -> bool {
         self.environment == Environment::Local
     }

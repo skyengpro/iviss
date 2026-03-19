@@ -23,9 +23,7 @@ pub async fn run_bootstrap_seed(pool: &PgPool, config: &Config) {
             tracing::debug!("Bootstrap: admin already exists — skipping seed");
         }
         Ok(BootstrapResult::Skipped) => {
-            tracing::debug!(
-                "Bootstrap: ADMIN_BOOTSTRAP_* env vars not set — skipping seed"
-            );
+            tracing::debug!("Bootstrap: ADMIN_BOOTSTRAP_* env vars not set — skipping seed");
         }
         Err(e) => {
             tracing::warn!(
@@ -35,8 +33,6 @@ pub async fn run_bootstrap_seed(pool: &PgPool, config: &Config) {
         }
     }
 }
-
-
 
 async fn try_bootstrap(pool: &PgPool, config: &Config) -> anyhow::Result<BootstrapResult> {
     // Skip silently if any env var is missing

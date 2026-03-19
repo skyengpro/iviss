@@ -8,7 +8,7 @@ use crate::dto::auth::{
 };
 use base64::Engine;
 
-use crate::dto::users::{UserProfile, UserStatus, UserRole};
+use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
 use crate::queries::auth_queries;
 use crate::services::jwt_service::JwtService;
@@ -54,7 +54,6 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
         return Err(AppError::bad_request("Email and password are required"));
     }
@@ -62,7 +61,7 @@ pub async fn login(
     let user = auth_queries::find_admin_by_email(&state.db, &payload.email)
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
-    
+
     if user.status != "ACTIVE" {
         tracing::warn!(
             email = %payload.email,
@@ -87,8 +86,7 @@ pub async fn login(
     //    Issue access token
     //    Admins have no device
     //    Admins have no shift — use a far future shift_end (24h from now)
-    let role = user.role.parse::<UserRole>()
-        .unwrap_or(UserRole::Admin);
+    let role = user.role.parse::<UserRole>().unwrap_or(UserRole::Admin);
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -99,17 +97,10 @@ pub async fn login(
     let shift_start = now as usize;
     let shift_end = (now + 86_400) as usize;
 
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem)
-        .map_err(AppError::Internal)?;
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
 
     let access_token = jwt_svc
-        .issue_access_token_with_shift(
-            user.id,
-            Uuid::nil(),
-            role,
-            shift_start,
-            shift_end,
-        )
+        .issue_access_token_with_shift(user.id, Uuid::nil(), role, shift_start, shift_end)
         .map_err(AppError::Internal)?;
 
     // Generate refresh token
@@ -767,7 +758,6 @@ pub async fn request_refresh(
     }
 }
 
-
 async fn request_refresh_agent(
     state: Arc<AppState>,
     payload: RefreshRequest,
@@ -832,22 +822,23 @@ async fn request_refresh_agent(
 
     Ok((
         axum::http::StatusCode::OK,
-        Json(RefreshChallengeResponse { nonce })).into_response()
+        Json(RefreshChallengeResponse { nonce }),
     )
+        .into_response())
 }
 
 async fn request_refresh_admin(
     state: Arc<AppState>,
     refresh_token: String,
 ) -> Result<axum::response::Response, AppError> {
-    // 1. Hash the refresh token
+    // Hash the refresh token
     let token_hash = {
         use sha2::Digest;
         let digest = sha2::Sha256::digest(refresh_token.as_bytes());
         format!("{:x}", digest)
     };
 
-    // 2. Validate refresh token — device_id must be NULL (admin token)
+    //  Validate refresh token — device_id must be NULL (admin token)
     let row = sqlx::query(
         r#"
         SELECT
@@ -879,9 +870,7 @@ async fn request_refresh_admin(
     }
 
     // 4. Only admin/manager can use this flow
-    let role = role_str
-        .parse::<UserRole>()
-        .unwrap_or(UserRole::Admin);
+    let role = role_str.parse::<UserRole>().unwrap_or(UserRole::Admin);
 
     if !matches!(role, UserRole::Admin | UserRole::Manager) {
         return Err(AppError::forbidden("Not authorized for web refresh"));
@@ -896,17 +885,10 @@ async fn request_refresh_admin(
     let shift_start = now as usize;
     let shift_end = (now + 86_400) as usize;
 
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem)
-        .map_err(AppError::Internal)?;
+    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
 
     let access_token = jwt_svc
-        .issue_access_token_with_shift(
-            user_id,
-            Uuid::nil(),
-            role,
-            shift_start,
-            shift_end,
-        )
+        .issue_access_token_with_shift(user_id, Uuid::nil(), role, shift_start, shift_end)
         .map_err(AppError::Internal)?;
 
     tracing::info!(
@@ -917,8 +899,9 @@ async fn request_refresh_admin(
 
     Ok((
         axum::http::StatusCode::OK,
-        Json(serde_json::json!({ "accessToken": access_token }))).into_response()
+        Json(serde_json::json!({ "accessToken": access_token })),
     )
+        .into_response())
 }
 /// Step 2 of the challenge-response refresh flow.
 ///
