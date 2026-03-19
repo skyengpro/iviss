@@ -298,6 +298,61 @@
         ]
       }
     },
+    "/admin/terminate-session": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Terminate all sessions for a user (admin only).",
+        "description": "Revokes all refresh tokens, deactivates all devices, and suspends\nthe user account. The next request from that user will return 401.",
+        "operationId": "terminateSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminateSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Session terminated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/admin/users": {
       "get": {
         "tags": ["admin"],
@@ -1498,6 +1553,242 @@
         ]
       }
     },
+    "/stats/activity": {
+      "get": {
+        "tags": ["stats"],
+        "operationId": "getControlActivity",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/DashboardRange"
+                }
+              ],
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Control activity series retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlActivityResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/stats/activity-feed": {
+      "get": {
+        "tags": ["stats"],
+        "operationId": "getActivityFeed",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity feed retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityFeedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/stats/recent-alerts": {
+      "get": {
+        "tags": ["stats"],
+        "operationId": "getRecentAlerts",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent alerts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentAlertsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/stats/top-agents": {
+      "get": {
+        "tags": ["stats"],
+        "operationId": "getTopAgents",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/DashboardRange"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top agents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopAgentsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/users/location": {
       "post": {
         "tags": ["users"],
@@ -1815,6 +2106,40 @@
           }
         }
       },
+      "ActivityFeedItemDto": {
+        "type": "object",
+        "required": ["id", "plateNumber", "overallStatus", "createdAt", "agentName"],
+        "properties": {
+          "agentName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "overallStatus": {
+            "type": "string"
+          },
+          "plateNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "ActivityFeedResponse": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityFeedItemDto"
+            }
+          }
+        }
+      },
       "AgentLocationDto": {
         "type": "object",
         "required": ["agentId", "agentName", "latitude", "longitude", "lastUpdated"],
@@ -1876,6 +2201,34 @@
           },
           "timestamp": {
             "type": "string"
+          }
+        }
+      },
+      "ControlActivityPoint": {
+        "type": "object",
+        "required": ["label", "count"],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "ControlActivityResponse": {
+        "type": "object",
+        "required": ["range", "series"],
+        "properties": {
+          "range": {
+            "$ref": "#/components/schemas/DashboardRange"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ControlActivityPoint"
+            }
           }
         }
       },
@@ -2048,6 +2401,10 @@
           }
         }
       },
+      "DashboardRange": {
+        "type": "string",
+        "enum": ["24h", "7d", "30d"]
+      },
       "DashboardStats": {
         "type": "object",
         "required": [
@@ -2055,6 +2412,8 @@
           "activeAlerts",
           "totalVehicles",
           "onlineAgents",
+          "pendingSubmissions",
+          "organizationsCount",
           "activity24h",
           "liveAgents"
         ],
@@ -2076,6 +2435,14 @@
             }
           },
           "onlineAgents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "organizationsCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingSubmissions": {
             "type": "integer",
             "format": "int64"
           },
@@ -2120,6 +2487,7 @@
         "type": "string",
         "enum": [
           "UNAUTHORIZED",
+          "FORBIDDEN",
           "DATABASE_ERROR",
           "NOT_FOUND",
           "BAD_REQUEST",
@@ -2450,6 +2818,44 @@
           }
         }
       },
+      "RecentAlertItemDto": {
+        "type": "object",
+        "required": ["id", "plateNumber", "overallStatus", "createdAt", "agentName"],
+        "properties": {
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "overallStatus": {
+            "type": "string"
+          },
+          "plateNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "RecentAlertsResponse": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentAlertItemDto"
+            }
+          }
+        }
+      },
       "RefreshChallengeResponse": {
         "type": "object",
         "required": ["nonce"],
@@ -2681,14 +3087,67 @@
           }
         }
       },
-      "UpdateLocationRequest": {
+      "TerminateSessionRequest": {
         "type": "object",
-        "required": ["agentId", "latitude", "longitude"],
+        "required": ["userId"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "TerminateSessionResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TopAgentDto": {
+        "type": "object",
+        "required": ["agentId", "agentName", "organizationName", "controlsCount", "isOnline"],
         "properties": {
           "agentId": {
             "type": "string",
             "format": "uuid"
           },
+          "agentName": {
+            "type": "string"
+          },
+          "controlsCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "isOnline": {
+            "type": "boolean"
+          },
+          "organizationName": {
+            "type": "string"
+          }
+        }
+      },
+      "TopAgentsResponse": {
+        "type": "object",
+        "required": ["range", "agents"],
+        "properties": {
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopAgentDto"
+            }
+          },
+          "range": {
+            "$ref": "#/components/schemas/DashboardRange"
+          }
+        }
+      },
+      "UpdateLocationRequest": {
+        "type": "object",
+        "required": ["latitude", "longitude"],
+        "properties": {
           "latitude": {
             "type": "number",
             "format": "double"

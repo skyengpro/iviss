@@ -22,7 +22,7 @@ pub async fn get_vehicle_with_owner_by_plate(
             NULL as carte_grise_expiry
         FROM vehicles v
         LEFT JOIN vehicle_owners vo ON v.id = vo.vehicle_id AND vo.is_current_owner = true
-        WHERE v.plate_number = $1 AND v.deleted_at IS NULL AND (vo.deleted_at IS NULL OR vo.deleted_at IS NULL)
+        WHERE REPLACE(v.plate_number, ' ', '') = $1 AND v.deleted_at IS NULL AND (vo.deleted_at IS NULL OR vo.deleted_at IS NULL)
         LIMIT 1
     "#;
 
@@ -69,7 +69,7 @@ pub async fn get_vehicle_status_by_plate(
             vs.last_updated
         FROM vehicle_statuses vs
         JOIN vehicles v ON vs.vehicle_id = v.id
-        WHERE v.plate_number = $1
+        WHERE REPLACE(v.plate_number, ' ', '') = $1
         LIMIT 1
     "#;
 
