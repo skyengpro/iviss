@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -43,6 +44,7 @@ import {
   Trash2,
   Loader2,
   RefreshCw,
+  PowerOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,8 +70,6 @@ import { toast } from 'sonner';
 import { fetchWithAuth } from '@/services/api/backendFetch';
 import {
   resendActivationCode,
-  terminateSession,
-  restartSession,
 } from '@/openapi-rq/requests/services.gen';
 import {
   UserProfile,
@@ -78,14 +78,15 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
-  {
-    admin: 'destructive',
-    supervisor: 'secondary',
-    agent: 'outline',
-  };
+{
+  admin: 'destructive',
+  supervisor: 'secondary',
+  agent: 'outline',
+};
 
 export default function UserManagement() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -161,15 +162,24 @@ export default function UserManagement() {
   const handleTerminateSession = async () => {
     if (!selectedUser) return;
     try {
-      await terminateSession({
-        body: { userId: selectedUser.id },
-        throwOnError: true,
+      const response = await fetchWithAuth('/admin/terminate-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: selectedUser.id }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to terminate session');
+      }
 
       toast.success(t('backOfficeUserManagement.terminateSuccess'));
       setIsTerminateConfirmOpen(false);
       setSelectedUser(null);
+      queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
     } catch (error) {
+      console.error('Termination error:', error);
       toast.error(t('backOfficeUserManagement.terminateError'));
     }
   };
@@ -177,15 +187,24 @@ export default function UserManagement() {
   const handleRestartSession = async () => {
     if (!selectedUser) return;
     try {
-      await restartSession({
-        body: { userId: selectedUser.id },
-        throwOnError: true,
+      const response = await fetchWithAuth('/admin/restart-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: selectedUser.id }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to restart session');
+      }
 
       toast.success(t('backOfficeUserManagement.restartSuccess'));
       setIsRestartConfirmOpen(false);
       setSelectedUser(null);
+      queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
     } catch (error) {
+      console.error('Restart error:', error);
       toast.error(t('backOfficeUserManagement.restartError'));
     }
   };
@@ -455,6 +474,7 @@ export default function UserManagement() {
                   <TableHead>{t('backOfficeUserManagement.role')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.organization')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.status')}</TableHead>
+                  <TableHead>Session</TableHead>
                   <TableHead>{t('backOfficeUserManagement.lastActive')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.controlsToday')}</TableHead>
                   <TableHead className="w-[80px]">
@@ -510,6 +530,21 @@ export default function UserManagement() {
                               : t('backOfficeUserManagement.suspended')}
                         </StatusBadge>
                       </TableCell>
+                      <TableCell>
+                        {user.sessionStatus === 'ACTIVE' ? (
+                          <StatusBadge variant="valid" size="sm">
+                            Active
+                          </StatusBadge>
+                        ) : user.sessionStatus === 'REVOKED' ? (
+                          <StatusBadge variant="destructive" size="sm">
+                            Terminated
+                          </StatusBadge>
+                        ) : (
+                          <StatusBadge variant="neutral" size="sm">
+                            Inactive
+                          </StatusBadge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {t('backOfficeUserManagement.today')}
                       </TableCell>
@@ -555,18 +590,24 @@ export default function UserManagement() {
                                 setIsTerminateConfirmOpen(true);
                               }}
                               className="text-status-warning"
-                              disabled={user.role !== 'agent'}
+                              disabled={user.role !== 'agent' || user.sessionStatus !== 'ACTIVE'}
                             >
-                              <UserX className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.terminateSession')}
+                              <PowerOff className="mr-2 h-4 w-4" />
+                              Terminate Session
                             </DropdownMenuItem>
+
                             <DropdownMenuItem
+                              className="text-emerald-600 focus:text-emerald-600"
                               onClick={() => {
                                 setSelectedUser(user);
                                 setIsRestartConfirmOpen(true);
                               }}
-                              className="text-status-valid"
-                              disabled={user.role !== 'agent'}
+                              disabled={
+                                user.role !== 'agent' ||
+                                user.sessionStatus === 'ACTIVE' ||
+                                user.status === 'PENDING_ACTIVATION' ||
+                                !user.sessionStatus
+                              }
                             >
                               <RefreshCw className="mr-2 h-4 w-4" />
                               {t('backOfficeUserManagement.restartSession')}
