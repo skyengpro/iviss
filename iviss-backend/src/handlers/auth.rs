@@ -68,6 +68,8 @@ pub async fn login(Json(_payload): Json<LoginRequest>) -> Result<impl IntoRespon
                 phone_number: Some("+237 600 000 000".to_string()),
                 avatar_initials: Some("AU".to_string()),
                 status: crate::dto::users::UserStatus::Active,
+                session_status: Some(crate::dto::users::DeviceStatus::Active),
+                last_revoked_at: None,
                 is_active: true,
             },
         }),
@@ -109,6 +111,8 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
                 phone_number: None,
                 avatar_initials: Some("NU".to_string()),
                 status: crate::dto::users::UserStatus::Active,
+                session_status: None,
+                last_revoked_at: None,
                 is_active: true,
             },
         }),
@@ -349,10 +353,26 @@ pub async fn request_daily_login(
     let device_opt =
         auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
-    if let Some(device) = device_opt {
-        if device.status == "SUSPENDED" {
-            return Err(AppError::unauthorized(
-                "Device suspended — contact your administrator",
+    let device = device_opt.ok_or_else(|| {
+        AppError::NotFound("Device is not registered. Please re-activate.".into())
+    })?;
+
+    if device.status == "SUSPENDED" {
+        return Err(AppError::unauthorized(
+            "Device suspended — contact your administrator",
+        ));
+    }
+
+    // Check for administrative termination cooldown (Ariel's feedback)
+    if let Some(revoked_at) = device.revoked_at {
+        // Assume UTC for the stored TIMESTAMP (project convention)
+        let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+        let now = OffsetDateTime::now_utc().to_offset(local_offset);
+        let revoked_local = revoked_at.assume_utc().to_offset(local_offset);
+
+        if revoked_local.date() == now.date() {
+            return Err(AppError::Forbidden(
+                "Session terminated by administrator. Please wait until your next shift (tomorrow at 8:00 AM) to request a new code.".into()
             ));
         }
     }
@@ -510,7 +530,7 @@ pub async fn verify_daily_login(
             FROM devices
             WHERE id = $1
               AND user_id = $2
-              AND revoked_at IS NULL
+              AND deleted_at IS NULL
         )
         "#,
     )
@@ -519,6 +539,10 @@ pub async fn verify_daily_login(
     .fetch_one(&state.db)
     .await
     .map_err(AppError::Database)?;
+
+    if !device_exists {
+        return Err(AppError::NotFound("Device is not registered. Please re-activate.".into()));
+    }
 
     // ── Check if a valid refresh token already exists for this device
     let has_valid_refresh: bool = if device_exists {
@@ -576,15 +600,13 @@ pub async fn verify_daily_login(
         }
 
         None => {
-            if device_exists {
-                auth_queries::mark_device_active(
-                    &state.db,
-                    payload.device_id,
-                    shift_start,
-                    shift_end,
-                )
-                .await?;
-            }
+            auth_queries::mark_device_active(
+                &state.db,
+                payload.device_id,
+                shift_start,
+                shift_end,
+            )
+            .await?;
         }
     }
 

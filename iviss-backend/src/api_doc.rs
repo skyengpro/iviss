@@ -19,7 +19,7 @@ use crate::dto::{
         RecentAlertItemDto, RecentAlertsResponse, TopAgentDto, TopAgentsResponse,
     },
     users::{
-        ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
+        DeviceStatus, ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
         RestartSessionRequest, RestartSessionResponse, TerminateSessionRequest,
         TerminateSessionResponse, UpdateUserRequest, UserProfile, UserRole, UserStatus,
     },
@@ -186,6 +186,7 @@ impl Modify for SecurityAddon {
             Organization,
             OrganizationType,
             crate::handlers::device_management::DeviceActionResponse,
+            DeviceStatus,
         )
     ),
     modifiers(&SecurityAddon),
