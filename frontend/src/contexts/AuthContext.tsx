@@ -42,6 +42,9 @@ function humanizeActivationError(payload: unknown): string | undefined {
   if (!code && !message) return;
 
   if (code === 'NOT_FOUND') {
+    if (message?.toLowerCase().includes('device is not registered')) {
+      return message;
+    }
     return 'Badge number not found. Please check it or contact an administrator.';
   }
 
@@ -72,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear tokens from API client
     applyAuthTokenToApiClient(undefined);
 
-    // Clear local storage
+    // Clear ALL auth tokens from local storage
+    clearAccessToken();
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
 
@@ -82,10 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Session termination only revokes auth state, not device identity.
 
     if (forced) {
-      toast.error('Session Terminated', {
-        description:
-          'Your session has been terminated by an administrator or has expired. Please log in again.',
-      });
+      // Set a flag so the login page can show the toast after the full-page redirect
+      localStorage.setItem('iviss_forced_logout_reason', 'TERMINATED');
       // Force redirect to the daily login flow.
       window.location.href = '/daily-login';
     }
@@ -270,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
       localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      localStorage.setItem('iviss_device_activated', 'true');
 
       // Sync with token manager
       setAccessToken(data.accessToken);
@@ -296,6 +299,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (res.error) {
+        // Handle case where device is deleted from backend but flag exists on frontend
+        const err = res.error as any;
+        if (err && typeof err === 'object' && err.code === 'NOT_FOUND') {
+          localStorage.removeItem('iviss_device_activated');
+        }
         const friendly = humanizeActivationError(res.error);
         return { success: false, error: friendly || 'Failed to request OTP' };
       }
@@ -317,6 +325,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (res.error) {
+        // Handle case where device is deleted from backend but flag exists on frontend
+        const err = res.error as any;
+        if (err && typeof err === 'object' && err.code === 'NOT_FOUND') {
+          localStorage.removeItem('iviss_device_activated');
+        }
         const friendly = humanizeActivationError(res.error);
         return { success: false, error: friendly || 'Verification failed' };
       }
@@ -346,6 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
       localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      localStorage.setItem('iviss_device_activated', 'true');
 
       setAccessToken(data.accessToken);
       setRefreshToken(data.refreshToken);
