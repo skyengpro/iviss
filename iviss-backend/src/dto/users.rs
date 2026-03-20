@@ -73,6 +73,43 @@ pub enum UserStatus {
     Suspended,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DeviceStatus {
+    Pending,
+    Active,
+    Inactive,
+    Revoked,
+    Suspended,
+}
+
+impl DeviceStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Pending => "PENDING",
+            Self::Active => "ACTIVE",
+            Self::Inactive => "INACTIVE",
+            Self::Revoked => "REVOKED",
+            Self::Suspended => "SUSPENDED",
+        }
+    }
+}
+
+impl std::str::FromStr for DeviceStatus {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_uppercase().as_str() {
+            "PENDING" => Self::Pending,
+            "ACTIVE" => Self::Active,
+            "INACTIVE" => Self::Inactive,
+            "REVOKED" => Self::Revoked,
+            "SUSPENDED" => Self::Suspended,
+            _ => Self::Inactive,
+        })
+    }
+}
+
 impl UserStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -111,6 +148,8 @@ pub struct UserProfile {
     pub phone_number: Option<String>,
     pub avatar_initials: Option<String>,
     pub status: UserStatus,
+    pub session_status: Option<DeviceStatus>,
+    pub last_revoked_at: Option<time::PrimitiveDateTime>,
     pub is_active: bool,
 }
 
