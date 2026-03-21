@@ -61,6 +61,10 @@ function humanizeActivationError(payload: unknown): string | undefined {
   return message;
 }
 
+function hasErrorCode(value: unknown): value is { code: unknown } {
+  return typeof value === 'object' && value !== null && 'code' in value;
+}
+
 let isInterceptorRegistered = false;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -300,8 +304,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.error) {
         // Handle case where device is deleted from backend but flag exists on frontend
-        const err = res.error as any;
-        if (err && typeof err === 'object' && err.code === 'NOT_FOUND') {
+        if (hasErrorCode(res.error) && res.error.code === 'NOT_FOUND') {
           localStorage.removeItem('iviss_device_activated');
         }
         const friendly = humanizeActivationError(res.error);
@@ -326,8 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.error) {
         // Handle case where device is deleted from backend but flag exists on frontend
-        const err = res.error as any;
-        if (err && typeof err === 'object' && err.code === 'NOT_FOUND') {
+        if (hasErrorCode(res.error) && res.error.code === 'NOT_FOUND') {
           localStorage.removeItem('iviss_device_activated');
         }
         const friendly = humanizeActivationError(res.error);

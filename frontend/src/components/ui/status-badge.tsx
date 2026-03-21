@@ -9,7 +9,7 @@ const statusBadgeVariants = cva(
       variant: {
         valid: 'bg-status-valid text-status-valid-foreground shadow-sm',
         warning: 'bg-status-warning text-status-warning-foreground shadow-sm',
-        critical: 'bg-status-critical text-status-critical-foreground shadow-sm animate-pulse-glow',
+        critical: 'bg-status-critical text-status-critical-foreground shadow-sm',
         pending: 'bg-status-pending text-status-pending-foreground shadow-sm',
         neutral: 'bg-secondary text-secondary-foreground',
       },

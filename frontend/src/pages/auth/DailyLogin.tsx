@@ -43,7 +43,7 @@ export default function DailyLogin() {
         navigate('/mobile');
       }
     } else {
-      // If we are at the login stage and not authenticated, 
+      // If we are at the login stage and not authenticated,
       // ensure any partial or stale tokens are cleared.
       // Doing this ONLY if not authenticated ensures we don't clear tokens
       // for a user who just successfully logged in and is waiting for the redirect.

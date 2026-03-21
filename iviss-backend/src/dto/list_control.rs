@@ -16,6 +16,27 @@ pub struct ControlListQuery {
     pub plate: Option<String>,
 }
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct ControlPagedQuery {
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub agent_id: Option<Uuid>,
+    pub organization_id: Option<Uuid>,
+    pub status: Option<Status>,
+    pub plate: Option<String>,
+    pub q: Option<String>,
+    pub page: Option<i64>,
+    pub page_size: Option<i64>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PagedControlsResponse {
+    pub items: Vec<ListControlResponse>,
+    pub total: i64,
+    pub page: i64,
+    pub page_size: i64,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ControlLocation {
     pub address: Option<String>,
