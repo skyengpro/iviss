@@ -49,7 +49,7 @@ export default function MobileProfile() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/daily-login');
   };
 
   const displayUser = me || user;
