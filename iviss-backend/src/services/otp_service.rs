@@ -23,7 +23,7 @@ pub(crate) struct OtpEntry {
     attempts: u8,
 }
 
-pub(crate) struct OtpService {
+pub struct OtpService {
     redis: RedisPool,
     sms: Arc<dyn SmsProvider>,
     pepper: String,
