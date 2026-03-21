@@ -1,3 +1,4 @@
+pub mod admin_login_and_refresh_token_tests;
 pub mod daily_login_flow_tests;
 pub mod jwt_service_tests;
 #[cfg(test)]
