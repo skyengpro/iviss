@@ -23,7 +23,12 @@ import { requestRefresh, verifyRefresh } from '@/openapi-rq/requests/services.ge
 // Custom header used to mark a request as a retry to prevent infinite loops
 const RETRY_HEADER = 'X-Auth-Retry';
 
-const REFRESH_PATHS = ['/auth/refresh', '/auth/refresh/verify', '/auth/request-daily-login', '/auth/verify-daily-login'];
+const REFRESH_PATHS = [
+  '/auth/refresh',
+  '/auth/refresh/verify',
+  '/auth/request-daily-login',
+  '/auth/verify-daily-login',
+];
 
 // Module-level promise to track an ongoing refresh operation
 let refreshPromise: Promise<string | null> | null = null;

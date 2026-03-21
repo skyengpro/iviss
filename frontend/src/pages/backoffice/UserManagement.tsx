@@ -68,9 +68,7 @@ import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/services/api/backendFetch';
-import {
-  resendActivationCode,
-} from '@/openapi-rq/requests/services.gen';
+import { resendActivationCode } from '@/openapi-rq/requests/services.gen';
 import {
   UserProfile,
   UpdateUserRequest,
@@ -78,11 +76,11 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 
 const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destructive' | 'outline'> =
-{
-  admin: 'destructive',
-  supervisor: 'secondary',
-  agent: 'outline',
-};
+  {
+    admin: 'destructive',
+    supervisor: 'secondary',
+    agent: 'outline',
+  };
 
 export default function UserManagement() {
   const { t } = useTranslation();

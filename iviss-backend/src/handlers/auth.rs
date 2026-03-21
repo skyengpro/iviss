@@ -541,7 +541,9 @@ pub async fn verify_daily_login(
     .map_err(AppError::Database)?;
 
     if !device_exists {
-        return Err(AppError::NotFound("Device is not registered. Please re-activate.".into()));
+        return Err(AppError::NotFound(
+            "Device is not registered. Please re-activate.".into(),
+        ));
     }
 
     // ── Check if a valid refresh token already exists for this device
@@ -600,13 +602,8 @@ pub async fn verify_daily_login(
         }
 
         None => {
-            auth_queries::mark_device_active(
-                &state.db,
-                payload.device_id,
-                shift_start,
-                shift_end,
-            )
-            .await?;
+            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
+                .await?;
         }
     }
 

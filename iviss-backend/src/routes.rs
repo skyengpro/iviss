@@ -83,10 +83,7 @@ pub fn assembly(state: AppState) -> Router {
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
-        .route(
-            "/admin/controls/paged",
-            get(get_list_control_paged),
-        );
+        .route("/admin/controls/paged", get(get_list_control_paged));
 
     let protected_routes = Router::new()
         .route(

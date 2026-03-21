@@ -106,10 +106,7 @@ pub async fn get_list_control_paged(
     let page_size = query.page_size.unwrap_or(10).clamp(1, 100);
 
     let (items, total) = crate::queries::control_queries::get_paged_control_records(
-        &state.db,
-        &query,
-        page,
-        page_size,
+        &state.db, &query, page, page_size,
     )
     .await?;
 
