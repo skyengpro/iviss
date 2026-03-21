@@ -11,8 +11,6 @@ use base64::Engine;
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
 use crate::queries::auth_queries;
-use crate::services::jwt_service::JwtService;
-use crate::services::otp_service::OtpService;
 use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use rand::RngCore;
@@ -97,7 +95,7 @@ pub async fn login(
     let shift_start = now as usize;
     let shift_end = (now + 86_400) as usize;
 
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let jwt_svc = &state.jwt_svc;
 
     let access_token = jwt_svc
         .issue_access_token_with_shift(user.id, Uuid::nil(), role, shift_start, shift_end)
@@ -285,11 +283,7 @@ pub async fn activate(
         )));
     }
 
-    let otp_svc = OtpService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
+    let otp_svc = &state.otp_svc;
     otp_svc
         .validate_otp(&user_id, &payload.activation_code)
         .await
@@ -381,7 +375,7 @@ pub async fn activate(
 
     let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
 
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let jwt_svc = &state.jwt_svc;
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             user_id,
@@ -450,11 +444,7 @@ pub async fn request_daily_login(
         }
     }
 
-    let otp_svc = OtpService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
+    let otp_svc = &state.otp_svc;
 
     otp_svc.request_otp(&user.id, &user.phone_number).await?;
 
@@ -548,11 +538,7 @@ pub async fn verify_daily_login(
     }
 
     // ── Validate OTP
-    let otp_svc = crate::services::otp_service::OtpService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
+    let otp_svc = &state.otp_svc;
     otp_svc
         .validate_otp(&user_id, &payload.activation_code)
         .await?;
@@ -580,7 +566,7 @@ pub async fn verify_daily_login(
             .unix_timestamp();
 
     // ── Issue access token (15 min, carries today's static shift bounds) ──────
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let jwt_svc = &state.jwt_svc;
 
     let role = user_role
         .parse::<crate::dto::users::UserRole>()
@@ -762,7 +748,9 @@ async fn request_refresh_agent(
     state: Arc<AppState>,
     payload: RefreshRequest,
 ) -> Result<axum::response::Response, AppError> {
-    let device_id = payload.device_id.unwrap();
+    let device_id = payload
+        .device_id
+        .ok_or(AppError::bad_request("device_id is required"))?;
     // Hash the incoming refresh token to match against DB
     let token_hash = {
         use sha2::Digest;
@@ -838,7 +826,7 @@ async fn request_refresh_admin(
         format!("{:x}", digest)
     };
 
-    //  Validate refresh token — device_id must be NULL (admin token)
+    // Validate refresh token — device_id must be NULL (admin token)
     let row = sqlx::query(
         r#"
         SELECT
@@ -861,22 +849,19 @@ async fn request_refresh_admin(
     .ok_or_else(|| AppError::Unauthorized("Invalid or expired refresh token".into()))?;
 
     let user_id: Uuid = row.get("user_id");
-    let role_str: String = row.get("role");
-    let status: String = row.get("status");
+    let role: UserRole = row.get("role");
+    let status: UserStatus = row.get("status");
 
-    // 3. Check account still active
-    if status != "ACTIVE" {
+    // Check account still active
+    if status != UserStatus::Active {
         return Err(AppError::Unauthorized("Account is not active".into()));
     }
-
-    // 4. Only admin/manager can use this flow
-    let role = role_str.parse::<UserRole>().unwrap_or(UserRole::Admin);
 
     if !matches!(role, UserRole::Admin | UserRole::Manager) {
         return Err(AppError::forbidden("Not authorized for web refresh"));
     }
 
-    // 5. Issue new access token — same sentinel values as login
+    // Issue new access token
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| AppError::internal_error("System time error"))?
@@ -885,7 +870,7 @@ async fn request_refresh_admin(
     let shift_start = now as usize;
     let shift_end = (now + 86_400) as usize;
 
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let jwt_svc = &state.jwt_svc;
 
     let access_token = jwt_svc
         .issue_access_token_with_shift(user_id, Uuid::nil(), role, shift_start, shift_end)
@@ -893,7 +878,7 @@ async fn request_refresh_admin(
 
     tracing::info!(
         %user_id,
-        role = %role_str,
+        role = %role.as_str(),
         "admin refresh: new access token issued"
     );
 
@@ -903,6 +888,7 @@ async fn request_refresh_admin(
     )
         .into_response())
 }
+
 /// Step 2 of the challenge-response refresh flow.
 ///
 /// Verifies the signed nonce against the device's registered public key,
@@ -1029,7 +1015,7 @@ pub async fn verify_refresh(
 
     // 5. Issue a new access token
     let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
-    let jwt_svc = JwtService::new(&state.jwt_private_key_pem).map_err(AppError::Internal)?;
+    let jwt_svc = &state.jwt_svc;
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             user_id,
