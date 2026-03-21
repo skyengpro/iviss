@@ -27,23 +27,10 @@ async function generateTestKeyPair() {
 describe('signatureService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Ensure WebCrypto is available for jose in Node test runtime
-    // In some Node versions / CI runtimes, globalThis.crypto is defined as a read-only getter.
-    // Only polyfill when missing.
-    const hasUsableSubtle =
-      !!globalThis.crypto &&
-      !!globalThis.crypto.subtle &&
-      typeof globalThis.crypto.subtle.importKey === 'function';
-
-    if (!hasUsableSubtle) {
-      const desc = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
-      if (!desc || desc.configurable) {
-        Object.defineProperty(globalThis, 'crypto', {
-          value: webcrypto as unknown as Crypto,
-          configurable: true,
-        });
-      }
-    }
+    // Ensure WebCrypto is available for jose in Node test runtime.
+    // Node exposes `crypto` as a read-only getter in this environment, so use
+    // Vitest's global stubbing helper instead of direct assignment.
+    vi.stubGlobal('crypto', webcrypto as unknown as Crypto);
   });
 
   describe('signNonce', () => {

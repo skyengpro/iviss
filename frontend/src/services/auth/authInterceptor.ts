@@ -23,7 +23,7 @@ import { requestRefresh, verifyRefresh } from '@/openapi-rq/requests/services.ge
 // Custom header used to mark a request as a retry to prevent infinite loops
 const RETRY_HEADER = 'X-Auth-Retry';
 
-const REFRESH_PATHS = ['/auth/refresh', '/auth/refresh/verify'];
+const REFRESH_PATHS = ['/auth/refresh', '/auth/refresh/verify', '/auth/request-daily-login', '/auth/verify-daily-login'];
 
 // Module-level promise to track an ongoing refresh operation
 let refreshPromise: Promise<string | null> | null = null;
@@ -172,6 +172,14 @@ export function setupAuthInterceptors(
 ): void {
   // --- Request Interceptor: Attach Bearer token ---
   client.interceptors.request.use(async (request: Request) => {
+    // Preserve an explicit Authorization header set by the caller.
+    // This is important for flows that already have a freshly issued token
+    // before the shared token store is updated.
+    const existingAuth = request.headers.get('Authorization');
+    if (existingAuth) {
+      return request;
+    }
+
     const token = getAccessToken();
     if (token) {
       // Clone the request to add the Authorization header

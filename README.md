@@ -1,5 +1,7 @@
-# IVISS 
+# IVISS
+
 ## Table of Contents
+
 - [Project Overview](#project-overview)
 - [Features](#features)
 - [Architecture](#architecture)
@@ -47,6 +49,7 @@ IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-
 ## Technologies
 
 ### Frontend
+
 - React: A JavaScript library for building user interfaces.
 - TypeScript: A typed superset of JavaScript that compiles to plain JavaScript.
 - Vite: A fast build tool for modern web projects.
@@ -58,6 +61,7 @@ IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-
 - react-webcam: React component for accessing and displaying webcam streams.
 
 ### Backend
+
 - Rust: A systems programming language focused on safety, speed, and concurrency.
 - Axum (Web framework): A web application framework built with Tokio, Tower, and Hyper.
 - Tokio (Async runtime): An asynchronous runtime for Rust.
@@ -65,6 +69,7 @@ IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-
 - Tower-HTTP (Middleware): A collection of HTTP middleware for Tower.
 
 ### Database
+
 - PostgreSQL 9.4 (via Docker): A powerful, open-source object-relational database system.
 
 ---
@@ -140,38 +145,44 @@ hostname -I | awk '{print $1}'
 ### Test from Mobile Device
 
 **Requirements:**
+
 - Mobile device on the **same WiFi network** as development machine
 - Backend services running (`docker compose ps` shows both services Up)
 
 **Steps:**
 
 1. **Get your local IP address:**
+
    ```bash
    hostname -I | awk '{print $1}'
    # Example output: 192.168.1.233
    ```
 
 2. **Test from mobile browser:**
+
    ```
    http://YOUR_IP:3000/health
    ```
-   
+
    You should see "OK" response.
 
 3. **Configure frontend for mobile:**
-   
+
    Update `frontend/.env`:
+
    ```env
    VITE_API_URL=http://YOUR_IP:3000
    ```
-   
+
    Then rebuild frontend:
+
    ```bash
    cd frontend
    npm run build
    ```
 
 **Expected Results:**
+
 - ✅ Mobile browser can access `http://YOUR_IP:3000/health`
 - ✅ Backend logs show incoming requests: `INFO Request: GET /health`
 - ❌ **If you get connection timeout:** Check firewall or ensure devices are on same network
@@ -190,6 +201,7 @@ The backend uses **cargo-watch** for automatic recompilation on code changes:
 4. Changes automatically trigger recompilation and restart
 
 **Example:**
+
 ```bash
 # In one terminal
 docker compose logs -f backend
@@ -263,4 +275,3 @@ For internal contributions, please coordinate with the project lead. All changes
 ## License
 
 This project is proprietary and all rights are reserved.
-
