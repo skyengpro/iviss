@@ -264,10 +264,7 @@ pub async fn get_paged_control_records(
     let page_size = page_size.clamp(1, 100);
     let offset = (page - 1) * page_size;
 
-    fn apply_filters(
-        qb: &mut QueryBuilder<Postgres>,
-        query: &ControlPagedQuery,
-    ) {
+    fn apply_filters(qb: &mut QueryBuilder<Postgres>, query: &ControlPagedQuery) {
         if let Some(start) = query.start_date.as_ref() {
             qb.push(" AND c.timestamp >= ");
             qb.push_bind(start.clone()).push("::timestamp");

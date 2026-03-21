@@ -85,13 +85,7 @@ export default function ControlHistory() {
     return;
   }, [statusFilter]);
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: [
       'controls-paged',
       page,
@@ -213,7 +207,9 @@ export default function ControlHistory() {
                   ) : null}
                   {selectedControl ? (
                     <span className="text-muted-foreground">
-                      • {orgNameById.get(selectedControl.organization_id) ?? selectedControl.organization_id}
+                      •{' '}
+                      {orgNameById.get(selectedControl.organization_id) ??
+                        selectedControl.organization_id}
                     </span>
                   ) : null}
                 </DialogDescription>
@@ -264,7 +260,9 @@ export default function ControlHistory() {
                         <span className="text-muted-foreground">Lat / Lng</span>
                         <span className="font-medium">
                           {selectedControl.location?.latitude ?? '—'}
-                          {selectedControl.location?.longitude ? `, ${selectedControl.location.longitude}` : ''}
+                          {selectedControl.location?.longitude
+                            ? `, ${selectedControl.location.longitude}`
+                            : ''}
                         </span>
                       </div>
                     </div>
@@ -306,7 +304,10 @@ export default function ControlHistory() {
                           Technical
                         </p>
                         <div className="mt-2">
-                          <StatusBadge variant={selectedControl.results.technical_inspection} size="sm">
+                          <StatusBadge
+                            variant={selectedControl.results.technical_inspection}
+                            size="sm"
+                          >
                             {selectedControl.results.technical_inspection}
                           </StatusBadge>
                         </div>
@@ -439,9 +440,7 @@ export default function ControlHistory() {
             {t('backOfficeControlHistory.showingControls', {
               count: total,
             })}
-            {total > 0 ? (
-              <span className="ml-2">{`${showingFrom}-${showingTo}`}</span>
-            ) : null}
+            {total > 0 ? <span className="ml-2">{`${showingFrom}-${showingTo}`}</span> : null}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
