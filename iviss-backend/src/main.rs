@@ -1,3 +1,4 @@
+use anyhow::Context;
 use iviss_backend::api_doc::ApiDoc;
 use iviss_backend::app_state::AppState;
 use iviss_backend::config::Config;
@@ -5,8 +6,6 @@ use iviss_backend::db::initialize_pool;
 use iviss_backend::db::initialize_redis_pool;
 use iviss_backend::routes;
 use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
-
-use anyhow::Context;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
@@ -33,10 +32,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let sms_provider: Arc<dyn SmsProvider> = if !config.twilio_account_sid.is_empty()
-        && !config.twilio_auth_token.is_empty()
-        && !config.twilio_from_number.is_empty()
-    {
+    let sms_provider: Arc<dyn SmsProvider> = if !config.use_mock_sms() {
         info!("Using Twilio SMS provider");
         Arc::new(TwilioSmsProvider::new(
             config.twilio_account_sid.clone(),

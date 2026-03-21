@@ -172,7 +172,7 @@
                 ]
             }
         },
-        "/admin/resend-activation": {
+        "/admin/resend-activation-code": {
             "post": {
                 "tags": [
                     "admin"
@@ -221,6 +221,62 @@
                         }
                     }
                 }
+            }
+        },
+        "/admin/restart-session": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Restarts/Extends a session for an agent",
+                "operationId": "restartSession",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RestartSessionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Session restarted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RestartSessionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
             }
         },
         "/admin/submissions": {
@@ -2769,6 +2825,16 @@
                     }
                 }
             },
+            "DeviceStatus": {
+                "type": "string",
+                "enum": [
+                    "PENDING",
+                    "ACTIVE",
+                    "INACTIVE",
+                    "REVOKED",
+                    "SUSPENDED"
+                ]
+            },
             "ErrorCode": {
                 "type": "string",
                 "enum": [
@@ -3296,16 +3362,39 @@
             "ResendActivationRequest": {
                 "type": "object",
                 "required": [
-                    "user_id"
+                    "userId"
                 ],
                 "properties": {
-                    "user_id": {
+                    "userId": {
                         "type": "string",
                         "format": "uuid"
                     }
                 }
             },
             "ResendActivationResponse": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RestartSessionRequest": {
+                "type": "object",
+                "required": [
+                    "userId"
+                ],
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                }
+            },
+            "RestartSessionResponse": {
                 "type": "object",
                 "required": [
                     "message"
@@ -3686,6 +3775,11 @@
                     "isActive": {
                         "type": "boolean"
                     },
+                    "lastRevokedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -3703,6 +3797,14 @@
                     },
                     "role": {
                         "$ref": "#/components/schemas/UserRole"
+                    },
+                    "sessionStatus": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DeviceStatus"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "status": {
                         "$ref": "#/components/schemas/UserStatus"

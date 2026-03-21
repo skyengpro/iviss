@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, Building2 } from 'lucide-react';
+import { Building2, ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getDeviceId } from '@/services/device/deviceId';
+import { clearTokens } from '@/services/auth/tokenManager';
 
 export default function DailyLogin() {
   const navigate = useNavigate();
@@ -23,6 +25,16 @@ export default function DailyLogin() {
   const canVerify = !!badgeId.trim() && activationCode.trim().length === 6 && !isLoading;
 
   useEffect(() => {
+    // Check if we were redirected here due to a forced logout (admin termination)
+    const forcedReason = localStorage.getItem('iviss_forced_logout_reason');
+    if (forcedReason === 'TERMINATED') {
+      toast.error('Session Terminated', {
+        description: 'Your session was ended by an administrator or has expired.',
+        duration: 6000,
+      });
+      localStorage.removeItem('iviss_forced_logout_reason');
+    }
+
     // Redirect if already authenticated and shift is active
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
@@ -30,8 +42,16 @@ export default function DailyLogin() {
       } else {
         navigate('/mobile');
       }
+    } else {
+      // If we are at the login stage and not authenticated, 
+      // ensure any partial or stale tokens are cleared.
+      // Doing this ONLY if not authenticated ensures we don't clear tokens
+      // for a user who just successfully logged in and is waiting for the redirect.
+      if (!isAuthenticated && !isLoading) {
+        clearTokens();
+      }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, isLoading]);
 
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +67,10 @@ export default function DailyLogin() {
       const result = await dailyLoginRequest({ badgeId: badgeId.trim() });
       if (!result.success) {
         setError(result.error || 'Failed to request OTP');
+        // If the context cleared the device flag (e.g., deleted device), redirect to activation
+        if (localStorage.getItem('iviss_device_activated') !== 'true') {
+          setTimeout(() => navigate('/activate'), 2500);
+        }
       } else {
         setStep('VERIFY');
       }
@@ -82,6 +106,10 @@ export default function DailyLogin() {
 
       if (!result.success) {
         setError(result.error || 'Verification failed');
+        // If the context cleared the device flag (e.g., deleted device), redirect to activation
+        if (localStorage.getItem('iviss_device_activated') !== 'true') {
+          setTimeout(() => navigate('/activate'), 2500);
+        }
       }
       // Navigation is handled by the useEffect above triggered by auth state change
     } catch (err) {
