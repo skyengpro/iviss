@@ -19,8 +19,9 @@ use crate::dto::{
         RecentAlertItemDto, RecentAlertsResponse, TopAgentDto, TopAgentsResponse,
     },
     users::{
-        ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, UpdateUserRequest,
-        UserProfile, UserRole, UserStatus,
+        DeviceStatus, ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
+        RestartSessionRequest, RestartSessionResponse, TerminateSessionRequest,
+        TerminateSessionResponse, UpdateUserRequest, UserProfile, UserRole, UserStatus,
     },
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
@@ -101,6 +102,7 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::delete_user,
         crate::handlers::user_management::list_organizations,
         crate::handlers::user_management::terminate_session,
+        crate::handlers::user_management::restart_session,
     ),
 
     components(
@@ -176,12 +178,15 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::VerifyRefreshResponse,
             ProvisionUserRequest,
             UpdateUserRequest,
-            crate::handlers::user_management::TerminateSessionRequest,
-            crate::handlers::user_management::TerminateSessionResponse,
+            TerminateSessionRequest,
+            TerminateSessionResponse,
+            RestartSessionRequest,
+            RestartSessionResponse,
             UserStatus,
             Organization,
             OrganizationType,
             crate::handlers::device_management::DeviceActionResponse,
+            DeviceStatus,
         )
     ),
     modifiers(&SecurityAddon),

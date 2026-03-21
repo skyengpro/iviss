@@ -20,8 +20,31 @@ export async function fetchWithAuth(input: string, init?: RequestInit): Promise<
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...init,
     headers,
   });
+
+  if (!response.ok) {
+    let isSessionRevoked = false;
+    if (response.status === 401) {
+      isSessionRevoked = true;
+    } else {
+      try {
+        const cloned = response.clone();
+        const body = await cloned.json();
+        if (body && typeof body === 'object' && body.code === 'SESSION_REVOKED') {
+          isSessionRevoked = true;
+        }
+      } catch {
+        // Not JSON or other error
+      }
+    }
+
+    if (isSessionRevoked) {
+      window.dispatchEvent(new CustomEvent('iviss:session-revoked'));
+    }
+  }
+
+  return response;
 }
