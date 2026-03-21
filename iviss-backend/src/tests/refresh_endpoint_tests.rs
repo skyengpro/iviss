@@ -202,8 +202,8 @@ async fn setup_test_infrastructure() -> (
         shift_start_hour: 8,
         shift_end_hour: 18,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
-        admin_bootstrap_password: Some("password".to_string()),
-        admin_bootstrap_phone: Some("+237600000000".to_string()),
+        admin_bootstrap_password: Some("admin123".to_string()),
+        admin_bootstrap_phone: Some("+1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
     };
 

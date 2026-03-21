@@ -86,13 +86,12 @@ async fn setup_test_app() -> (
         twilio_auth_token: "mock".into(),
         twilio_from_number: "mock".into(),
         activation_code_pepper: TEST_PEPPER.to_string(),
-        // Use 24-hour shift to avoid middleware blocking tests
-        shift_start_hour: 0,
-        shift_end_hour: 24,
-        admin_bootstrap_email: Some("admin@example.com".into()),
-        admin_bootstrap_password: Some("password".into()),
-        admin_bootstrap_phone: Some("+1234567890".into()),
-        admin_bootstrap_username: Some("admin".into()),
+        shift_start_hour: 8,
+        shift_end_hour: 18,
+        admin_bootstrap_email: Some("admin@example.com".to_string()),
+        admin_bootstrap_password: Some("admin123".to_string()),
+        admin_bootstrap_phone: Some("+1234567890".to_string()),
+        admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
