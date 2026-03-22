@@ -60,10 +60,10 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
 
-    if user.status != "ACTIVE" {
+    if user.status != UserStatus::Active {
         tracing::warn!(
             email = %payload.email,
-            status = %user.status,
+            status = %user.status.as_str(),
             "login: rejected — account not active"
         );
         return Err(AppError::unauthorized("Account is not active"));
@@ -84,7 +84,9 @@ pub async fn login(
     //    Issue access token
     //    Admins have no device
     //    Admins have no shift — use a far future shift_end (24h from now)
-    let role = user.role.parse::<UserRole>().unwrap_or(UserRole::Admin);
+    if user.role != UserRole::Admin && user.role != UserRole::Manager {
+        return Err(AppError::unauthorized("Invalid credentials"));
+    }
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -98,7 +100,7 @@ pub async fn login(
     let jwt_svc = &state.jwt_svc;
 
     let access_token = jwt_svc
-        .issue_access_token_with_shift(user.id, Uuid::nil(), role, shift_start, shift_end)
+        .issue_access_token_with_shift(user.id, Uuid::nil(), user.role, shift_start, shift_end)
         .map_err(AppError::Internal)?;
 
     // Generate refresh token
@@ -130,13 +132,13 @@ pub async fn login(
     .await
     .map_err(AppError::Database)?;
 
-    // 8. Build user profile — admin has no org
+    // Build user profile
     let user_profile = UserProfile {
         id: user.id,
         username: user.username.clone(),
         name: user.full_name.clone(),
         email: Some(user.email.clone()),
-        role,
+        role: user.role,
         organization_id: user.organization_id,
         organization: None,
         badge_id: None,
@@ -149,7 +151,7 @@ pub async fn login(
     tracing::info!(
         user_id = %user.id,
         email = %user.email,
-        role = %user.role,
+        role = %user.role.as_str(),
         "login: success"
     );
 
@@ -254,8 +256,8 @@ pub async fn activate(
     let user_row = sqlx::query(
         r#"
         SELECT id,
-               role::TEXT AS role,
-               status::TEXT AS status
+               role,
+               status
         FROM users
         WHERE badge_id = $1
         AND deleted_at IS NULL
@@ -491,8 +493,8 @@ pub async fn verify_daily_login(
         r#"
         SELECT
             u.id              AS user_id,
-            u.role::TEXT      AS user_role,
-            u.status::TEXT    AS user_status,
+            u.role            AS user_role,
+            u.status          AS user_status,
             COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
         FROM users u
         LEFT JOIN devices d
@@ -831,8 +833,8 @@ async fn request_refresh_admin(
         r#"
         SELECT
             rt.user_id,
-            u.role::TEXT AS role,
-            u.status::TEXT AS status
+            u.role AS role,
+            u.status AS status
         FROM refresh_tokens rt
         JOIN users u ON u.id = rt.user_id
         WHERE rt.token_hash = $1

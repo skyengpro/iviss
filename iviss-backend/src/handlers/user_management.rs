@@ -8,6 +8,7 @@ use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
+use crate::dto::users::{UserRole, UserStatus};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -250,8 +251,8 @@ pub async fn resend_activation_code(
         r#"
         SELECT id,
                phone_number,
-               role::TEXT AS role,
-               status::TEXT AS status
+               role,
+               status
         FROM users
         WHERE id = $1
         AND deleted_at IS NULL
@@ -265,21 +266,21 @@ pub async fn resend_activation_code(
 
     let user_id: Uuid = user_raw.get("id");
     let phone_number: String = user_raw.get("phone_number");
-    let role: String = user_raw.get("role");
-    let status: String = user_raw.get("status");
+    let role: UserRole = user_raw.get("role");
+    let status: UserStatus = user_raw.get("status");
 
     // Only agents can receive an activation code
-    if role != "agent" {
+    if role != UserRole::Agent {
         return Err(AppError::BadRequest(
             "Activation is only available for agents".into(),
         ));
     }
 
     // Agent must be in PENDING_ACTIVATION status
-    if status != "PENDING_ACTIVATION" {
+    if status != UserStatus::PendingActivation {
         return Err(AppError::BadRequest(format!(
             "User is not pending activation — current status: {}",
-            status
+            status.as_str()
         )));
     }
 

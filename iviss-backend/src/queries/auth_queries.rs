@@ -4,6 +4,7 @@ use deadpool_redis::redis::AsyncCommands;
 use sqlx::FromRow;
 use sqlx::PgPool;
 use uuid::Uuid;
+use crate::dto::users::{UserStatus, UserRole};
 
 #[derive(Debug, FromRow)]
 pub struct AuthValidationContext {
@@ -17,8 +18,8 @@ pub struct AuthValidationContext {
 pub struct AdminAuthRow {
     pub id: Uuid,
     pub password_hash: String,
-    pub role: String,
-    pub status: String,
+    pub role: UserRole,
+    pub status: UserStatus,
     pub organization_id: Option<Uuid>,
     pub full_name: String,
     pub email: String,
@@ -229,8 +230,8 @@ pub async fn find_admin_by_email(
         SELECT 
             id,
             password_hash,
-            role::TEXT AS role,
-            status::TEXT AS status,
+            role,
+            status,
             organization_id,
             full_name,
             email,
