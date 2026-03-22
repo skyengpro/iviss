@@ -10,12 +10,12 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
             u.id, 
             u.full_name, 
             u.email, 
-            u.role::TEXT as role, 
+            u.role, 
             u.organization_id, 
             o.name as organization_name,
             u.badge_id,
             u.phone_number,
-            u.status::TEXT as status,
+            u.status,
             u.username
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
@@ -28,19 +28,8 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     .map_err(AppError::database)?
     .ok_or_else(|| AppError::not_found("User not found"))?;
 
-    let role_str: String = row.get("role");
-    let role = role_str.parse::<UserRole>().map_err(|_| {
-        tracing::error!(role = %role_str, "Unknown role in DB");
-        AppError::internal_error("Invalid user role in database")
-    })?;
-
-    let status_str: String = row.get("status");
-    let status = status_str
-        .parse::<crate::dto::users::UserStatus>()
-        .map_err(|_| {
-            tracing::error!(status = %status_str, "Unknown status in DB");
-            AppError::internal_error("Invalid user status in database")
-        })?;
+    let role: UserRole = row.get("role");
+    let status: UserStatus = row.get("status");
 
     Ok(UserProfile {
         id: row.get("id"),
@@ -53,7 +42,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
         badge_id: row.get("badge_id"),
         phone_number: row.get("phone_number"),
         avatar_initials: None, // Derived field maybe?
-        is_active: status_str == "ACTIVE",
+        is_active: status == UserStatus::Active,
         status,
     })
 }
@@ -104,12 +93,12 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.id, 
             u.full_name, 
             u.email, 
-            u.role::TEXT as role, 
+            u.role, 
             u.organization_id, 
             o.name as organization_name,
             u.badge_id,
             u.phone_number,
-            u.status::TEXT as status,
+            u.status,
             u.username
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
