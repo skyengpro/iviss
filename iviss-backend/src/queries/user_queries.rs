@@ -104,12 +104,12 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.id, 
             u.full_name, 
             u.email, 
-            u.role::TEXT as role, 
+            u.role as role, 
             u.organization_id, 
             o.name as organization_name,
             u.badge_id,
             u.phone_number,
-            u.status::TEXT as status,
+            u.status as status,
             u.username
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id

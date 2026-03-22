@@ -12,7 +12,7 @@ pub struct ResendActivationResponse {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum UserRole {
