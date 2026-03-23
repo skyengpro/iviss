@@ -12,14 +12,17 @@ This guide explains how to run the application using Docker Compose.
 The `docker-compose.yml` file is configured for local development by default, with hot-reloading enabled for both Frontend and Backend.
 
 **Start the stack:**
+
 ```bash
 docker compose up --build
 ```
+
 - **Frontend**: http://localhost:8080
 - **Backend**: http://localhost:3000
 - **Database**: Port 5432
 
 **Features:**
+
 - **Hot Reloading**: Source code changes are reflected immediately.
 - **Data Persistence**: Database data is stored in the `postgres_data` volume.
 

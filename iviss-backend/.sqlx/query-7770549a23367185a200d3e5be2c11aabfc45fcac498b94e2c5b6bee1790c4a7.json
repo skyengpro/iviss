@@ -20,11 +20,7 @@
           "Custom": {
             "name": "user_role",
             "kind": {
-              "Enum": [
-                "admin",
-                "manager",
-                "agent"
-              ]
+              "Enum": ["admin", "manager", "agent"]
             }
           }
         }
@@ -36,27 +32,16 @@
           "Custom": {
             "name": "user_status",
             "kind": {
-              "Enum": [
-                "PENDING_ACTIVATION",
-                "ACTIVE",
-                "SUSPENDED"
-              ]
+              "Enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
             }
           }
         }
       }
     ],
     "parameters": {
-      "Left": [
-        "Uuid"
-      ]
+      "Left": ["Uuid"]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false
-    ]
+    "nullable": [false, false, false, false]
   },
   "hash": "7770549a23367185a200d3e5be2c11aabfc45fcac498b94e2c5b6bee1790c4a7"
 }

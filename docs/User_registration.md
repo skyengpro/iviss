@@ -5,6 +5,7 @@
 IVISS implements a **passwordless authentication architecture** designed for government-grade security. The system ensures that every agent is verified through physical device identity, SMS-based multi-factor verification, and shift-based operational controls.
 
 ### 1.1 Core Security Principles
+
 - **Admin-Controlled Provisioning**: No self-registration; all users are provisioned by a central authority.
 - **SMS-Based Activation**: Initial identity verification via out-of-band communication.
 - **Device Cryptographic Identity**: Persistent binding of accounts to specific hardware via Ed25519 keypairs.
@@ -20,13 +21,13 @@ IVISS implements a **passwordless authentication architecture** designed for gov
 
 ### 2.1 Security Layers
 
-| Layer | Responsibility |
-|:--- |:--- |
-| **TLS (HTTPS)** | Transport layer security and data integrity. |
-| **JWT** | Secure identity and granular authorization claims. |
-| **Device Keypair** | Device-level cryptographic proof of possession. |
-| **Daily OTP** | Per-shift operational enforcement. |
-| **Admin Revocation** | Centralized authority over all active sessions. |
+| Layer                | Responsibility                                     |
+| :------------------- | :------------------------------------------------- |
+| **TLS (HTTPS)**      | Transport layer security and data integrity.       |
+| **JWT**              | Secure identity and granular authorization claims. |
+| **Device Keypair**   | Device-level cryptographic proof of possession.    |
+| **Daily OTP**        | Per-shift operational enforcement.                 |
+| **Admin Revocation** | Centralized authority over all active sessions.    |
 
 ### 2.2 System Components
 
@@ -39,26 +40,32 @@ IVISS implements a **passwordless authentication architecture** designed for gov
 ## 3. User Registration Flow
 
 ### 3.1 Purpose
+
 The registration flow ensures a government agent is securely provisioned, their physical device is cryptographically bound to their account, and initial secure tokens are issued.
 
 ### 3.2 Step-by-Step Flow
 
 #### Step 1 — Admin Provisioning
+
 - An Administrator enters the agent's phone number, role, and organization.
 - Backend creates the user record with status `PENDING_ACTIVATION`.
 - Backend generates an activation code (hashed and stored securely).
 - An SMS is dispatched to the agent containing the activation code.
 
 #### Step 2 — Device Bootstrap (Frontend)
+
 On the first application launch on the agent's device:
+
 - The app generates a unique `device_id` (UUID).
 - The app generates an **Ed25519 keypair**.
 - The **private key** is securely stored in IndexedDB.
 - The **public key** is prepared for registration.
 
 #### Step 3 — Agent Activation
+
 The agent enters their phone number and the activation code received via SMS.
 The frontend sends the following payload:
+
 ```json
 {
   "phone_number": "...",
@@ -70,6 +77,7 @@ The frontend sends the following payload:
 ```
 
 #### Step 4 — Backend Validation
+
 1. Backend validates the activation code hash.
 2. Checks for expiration and failed attempt limits.
 3. Marks the code as "consumed".
@@ -105,17 +113,20 @@ sequenceDiagram
 ## 4. Daily Operational Login Flow
 
 ### 4.1 Purpose
+
 Enforces operational compliance by ensuring agents can only access the system during authorized hours via daily OTP verification.
 
 ### 4.2 Step-by-Step Flow
 
 #### Step 1 — Request Daily OTP
+
 - The agent opens the application at the start of their shift.
 - Frontend calls: `POST /auth/request-daily-login` with `phone_number` and `device_id`.
 - Backend verifies both the User and Device are `ACTIVE`.
 - Backend generates a daily OTP (5–10 min expiry) and dispatches it via SMS.
 
 #### Step 2 — OTP Verification
+
 - Frontend sends the validation request: `POST /auth/verify-daily-login`.
 - Backend validates the OTP hash, expiration, and attempt count.
 - Backend issues a **Shift-based Access Token** (8h) and a **Same-day Refresh Token**.
@@ -146,9 +157,11 @@ sequenceDiagram
 ## 5. Refresh Token with Device Signature
 
 ### 5.1 Purpose
+
 To prevent stolen refresh tokens from being reused on unauthorized hardware by requiring a cryptographic "Proof-of-Possession" signature.
 
 ### 5.2 Flow Details
+
 1. The agent requests a token refresh using the `refresh_token`.
 2. Backend validates the token hash and associated `device_id`.
 3. Backend generates and sends a random **Nonce Challenge**.
@@ -179,9 +192,11 @@ sequenceDiagram
 ## 6. Admin Session Termination
 
 ### 6.1 Purpose
+
 Provides a centralized "Kill-Switch" allowing administrators to immediately revoke access for any user or compromised device.
 
 ### 6.2 Revocation Flow
+
 1. An administrator triggers the termination for a specific `user_id`.
 2. The Backend revokes all active refresh tokens in the database.
 3. Active JWTs are blacklisted via their `jti` (unique ID).
@@ -211,9 +226,11 @@ sequenceDiagram
 ## 7. Security Standards & Logic
 
 ### 7.1 Data Binding Hierarchy
+
 A strict cryptographic hierarchy ensures that authorization is always rooted in the verified physical device.
+
 ```text
-User 
+User
  └── Device (device_id + public_key)
        └── Refresh Token (Bound to Device)
              └── Access Token (Short-lived, Shift-bound)
@@ -221,17 +238,18 @@ User
 
 ### 7.2 Security Matrix
 
-| Feature | Threat Protection |
-|:--- |:--- |
-| **Activation SMS** | Verifies ownership of the registered phone number. |
-| **Device Keypair** | Prevents token reuse on unauthorized hardware. |
-| **JWT** | Securely encapsulates identity and authorization claims. |
-| **Daily OTP** | Enforces strict shift-based operational compliance. |
-| **Nonce Challenge** | Protects against replay attacks and token theft. |
+| Feature              | Threat Protection                                          |
+| :------------------- | :--------------------------------------------------------- |
+| **Activation SMS**   | Verifies ownership of the registered phone number.         |
+| **Device Keypair**   | Prevents token reuse on unauthorized hardware.             |
+| **JWT**              | Securely encapsulates identity and authorization claims.   |
+| **Daily OTP**        | Enforces strict shift-based operational compliance.        |
+| **Nonce Challenge**  | Protects against replay attacks and token theft.           |
 | **Admin Revocation** | Provides immediate centralized control over system access. |
-| **Audit Logs** | Ensures accountability and non-repudiation. |
+| **Audit Logs**       | Ensures accountability and non-repudiation.                |
 
 ### 7.3 Operational Rules
+
 - **Storage Clearing**: Deleting browser storage (IndexedDB) removes the private key, requiring a new device enrollment flow.
 - **Revocation**: Backend-triggered revocation invalidates all associated refresh tokens immediately.
 - **Throttling**: OTP and activation attempts are capped to prevent brute-force attacks.
