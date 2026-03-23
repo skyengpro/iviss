@@ -831,8 +831,8 @@ async fn request_refresh_admin(
         r#"
         SELECT
             rt.user_id,
-            u.role::TEXT AS role,
-            u.status::TEXT AS status
+            role,
+            status
         FROM refresh_tokens rt
         JOIN users u ON u.id = rt.user_id
         WHERE rt.token_hash = $1

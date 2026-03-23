@@ -24,12 +24,12 @@ thread_local! {
     static TESSERACT: RefCell<Option<LepTess>> = const { RefCell::new(None) };
 }
 
-struct TesseractGuard {
+pub struct TesseractGuard {
     tess: Option<LepTess>,
 }
 
 impl TesseractGuard {
-    fn new() -> Result<Self, AppError> {
+    pub fn new() -> Result<Self, AppError> {
         Ok(Self {
             tess: Some(take_tesseract()?),
         })
@@ -204,7 +204,7 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     )
 }
 
-fn finalize(
+pub fn finalize(
     mut res: ScanResultData,
     proc: std::time::Duration,
     tess: std::time::Duration,
@@ -230,7 +230,7 @@ fn finalize(
 
 // ── OCR helper ────────────────────────────────────────────────────────────────
 
-fn take_tesseract() -> Result<LepTess, AppError> {
+pub fn take_tesseract() -> Result<LepTess, AppError> {
     TESSERACT.with(|cell| {
         let mut slot = cell.borrow_mut();
         if slot.is_none() {
@@ -250,14 +250,14 @@ fn take_tesseract() -> Result<LepTess, AppError> {
     })
 }
 
-fn put_tesseract(tess: LepTess) {
+pub fn put_tesseract(tess: LepTess) {
     TESSERACT.with(|cell| {
         *cell.borrow_mut() = Some(tess);
     });
 }
 
 /// Attempt OCR on a single image path using leptess.
-fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<ScanResultData> {
+pub fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<ScanResultData> {
     tess.set_image(img_path).ok()?;
     tess.set_source_resolution(300);
 
@@ -292,7 +292,7 @@ fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<ScanR
 }
 
 /// Pick the best result from an ensemble of candidates.
-fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData {
+pub fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData {
     let mut best: Option<ScanResultData> = None;
 
     for cand in candidates.into_iter().flatten() {
@@ -319,7 +319,7 @@ fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData
 // ── image processing helpers ──────────────────────────────────────────────────
 
 /// Min-max contrast stretch: maps the pixel range [min, max] → [0, 255].
-fn contrast_stretch(img: &GrayImage) -> GrayImage {
+pub fn contrast_stretch(img: &GrayImage) -> GrayImage {
     let pixels = img.as_raw();
     if pixels.is_empty() {
         return img.clone();
@@ -359,7 +359,7 @@ fn contrast_stretch(img: &GrayImage) -> GrayImage {
 }
 
 /// Adaptive thresholding using a local mean (integral-image based, O(1) per pixel).
-fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
+pub fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
     let (w, h) = (img.width() as usize, img.height() as usize);
     let iw = w + 1;
     let pixels = img.as_raw();
@@ -407,7 +407,7 @@ fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
 }
 
 /// Invert a grayscale image: 255 → 0, 0 → 255.
-fn invert_image(img: &GrayImage) -> GrayImage {
+pub fn invert_image(img: &GrayImage) -> GrayImage {
     let mut out = img.clone();
     for px in out.iter_mut() {
         *px = 255 - *px;
@@ -416,7 +416,7 @@ fn invert_image(img: &GrayImage) -> GrayImage {
 }
 
 /// Add a solid color border around the image.
-fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
+pub fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
     let (w, h) = img.dimensions();
     let mut out = GrayImage::from_pixel(w + 2 * border, h + 2 * border, image::Luma([color]));
     image::imageops::replace(&mut out, img, border as i64, border as i64);
@@ -425,7 +425,7 @@ fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
 
 /// Cameroon plate: 2 letters + 3 digits + 2 letters.
 /// Apply position-aware correction for common OCR misreads.
-fn extract_plate_fuzzy(raw: &str) -> Option<String> {
+pub fn extract_plate_fuzzy(raw: &str) -> Option<String> {
     let cleaned = normalise_plate(raw);
 
     // 1. First priority: find a sequence that matches the Cameroon format exactly
@@ -480,7 +480,7 @@ fn extract_plate_fuzzy(raw: &str) -> Option<String> {
 }
 
 /// Uppercase, strip non-alphanumeric chars.
-fn normalise_plate(raw: &str) -> String {
+pub fn normalise_plate(raw: &str) -> String {
     raw.to_uppercase()
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())
@@ -488,100 +488,3 @@ fn normalise_plate(raw: &str) -> String {
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use image::Luma;
-
-    #[test]
-    fn normalise_removes_spaces_and_dashes() {
-        assert_eq!(normalise_plate("ce 128 bc"), "CE128BC");
-        assert_eq!(normalise_plate("CE-128-BC"), "CE128BC");
-        assert_eq!(normalise_plate("  Ce128Bc  "), "CE128BC");
-    }
-
-    #[test]
-    fn regex_accepts_valid_plates() {
-        assert!(PLATE_REGEX.is_match("CE128BC"));
-        assert!(PLATE_REGEX.is_match("AB000CD"));
-        assert!(PLATE_REGEX.is_match("ZZ999ZZ"));
-    }
-
-    #[test]
-    fn regex_rejects_invalid_plates() {
-        assert!(!PLATE_REGEX.is_match("C128BC"));
-        assert!(!PLATE_REGEX.is_match("CE12BC"));
-        assert!(!PLATE_REGEX.is_match("CE1234BC"));
-        assert!(!PLATE_REGEX.is_match("1E128BC"));
-        assert!(!PLATE_REGEX.is_match(""));
-    }
-
-    #[test]
-    fn contrast_stretch_full_range() {
-        let img = GrayImage::from_fn(3, 1, |x, _| {
-            Luma([match x {
-                0 => 100,
-                1 => 150,
-                _ => 200,
-            }])
-        });
-        let stretched = contrast_stretch(&img);
-        assert_eq!(stretched.get_pixel(0, 0)[0], 0);
-        assert_eq!(stretched.get_pixel(2, 0)[0], 255);
-    }
-
-    #[test]
-    fn adaptive_threshold_basic() {
-        let img = GrayImage::from_fn(5, 1, |x, _| Luma([if x == 2 { 200 } else { 10 }]));
-        let result = adaptive_threshold(&img, 2, 5);
-        assert_eq!(result.get_pixel(2, 0)[0], 255);
-    }
-
-    #[test]
-    fn test_extract_plate_fuzzy() {
-        assert_eq!(extract_plate_fuzzy("CE128BC"), Some("CE128BC".to_string()));
-        assert_eq!(
-            extract_plate_fuzzy("!CE128BC!"),
-            Some("CE128BC".to_string())
-        );
-        assert_eq!(extract_plate_fuzzy("CE12OBC"), Some("CE120BC".to_string())); // O -> 0 in middle
-        assert_eq!(extract_plate_fuzzy("1E128BC"), Some("IE128BC".to_string())); // 1 -> I at start
-        assert_eq!(extract_plate_fuzzy("CE12"), Some("CE12".to_string()));
-        assert_eq!(extract_plate_fuzzy(""), None);
-    }
-
-    #[test]
-    fn test_pick_best_ensemble() {
-        let cand1 = ScanResultData {
-            plate: "P1".into(),
-            raw_text: "P1".into(),
-            confidence: 0.5,
-            format_valid: false,
-        };
-        let cand2 = ScanResultData {
-            plate: "CE128BC".into(),
-            raw_text: "CE128BC".into(),
-            confidence: 0.8,
-            format_valid: true,
-        };
-
-        let best = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
-        assert!(best.format_valid);
-        assert_eq!(best.plate, "CE128BC");
-
-        let best_empty = pick_best_ensemble(vec![]);
-        assert_eq!(best_empty.plate, "");
-    }
-
-    #[test]
-    fn test_image_helpers() {
-        let img = GrayImage::from_pixel(10, 10, Luma([100]));
-        let inverted = invert_image(&img);
-        assert_eq!(inverted.get_pixel(0, 0)[0], 155);
-
-        let bordered = add_border(&img, 5, 255);
-        assert_eq!(bordered.width(), 20);
-        assert_eq!(bordered.height(), 20);
-    }
-}
