@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/auth/use-auth';
-import { useSidebar } from '@/context/SidebarContext';
+import { useSidebar } from '@/hooks/ui/useSidebar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function BackOfficeSidebar() {
