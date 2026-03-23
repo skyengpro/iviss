@@ -14,6 +14,17 @@ pub struct ScanResultData {
     pub format_valid: bool,
 }
 
+impl PartialEq for ScanResultData {
+    fn eq(&self, other: &Self) -> bool {
+        self.plate == other.plate &&
+        self.raw_text == other.raw_text &&
+        (self.confidence - other.confidence).abs() < f32::EPSILON &&
+        self.format_valid == other.format_valid
+    }
+}
+
+impl Eq for ScanResultData {}
+
 /// Error detail returned inside the scan response envelope.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ScanErrorData {
