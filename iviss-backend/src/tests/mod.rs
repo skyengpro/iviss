@@ -12,3 +12,9 @@ pub mod users_and_user_manager_tests;
 pub mod ocr_service_tests;
 #[cfg(test)]
 pub mod sms_provider_tests;
+#[cfg(test)]
+pub mod photo_ocr_service_tests;
+#[cfg(test)]
+pub mod auth_queries_tests;
+#[cfg(test)]
+pub mod stats_queries_tests;

@@ -7,7 +7,7 @@ use std::sync::Arc;
 mod tests {
     use super::*;
 
-    // ── MockSmsProvider Tests ─────────────────────────────────────────────────────
+    // ── MockSmsProvider Tests ──────────────────────────
 
     #[tokio::test]
     async fn test_mock_sms_provider_success() {
