@@ -237,7 +237,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
     let (_org_id, _admin_id, agent_id, device_id, agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
 
-    // ── 1. Call POST /admin/terminate-session ──
+    // -- 1. Call POST /admin/terminate-session ──
     let terminate_body = json!({ "userId": agent_id });
 
     let response = app
@@ -380,5 +380,71 @@ async fn terminate_session_returns_404_for_unknown_user() {
         response.status(),
         StatusCode::NOT_FOUND,
         "terminate-session should return 404 for unknown user"
+    );
+}
+
+#[tokio::test]
+async fn terminate_session_blocks_otp_on_same_day() {
+    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
+        setup_test_app().await;
+
+    let (_org_id, _admin_id, agent_id, device_id, _agent_access_token) =
+        seed_users_with_active_session(&db, &jwt_private_key_pem).await;
+
+    // -- 1. Terminate session ──
+    let terminate_body = json!({ "userId": agent_id });
+    let _response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/admin/terminate-session")
+                .header("content-type", "application/json")
+                .body(Body::from(terminate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // -- 2. Try to request a daily login OTP ──
+    let otp_body = json!({
+        "badgeId": "AGENT-001",
+        "deviceId": device_id.to_string(),
+    });
+
+    let otp_response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/request-daily-login")
+                .header("content-type", "application/json")
+                .body(Body::from(otp_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let otp_status = otp_response.status();
+    let body_bytes = axum::body::to_bytes(otp_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    if otp_status != StatusCode::FORBIDDEN {
+        println!("Error Response Body: {:?}", body);
+    }
+
+    assert_eq!(
+        otp_status,
+        StatusCode::FORBIDDEN,
+        "OTP request should be blocked on the same day as termination"
+    );
+
+    let message = body["message"].as_str().unwrap_or("");
+    let message_lower = message.to_lowercase();
+    assert!(
+        message_lower.contains("wait until") || message_lower.contains("next allowed window"),
+        "error message should mention the waiting period, got: {}",
+        message
     );
 }

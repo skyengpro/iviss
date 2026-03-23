@@ -19,12 +19,24 @@ export function RequireAuth({
       if (!isAuthenticated) {
         const accessToken = getAccessToken();
         const refreshToken = getRefreshToken();
+        const deviceActivated = localStorage.getItem('iviss_device_activated') === 'true';
+
         if (!refreshToken && !accessToken) {
-          navigate('/activate', { state: { from: location.pathname } });
+          if (deviceActivated) {
+            navigate('/daily-login', { state: { from: location.pathname } });
+          } else {
+            navigate('/activate', { state: { from: location.pathname } });
+          }
         } else if (refreshToken && !accessToken) {
           navigate('/daily-login', { state: { from: location.pathname } });
         } else {
-          navigate('/activate', { state: { from: location.pathname } });
+          // If we have an accessToken but aren't authenticated, the token is likely invalid/expired.
+          // Send activated devices to daily-login, otherwise to activate.
+          if (deviceActivated) {
+            navigate('/daily-login', { state: { from: location.pathname } });
+          } else {
+            navigate('/activate', { state: { from: location.pathname } });
+          }
         }
       } else if (allowedRoles && user && !allowedRoles.includes(user.role as unknown as string)) {
         if (user.role === 'admin') {
