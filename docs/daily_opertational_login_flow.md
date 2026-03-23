@@ -1,4 +1,3 @@
-
 # BE-08 — Daily Login Flow (Agent)
 
 **Ticket:** BE-08
@@ -8,7 +7,7 @@
 
 ## What is this?
 
-Every morning, before going on patrol, an agent confirms their identity with a **6-digit code sent by SMS** combined with their  **badge ID** . This opens their shift and gives them access to the app until the shift ends.
+Every morning, before going on patrol, an agent confirms their identity with a **6-digit code sent by SMS** combined with their **badge ID** . This opens their shift and gives them access to the app until the shift ends.
 
 At the end of the shift, access closes automatically and the device returns to standby — ready for the next morning.
 
@@ -18,12 +17,12 @@ An admin can suspend an agent's device at any time, which immediately blocks all
 
 ## Actors
 
-| Actor                | Role                                                                |
-| -------------------- | ------------------------------------------------------------------- |
+| Actor          | Role                                                                |
+| -------------- | ------------------------------------------------------------------- |
 | **AgentApp**   | The Android app on the agent's phone                                |
 | **Backend**    | The IVISS server                                                    |
-| **Redis**      | Temporary storage — OTP codes, rate limits, blacklisted tokens     |
-| **PostgreSQL** | Main database — users, devices, tokens                             |
+| **Redis**      | Temporary storage — OTP codes, rate limits, blacklisted tokens      |
+| **PostgreSQL** | Main database — users, devices, tokens                              |
 | **SMS**        | Gateway (Twilio) that sends the OTP to the agent                    |
 | **Admin**      | Back-office user who manages agents and can suspend/restore devices |
 
@@ -33,11 +32,11 @@ An admin can suspend an agent's device at any time, which immediately blocks all
 
 A device has exactly three possible states:
 
-| Status        | Meaning                                                 | Can request OTP?                          |
-| ------------- | ------------------------------------------------------- | ----------------------------------------- |
+| Status      | Meaning                                                | Can request OTP?                          |
+| ----------- | ------------------------------------------------------ | ----------------------------------------- |
 | `INACTIVE`  | Normal standby — shift not started or shift just ended | ✅ Yes                                    |
 | `ACTIVE`    | Shift in progress — agent is working                   | ✅ Yes (but new OTP not needed mid-shift) |
-| `SUSPENDED` | Blocked by admin                                        | ❌ No                                     |
+| `SUSPENDED` | Blocked by admin                                       | ❌ No                                     |
 
 > **Only a successful OTP + badge ID verification can set a device to `ACTIVE`.**
 > The device goes back to `INACTIVE` automatically when the shift ends, or when an admin lifts a suspension.
@@ -212,17 +211,17 @@ sequenceDiagram
 
 ## Session Rules
 
-| Rule                         | Detail                                                              |
-| ---------------------------- | ------------------------------------------------------------------- |
-| Shift is valid while         | `shift_start ≤ current time < shift_end`                         |
+| Rule                         | Detail                                                             |
+| ---------------------------- | ------------------------------------------------------------------ |
+| Shift is valid while         | `shift_start ≤ current time < shift_end`                           |
 | Access token duration        | 15 minutes — renewed automatically using the Refresh Token         |
 | Refresh token duration       | 30 days — one token per activation, reused throughout all renewals |
-| A device becomes ACTIVE      | Only after successful OTP + badge ID verification                   |
-| A device returns to INACTIVE | Automatically at `shift_end`, or when admin lifts a suspension    |
+| A device becomes ACTIVE      | Only after successful OTP + badge ID verification                  |
+| A device returns to INACTIVE | Automatically at `shift_end`, or when admin lifts a suspension     |
 | A device is SUSPENDED        | Admin action — blocks OTP requests, blacklists the Refresh Token   |
 | Max OTP attempts             | 5 — code destroyed after the 5th wrong attempt                     |
 | OTP validity window          | 5 minutes — cannot be extended                                     |
-| Max OTP requests per phone   | 3 per 10 minutes                                                    |
+| Max OTP requests per phone   | 3 per 10 minutes                                                   |
 
 ---
 

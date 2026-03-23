@@ -25,10 +25,18 @@ client.setConfig({
 setupAuthInterceptors(client, {
   baseUrl: apiBaseUrl,
   onSessionExpired: () => {
-    clearTokens();
-    localStorage.removeItem('iviss_session');
-    localStorage.removeItem('iviss_refresh_token');
-    globalThis.location.href = '/activate';
+    // Dispatch event to trigger AuthContext's globalLogout which shows a toast
+    window.dispatchEvent(new CustomEvent('iviss:session-revoked'));
+
+    // Fallback in case AuthContext isn't mounted
+    setTimeout(() => {
+      if (window.location.pathname !== '/daily-login' && window.location.pathname !== '/login') {
+        clearTokens();
+        localStorage.removeItem('iviss_session');
+        localStorage.removeItem('iviss_refresh_token');
+        window.location.href = '/daily-login';
+      }
+    }, 100);
   },
 });
 

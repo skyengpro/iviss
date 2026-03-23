@@ -1,7 +1,9 @@
 import { BackOfficeSidebar } from './BackOfficeSidebar';
 import { BackOfficeHeader } from './BackOfficeHeader';
-import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
+import { SidebarProvider } from '@/context/SidebarContext';
+import { useSidebar } from '@/hooks/ui/useSidebar';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface BackOfficeLayoutProps {
   children: React.ReactNode;

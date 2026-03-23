@@ -16,9 +16,17 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
             u.badge_id,
             u.phone_number,
             u.status,
-            u.username
+            u.username,
+            d.status::TEXT as session_status,
+            d.revoked_at as last_revoked_at
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
         WHERE u.id = $1 AND u.deleted_at IS NULL
         "#,
     )
@@ -31,6 +39,10 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     let role: UserRole = row.get("role");
     let status: UserStatus = row.get("status");
 
+    let session_status_str: Option<String> = row.get("session_status");
+    let session_status =
+        session_status_str.map(|s| s.parse::<crate::dto::users::DeviceStatus>().unwrap());
+
     Ok(UserProfile {
         id: row.get("id"),
         username: row.get("username"),
@@ -41,9 +53,11 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
         organization: row.get("organization_name"),
         badge_id: row.get("badge_id"),
         phone_number: row.get("phone_number"),
-        avatar_initials: None, // Derived field maybe?
+        avatar_initials: None,
         is_active: status == UserStatus::Active,
         status,
+        session_status,
+        last_revoked_at: row.get("last_revoked_at"),
     })
 }
 
@@ -99,9 +113,17 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.badge_id,
             u.phone_number,
             u.status,
-            u.username
+            u.username,
+            d.status::TEXT as session_status,
+            d.revoked_at as last_revoked_at
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
         WHERE u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         "#,
@@ -116,6 +138,10 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             let role: UserRole = row.get("role");
             let status: UserStatus = row.get("status");
 
+            let session_status_str: Option<String> = row.get("session_status");
+            let session_status =
+                session_status_str.map(|s| s.parse::<crate::dto::users::DeviceStatus>().unwrap());
+
             UserProfile {
                 id: row.get("id"),
                 username: row.get("username"),
@@ -129,6 +155,8 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
                 avatar_initials: None,
                 is_active: status == UserStatus::Active,
                 status,
+                session_status,
+                last_revoked_at: row.get("last_revoked_at"),
             }
         })
         .collect();
