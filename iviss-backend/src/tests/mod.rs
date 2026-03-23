@@ -8,3 +8,7 @@ pub mod refresh_endpoint_tests;
 pub mod terminate_session_tests;
 #[cfg(test)]
 pub mod users_and_user_manager_tests;
+#[cfg(test)]
+pub mod ocr_service_tests;
+#[cfg(test)]
+pub mod sms_provider_tests;

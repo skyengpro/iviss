@@ -29,10 +29,10 @@ impl SmsProvider for MockSmsProvider {
 // ─────────────────────────────────────────
 
 pub struct TwilioSmsProvider {
-    account_sid: String,
-    auth_token: String,
-    from_number: String,
-    client: reqwest::Client,
+    pub account_sid: String,
+    pub auth_token: String,
+    pub from_number: String,
+    pub client: reqwest::Client,
 }
 
 impl TwilioSmsProvider {
