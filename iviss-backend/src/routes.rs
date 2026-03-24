@@ -1,5 +1,8 @@
 use crate::app_state::AppState;
-use crate::handlers::{list_control::get_list_control, search_vehicle::search_vehicle};
+use crate::handlers::{
+    list_control::{get_list_control, get_list_control_paged},
+    search_vehicle::search_vehicle,
+};
 use crate::middleware::{auth, cors, rbac};
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
@@ -66,18 +69,26 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::user_management::terminate_session),
         )
         .route(
-            "/admin/devices/{id}/suspend",
-            post(crate::handlers::device_management::suspend_device),
+            "/admin/restart-session",
+            post(crate::handlers::user_management::restart_session),
         )
-        .route(
-            "/admin/devices/{id}/unsuspend",
-            post(crate::handlers::device_management::unsuspend_device),
-        )
+        // .route(
+        //     "/admin/devices/{id}/suspend",
+        //     post(crate::handlers::device_management::suspend_device),
+        // )
+        // .route(
+        //     "/admin/devices/{id}/unsuspend",
+        //     post(crate::handlers::device_management::unsuspend_device),
+        // )
         .route(
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
+        .route("/admin/controls/paged", get(get_list_control_paged))
+        .route(
+            "/admin/stats",
+            get(crate::handlers::stats::get_dashboard_stats),
+        )
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 

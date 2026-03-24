@@ -83,7 +83,6 @@ pub async fn login(
 
     //    Issue access token
     //    Admins have no device
-    //    Admins have no shift — use a far future shift_end (24h from now)
     if user.role != UserRole::Admin && user.role != UserRole::Manager {
         return Err(AppError::unauthorized("Invalid credentials"));
     }
@@ -145,6 +144,8 @@ pub async fn login(
         phone_number: Some(user.phone_number.clone()),
         avatar_initials: None,
         status: UserStatus::Active,
+        session_status: None,
+        last_revoked_at: None,
         is_active: true,
     };
 
@@ -202,6 +203,8 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
                 phone_number: None,
                 avatar_initials: Some("NU".to_string()),
                 status: crate::dto::users::UserStatus::Active,
+                session_status: None,
+                last_revoked_at: None,
                 is_active: true,
             },
         }),
@@ -278,9 +281,9 @@ pub async fn activate(
             "Activation is only available for agents".into(),
         ));
     }
-    if user_status != "PENDING_ACTIVATION" && user_status != "SUSPENDED" {
+    if user_status != "PENDING_ACTIVATION" {
         return Err(AppError::BadRequest(format!(
-            "User is not pending activation or suspended — current status: {}",
+            "User is not pending activation - current status: {}",
             user_status
         )));
     }
@@ -438,10 +441,26 @@ pub async fn request_daily_login(
     let device_opt =
         auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
-    if let Some(device) = device_opt {
-        if device.status == "SUSPENDED" {
-            return Err(AppError::unauthorized(
-                "Device suspended — contact your administrator",
+    let device = device_opt.ok_or_else(|| {
+        AppError::NotFound("Device is not registered. Please re-activate.".into())
+    })?;
+
+    if device.status == "SUSPENDED" {
+        return Err(AppError::unauthorized(
+            "Device suspended — contact your administrator",
+        ));
+    }
+
+    // Check for administrative termination cooldown (Ariel's feedback)
+    if let Some(revoked_at) = device.revoked_at {
+        // Assume UTC for the stored TIMESTAMP (project convention)
+        let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+        let now = OffsetDateTime::now_utc().to_offset(local_offset);
+        let revoked_local = revoked_at.assume_utc().to_offset(local_offset);
+
+        if revoked_local.date() == now.date() {
+            return Err(AppError::Forbidden(
+                "Session terminated by administrator. Please wait until your next shift (tomorrow at 8:00 AM) to request a new code.".into()
             ));
         }
     }
@@ -591,7 +610,7 @@ pub async fn verify_daily_login(
             FROM devices
             WHERE id = $1
               AND user_id = $2
-              AND revoked_at IS NULL
+              AND deleted_at IS NULL
         )
         "#,
     )
@@ -600,6 +619,12 @@ pub async fn verify_daily_login(
     .fetch_one(&state.db)
     .await
     .map_err(AppError::Database)?;
+
+    if !device_exists {
+        return Err(AppError::NotFound(
+            "Device is not registered. Please re-activate.".into(),
+        ));
+    }
 
     // ── Check if a valid refresh token already exists for this device
     let has_valid_refresh: bool = if device_exists {
@@ -657,15 +682,8 @@ pub async fn verify_daily_login(
         }
 
         None => {
-            if device_exists {
-                auth_queries::mark_device_active(
-                    &state.db,
-                    payload.device_id,
-                    shift_start,
-                    shift_end,
-                )
+            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
                 .await?;
-            }
         }
     }
 
@@ -833,8 +851,8 @@ async fn request_refresh_admin(
         r#"
         SELECT
             rt.user_id,
-            u.role AS role,
-            u.status AS status
+            role,
+            status
         FROM refresh_tokens rt
         JOIN users u ON u.id = rt.user_id
         WHERE rt.token_hash = $1
