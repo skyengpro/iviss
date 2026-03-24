@@ -6,7 +6,7 @@
 
 use crate::dto::common::{IdentificationMode, Status};
 use crate::dto::create_control::CreateControlRequest;
-use crate::dto::list_control::{ControlResults, ActionType};
+use crate::dto::list_control::{ActionType, ControlResults};
 use crate::queries::control_queries;
 use sqlx::postgres::PgPoolOptions;
 use testcontainers::runners::AsyncRunner;
@@ -20,8 +20,14 @@ async fn setup_test_infrastructure() -> (
     testcontainers::ContainerAsync<Postgres>,
     testcontainers::ContainerAsync<Redis>,
 ) {
-    let pg = Postgres::default().start().await.expect("Failed to start Postgres");
-    let pg_port = pg.get_host_port_ipv4(5432).await.expect("Failed to get Postgres port");
+    let pg = Postgres::default()
+        .start()
+        .await
+        .expect("Failed to start Postgres");
+    let pg_port = pg
+        .get_host_port_ipv4(5432)
+        .await
+        .expect("Failed to get Postgres port");
     let db_url = format!(
         "postgres://postgres:postgres@127.0.0.1:{}/postgres",
         pg_port
@@ -184,13 +190,12 @@ async fn test_create_control_record_critical_status_wanted() {
     let control_id = result.unwrap();
 
     // Verify the control record was created with critical status
-    let status: (String,) = sqlx::query_as(
-        r#"SELECT overall_status FROM control_records WHERE id = $1"#,
-    )
-    .bind(control_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch control record");
+    let status: (String,) =
+        sqlx::query_as(r#"SELECT overall_status FROM control_records WHERE id = $1"#)
+            .bind(control_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch control record");
     assert_eq!(status.0, "critical");
 }
 
@@ -220,13 +225,12 @@ async fn test_create_control_record_critical_status_insurance() {
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
 
-    let status: (String,) = sqlx::query_as(
-        r#"SELECT overall_status FROM control_records WHERE id = $1"#,
-    )
-    .bind(control_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch control record");
+    let status: (String,) =
+        sqlx::query_as(r#"SELECT overall_status FROM control_records WHERE id = $1"#)
+            .bind(control_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch control record");
     assert_eq!(status.0, "critical");
 }
 
@@ -256,13 +260,12 @@ async fn test_create_control_record_warning_status_technical() {
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
 
-    let status: (String,) = sqlx::query_as(
-        r#"SELECT overall_status FROM control_records WHERE id = $1"#,
-    )
-    .bind(control_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch control record");
+    let status: (String,) =
+        sqlx::query_as(r#"SELECT overall_status FROM control_records WHERE id = $1"#)
+            .bind(control_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch control record");
     assert_eq!(status.0, "warning");
 }
 
@@ -292,13 +295,12 @@ async fn test_create_control_record_warning_status_customs() {
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
 
-    let status: (String,) = sqlx::query_as(
-        r#"SELECT overall_status FROM control_records WHERE id = $1"#,
-    )
-    .bind(control_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch control record");
+    let status: (String,) =
+        sqlx::query_as(r#"SELECT overall_status FROM control_records WHERE id = $1"#)
+            .bind(control_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch control record");
     assert_eq!(status.0, "warning");
 }
 
@@ -328,13 +330,12 @@ async fn test_create_control_record_valid_status() {
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
 
-    let status: (String,) = sqlx::query_as(
-        r#"SELECT overall_status FROM control_records WHERE id = $1"#,
-    )
-    .bind(control_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch control record");
+    let status: (String,) =
+        sqlx::query_as(r#"SELECT overall_status FROM control_records WHERE id = $1"#)
+            .bind(control_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch control record");
     assert_eq!(status.0, "valid");
 }
 
@@ -365,13 +366,12 @@ async fn test_create_control_record_creates_initial_action() {
     let control_id = result.unwrap();
 
     // Verify initial action was created
-    let actions: Vec<(String,)> = sqlx::query_as(
-        r#"SELECT action_type FROM control_actions WHERE control_id = $1"#,
-    )
-    .bind(control_id)
-    .fetch_all(&db)
-    .await
-    .expect("Failed to fetch actions");
+    let actions: Vec<(String,)> =
+        sqlx::query_as(r#"SELECT action_type FROM control_actions WHERE control_id = $1"#)
+            .bind(control_id)
+            .fetch_all(&db)
+            .await
+            .expect("Failed to fetch actions");
 
     assert_eq!(actions.len(), 1, "Should have exactly 1 action");
     assert_eq!(actions[0].0, "flag", "Initial action should be 'flag'");
@@ -415,7 +415,8 @@ async fn test_get_control_records_filter_by_agent_id() {
     // Agent 2 has 1 record
     seed_control_record_sql(&db, agent2_id, org_id, "AGENT2-001", "valid").await;
 
-    let result = control_queries::get_control_records(&db, None, None, Some(agent1_id), None, None).await;
+    let result =
+        control_queries::get_control_records(&db, None, None, Some(agent1_id), None, None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -438,7 +439,9 @@ async fn test_get_control_records_filter_by_status() {
     seed_control_record_sql(&db, agent_id, org_id, "STAT-003", "critical").await;
     seed_control_record_sql(&db, agent_id, org_id, "STAT-004", "valid").await;
 
-    let result = control_queries::get_control_records(&db, None, None, None, Some(Status::Critical), None).await;
+    let result =
+        control_queries::get_control_records(&db, None, None, None, Some(Status::Critical), None)
+            .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -458,7 +461,9 @@ async fn test_get_control_records_filter_by_plate() {
     seed_control_record_sql(&db, agent_id, org_id, "XY-5678-CD", "valid").await;
     seed_control_record_sql(&db, agent_id, org_id, "ZZ-9999-YY", "valid").await;
 
-    let result = control_queries::get_control_records(&db, None, None, None, None, Some("XY".to_string())).await;
+    let result =
+        control_queries::get_control_records(&db, None, None, None, None, Some("XY".to_string()))
+            .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -482,8 +487,14 @@ async fn test_get_control_records_multiple_filters() {
 
     // Filter by status and plate
     let result = control_queries::get_control_records(
-        &db, None, None, None, Some(Status::Warning), Some("MULTI".to_string())
-    ).await;
+        &db,
+        None,
+        None,
+        None,
+        Some(Status::Warning),
+        Some("MULTI".to_string()),
+    )
+    .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -504,8 +515,14 @@ async fn test_get_control_records_empty_result() {
 
     // Search for non-existent plate
     let result = control_queries::get_control_records(
-        &db, None, None, None, None, Some("NONEXISTENT".to_string())
-    ).await;
+        &db,
+        None,
+        None,
+        None,
+        None,
+        Some("NONEXISTENT".to_string()),
+    )
+    .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -554,7 +571,15 @@ async fn test_get_control_records_includes_actions() {
     seed_control_action(&db, control_id, "flag", "Initial check performed").await;
     seed_control_action(&db, control_id, "citation", "Citation issued").await;
 
-    let result = control_queries::get_control_records(&db, None, None, None, None, Some("ACTION-REC".to_string())).await;
+    let result = control_queries::get_control_records(
+        &db,
+        None,
+        None,
+        None,
+        None,
+        Some("ACTION-REC".to_string()),
+    )
+    .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -562,8 +587,14 @@ async fn test_get_control_records_includes_actions() {
     assert_eq!(controls.len(), 1);
     assert_eq!(controls[0].actions.len(), 2, "Should include 2 actions");
     // Check action types using matches! - valid DB values: citation, impound, flag, warning
-    assert!(matches!(controls[0].actions[0].action_type, ActionType::Flag));
-    assert!(matches!(controls[0].actions[1].action_type, ActionType::Citation));
+    assert!(matches!(
+        controls[0].actions[0].action_type,
+        ActionType::Flag
+    ));
+    assert!(matches!(
+        controls[0].actions[1].action_type,
+        ActionType::Citation
+    ));
 }
 
 #[tokio::test]
@@ -613,17 +644,24 @@ async fn test_get_control_records_with_all_identification_modes() {
     .await
     .expect("Failed to seed");
 
-    let result = control_queries::get_control_records(&db, None, None, Some(agent_id), None, None).await;
+    let result =
+        control_queries::get_control_records(&db, None, None, Some(agent_id), None, None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
 
     assert_eq!(controls.len(), 3);
-    
+
     // Check identification modes using matches!
-    let has_manual = controls.iter().any(|c| matches!(c.identification_mode, IdentificationMode::Manual));
-    let has_photo = controls.iter().any(|c| matches!(c.identification_mode, IdentificationMode::Photo));
-    let has_live = controls.iter().any(|c| matches!(c.identification_mode, IdentificationMode::Live));
+    let has_manual = controls
+        .iter()
+        .any(|c| matches!(c.identification_mode, IdentificationMode::Manual));
+    let has_photo = controls
+        .iter()
+        .any(|c| matches!(c.identification_mode, IdentificationMode::Photo));
+    let has_live = controls
+        .iter()
+        .any(|c| matches!(c.identification_mode, IdentificationMode::Live));
     assert!(has_manual, "Should have a Manual identification mode");
     assert!(has_photo, "Should have a Photo identification mode");
     assert!(has_live, "Should have a Live identification mode");
@@ -659,7 +697,15 @@ async fn test_get_control_records_results_parsing() {
     .await
     .expect("Failed to seed");
 
-    let result = control_queries::get_control_records(&db, None, None, None, None, Some("RESULTS".to_string())).await;
+    let result = control_queries::get_control_records(
+        &db,
+        None,
+        None,
+        None,
+        None,
+        Some("RESULTS".to_string()),
+    )
+    .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();

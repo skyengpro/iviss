@@ -35,10 +35,7 @@ mod tests {
     use sqlx::PgPool;
     use uuid::Uuid;
 
-    use testcontainers_modules::{
-        postgres::Postgres,
-        testcontainers::runners::AsyncRunner,
-    };
+    use testcontainers_modules::{postgres::Postgres, testcontainers::runners::AsyncRunner};
 
     async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres>) {
         let postgres = Postgres::default().start().await.unwrap();
@@ -83,15 +80,24 @@ mod tests {
             "#,
         )
         .bind(user_id)
-        .bind(format!("user_{}", user_id.to_string().split('-').next().unwrap()))
-        .bind(format!("user{}@test.com", user_id.to_string().split('-').next().unwrap()))
+        .bind(format!(
+            "user_{}",
+            user_id.to_string().split('-').next().unwrap()
+        ))
+        .bind(format!(
+            "user{}@test.com",
+            user_id.to_string().split('-').next().unwrap()
+        ))
         .bind(None::<String>) // Agents don't need password_hash
         .bind(format!("+{:012}", user_id.as_u128() % 1000000000000))
         .bind("agent")
         .bind("ACTIVE")
         .bind("Test Agent")
         .bind(org_id)
-        .bind(Some(format!("BADGE-{}", user_id.to_string().split('-').next().unwrap())))
+        .bind(Some(format!(
+            "BADGE-{}",
+            user_id.to_string().split('-').next().unwrap()
+        )))
         .execute(pool)
         .await
         .unwrap();
@@ -108,13 +114,12 @@ mod tests {
         assert!(result.is_ok(), "Should successfully insert new location");
 
         // Verify the data was inserted
-        let row: (f64, f64) = sqlx::query_as(
-            "SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1",
-        )
-        .bind(agent_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let row: (f64, f64) =
+            sqlx::query_as("SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(row.0, 4.0511);
         assert_eq!(row.1, 9.7679);
@@ -146,13 +151,12 @@ mod tests {
         assert_eq!(count, 1, "Should still have only one row");
 
         // Verify the updated coordinates
-        let row: (f64, f64) = sqlx::query_as(
-            "SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1",
-        )
-        .bind(agent_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let row: (f64, f64) =
+            sqlx::query_as("SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(row.0, 5.1234);
         assert_eq!(row.1, 8.5678);
@@ -167,13 +171,12 @@ mod tests {
         let result = update_agent_location_query(&pool, agent_id, 90.0, 180.0).await;
         assert!(result.is_ok(), "Should handle maximum positive coordinates");
 
-        let row: (f64, f64) = sqlx::query_as(
-            "SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1",
-        )
-        .bind(agent_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let row: (f64, f64) =
+            sqlx::query_as("SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(row.0, 90.0);
         assert_eq!(row.1, 180.0);
@@ -188,13 +191,12 @@ mod tests {
         let result = update_agent_location_query(&pool, agent_id, -33.8688, -151.2093).await;
         assert!(result.is_ok(), "Should handle negative coordinates");
 
-        let row: (f64, f64) = sqlx::query_as(
-            "SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1",
-        )
-        .bind(agent_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let row: (f64, f64) =
+            sqlx::query_as("SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(row.0, -33.8688);
         assert_eq!(row.1, -151.2093);
@@ -211,13 +213,12 @@ mod tests {
         let result = update_agent_location_query(&pool, agent_id, lat, lon).await;
         assert!(result.is_ok(), "Should handle high precision decimals");
 
-        let row: (f64, f64) = sqlx::query_as(
-            "SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1",
-        )
-        .bind(agent_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let row: (f64, f64) =
+            sqlx::query_as("SELECT latitude, longitude FROM agent_locations WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(row.0, lat);
         assert_eq!(row.1, lon);

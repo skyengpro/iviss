@@ -19,9 +19,7 @@ use crate::{
 };
 
 use testcontainers_modules::{
-    postgres::Postgres,
-    redis::Redis,
-    testcontainers::runners::AsyncRunner,
+    postgres::Postgres, redis::Redis, testcontainers::runners::AsyncRunner,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,7 +66,9 @@ async fn setup_test_app() -> (
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
     // Create Redis pool
-    let redis_pool = crate::db::redis::initialize_redis_pool(&redis_url).await.unwrap();
+    let redis_pool = crate::db::redis::initialize_redis_pool(&redis_url)
+        .await
+        .unwrap();
 
     // Generate test keys
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
@@ -97,7 +97,8 @@ async fn setup_test_app() -> (
     };
 
     // Create app state with mock SMS provider
-    let sms_provider: Arc<dyn crate::services::sms_provider::SmsProvider> = Arc::new(crate::services::sms_provider::MockSmsProvider);
+    let sms_provider: Arc<dyn crate::services::sms_provider::SmsProvider> =
+        Arc::new(crate::services::sms_provider::MockSmsProvider);
     let state = AppState::new(db.clone(), redis_pool.clone(), sms_provider, &config);
 
     // Build router
@@ -116,24 +117,17 @@ async fn setup_test_app() -> (
 
 async fn create_test_organization(db: &PgPool) -> Uuid {
     let org_id = Uuid::new_v4();
-    sqlx::query(
-        r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#,
-    )
-    .bind(org_id)
-    .bind("Test Organization")
-    .bind("police")
-    .execute(db)
-    .await
-    .unwrap();
+    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+        .bind(org_id)
+        .bind("Test Organization")
+        .bind("police")
+        .execute(db)
+        .await
+        .unwrap();
     org_id
 }
 
-async fn create_test_user(
-    db: &PgPool,
-    org_id: Uuid,
-    role: UserRole,
-    status: UserStatus,
-) -> Uuid {
+async fn create_test_user(db: &PgPool, org_id: Uuid, role: UserRole, status: UserStatus) -> Uuid {
     let user_id = Uuid::new_v4();
     let role_str = match role {
         UserRole::Admin => "admin",
@@ -155,7 +149,10 @@ async fn create_test_user(
 
     // badge_id required for agents
     let badge_id = if role == UserRole::Agent {
-        Some(format!("BADGE-{}", user_id.to_string().split('-').next().unwrap()))
+        Some(format!(
+            "BADGE-{}",
+            user_id.to_string().split('-').next().unwrap()
+        ))
     } else {
         None
     };
@@ -170,8 +167,14 @@ async fn create_test_user(
         "#,
     )
     .bind(user_id)
-    .bind(format!("user_{}", user_id.to_string().split('-').next().unwrap()))
-    .bind(format!("user{}@test.com", user_id.to_string().split('-').next().unwrap()))
+    .bind(format!(
+        "user_{}",
+        user_id.to_string().split('-').next().unwrap()
+    ))
+    .bind(format!(
+        "user{}@test.com",
+        user_id.to_string().split('-').next().unwrap()
+    ))
     .bind(password_hash)
     .bind(format!("+{:012}", user_id.as_u128() % 1000000000000))
     .bind(role_str)
@@ -509,7 +512,8 @@ async fn test_update_user_can_reactivate_suspended_admin() {
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
-    let suspended_admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Suspended).await;
+    let suspended_admin_id =
+        create_test_user(&db, org_id, UserRole::Admin, UserStatus::Suspended).await;
     let admin_token = issue_admin_token(&jwt_private_key_pem, admin_id);
 
     // First verify the admin is suspended
@@ -518,7 +522,10 @@ async fn test_update_user_can_reactivate_suspended_admin() {
         .fetch_one(&db)
         .await
         .unwrap();
-    assert_eq!(status_before, "SUSPENDED", "Admin should be suspended initially");
+    assert_eq!(
+        status_before, "SUSPENDED",
+        "Admin should be suspended initially"
+    );
 
     // Reactivate via update_user
     let update_body = json!({

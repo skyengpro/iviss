@@ -1,10 +1,7 @@
-use crate::services::photo_ocr_service::{
-    enhance_photo_result,
-    extract_plate_strict,
-    pick_best,
-    photo_plate,
-};
 use crate::dto::scan::ScanResultData;
+use crate::services::photo_ocr_service::{
+    enhance_photo_result, extract_plate_strict, photo_plate, pick_best,
+};
 
 // A minimal valid JPEG image (1x1 red pixel) for testing
 // Sourced from: https://www.nayuki.io/page/small-image-files
@@ -34,7 +31,7 @@ const DUMMY_JPEG_BYTES: &[u8] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     // --- extract_plate_strict Tests ---
     #[test]
     fn test_extract_plate_strict_valid_format() {
@@ -44,10 +41,20 @@ mod tests {
 
     #[test]
     fn test_extract_plate_strict_with_noise() {
-        assert_eq!(extract_plate_strict("  AB 123 CD  "), Some("AB123CD".to_string()));
-        assert_eq!(extract_plate_strict("some text AB123CD more text"), Some("AB123CD".to_string()));
-        assert_eq!(extract_plate_strict("AB@123#CD"), Some("AB123CD".to_string()));
-        assert_eq!(extract_plate_strict("ab123cd"), Some("AB123CD".to_string())); // Should convert to uppercase
+        assert_eq!(
+            extract_plate_strict("  AB 123 CD  "),
+            Some("AB123CD".to_string())
+        );
+        assert_eq!(
+            extract_plate_strict("some text AB123CD more text"),
+            Some("AB123CD".to_string())
+        );
+        assert_eq!(
+            extract_plate_strict("AB@123#CD"),
+            Some("AB123CD".to_string())
+        );
+        assert_eq!(extract_plate_strict("ab123cd"), Some("AB123CD".to_string()));
+        // Should convert to uppercase
     }
 
     #[test]
@@ -136,32 +143,72 @@ mod tests {
     // --- pick_best Tests ---
     #[test]
     fn test_pick_best_priority_format_valid() {
-        let a = ScanResultData { plate: "P1".to_string(), raw_text: "".to_string(), confidence: 0.5, format_valid: true };
-        let b = ScanResultData { plate: "P2".to_string(), raw_text: "".to_string(), confidence: 0.9, format_valid: false };
+        let a = ScanResultData {
+            plate: "P1".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.5,
+            format_valid: true,
+        };
+        let b = ScanResultData {
+            plate: "P2".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.9,
+            format_valid: false,
+        };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P1".to_string());
         assert_eq!(pick_best(b.clone(), a.clone()).plate, "P1".to_string());
     }
 
     #[test]
     fn test_pick_best_priority_plate_existence() {
-        let a = ScanResultData { plate: "".to_string(), raw_text: "".to_string(), confidence: 0.5, format_valid: false };
-        let b = ScanResultData { plate: "P2".to_string(), raw_text: "".to_string(), confidence: 0.7, format_valid: false };
+        let a = ScanResultData {
+            plate: "".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.5,
+            format_valid: false,
+        };
+        let b = ScanResultData {
+            plate: "P2".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.7,
+            format_valid: false,
+        };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P2".to_string());
         assert_eq!(pick_best(b.clone(), a.clone()).plate, "P2".to_string());
     }
 
     #[test]
     fn test_pick_best_priority_confidence() {
-        let a = ScanResultData { plate: "P1".to_string(), raw_text: "".to_string(), confidence: 0.5, format_valid: false };
-        let b = ScanResultData { plate: "P2".to_string(), raw_text: "".to_string(), confidence: 0.9, format_valid: false };
+        let a = ScanResultData {
+            plate: "P1".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.5,
+            format_valid: false,
+        };
+        let b = ScanResultData {
+            plate: "P2".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.9,
+            format_valid: false,
+        };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P2".to_string());
         assert_eq!(pick_best(b.clone(), a.clone()).plate, "P2".to_string());
     }
 
     #[test]
     fn test_pick_best_equal() {
-        let a = ScanResultData { plate: "P1".to_string(), raw_text: "".to_string(), confidence: 0.8, format_valid: true };
-        let b = ScanResultData { plate: "P2".to_string(), raw_text: "".to_string(), confidence: 0.8, format_valid: true };
+        let a = ScanResultData {
+            plate: "P1".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.8,
+            format_valid: true,
+        };
+        let b = ScanResultData {
+            plate: "P2".to_string(),
+            raw_text: "".to_string(),
+            confidence: 0.8,
+            format_valid: true,
+        };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P1".to_string()); // Falls back to 'a' if all equal
     }
 
@@ -192,8 +239,11 @@ mod tests {
         // Create a large dummy image (e.g., 2000x1000 pixels)
         let img = image::RgbImage::new(2000, 1000);
         let mut large_img_bytes = Vec::new();
-        img.write_to(&mut std::io::Cursor::new(&mut large_img_bytes), image::ImageFormat::Jpeg)
-            .expect("Failed to encode large test image to JPEG");
+        img.write_to(
+            &mut std::io::Cursor::new(&mut large_img_bytes),
+            image::ImageFormat::Jpeg,
+        )
+        .expect("Failed to encode large test image to JPEG");
 
         // The exact OCR result is not predictable here without mocking,
         // but we can ensure the pipeline runs without crashing.
@@ -206,8 +256,11 @@ mod tests {
         // Create a small dummy image (e.g., 300x200 pixels)
         let img = image::RgbImage::new(300, 200);
         let mut small_img_bytes = Vec::new();
-        img.write_to(&mut std::io::Cursor::new(&mut small_img_bytes), image::ImageFormat::Jpeg)
-            .expect("Failed to encode large test image to JPEG");
+        img.write_to(
+            &mut std::io::Cursor::new(&mut small_img_bytes),
+            image::ImageFormat::Jpeg,
+        )
+        .expect("Failed to encode large test image to JPEG");
 
         let result = photo_plate(&small_img_bytes);
         assert!(result.is_ok() || result.is_err()); // It should either succeed or gracefully fail

@@ -14,7 +14,6 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use base64::Engine;
 use rand::rngs::OsRng;
-use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
@@ -71,7 +70,8 @@ async fn setup_test_app() -> (
         twilio_account_sid: "mock".into(),
         twilio_auth_token: "mock".into(),
         twilio_from_number: "mock".into(),
-        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long".to_string(),
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
+            .to_string(),
         shift_start_hour: 8,
         shift_end_hour: 18,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
@@ -121,10 +121,7 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
 }
 
 /// Helper: seed an organization and admin user with access token.
-async fn seed_admin_user(
-    db: &sqlx::PgPool,
-    jwt_private_key_pem: &str,
-) -> (Uuid, String) {
+async fn seed_admin_user(db: &sqlx::PgPool, jwt_private_key_pem: &str) -> (Uuid, String) {
     let org_id = Uuid::new_v4();
     sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
         .bind(org_id)
@@ -507,11 +504,22 @@ async fn test_get_control_activity_default_range() {
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
     // Range is serialized as enum with serde(rename = "24h")
-    assert_eq!(body["range"].as_str().unwrap(), "24h", "Default range should be 24h");
-    assert!(body["series"].is_array(), "Response should contain series array");
+    assert_eq!(
+        body["range"].as_str().unwrap(),
+        "24h",
+        "Default range should be 24h"
+    );
+    assert!(
+        body["series"].is_array(),
+        "Response should contain series array"
+    );
 
     let series = body["series"].as_array().unwrap();
-    assert_eq!(series.len(), 24, "24h range should return 24 hourly buckets");
+    assert_eq!(
+        series.len(),
+        24,
+        "24h range should return 24 hourly buckets"
+    );
 
     // Verify series structure
     if !series.is_empty() {
@@ -592,7 +600,11 @@ async fn test_get_control_activity_30d_range() {
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert_eq!(body["range"].as_str().unwrap(), "30d", "Range should be 30d");
+    assert_eq!(
+        body["range"].as_str().unwrap(),
+        "30d",
+        "Range should be 30d"
+    );
     let series = body["series"].as_array().unwrap();
     assert_eq!(series.len(), 30, "30d range should return 30 daily buckets");
 }
@@ -635,17 +647,33 @@ async fn test_get_top_agents_default() {
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
     // Range is serialized as enum with serde(rename = "24h")
-    assert_eq!(body["range"].as_str().unwrap(), "24h", "Default range should be 24h");
-    assert!(body["agents"].is_array(), "Response should contain agents array");
+    assert_eq!(
+        body["range"].as_str().unwrap(),
+        "24h",
+        "Default range should be 24h"
+    );
+    assert!(
+        body["agents"].is_array(),
+        "Response should contain agents array"
+    );
     let agents = body["agents"].as_array().unwrap();
     assert_eq!(agents.len(), 1, "Should return 1 agent");
 
     // Verify agent structure (using camelCase due to #[serde(rename_all = "camelCase")])
     let agent = &agents[0];
     assert!(agent["agentId"].is_string(), "Agent should have agentId");
-    assert!(agent["agentName"].is_string(), "Agent should have agentName");
-    assert!(agent["organizationName"].is_string(), "Agent should have organizationName");
-    assert!(agent["controlsCount"].is_number(), "Agent should have controlsCount");
+    assert!(
+        agent["agentName"].is_string(),
+        "Agent should have agentName"
+    );
+    assert!(
+        agent["organizationName"].is_string(),
+        "Agent should have organizationName"
+    );
+    assert!(
+        agent["controlsCount"].is_number(),
+        "Agent should have controlsCount"
+    );
     assert!(agent["isOnline"].is_boolean(), "Agent should have isOnline");
     assert_eq!(
         agent["controlsCount"].as_i64().unwrap(),
@@ -688,7 +716,11 @@ async fn test_get_top_agents_with_limit() {
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
     let agents = body["agents"].as_array().unwrap();
-    assert_eq!(agents.len(), 1, "Should return 1 agent (limited by actual data)");
+    assert_eq!(
+        agents.len(),
+        1,
+        "Should return 1 agent (limited by actual data)"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -728,15 +760,24 @@ async fn test_get_activity_feed_default() {
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert!(body["items"].is_array(), "Response should contain items array");
+    assert!(
+        body["items"].is_array(),
+        "Response should contain items array"
+    );
     let items = body["items"].as_array().unwrap();
     assert_eq!(items.len(), 3, "Should return 3 feed items");
 
     // Verify item structure (using camelCase due to #[serde(rename_all = "camelCase")])
     let item = &items[0];
     assert!(item["id"].is_string(), "Item should have id");
-    assert!(item["plateNumber"].is_string(), "Item should have plateNumber");
-    assert!(item["overallStatus"].is_string(), "Item should have overallStatus");
+    assert!(
+        item["plateNumber"].is_string(),
+        "Item should have plateNumber"
+    );
+    assert!(
+        item["overallStatus"].is_string(),
+        "Item should have overallStatus"
+    );
     assert!(item["createdAt"].is_string(), "Item should have createdAt");
     assert!(item["agentName"].is_string(), "Item should have agentName");
 }
@@ -852,16 +893,29 @@ async fn test_get_recent_alerts_default() {
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert!(body["items"].is_array(), "Response should contain items array");
+    assert!(
+        body["items"].is_array(),
+        "Response should contain items array"
+    );
     let items = body["items"].as_array().unwrap();
     // Should only include warning and critical, not valid
-    assert_eq!(items.len(), 2, "Should return 2 alerts (warning + critical)");
+    assert_eq!(
+        items.len(),
+        2,
+        "Should return 2 alerts (warning + critical)"
+    );
 
     // Verify item structure (using camelCase due to #[serde(rename_all = "camelCase")])
     let item = &items[0];
     assert!(item["id"].is_string(), "Item should have id");
-    assert!(item["plateNumber"].is_string(), "Item should have plateNumber");
-    assert!(item["overallStatus"].is_string(), "Item should have overallStatus");
+    assert!(
+        item["plateNumber"].is_string(),
+        "Item should have plateNumber"
+    );
+    assert!(
+        item["overallStatus"].is_string(),
+        "Item should have overallStatus"
+    );
     assert!(
         item["overallStatus"].as_str().unwrap() != "valid",
         "Alert should not be valid status"
@@ -955,5 +1009,8 @@ async fn test_get_recent_alerts_no_alerts() {
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
     let items = body["items"].as_array().unwrap();
-    assert!(items.is_empty(), "Should return empty array when no alerts exist");
+    assert!(
+        items.is_empty(),
+        "Should return empty array when no alerts exist"
+    );
 }
