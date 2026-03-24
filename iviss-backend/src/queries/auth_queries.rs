@@ -1,10 +1,10 @@
 use crate::db::RedisPool;
+use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
 use deadpool_redis::redis::AsyncCommands;
 use sqlx::FromRow;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::dto::users::{UserStatus, UserRole};
 
 #[derive(Debug, FromRow)]
 pub struct AuthValidationContext {
@@ -110,6 +110,7 @@ pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForL
 #[derive(Debug, FromRow)]
 pub struct DeviceForLogin {
     pub status: String,
+    pub revoked_at: Option<time::PrimitiveDateTime>,
 }
 
 pub async fn get_device_by_user_optional(
@@ -119,7 +120,7 @@ pub async fn get_device_by_user_optional(
 ) -> Result<Option<DeviceForLogin>, AppError> {
     sqlx::query_as::<_, DeviceForLogin>(
         r#"
-        SELECT status::TEXT AS status
+        SELECT status::TEXT AS status, revoked_at
         FROM devices
         WHERE id = $1
           AND user_id = $2

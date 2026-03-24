@@ -92,6 +92,20 @@ describe('authInterceptor', () => {
       expect(result.headers.get('Authorization')).toBe('Bearer my-access-token');
     });
 
+    it('should preserve an explicit Authorization header from the caller', async () => {
+      vi.mocked(tokenManager.getAccessToken).mockReturnValue('stale-access-token');
+
+      const request = new Request('http://localhost:3000/api/test', {
+        headers: {
+          Authorization: 'Bearer fresh-access-token',
+        },
+      });
+      const interceptor = mockClient._requestInterceptors[0];
+      const result = await interceptor(request);
+
+      expect(result.headers.get('Authorization')).toBe('Bearer fresh-access-token');
+    });
+
     it('should not modify headers when no token exists', async () => {
       vi.mocked(tokenManager.getAccessToken).mockReturnValue(null);
 

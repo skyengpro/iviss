@@ -1,24 +1,35 @@
-use crate::dto::users::{UserProfile, UserRole, UserStatus};
+use crate::dto::users::{DeviceStatus, UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
 pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile, AppError> {
+    // 1. Optimisation SQL avec LATERAL
     let row = sqlx::query(
         r#"
         SELECT 
             u.id, 
             u.full_name, 
             u.email, 
-            u.role, 
+            u.role",      
             u.organization_id, 
-            o.name as organization_name,
+            o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status,
-            u.username
+            u.status",
+            u.username,
+            d.status AS session_status,
+            d.revoked_at AS last_revoked_at
         FROM users u
-        LEFT JOIN organizations o ON u.organization_id = o.id
+        JOIN organizations o ON u.organization_id = o.id
+        -- LATERAL JOIN : Ultra rapide pour cibler uniquement les devices de CET utilisateur
+        LEFT JOIN LATERAL (
+            SELECT status, revoked_at
+            FROM devices
+            WHERE user_id = $1
+            ORDER BY updated_at DESC
+            LIMIT 1
+        ) d ON true
         WHERE u.id = $1 AND u.deleted_at IS NULL
         "#,
     )
@@ -31,6 +42,16 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     let role: UserRole = row.get("role");
     let status: UserStatus = row.get("status");
 
+    let session_status_str: Option<String> = row.get("session_status");
+    let session_status = session_status_str.and_then(|s| {
+        s.parse::<DeviceStatus>()
+            .map_err(|e| {
+                tracing::warn!("Invalid device status in DB for user {}: {}", user_id, s);
+                e // On logge l'anomalie, mais on ne crashe pas !
+            })
+            .ok()
+    });
+
     Ok(UserProfile {
         id: row.get("id"),
         username: row.get("username"),
@@ -41,9 +62,11 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
         organization: row.get("organization_name"),
         badge_id: row.get("badge_id"),
         phone_number: row.get("phone_number"),
-        avatar_initials: None, // Derived field maybe?
+        avatar_initials: None, // Pourrait être généré ici !
         is_active: status == UserStatus::Active,
         status,
+        session_status,
+        last_revoked_at: row.get("last_revoked_at"),
     })
 }
 
@@ -93,15 +116,24 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.id, 
             u.full_name, 
             u.email, 
-            u.role, 
+            u.role AS "role: UserRole",
             u.organization_id, 
-            o.name as organization_name,
+            o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status,
-            u.username
+            u.status AS "status: UserStatus",
+            u.username,
+            d.status AS session_status,
+            d.revoked_at AS last_revoked_at
         FROM users u
-        LEFT JOIN organizations o ON u.organization_id = o.id
+        JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN LATERAL (
+            SELECT status, revoked_at
+            FROM devices
+            WHERE user_id = u.id
+            ORDER BY updated_at DESC
+            LIMIT 1
+        ) d ON true
         WHERE u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         "#,
@@ -116,6 +148,21 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             let role: UserRole = row.get("role");
             let status: UserStatus = row.get("status");
 
+            let session_status = row
+                .get::<Option<String>, _>("session_status")
+                .and_then(|s| {
+                    s.parse::<crate::dto::users::DeviceStatus>()
+                        .map_err(|e| {
+                            tracing::error!(
+                                "Data corruption: invalid device status '{}' for user {}",
+                                s,
+                                row.get::<Uuid, _>("id")
+                            );
+                            e
+                        })
+                        .ok()
+                });
+
             UserProfile {
                 id: row.get("id"),
                 username: row.get("username"),
@@ -129,6 +176,8 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
                 avatar_initials: None,
                 is_active: status == UserStatus::Active,
                 status,
+                session_status,
+                last_revoked_at: row.get("last_revoked_at"),
             }
         })
         .collect();

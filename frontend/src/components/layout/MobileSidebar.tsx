@@ -17,7 +17,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/daily-login');
     onClose();
   };
 
