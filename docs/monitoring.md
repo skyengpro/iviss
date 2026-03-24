@@ -40,17 +40,18 @@ docker compose ps
 
 ## Access
 
-| Service | Precise URL | Credentials |
-|---------|-------------|-------------|
-| **Frontend** | [http://localhost:8080/](http://localhost:8080/) | — |
-| **Grafana** | [http://localhost:3001/login](http://localhost:3001/login) | `admin` / `admin` |
-| **Prometheus** | [http://localhost:9090/targets](http://localhost:9090/targets) | — |
-| **Metrics Data** | [http://localhost:9091/metrics](http://localhost:9091/metrics) | — |
-| **Backend Health** | [http://localhost:3000/health](http://localhost:3000/health) | — |
+| Service            | Precise URL                                                    | Credentials       |
+| ------------------ | -------------------------------------------------------------- | ----------------- |
+| **Frontend**       | [http://localhost:8080/](http://localhost:8080/)               | —                 |
+| **Grafana**        | [http://localhost:3001/login](http://localhost:3001/login)     | `admin` / `admin` |
+| **Prometheus**     | [http://localhost:9090/targets](http://localhost:9090/targets) | —                 |
+| **Metrics Data**   | [http://localhost:9091/metrics](http://localhost:9091/metrics) | —                 |
+| **Backend Health** | [http://localhost:3000/health](http://localhost:3000/health)   | —                 |
 
 ## Verification Steps
 
 1. **Start the stack:**
+
    ```bash
    docker compose up -d
    ```
@@ -66,32 +67,32 @@ docker compose ps
 
 A pre-built **"IVISS Frontend Monitoring"** dashboard is auto-provisioned with:
 
-| Panel | Description |
-|-------|-------------|
-| Frontend Availability | UP/DOWN heartbeat status |
-| Active Sessions | Concurrent browser sessions |
-| Total Errors | Cumulative JS error count |
-| Route Navigations | Client-side navigation count |
-| Page Load Duration | Load time over time |
-| Errors Over Time | Error rate (per minute) |
-| LCP Gauge | Largest Contentful Paint (Web Vital) |
-| FID Gauge | First Input Delay (Web Vital) |
-| CLS Gauge | Cumulative Layout Shift (Web Vital) |
-| Route Navigations / Time | Navigation rate over time |
-| Active Sessions / Time | Session count over time |
+| Panel                    | Description                          |
+| ------------------------ | ------------------------------------ |
+| Frontend Availability    | UP/DOWN heartbeat status             |
+| Active Sessions          | Concurrent browser sessions          |
+| Total Errors             | Cumulative JS error count            |
+| Route Navigations        | Client-side navigation count         |
+| Page Load Duration       | Load time over time                  |
+| Errors Over Time         | Error rate (per minute)              |
+| LCP Gauge                | Largest Contentful Paint (Web Vital) |
+| FID Gauge                | First Input Delay (Web Vital)        |
+| CLS Gauge                | Cumulative Layout Shift (Web Vital)  |
+| Route Navigations / Time | Navigation rate over time            |
+| Active Sessions / Time   | Session count over time              |
 
 ## Collected Metrics
 
-| Metric | Type | Source |
-|--------|------|--------|
-| `frontend_up` | Gauge | Heartbeat from active sessions |
-| `frontend_active_sessions` | Gauge | Concurrent browser sessions |
-| `frontend_page_load_duration_ms` | Histogram | Navigation Timing API |
-| `frontend_lcp_ms` | Gauge | PerformanceObserver |
-| `frontend_fid_ms` | Gauge | PerformanceObserver |
-| `frontend_cls` | Gauge | PerformanceObserver |
-| `frontend_route_navigations_total` | Counter | React Router location changes |
-| `frontend_errors_total` | Counter | `window.onerror` + `unhandledrejection` |
+| Metric                             | Type      | Source                                  |
+| ---------------------------------- | --------- | --------------------------------------- |
+| `frontend_up`                      | Gauge     | Heartbeat from active sessions          |
+| `frontend_active_sessions`         | Gauge     | Concurrent browser sessions             |
+| `frontend_page_load_duration_ms`   | Histogram | Navigation Timing API                   |
+| `frontend_lcp_ms`                  | Gauge     | PerformanceObserver                     |
+| `frontend_fid_ms`                  | Gauge     | PerformanceObserver                     |
+| `frontend_cls`                     | Gauge     | PerformanceObserver                     |
+| `frontend_route_navigations_total` | Counter   | React Router location changes           |
+| `frontend_errors_total`            | Counter   | `window.onerror` + `unhandledrejection` |
 
 ## Configuration
 
@@ -122,9 +123,9 @@ Set `VITE_METRICS_ENABLED=false` in `frontend/.env` to disable browser-side metr
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Prometheus shows target as DOWN | Check `docker compose logs metrics-server` |
-| No data in Grafana | Open the frontend in a browser and wait ~15s |
-| Grafana can't reach Prometheus | Ensure both are on `iviss-network`: `docker network inspect iviss_iviss-network` |
-| Metrics not updating | Check browser console for fetch errors to `/api/metrics` |
+| Issue                           | Solution                                                                         |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| Prometheus shows target as DOWN | Check `docker compose logs metrics-server`                                       |
+| No data in Grafana              | Open the frontend in a browser and wait ~15s                                     |
+| Grafana can't reach Prometheus  | Ensure both are on `iviss-network`: `docker network inspect iviss_iviss-network` |
+| Metrics not updating            | Check browser console for fetch errors to `/api/metrics`                         |

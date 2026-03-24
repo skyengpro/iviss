@@ -1,7 +1,8 @@
 use crate::dto::common::{IdentificationMode, Status};
 use crate::dto::create_control::CreateControlRequest;
 use crate::dto::list_control::{
-    ActionType, ControlAction, ControlLocation, ControlResults, ListControlResponse,
+    ActionType, ControlAction, ControlLocation, ControlPagedQuery, ControlResults,
+    ListControlResponse,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row};
@@ -251,6 +252,211 @@ pub async fn get_control_records(
     }
 
     Ok(responses)
+}
+
+pub async fn get_paged_control_records(
+    pool: &PgPool,
+    query: &ControlPagedQuery,
+    page: i64,
+    page_size: i64,
+) -> Result<(Vec<ListControlResponse>, i64), AppError> {
+    let page = page.max(1);
+    let page_size = page_size.clamp(1, 100);
+    let offset = (page - 1) * page_size;
+
+    fn apply_filters(qb: &mut QueryBuilder<Postgres>, query: &ControlPagedQuery) {
+        if let Some(start) = query.start_date.as_ref() {
+            qb.push(" AND c.timestamp >= ");
+            qb.push_bind(start.clone()).push("::timestamp");
+        }
+
+        if let Some(end) = query.end_date.as_ref() {
+            qb.push(" AND c.timestamp <= ");
+            qb.push_bind(end.clone()).push("::timestamp");
+        }
+
+        if let Some(aid) = query.agent_id {
+            qb.push(" AND c.agent_id = ");
+            qb.push_bind(aid);
+        }
+
+        if let Some(oid) = query.organization_id {
+            qb.push(" AND c.organization_id = ");
+            qb.push_bind(oid);
+        }
+
+        if let Some(s) = query.status.as_ref() {
+            let status_str = match s {
+                Status::Valid => "valid",
+                Status::Warning => "warning",
+                Status::Critical => "critical",
+                Status::Pending => "pending",
+            };
+            qb.push(" AND c.overall_status = ");
+            qb.push_bind(status_str);
+        }
+
+        if let Some(p) = query.plate.as_ref() {
+            qb.push(" AND c.plate_number ILIKE ");
+            qb.push_bind(format!("%{p}%"));
+        }
+
+        if let Some(text) = query.q.as_ref() {
+            let like = format!("%{text}%");
+            qb.push(" AND (");
+            qb.push("c.plate_number ILIKE ");
+            qb.push_bind(like.clone());
+            qb.push(" OR u.full_name ILIKE ");
+            qb.push_bind(like.clone());
+            qb.push(" OR c.address ILIKE ");
+            qb.push_bind(like);
+            qb.push(")");
+        }
+    }
+
+    // ---- Count query ----
+    let mut count_qb: QueryBuilder<Postgres> = QueryBuilder::new(
+        r#"
+        SELECT COUNT(*) as total
+        FROM control_records c
+        JOIN users u ON c.agent_id = u.id
+        WHERE c.deleted_at IS NULL
+        "#,
+    );
+    apply_filters(&mut count_qb, query);
+
+    let total: i64 = count_qb
+        .build()
+        .fetch_one(pool)
+        .await
+        .map_err(AppError::database)?
+        .get("total");
+
+    // ---- Items query ----
+    let mut items_qb: QueryBuilder<Postgres> = QueryBuilder::new(
+        r#"
+        SELECT
+            c.id,
+            c.plate_number,
+            c.agent_id,
+            u.full_name as agent_name,
+            c.organization_id,
+            c.timestamp,
+            c.identification_mode,
+            c.ocr_confidence::DOUBLE PRECISION as ocr_confidence,
+            c.overall_status,
+            c.latitude::DOUBLE PRECISION as latitude,
+            c.longitude::DOUBLE PRECISION as longitude,
+            c.address,
+            c.results_json,
+            c.notes,
+            v.brand,
+            v.model,
+            v.year,
+            v.color,
+            v.engine_power,
+            v.fuel_type,
+            v.chassis_number,
+            vo.name as owner_name,
+            vo.address as owner_address,
+            vo.national_id as owner_national_id
+        FROM control_records c
+        JOIN users u ON c.agent_id = u.id
+        LEFT JOIN vehicles v ON c.plate_number = v.plate_number
+        LEFT JOIN vehicle_owners vo ON v.id = vo.vehicle_id AND vo.is_current_owner = TRUE
+        WHERE c.deleted_at IS NULL
+        "#,
+    );
+    apply_filters(&mut items_qb, query);
+    items_qb.push(" ORDER BY c.timestamp DESC ");
+    items_qb.push(" LIMIT ").push_bind(page_size);
+    items_qb.push(" OFFSET ").push_bind(offset);
+
+    let rows = items_qb
+        .build()
+        .fetch_all(pool)
+        .await
+        .map_err(AppError::database)?;
+
+    let mut responses = Vec::new();
+
+    for row in rows {
+        let id: Uuid = row.get("id");
+        let actions = get_actions_for_control(pool, id).await?;
+
+        let results_json: Option<serde_json::Value> = row.get("results_json");
+        let results = results_json
+            .and_then(|v| serde_json::from_value(v).ok())
+            .unwrap_or(ControlResults {
+                registration: Status::Valid,
+                insurance: Status::Valid,
+                technical_inspection: Status::Valid,
+                wanted_status: Status::Valid,
+                customs_status: Status::Valid,
+            });
+
+        let id_mode_str: String = row.get("identification_mode");
+        let identification_mode = match id_mode_str.as_str() {
+            "manual" => IdentificationMode::Manual,
+            "photo" => IdentificationMode::Photo,
+            "live" => IdentificationMode::Live,
+            _ => IdentificationMode::Manual,
+        };
+
+        let status_str: String = row.get("overall_status");
+        let status = match status_str.as_str() {
+            "valid" => Status::Valid,
+            "warning" => Status::Warning,
+            "critical" => Status::Critical,
+            "pending" => Status::Pending,
+            _ => Status::Valid,
+        };
+
+        responses.push(ListControlResponse {
+            id,
+            plate_number: row.get("plate_number"),
+            agent_name: row.get("agent_name"),
+            agent_id: row.get("agent_id"),
+            organization_id: row.get("organization_id"),
+            timestamp: row
+                .get::<time::PrimitiveDateTime, _>("timestamp")
+                .to_string(),
+            status,
+            identification_mode,
+            confidence: row.get("ocr_confidence"),
+            location: ControlLocation {
+                address: row.get("address"),
+                latitude: row.get("latitude"),
+                longitude: row.get("longitude"),
+            },
+            results,
+            actions,
+            notes: row.get("notes"),
+            vehicle: row.get::<Option<String>, _>("brand").map(|brand| {
+                use crate::dto::search_vehicle::{OwnerInfo, VehicleInfo};
+                VehicleInfo {
+                    brand,
+                    model: row.get::<Option<String>, _>("model").unwrap_or_default(),
+                    year: row.get::<Option<i32>, _>("year").unwrap_or_default(),
+                    color: row.get("color"),
+                    engine_power: row.get("engine_power"),
+                    fuel_type: row.get("fuel_type"),
+                    chassis_number: row
+                        .get::<Option<String>, _>("chassis_number")
+                        .unwrap_or_default(),
+                    owner: OwnerInfo {
+                        name: row
+                            .get::<Option<String>, _>("owner_name")
+                            .unwrap_or_default(),
+                        address: row.get("owner_address"),
+                        national_id: row.get("owner_national_id"),
+                    },
+                }
+            }),
+        });
+    }
+
+    Ok((responses, total))
 }
 
 async fn get_actions_for_control(

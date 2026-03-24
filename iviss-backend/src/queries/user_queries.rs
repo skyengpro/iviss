@@ -10,15 +10,23 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
             u.id, 
             u.full_name, 
             u.email, 
-            u.role::TEXT as role, 
+            u.role, 
             u.organization_id, 
             o.name as organization_name,
             u.badge_id,
             u.phone_number,
-            u.status::TEXT as status,
-            u.username
+            u.status,
+            u.username,
+            d.status::TEXT as session_status,
+            d.revoked_at as last_revoked_at
         FROM users u
         LEFT JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
         WHERE u.id = $1 AND u.deleted_at IS NULL
         "#,
     )
@@ -28,19 +36,12 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     .map_err(AppError::database)?
     .ok_or_else(|| AppError::not_found("User not found"))?;
 
-    let role_str: String = row.get("role");
-    let role = role_str.parse::<UserRole>().map_err(|_| {
-        tracing::error!(role = %role_str, "Unknown role in DB");
-        AppError::internal_error("Invalid user role in database")
-    })?;
+    let role: UserRole = row.get("role");
+    let status: UserStatus = row.get("status");
 
-    let status_str: String = row.get("status");
-    let status = status_str
-        .parse::<crate::dto::users::UserStatus>()
-        .map_err(|_| {
-            tracing::error!(status = %status_str, "Unknown status in DB");
-            AppError::internal_error("Invalid user status in database")
-        })?;
+    let session_status_str: Option<String> = row.get("session_status");
+    let session_status =
+        session_status_str.and_then(|s| s.parse::<crate::dto::users::DeviceStatus>().ok());
 
     Ok(UserProfile {
         id: row.get("id"),
@@ -52,9 +53,11 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
         organization: row.get("organization_name"),
         badge_id: row.get("badge_id"),
         phone_number: row.get("phone_number"),
-        avatar_initials: None, // Derived field maybe?
-        is_active: status_str == "ACTIVE",
+        avatar_initials: None,
+        is_active: status == UserStatus::Active,
         status,
+        session_status,
+        last_revoked_at: row.get("last_revoked_at"),
     })
 }
 
@@ -104,15 +107,23 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.id, 
             u.full_name, 
             u.email, 
-            u.role as role, 
+            u.role, 
             u.organization_id, 
             o.name as organization_name,
             u.badge_id,
             u.phone_number,
-            u.status as status,
-            u.username
+            u.status,
+            u.username,
+            d.status::TEXT as session_status,
+            d.revoked_at as last_revoked_at
         FROM users u
-        LEFT JOIN organizations o ON u.organization_id = o.id
+        JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
         WHERE u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         "#,
@@ -127,6 +138,10 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             let role: UserRole = row.get("role");
             let status: UserStatus = row.get("status");
 
+            let session_status_str: Option<String> = row.get("session_status");
+            let session_status =
+                session_status_str.and_then(|s| s.parse::<crate::dto::users::DeviceStatus>().ok());
+
             UserProfile {
                 id: row.get("id"),
                 username: row.get("username"),
@@ -140,6 +155,8 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
                 avatar_initials: None,
                 is_active: status == UserStatus::Active,
                 status,
+                session_status,
+                last_revoked_at: row.get("last_revoked_at"),
             }
         })
         .collect();

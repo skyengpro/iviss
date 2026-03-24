@@ -14,7 +14,8 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUTPUT_PATH = process.env.OPENAPI_OUTPUT_PATH || resolve(process.cwd(), "openapi.json");
+const OUTPUT_PATH =
+  process.env.OPENAPI_OUTPUT_PATH || resolve(process.cwd(), "openapi.json");
 
 const BACKEND_OPENAPI_URL =
   process.env.BACKEND_OPENAPI_URL ||

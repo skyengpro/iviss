@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, Building2 } from 'lucide-react';
+import { Building2, ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getDeviceId } from '@/services/device/deviceId';
 import { KeyManagement } from '@/services/keyManagement/keyManagement';
@@ -26,6 +27,16 @@ export default function Activate() {
   const canSubmit = !!badgeId.trim() && activationCode.trim().length === 6 && !isLoading;
 
   useEffect(() => {
+    // Check if we were redirected here due to a forced logout (admin termination)
+    const forcedReason = localStorage.getItem('iviss_forced_logout_reason');
+    if (forcedReason === 'TERMINATED') {
+      toast.error('Session Terminated', {
+        description: 'Your session was ended by an administrator or has expired.',
+        duration: 6000,
+      });
+      localStorage.removeItem('iviss_forced_logout_reason');
+    }
+
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
         navigate('/backoffice');
