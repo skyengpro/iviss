@@ -261,6 +261,16 @@ impl Config {
     pub fn is_local(&self) -> bool {
         self.environment == Environment::Local
     }
+
+    /// Check if we should use the mock SMS provider
+    pub fn use_mock_sms(&self) -> bool {
+        self.twilio_account_sid == "mock"
+            || self.twilio_auth_token == "mock"
+            || self.twilio_from_number == "mock"
+            || self.twilio_account_sid.is_empty()
+            || self.twilio_auth_token.is_empty()
+            || self.twilio_from_number.is_empty()
+    }
 }
 
 #[cfg(test)]

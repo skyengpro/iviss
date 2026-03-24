@@ -1,14 +1,37 @@
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ResendActivationRequest {
     pub user_id: uuid::Uuid,
 }
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ResendActivationResponse {
+    pub message: String,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminateSessionRequest {
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct TerminateSessionResponse {
+    pub message: String,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RestartSessionRequest {
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct RestartSessionResponse {
     pub message: String,
 }
 
@@ -21,7 +44,7 @@ pub enum UserRole {
     Manager,
 }
 
-impl FromStr for UserRole {
+impl std::str::FromStr for UserRole {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -33,7 +56,6 @@ impl FromStr for UserRole {
         }
     }
 }
-
 impl UserRole {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -51,6 +73,43 @@ pub enum UserStatus {
     PendingActivation,
     Active,
     Suspended,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DeviceStatus {
+    Pending,
+    Active,
+    Inactive,
+    Revoked,
+    Suspended,
+}
+
+impl DeviceStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Pending => "PENDING",
+            Self::Active => "ACTIVE",
+            Self::Inactive => "INACTIVE",
+            Self::Revoked => "REVOKED",
+            Self::Suspended => "SUSPENDED",
+        }
+    }
+}
+
+impl std::str::FromStr for DeviceStatus {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_uppercase().as_str() {
+            "PENDING" => Self::Pending,
+            "ACTIVE" => Self::Active,
+            "INACTIVE" => Self::Inactive,
+            "REVOKED" => Self::Revoked,
+            "SUSPENDED" => Self::Suspended,
+            _ => Self::Inactive,
+        })
+    }
 }
 
 impl UserStatus {
@@ -91,6 +150,8 @@ pub struct UserProfile {
     pub phone_number: Option<String>,
     pub avatar_initials: Option<String>,
     pub status: UserStatus,
+    pub session_status: Option<DeviceStatus>,
+    pub last_revoked_at: Option<time::PrimitiveDateTime>,
     pub is_active: bool,
 }
 
