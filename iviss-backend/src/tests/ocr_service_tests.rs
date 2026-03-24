@@ -23,8 +23,6 @@ thread_local! {
     static TESSERACT: RefCell<Option<LepTess>> = const { RefCell::new(None) };
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,10 +150,10 @@ mod tests {
         TESSERACT.with(|cell| {
             let mut slot = cell.borrow_mut();
             assert!(slot.is_none(), "Initial state should be None");
-            
+
             // Simulate putting a tesseract back
             *slot = None; // Would be Some(tess) in real scenario
-            
+
             // Test taking works
             let taken = slot.take();
             assert!(taken.is_none(), "Should be able to take None");
@@ -178,7 +176,8 @@ mod tests {
             Duration::from_millis(100),
             Duration::from_millis(200),
             Duration::from_millis(300),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(finalized.plate, "CE128BC");
         assert_eq!(finalized.confidence, 0.90); // Should be set to 0.90 for valid format
@@ -199,7 +198,8 @@ mod tests {
             Duration::from_millis(100),
             Duration::from_millis(200),
             Duration::from_millis(300),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(finalized.plate, "CE128");
         assert_eq!(finalized.confidence, 0.50); // Should be set to 0.50 for invalid format
@@ -220,7 +220,8 @@ mod tests {
             Duration::from_millis(100),
             Duration::from_millis(200),
             Duration::from_millis(300),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(finalized.plate, "");
         assert_eq!(finalized.confidence, 0.0); // Should remain 0.0 for empty plate
@@ -234,11 +235,11 @@ mod tests {
         // This test requires mocking Tesseract or using a real instance
         // For now, we'll test the logic structure
         // In a real test environment, you'd create a mock Tesseract that returns empty text
-        
+
         // Create a dummy image file for testing
         let img = GrayImage::from_pixel(10, 10, Luma([128]));
         let test_path = "/tmp/test_ocr_empty.png";
-        
+
         if img.save(test_path).is_ok() {
             // This would normally test with a real Tesseract instance
             let _ = fs::remove_file(test_path);
@@ -251,17 +252,20 @@ mod tests {
     fn test_extract_plate_fuzzy_comprehensive() {
         // Test exact matches
         assert_eq!(extract_plate_fuzzy("CE128BC"), Some("CE128BC".to_string()));
-        
+
         // Test with noise
-        assert_eq!(extract_plate_fuzzy("Noise CE128BC More"), Some("CE128BC".to_string()));
-        
+        assert_eq!(
+            extract_plate_fuzzy("Noise CE128BC More"),
+            Some("CE128BC".to_string())
+        );
+
         // Test character corrections in letter positions
         assert_eq!(extract_plate_fuzzy("C0128BC"), Some("CO128BC".to_string())); // 0->O at pos 1
         assert_eq!(extract_plate_fuzzy("C1128BC"), Some("CI128BC".to_string())); // 1->I at pos 1
         assert_eq!(extract_plate_fuzzy("C5128BC"), Some("CS128BC".to_string())); // 5->S at pos 1
         assert_eq!(extract_plate_fuzzy("C6128BC"), Some("CG128BC".to_string())); // 6->G at pos 1
         assert_eq!(extract_plate_fuzzy("C8128BC"), Some("CB128BC".to_string())); // 8->B at pos 1
-        
+
         // Test character corrections in digit positions
         assert_eq!(extract_plate_fuzzy("CE1O8BC"), Some("CE108BC".to_string())); // O->0 at pos 3
         assert_eq!(extract_plate_fuzzy("CE1I8BC"), Some("CE118BC".to_string())); // I->1 at pos 3
@@ -269,23 +273,32 @@ mod tests {
         assert_eq!(extract_plate_fuzzy("CE1S8BC"), Some("CE158BC".to_string())); // S->5 at pos 3
         assert_eq!(extract_plate_fuzzy("CE1G8BC"), Some("CE168BC".to_string())); // G->6 at pos 3
         assert_eq!(extract_plate_fuzzy("CE1B8BC"), Some("CE188BC".to_string())); // B->8 at pos 3
-        
+
         // Test last letter positions
         assert_eq!(extract_plate_fuzzy("CE128B0"), Some("CE128BO".to_string())); // 0->O at pos 6
         assert_eq!(extract_plate_fuzzy("CE128B1"), Some("CE128BI".to_string())); // 1->I at pos 6
-        
+
         // Test short strings (fallback case)
         assert_eq!(extract_plate_fuzzy("CE12"), Some("CE12".to_string()));
         assert_eq!(extract_plate_fuzzy("1234"), Some("1234".to_string()));
-        
+
         // Test too short strings
         assert_eq!(extract_plate_fuzzy("CE1"), None);
         assert_eq!(extract_plate_fuzzy(""), None);
-        
+
         // Test with special characters
-        assert_eq!(extract_plate_fuzzy("CE-128-BC"), Some("CE128BC".to_string()));
-        assert_eq!(extract_plate_fuzzy("CE 128 BC"), Some("CE128BC".to_string()));
-        assert_eq!(extract_plate_fuzzy("CE.128.BC"), Some("CE128BC".to_string()));
+        assert_eq!(
+            extract_plate_fuzzy("CE-128-BC"),
+            Some("CE128BC".to_string())
+        );
+        assert_eq!(
+            extract_plate_fuzzy("CE 128 BC"),
+            Some("CE128BC".to_string())
+        );
+        assert_eq!(
+            extract_plate_fuzzy("CE.128.BC"),
+            Some("CE128BC".to_string())
+        );
     }
 
     // ── Enhanced image processing tests ───────────────────────────────────────
@@ -296,18 +309,18 @@ mod tests {
         let empty_img = GrayImage::new(0, 0);
         let result = contrast_stretch(&empty_img);
         assert_eq!(result.dimensions(), (0, 0));
-        
+
         // Test uniform image (all same pixel value)
         let uniform_img = GrayImage::from_pixel(10, 10, Luma([128]));
         let result = contrast_stretch(&uniform_img);
         assert_eq!(result.get_pixel(0, 0)[0], 128); // Should remain unchanged
-        
+
         // Test already full range image
         let full_range_img = GrayImage::from_fn(2, 1, |x, _| Luma([if x == 0 { 0 } else { 255 }]));
         let result = contrast_stretch(&full_range_img);
         assert_eq!(result.get_pixel(0, 0)[0], 0);
         assert_eq!(result.get_pixel(1, 0)[0], 255);
-        
+
         // Test single pixel image
         let single_img = GrayImage::from_pixel(1, 1, Luma([100]));
         let result = contrast_stretch(&single_img);
@@ -320,7 +333,7 @@ mod tests {
         let empty_img = GrayImage::new(0, 0);
         let result = adaptive_threshold(&empty_img, 5, 5);
         assert_eq!(result.dimensions(), (0, 0));
-        
+
         // Test uniform image
         let uniform_img = GrayImage::from_pixel(10, 10, Luma([128]));
         let result = adaptive_threshold(&uniform_img, 5, 5);
@@ -331,14 +344,14 @@ mod tests {
                 assert_eq!(result.get_pixel(x, y)[0], first_pixel);
             }
         }
-        
+
         // Test with different radius values
         let img = GrayImage::from_fn(5, 5, |_, _| Luma([128]));
         let result1 = adaptive_threshold(&img, 1, 5);
         let result2 = adaptive_threshold(&img, 10, 5);
         assert_eq!(result1.dimensions(), (5, 5));
         assert_eq!(result2.dimensions(), (5, 5));
-        
+
         // Test with different C values
         let result3 = adaptive_threshold(&img, 5, 0);
         let result4 = adaptive_threshold(&img, 5, 10);
@@ -352,16 +365,16 @@ mod tests {
         let black_img = GrayImage::from_pixel(5, 5, Luma([0]));
         let inverted_black = invert_image(&black_img);
         assert_eq!(inverted_black.get_pixel(0, 0)[0], 255);
-        
+
         let white_img = GrayImage::from_pixel(5, 5, Luma([255]));
         let inverted_white = invert_image(&white_img);
         assert_eq!(inverted_white.get_pixel(0, 0)[0], 0);
-        
+
         // Test middle value
         let gray_img = GrayImage::from_pixel(5, 5, Luma([128]));
         let inverted_gray = invert_image(&gray_img);
         assert_eq!(inverted_gray.get_pixel(0, 0)[0], 127);
-        
+
         // Test double inversion returns original
         let double_inverted = invert_image(&inverted_gray);
         assert_eq!(double_inverted.get_pixel(0, 0)[0], 128);
@@ -370,23 +383,23 @@ mod tests {
     #[test]
     fn test_add_border_comprehensive() {
         let img = GrayImage::from_pixel(10, 15, Luma([100]));
-        
+
         // Test with zero border (should be same size)
         let no_border = add_border(&img, 0, 255);
         assert_eq!(no_border.dimensions(), (10, 15));
-        
+
         // Test with positive border
         let bordered = add_border(&img, 5, 255);
         assert_eq!(bordered.dimensions(), (20, 25));
-        
+
         // Check border color
         assert_eq!(bordered.get_pixel(0, 0)[0], 255); // Top-left corner
         assert_eq!(bordered.get_pixel(19, 24)[0], 255); // Bottom-right corner
-        
+
         // Check original image is centered
         assert_eq!(bordered.get_pixel(5, 5)[0], 100); // Top-left of original
         assert_eq!(bordered.get_pixel(14, 19)[0], 100); // Bottom-right of original
-        
+
         // Test with different border color
         let black_border = add_border(&img, 3, 0);
         assert_eq!(black_border.get_pixel(0, 0)[0], 0);
@@ -402,7 +415,7 @@ mod tests {
         assert_eq!(result.plate, "");
         assert_eq!(result.confidence, 0.0);
         assert!(!result.format_valid);
-        
+
         // Test with only invalid formats
         let cand1 = ScanResultData {
             plate: "INVALID1".to_string(),
@@ -419,7 +432,7 @@ mod tests {
         let result = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
         assert_eq!(result.plate, "INVALID2"); // Higher confidence wins
         assert!(!result.format_valid);
-        
+
         // Test with mixed valid/invalid
         let invalid = ScanResultData {
             plate: "INVALID".to_string(),
@@ -436,7 +449,7 @@ mod tests {
         let result = pick_best_ensemble(vec![Some(invalid), Some(valid)]);
         assert_eq!(result.plate, "CE128BC"); // Valid format wins regardless of confidence
         assert!(result.format_valid);
-        
+
         // Test with same validity, different confidence
         let valid1 = ScanResultData {
             plate: "AB123CD".to_string(),
@@ -461,7 +474,10 @@ mod tests {
         let invalid_bytes = b"not an image";
         let result = scan_plate(invalid_bytes);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot decode image"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Cannot decode image"));
     }
 
     #[test]
@@ -493,7 +509,7 @@ mod tests {
     fn test_full_pipeline_with_mock_image() {
         // Create a simple test image
         let img = GrayImage::from_pixel(100, 50, Luma([128]));
-        
+
         // Add some "text" pattern (simplified)
         let mut test_img = img.clone();
         for y in 20..30 {
@@ -501,11 +517,11 @@ mod tests {
                 test_img.put_pixel(x, y, Luma([255]));
             }
         }
-        
+
         // Save to bytes
         // Note: This would need proper encoding in a real test
         // For now, we'll just test that the function handles the input
-        
+
         // Test with minimal valid PNG bytes (this is a simplified example)
         // Note: In a real test environment, you would create a proper test image
         // For now, we'll skip this test as it requires external files

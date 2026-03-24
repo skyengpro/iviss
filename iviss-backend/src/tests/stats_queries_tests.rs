@@ -21,8 +21,14 @@ async fn setup_test_infrastructure() -> (
     testcontainers::ContainerAsync<Postgres>,
     testcontainers::ContainerAsync<Redis>,
 ) {
-    let pg = Postgres::default().start().await.expect("Failed to start Postgres");
-    let pg_port = pg.get_host_port_ipv4(5432).await.expect("Failed to get Postgres port");
+    let pg = Postgres::default()
+        .start()
+        .await
+        .expect("Failed to start Postgres");
+    let pg_port = pg
+        .get_host_port_ipv4(5432)
+        .await
+        .expect("Failed to get Postgres port");
     let db_url = format!(
         "postgres://postgres:postgres@127.0.0.1:{}/postgres",
         pg_port
@@ -129,12 +135,7 @@ async fn seed_control_record(
 }
 
 /// Helper: seed an agent location.
-async fn seed_agent_location(
-    db: &sqlx::PgPool,
-    agent_id: Uuid,
-    latitude: f64,
-    longitude: f64,
-) {
+async fn seed_agent_location(db: &sqlx::PgPool, agent_id: Uuid, latitude: f64, longitude: f64) {
     sqlx::query(
         r#"
         INSERT INTO agent_locations (agent_id, latitude, longitude)
@@ -154,7 +155,12 @@ async fn seed_agent_location(
 }
 
 /// Helper: seed a pending submission.
-async fn seed_pending_submission(db: &sqlx::PgPool, agent_id: Uuid, plate_number: &str, status: &str) -> Uuid {
+async fn seed_pending_submission(
+    db: &sqlx::PgPool,
+    agent_id: Uuid,
+    plate_number: &str,
+    status: &str,
+) -> Uuid {
     let submission_id = Uuid::new_v4();
     sqlx::query(
         r#"
@@ -190,11 +196,18 @@ async fn test_get_control_activity_series_h24_with_data() {
 
     let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::H24).await;
 
-    assert!(result.is_ok(), "get_control_activity_series_query should succeed");
+    assert!(
+        result.is_ok(),
+        "get_control_activity_series_query should succeed"
+    );
     let series = result.unwrap();
 
     // H24 should return 24 data points (one per hour)
-    assert_eq!(series.len(), 24, "H24 range should return 24 hourly buckets");
+    assert_eq!(
+        series.len(),
+        24,
+        "H24 range should return 24 hourly buckets"
+    );
 
     // At least one bucket should have data (the current hour)
     let total_count: i64 = series.iter().map(|p| p.count).sum();
@@ -208,10 +221,17 @@ async fn test_get_control_activity_series_h24_empty() {
     // No control records - should still return 24 buckets with 0 counts
     let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::H24).await;
 
-    assert!(result.is_ok(), "get_control_activity_series_query should succeed even with no data");
+    assert!(
+        result.is_ok(),
+        "get_control_activity_series_query should succeed even with no data"
+    );
     let series = result.unwrap();
 
-    assert_eq!(series.len(), 24, "H24 range should return 24 buckets even with no data");
+    assert_eq!(
+        series.len(),
+        24,
+        "H24 range should return 24 buckets even with no data"
+    );
     for point in &series {
         assert_eq!(point.count, 0, "All counts should be 0 when no data exists");
     }
@@ -231,7 +251,10 @@ async fn test_get_control_activity_series_d7_with_data() {
 
     let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::D7).await;
 
-    assert!(result.is_ok(), "get_control_activity_series_query should succeed");
+    assert!(
+        result.is_ok(),
+        "get_control_activity_series_query should succeed"
+    );
     let series = result.unwrap();
 
     // D7 should return 7 data points (one per day)
@@ -255,7 +278,10 @@ async fn test_get_control_activity_series_d30_with_data() {
 
     let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::D30).await;
 
-    assert!(result.is_ok(), "get_control_activity_series_query should succeed");
+    assert!(
+        result.is_ok(),
+        "get_control_activity_series_query should succeed"
+    );
     let series = result.unwrap();
 
     // D30 should return 30 data points (one per day)
@@ -293,7 +319,10 @@ async fn test_get_top_agents_with_controls() {
 
     assert_eq!(agents.len(), 2, "Should return 2 agents");
     // Should be ordered by controls_count DESC
-    assert_eq!(agents[0].controls_count, 3, "Agent 1 should have 3 controls");
+    assert_eq!(
+        agents[0].controls_count, 3,
+        "Agent 1 should have 3 controls"
+    );
     assert_eq!(agents[1].controls_count, 1, "Agent 2 should have 1 control");
 }
 
@@ -325,10 +354,16 @@ async fn test_get_top_agents_empty() {
     // No agents or controls
     let result = stats_queries::get_top_agents_query(&db, DashboardRange::H24, 10).await;
 
-    assert!(result.is_ok(), "get_top_agents_query should succeed with no data");
+    assert!(
+        result.is_ok(),
+        "get_top_agents_query should succeed with no data"
+    );
     let agents = result.unwrap();
 
-    assert!(agents.is_empty(), "Should return empty vector when no agents exist");
+    assert!(
+        agents.is_empty(),
+        "Should return empty vector when no agents exist"
+    );
 }
 
 #[tokio::test]
@@ -349,7 +384,10 @@ async fn test_get_top_agents_with_online_status() {
     let agents = result.unwrap();
 
     assert_eq!(agents.len(), 1, "Should return 1 agent");
-    assert!(agents[0].is_online, "Agent with recent location should be marked online");
+    assert!(
+        agents[0].is_online,
+        "Agent with recent location should be marked online"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -406,10 +444,16 @@ async fn test_get_activity_feed_empty() {
     // No control records
     let result = stats_queries::get_activity_feed_query(&db, 10).await;
 
-    assert!(result.is_ok(), "get_activity_feed_query should succeed with no data");
+    assert!(
+        result.is_ok(),
+        "get_activity_feed_query should succeed with no data"
+    );
     let feed = result.unwrap();
 
-    assert!(feed.is_empty(), "Should return empty vector when no records exist");
+    assert!(
+        feed.is_empty(),
+        "Should return empty vector when no records exist"
+    );
 }
 
 #[tokio::test]
@@ -460,10 +504,23 @@ async fn test_get_recent_alerts_with_warnings_and_criticals() {
     assert!(result.is_ok(), "get_recent_alerts_query should succeed");
     let alerts = result.unwrap();
 
-    assert_eq!(alerts.len(), 2, "Should return only warning and critical records");
-    assert!(alerts.iter().any(|a| a.plate_number == "ALERT-WARN"), "Should include warning");
-    assert!(alerts.iter().any(|a| a.plate_number == "ALERT-CRIT"), "Should include critical");
-    assert!(alerts.iter().all(|a| a.plate_number != "ALERT-OK"), "Should exclude ok records");
+    assert_eq!(
+        alerts.len(),
+        2,
+        "Should return only warning and critical records"
+    );
+    assert!(
+        alerts.iter().any(|a| a.plate_number == "ALERT-WARN"),
+        "Should include warning"
+    );
+    assert!(
+        alerts.iter().any(|a| a.plate_number == "ALERT-CRIT"),
+        "Should include critical"
+    );
+    assert!(
+        alerts.iter().all(|a| a.plate_number != "ALERT-OK"),
+        "Should exclude ok records"
+    );
 }
 
 #[tokio::test]
@@ -482,7 +539,10 @@ async fn test_get_recent_alerts_only_ok_records() {
     assert!(result.is_ok(), "get_recent_alerts_query should succeed");
     let alerts = result.unwrap();
 
-    assert!(alerts.is_empty(), "Should return empty when no warning/critical records exist");
+    assert!(
+        alerts.is_empty(),
+        "Should return empty when no warning/critical records exist"
+    );
 }
 
 #[tokio::test]
@@ -520,7 +580,10 @@ async fn test_get_recent_alerts_includes_address() {
     let alerts = result.unwrap();
 
     assert_eq!(alerts.len(), 1);
-    assert!(alerts[0].address.is_some(), "Alert should have address field");
+    assert!(
+        alerts[0].address.is_some(),
+        "Alert should have address field"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -555,14 +618,24 @@ async fn test_get_dashboard_stats_complete() {
 
     // Verify counts
     assert_eq!(stats.today_controls, 2, "Should have 2 controls today");
-    assert_eq!(stats.active_alerts, 1, "Should have 1 active alert (critical)");
+    assert_eq!(
+        stats.active_alerts, 1,
+        "Should have 1 active alert (critical)"
+    );
     assert_eq!(stats.total_vehicles, 2, "Should have 2 vehicles");
     assert_eq!(stats.online_agents, 1, "Should have 1 active agent");
-    assert_eq!(stats.pending_submissions, 1, "Should have 1 pending submission");
+    assert_eq!(
+        stats.pending_submissions, 1,
+        "Should have 1 pending submission"
+    );
     assert_eq!(stats.organizations_count, 1, "Should have 1 organization");
 
     // Verify activity_24h has 24 buckets
-    assert_eq!(stats.activity_24h.len(), 24, "activity_24h should have 24 hourly buckets");
+    assert_eq!(
+        stats.activity_24h.len(),
+        24,
+        "activity_24h should have 24 hourly buckets"
+    );
 
     // Verify live_agents has 1 agent
     assert_eq!(stats.live_agents.len(), 1, "Should have 1 live agent");
@@ -576,7 +649,10 @@ async fn test_get_dashboard_stats_empty_database() {
     // No data at all
     let result = stats_queries::get_dashboard_stats_query(&db).await;
 
-    assert!(result.is_ok(), "get_dashboard_stats_query should succeed with no data");
+    assert!(
+        result.is_ok(),
+        "get_dashboard_stats_query should succeed with no data"
+    );
     let stats = result.unwrap();
 
     // All counts should be zero

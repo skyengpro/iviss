@@ -164,13 +164,12 @@ mod tests {
         }
 
         // Verify user was created with correct role and status
-        let user: (String, String) = sqlx::query_as(
-            "SELECT role::text, status::text FROM users WHERE email = $1"
-        )
-        .bind(email)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let user: (String, String) =
+            sqlx::query_as("SELECT role::text, status::text FROM users WHERE email = $1")
+                .bind(email)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(user.0, "admin");
         assert_eq!(user.1, "ACTIVE");
@@ -212,13 +211,12 @@ mod tests {
         try_bootstrap(&pool, &config).await.unwrap();
 
         // Verify password is hashed (not stored in plain text)
-        let password_hash: String = sqlx::query_scalar(
-            "SELECT password_hash FROM users WHERE email = $1"
-        )
-        .bind(email)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let password_hash: String =
+            sqlx::query_scalar("SELECT password_hash FROM users WHERE email = $1")
+                .bind(email)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         // Password should not be equal to plain text
         assert_ne!(password_hash, plain_password);
@@ -226,5 +224,3 @@ mod tests {
         assert!(password_hash.starts_with("$argon2"));
     }
 }
-
-

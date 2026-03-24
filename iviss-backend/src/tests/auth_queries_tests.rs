@@ -85,11 +85,7 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
 }
 
 /// Helper: seed a device for a user.
-async fn seed_device(
-    db: &sqlx::PgPool,
-    user_id: Uuid,
-    status: &str,
-) -> Uuid {
+async fn seed_device(db: &sqlx::PgPool, user_id: Uuid, status: &str) -> Uuid {
     let device_id = Uuid::new_v4();
     let now_secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -119,16 +115,12 @@ async fn seed_device(
 }
 
 /// Helper: create a valid refresh token for a device.
-async fn seed_refresh_token(
-    db: &sqlx::PgPool,
-    user_id: Uuid,
-    device_id: Uuid,
-    revoked: bool,
-) {
+async fn seed_refresh_token(db: &sqlx::PgPool, user_id: Uuid, device_id: Uuid, revoked: bool) {
     let token = format!("refresh-token-{}", Uuid::new_v4());
     let token_hash = format!("{:x}", sha2::Sha256::digest(token.as_bytes()));
     let refresh_expires = OffsetDateTime::now_utc() + Duration::days(30);
-    let refresh_expires_primitive = PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
+    let refresh_expires_primitive =
+        PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
 
     sqlx::query(
         r#"
@@ -185,13 +177,12 @@ async fn test_mark_device_inactive_success() {
     let device_id = seed_device(&db, user_id, "ACTIVE").await;
 
     // Verify device is active
-    let device_before: (String,) = sqlx::query_as(
-        r#"SELECT status::text FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device");
+    let device_before: (String,) =
+        sqlx::query_as(r#"SELECT status::text FROM devices WHERE id = $1"#)
+            .bind(device_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch device");
     assert_eq!(device_before.0, "ACTIVE");
 
     // Call the function under test
@@ -199,13 +190,12 @@ async fn test_mark_device_inactive_success() {
     assert!(result.is_ok(), "mark_device_inactive should succeed");
 
     // Verify device is now inactive
-    let device_after: (String, Option<time::PrimitiveDateTime>) = sqlx::query_as(
-        r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device after update");
+    let device_after: (String, Option<time::PrimitiveDateTime>) =
+        sqlx::query_as(r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#)
+            .bind(device_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch device after update");
     assert_eq!(device_after.0, "INACTIVE");
     assert!(device_after.1.is_some(), "revoked_at should be set");
 }
@@ -218,7 +208,10 @@ async fn test_mark_device_inactive_nonexistent_device() {
 
     // Should not error - UPDATE just affects 0 rows
     let result = auth_queries::mark_device_inactive(&db, nonexistent_id).await;
-    assert!(result.is_ok(), "mark_device_inactive should succeed even for nonexistent device");
+    assert!(
+        result.is_ok(),
+        "mark_device_inactive should succeed even for nonexistent device"
+    );
 }
 
 #[tokio::test]
@@ -257,16 +250,18 @@ async fn test_mark_device_inactive_already_inactive() {
 
     // Should not error - UPDATE just affects 0 rows (WHERE status = 'ACTIVE' fails)
     let result = auth_queries::mark_device_inactive(&db, device_id).await;
-    assert!(result.is_ok(), "mark_device_inactive should succeed even if already inactive");
+    assert!(
+        result.is_ok(),
+        "mark_device_inactive should succeed even if already inactive"
+    );
 
     // Verify device is still inactive
-    let device_after: (String,) = sqlx::query_as(
-        r#"SELECT status::text FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device");
+    let device_after: (String,) =
+        sqlx::query_as(r#"SELECT status::text FROM devices WHERE id = $1"#)
+            .bind(device_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch device");
     assert_eq!(device_after.0, "INACTIVE");
 }
 
@@ -319,13 +314,12 @@ async fn test_mark_device_active_success() {
     assert!(result.is_ok(), "mark_device_active should succeed");
 
     // Verify device is now active with correct metadata
-    let device: (String, sqlx::types::Json<serde_json::Value>) = sqlx::query_as(
-        r#"SELECT status::text, metadata FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device");
+    let device: (String, sqlx::types::Json<serde_json::Value>) =
+        sqlx::query_as(r#"SELECT status::text, metadata FROM devices WHERE id = $1"#)
+            .bind(device_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch device");
     assert_eq!(device.0, "ACTIVE");
     let metadata = device.1 .0;
     assert_eq!(metadata["shift_start"], shift_start);
@@ -377,13 +371,11 @@ async fn test_mark_device_active_updates_existing_device() {
     assert!(result.is_ok(), "mark_device_active should succeed");
 
     // Verify device status changed from SUSPENDED to ACTIVE
-    let device: (String,) = sqlx::query_as(
-        r#"SELECT status::text FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device");
+    let device: (String,) = sqlx::query_as(r#"SELECT status::text FROM devices WHERE id = $1"#)
+        .bind(device_id)
+        .fetch_one(&db)
+        .await
+        .expect("Failed to fetch device");
     assert_eq!(device.0, "ACTIVE");
 }
 
@@ -442,16 +434,18 @@ async fn test_suspend_device_and_revoke_tokens_success() {
 
     // Call the function under test
     let result = auth_queries::suspend_device_and_revoke_tokens(&db, device_id).await;
-    assert!(result.is_ok(), "suspend_device_and_revoke_tokens should succeed");
+    assert!(
+        result.is_ok(),
+        "suspend_device_and_revoke_tokens should succeed"
+    );
 
     // Verify device is suspended
-    let device: (String, Option<time::PrimitiveDateTime>) = sqlx::query_as(
-        r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device");
+    let device: (String, Option<time::PrimitiveDateTime>) =
+        sqlx::query_as(r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#)
+            .bind(device_id)
+            .fetch_one(&db)
+            .await
+            .expect("Failed to fetch device");
     assert_eq!(device.0, "SUSPENDED");
     assert!(device.1.is_some(), "revoked_at should be set");
 
@@ -512,16 +506,17 @@ async fn test_suspend_device_and_revoke_tokens_no_tokens() {
 
     // Call the function under test (no tokens exist for this device)
     let result = auth_queries::suspend_device_and_revoke_tokens(&db, device_id).await;
-    assert!(result.is_ok(), "suspend_device_and_revoke_tokens should succeed with no tokens");
+    assert!(
+        result.is_ok(),
+        "suspend_device_and_revoke_tokens should succeed with no tokens"
+    );
 
     // Verify device is still suspended
-    let device: (String,) = sqlx::query_as(
-        r#"SELECT status::text FROM devices WHERE id = $1"#,
-    )
-    .bind(device_id)
-    .fetch_one(&db)
-    .await
-    .expect("Failed to fetch device");
+    let device: (String,) = sqlx::query_as(r#"SELECT status::text FROM devices WHERE id = $1"#)
+        .bind(device_id)
+        .fetch_one(&db)
+        .await
+        .expect("Failed to fetch device");
     assert_eq!(device.0, "SUSPENDED");
 }
 
@@ -565,7 +560,10 @@ async fn test_suspend_device_and_revoke_tokens_only_revokes_valid_tokens() {
 
     // Call the function under test
     let result = auth_queries::suspend_device_and_revoke_tokens(&db, device_id).await;
-    assert!(result.is_ok(), "suspend_device_and_revoke_tokens should succeed");
+    assert!(
+        result.is_ok(),
+        "suspend_device_and_revoke_tokens should succeed"
+    );
 
     // Verify only the valid token was revoked
     let valid_tokens: (i64,) = sqlx::query_as(
@@ -603,7 +601,10 @@ async fn test_blacklist_jti_success() {
     assert!(result.is_ok(), "blacklist_jti should succeed");
 
     // Verify the key exists in Redis
-    let mut conn = redis_pool.get().await.expect("Failed to get Redis connection");
+    let mut conn = redis_pool
+        .get()
+        .await
+        .expect("Failed to get Redis connection");
     let exists: bool = redis::cmd("EXISTS")
         .arg(format!("blacklist:jti:{}", jti))
         .query_async(&mut *conn)
@@ -625,7 +626,10 @@ async fn test_blacklist_jti_expiration() {
     assert!(result.is_ok(), "blacklist_jti should succeed");
 
     // Verify the key exists immediately
-    let mut conn = redis_pool.get().await.expect("Failed to get Redis connection");
+    let mut conn = redis_pool
+        .get()
+        .await
+        .expect("Failed to get Redis connection");
     let value_before: String = redis::cmd("GET")
         .arg(format!("blacklist:jti:{}", jti))
         .query_async(&mut *conn)
@@ -660,7 +664,10 @@ async fn test_blacklist_jti_multiple_calls() {
     assert!(result2.is_ok(), "blacklist_jti should succeed for jti2");
 
     // Verify both exist
-    let mut conn = redis_pool.get().await.expect("Failed to get Redis connection");
+    let mut conn = redis_pool
+        .get()
+        .await
+        .expect("Failed to get Redis connection");
     let exists1: bool = redis::cmd("EXISTS")
         .arg(format!("blacklist:jti:{}", jti1))
         .query_async(&mut *conn)
@@ -717,7 +724,10 @@ async fn test_has_valid_refresh_token_true() {
     // Call the function under test
     let result = auth_queries::has_valid_refresh_token(&db, device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
-    assert!(result.unwrap(), "Should return true when valid token exists");
+    assert!(
+        result.unwrap(),
+        "Should return true when valid token exists"
+    );
 }
 
 #[tokio::test]
@@ -799,7 +809,10 @@ async fn test_has_valid_refresh_token_false_revoked() {
     // Call the function under test
     let result = auth_queries::has_valid_refresh_token(&db, device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
-    assert!(!result.unwrap(), "Should return false when token is revoked");
+    assert!(
+        !result.unwrap(),
+        "Should return false when token is revoked"
+    );
 }
 
 #[tokio::test]
@@ -811,5 +824,8 @@ async fn test_has_valid_refresh_token_false_nonexistent_device() {
     // Call the function under test
     let result = auth_queries::has_valid_refresh_token(&db, nonexistent_device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
-    assert!(!result.unwrap(), "Should return false for nonexistent device");
+    assert!(
+        !result.unwrap(),
+        "Should return false for nonexistent device"
+    );
 }
