@@ -107,7 +107,6 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle_v1),
         )
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route(
             "/stats/activity",
             get(crate::handlers::stats::get_control_activity),
