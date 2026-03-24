@@ -20,3 +20,5 @@ pub mod auth_queries_tests;
 pub mod stats_queries_tests;
 #[cfg(test)]
 pub mod control_queries_tests;
+#[cfg(test)]
+pub mod stats_handler_tests;
