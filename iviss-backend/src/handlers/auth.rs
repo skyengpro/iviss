@@ -531,21 +531,21 @@ pub async fn verify_daily_login(
     .ok_or_else(|| AppError::not_found("User or device not found"))?;
 
     let user_id: Uuid = row.get("user_id");
-    let user_role: String = row.get("user_role");
-    let user_status: String = row.get("user_status");
+    let user_role: UserRole = row.get("user_role");
+    let user_status: UserStatus = row.get("user_status");
     let device_status: String = row.get("device_status");
 
     // ── Status checks
-    if user_role != "agent" {
+    if user_role != UserRole::Agent {
         return Err(AppError::unauthorized(
             "Daily login is only available for agents",
         ));
     }
 
-    if user_status != "ACTIVE" {
+    if user_status != UserStatus::Active {
         return Err(AppError::unauthorized(format!(
             "User account is {}",
-            user_status.to_lowercase()
+            user_status.as_str()
         )));
     }
 
@@ -589,15 +589,11 @@ pub async fn verify_daily_login(
     // ── Issue access token (15 min, carries today's static shift bounds) ──────
     let jwt_svc = &state.jwt_svc;
 
-    let role = user_role
-        .parse::<crate::dto::users::UserRole>()
-        .map_err(|_| AppError::internal_error("Invalid user role in database"))?;
-
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             user_id,
             payload.device_id,
-            role,
+            user_role,
             shift_start.try_into().unwrap_or(0usize),
             shift_end.try_into().unwrap_or(0usize),
         )
