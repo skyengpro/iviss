@@ -1,5 +1,5 @@
 -- =============================================================
--- Migration: 20260311084805_add_device_suspension_index.sql
+-- Migration: 20260311084806_add_device_suspension_index.sql
 -- Description: Add index for device suspension queries
 -- =============================================================
 

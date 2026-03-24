@@ -75,8 +75,9 @@ pub enum UserStatus {
     Suspended,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq, sqlx::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[sqlx(type_name = "device_status", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DeviceStatus {
     Pending,
     Active,

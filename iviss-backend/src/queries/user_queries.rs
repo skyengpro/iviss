@@ -11,12 +11,12 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
             u.id, 
             u.full_name, 
             u.email, 
-            u.role",      
+            u.role,      
             u.organization_id, 
             o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status",
+            u.status,
             u.username,
             d.status AS session_status,
             d.revoked_at AS last_revoked_at
@@ -42,15 +42,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     let role: UserRole = row.get("role");
     let status: UserStatus = row.get("status");
 
-    let session_status_str: Option<String> = row.get("session_status");
-    let session_status = session_status_str.and_then(|s| {
-        s.parse::<DeviceStatus>()
-            .map_err(|e| {
-                tracing::warn!("Invalid device status in DB for user {}: {}", user_id, s);
-                e // On logge l'anomalie, mais on ne crashe pas !
-            })
-            .ok()
-    });
+    let session_status: Option<DeviceStatus> = row.get("session_status");
 
     Ok(UserProfile {
         id: row.get("id"),
@@ -116,12 +108,12 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.id, 
             u.full_name, 
             u.email, 
-            u.role AS "role: UserRole",
+            u.role AS role,
             u.organization_id, 
             o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status AS "status: UserStatus",
+            u.status AS status,
             u.username,
             d.status AS session_status,
             d.revoked_at AS last_revoked_at
@@ -148,20 +140,7 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             let role: UserRole = row.get("role");
             let status: UserStatus = row.get("status");
 
-            let session_status = row
-                .get::<Option<String>, _>("session_status")
-                .and_then(|s| {
-                    s.parse::<crate::dto::users::DeviceStatus>()
-                        .map_err(|e| {
-                            tracing::error!(
-                                "Data corruption: invalid device status '{}' for user {}",
-                                s,
-                                row.get::<Uuid, _>("id")
-                            );
-                            e
-                        })
-                        .ok()
-                });
+            let session_status: Option<DeviceStatus> = row.get("session_status");
 
             UserProfile {
                 id: row.get("id"),
