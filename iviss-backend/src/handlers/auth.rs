@@ -260,7 +260,7 @@ pub async fn activate(
         r#"
         SELECT id,
                role,
-               status
+               status::TEXT AS status
         FROM users
         WHERE badge_id = $1
         AND deleted_at IS NULL
@@ -273,10 +273,10 @@ pub async fn activate(
     .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
     let user_id: Uuid = user_row.get("id");
-    let user_role: String = user_row.get("role");
+    let user_role: UserRole = user_row.get("role");
     let user_status: String = user_row.get("status");
 
-    if user_role != "agent" {
+    if user_role != UserRole::Agent {
         return Err(AppError::BadRequest(
             "Activation is only available for agents".into(),
         ));
@@ -513,7 +513,7 @@ pub async fn verify_daily_login(
         SELECT
             u.id              AS user_id,
             u.role            AS user_role,
-            u.status          AS user_status,
+            u.status::TEXT    AS user_status,
             COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
         FROM users u
         LEFT JOIN devices d

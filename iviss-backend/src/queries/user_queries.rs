@@ -21,15 +21,13 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
             d.status AS session_status,
             d.revoked_at AS last_revoked_at
         FROM users u
-        JOIN organizations o ON u.organization_id = o.id
-        -- LATERAL JOIN : Ultra rapide pour cibler uniquement les devices de CET utilisateur
-        LEFT JOIN LATERAL (
-            SELECT status, revoked_at
+        LEFT JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
             FROM devices
-            WHERE user_id = $1
-            ORDER BY updated_at DESC
-            LIMIT 1
-        ) d ON true
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
         WHERE u.id = $1 AND u.deleted_at IS NULL
         "#,
     )
@@ -54,7 +52,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
         organization: row.get("organization_name"),
         badge_id: row.get("badge_id"),
         phone_number: row.get("phone_number"),
-        avatar_initials: None, // Pourrait être généré ici !
+        avatar_initials: None,
         is_active: status == UserStatus::Active,
         status,
         session_status,
@@ -113,19 +111,18 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status AS status,
+            u.status,
             u.username,
             d.status AS session_status,
             d.revoked_at AS last_revoked_at
         FROM users u
-        JOIN organizations o ON u.organization_id = o.id
-        LEFT JOIN LATERAL (
-            SELECT status, revoked_at
+        LEFT JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
             FROM devices
-            WHERE user_id = u.id
-            ORDER BY updated_at DESC
-            LIMIT 1
-        ) d ON true
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
         WHERE u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         "#,

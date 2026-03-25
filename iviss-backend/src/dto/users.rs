@@ -35,7 +35,7 @@ pub struct RestartSessionResponse {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq, Clone, Copy, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum UserRole {
