@@ -1,9 +1,9 @@
 import { lazy } from 'react';
-import { UserRole } from '@/services/mock/mockAuth';
 
 // Lazy Pages
 const Activate = lazy(() => import('../pages/auth/Activate'));
 const DailyLogin = lazy(() => import('../pages/auth/DailyLogin'));
+const AdminLogin = lazy(() => import('../pages/auth/AdminLogin'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Mobile Pages
@@ -29,7 +29,7 @@ const BackOfficeReports = lazy(() => import('../pages/backoffice/BackOfficeRepor
 export interface AppRoute {
   path: string;
   component: React.ComponentType | null;
-  allowedRoles?: UserRole[];
+  allowedRoles?: string[];
   redirectTo?: string;
   replace?: boolean;
 }
@@ -38,6 +38,7 @@ export const publicRoutes: AppRoute[] = [
   { path: '/activate', component: Activate },
   { path: '/login', component: Activate },
   { path: '/daily-login', component: DailyLogin },
+  { path: '/admin-login', component: AdminLogin },
   { path: '/', component: null, redirectTo: '/activate', replace: true },
 ];
 

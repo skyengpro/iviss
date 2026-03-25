@@ -6,7 +6,7 @@ export interface AuthContextType {
   session: AuthResponse | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   activate: (params: {
     badgeId: string;
     activationCode: string;
@@ -20,7 +20,6 @@ export interface AuthContextType {
     deviceId: string;
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  getMockCredentials: () => { role: string; username: string; password: string }[];
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
