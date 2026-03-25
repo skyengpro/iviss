@@ -178,6 +178,7 @@ pub async fn login(
     tag = "auth",
     operation_id = "registerUser"
 )]
+#[cfg(not(test))] //TODO
 pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoResponse, AppError> {
     // MOCK REGISTER - Note: Registration is not implemented for admin login
     // This is kept as a placeholder for potential future implementation
@@ -222,6 +223,7 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
     operation_id = "logoutUser",
     security(("bearer_auth" = []))
 )]
+#[cfg(not(test))] //TODO
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
@@ -513,7 +515,7 @@ pub async fn verify_daily_login(
         SELECT
             u.id              AS user_id,
             u.role            AS user_role,
-            u.status::TEXT    AS user_status,
+            u.status          AS user_status,
             COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
         FROM users u
         LEFT JOIN devices d

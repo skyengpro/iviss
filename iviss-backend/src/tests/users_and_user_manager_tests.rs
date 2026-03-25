@@ -3,6 +3,9 @@ use axum::{
     http::{Request, StatusCode},
     Router,
 };
+use base64::Engine;
+use deadpool_redis::redis::AsyncCommands;
+use hmac::Mac;
 use serde_json::json;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -21,6 +24,50 @@ use crate::{
 use testcontainers_modules::{
     postgres::Postgres, redis::Redis, testcontainers::runners::AsyncRunner,
 };
+
+type HmacSha256 = hmac::Hmac<sha2::Sha256>;
+
+const TEST_PEPPER: &str = "test_pepper";
+
+/// Helper: hash OTP code using the same method as OtpService
+fn hash_otp_code(pepper: &str, code: &str) -> String {
+    let mut mac = HmacSha256::new_from_slice(pepper.as_bytes()).expect("HMAC accepts any key size");
+    mac.update(code.as_bytes());
+    format!("{:x}", mac.finalize().into_bytes())
+}
+
+/// Helper: store OTP directly in Redis for testing
+async fn store_test_otp(
+    redis_pool: &deadpool_redis::Pool,
+    user_id: Uuid,
+    code: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = redis_pool.get().await?;
+
+    let code_hash = hash_otp_code(TEST_PEPPER, code);
+    let entry = serde_json::json!({
+        "code_hash": code_hash,
+        "attempts": 0
+    });
+
+    let key = format!("user_otp:{}", user_id);
+    conn.set_ex::<_, _, ()>(&key, entry.to_string(), 300)
+        .await?;
+
+    Ok(())
+}
+
+/// Generate a valid EC public key base64 encoded
+/// The activate endpoint just checks if it's valid base64, not the actual key contents
+fn generate_test_public_key_base64() -> String {
+    // Use a 32-byte random key encoded in base64
+    // This is valid base64 but doesn't need to be a real EC key
+    // The endpoint only validates base64 encoding, not key validity
+    use rand::RngCore;
+    let mut bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    base64::engine::general_purpose::STANDARD.encode(bytes)
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Infrastructure Setup
@@ -784,5 +831,430 @@ async fn test_agent_cannot_access_user_management_endpoints() {
         response.status(),
         StatusCode::FORBIDDEN,
         "agent should not be able to list users"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Device Activation Tests (activate function)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_activate_success() {
+    let (db, redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+
+    // Create agent user with PENDING_ACTIVATION status
+    let agent_id = {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO users (
+                id, username, email, phone_number, 
+                role, status, full_name, created_at, organization_id, badge_id
+            )
+            VALUES ($1, $2, $3, $4, 'agent'::user_role, 'PENDING_ACTIVATION'::user_status, $5, NOW(), $6, $7)
+            "#,
+        )
+        .bind(user_id)
+        .bind(format!("agent_{}", user_id.to_string().split('-').next().unwrap()))
+        .bind(format!("agent{}@test.com", user_id.to_string().split('-').next().unwrap()))
+        .bind("+1234567890")
+        .bind("Test Agent")
+        .bind(org_id)
+        .bind("AGENT-TEST-001")
+        .execute(&db)
+        .await
+        .unwrap();
+        user_id
+    };
+
+    let device_id = Uuid::new_v4();
+    let public_key_base64 = generate_test_public_key_base64();
+    let test_otp = "123456";
+
+    // Store OTP in Redis using the app's Redis pool
+    store_test_otp(&redis, agent_id, test_otp)
+        .await
+        .expect("Failed to store test OTP");
+
+    let activate_body = json!({
+        "badgeId": "AGENT-TEST-001",
+        "activationCode": test_otp,
+        "deviceId": device_id,
+        "publicKeyBase64": public_key_base64
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "activate should return 200 for valid request"
+    );
+
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    // Verify response structure
+    assert!(body["accessToken"].is_string(), "Should have accessToken");
+    assert!(body["refreshToken"].is_string(), "Should have refreshToken");
+    assert!(body["user"].is_object(), "Should have user object");
+    assert_eq!(body["user"]["role"], "agent", "User role should be agent");
+
+    // Verify user status changed to ACTIVE
+    let status: String = sqlx::query_scalar("SELECT status::TEXT FROM users WHERE id = $1")
+        .bind(agent_id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(status, "ACTIVE", "User should be ACTIVE after activation");
+
+    // Verify device was created
+    let device_exists: bool =
+        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM devices WHERE id = $1 AND user_id = $2)")
+            .bind(device_id)
+            .bind(agent_id)
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    assert!(device_exists, "Device should be created");
+}
+
+#[tokio::test]
+async fn test_activate_missing_badge_id() {
+    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let device_id = Uuid::new_v4();
+
+    let activate_body = json!({
+        "badgeId": "",
+        "activationCode": "123456",
+        "deviceId": device_id,
+        "publicKeyBase64": "dGVzdGtleQ=="
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "activate should return 400 for missing badgeId"
+    );
+}
+
+#[tokio::test]
+async fn test_activate_missing_activation_code() {
+    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let device_id = Uuid::new_v4();
+
+    let activate_body = json!({
+        "badgeId": "AGENT-TEST-001",
+        "activationCode": "",
+        "deviceId": device_id,
+        "publicKeyBase64": "dGVzdGtleQ=="
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "activate should return 400 for missing activationCode"
+    );
+}
+
+#[tokio::test]
+async fn test_activate_invalid_base64_public_key() {
+    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let device_id = Uuid::new_v4();
+
+    let activate_body = json!({
+        "badgeId": "AGENT-TEST-001",
+        "activationCode": "123456",
+        "deviceId": device_id,
+        "publicKeyBase64": "not-valid-base64!!!"
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "activate should return 400 for invalid base64 public key"
+    );
+}
+
+#[tokio::test]
+async fn test_activate_user_not_found() {
+    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let device_id = Uuid::new_v4();
+
+    let activate_body = json!({
+        "badgeId": "NON-EXISTENT-BADGE",
+        "activationCode": "123456",
+        "deviceId": device_id,
+        "publicKeyBase64": "dGVzdGtleQ=="
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::NOT_FOUND,
+        "activate should return 404 for non-existent user"
+    );
+}
+
+#[tokio::test]
+async fn test_activate_non_agent_user() {
+    let (db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+
+    // Create admin user with PENDING_ACTIVATION status
+    let _admin_with_badge_id = {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO users (
+                id, username, email, phone_number, 
+                role, status, full_name, created_at, organization_id, badge_id
+            )
+            VALUES ($1, $2, $3, $4, 'admin'::user_role, 'PENDING_ACTIVATION'::user_status, $5, NOW(), $6, $7)
+            "#,
+        )
+        .bind(user_id)
+        .bind(format!("admin_{}", user_id.to_string().split('-').next().unwrap()))
+        .bind(format!("admin{}@test.com", user_id.to_string().split('-').next().unwrap()))
+        .bind("+1234567891")
+        .bind("Test Admin")
+        .bind(org_id)
+        .bind("ADMIN-TEST-001")
+        .execute(&db)
+        .await
+        .unwrap();
+        user_id
+    };
+
+    let device_id = Uuid::new_v4();
+
+    let activate_body = json!({
+        "badgeId": "ADMIN-TEST-001",
+        "activationCode": "123456",
+        "deviceId": device_id,
+        "publicKeyBase64": "dGVzdGtleQ=="
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "activate should return 400 for non-agent users"
+    );
+}
+
+#[tokio::test]
+async fn test_activate_user_not_pending_activation() {
+    let (db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+
+    // Create agent user with ACTIVE status (not PENDING_ACTIVATION)
+    let _agent_id = {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO users (
+                id, username, email, phone_number, 
+                role, status, full_name, created_at, organization_id, badge_id
+            )
+            VALUES ($1, $2, $3, $4, 'agent'::user_role, 'ACTIVE'::user_status, $5, NOW(), $6, $7)
+            "#,
+        )
+        .bind(user_id)
+        .bind(format!(
+            "agent_{}",
+            user_id.to_string().split('-').next().unwrap()
+        ))
+        .bind(format!(
+            "agent{}@test.com",
+            user_id.to_string().split('-').next().unwrap()
+        ))
+        .bind("+1234567892")
+        .bind("Test Agent Active")
+        .bind(org_id)
+        .bind("AGENT-ACTIVE-001")
+        .execute(&db)
+        .await
+        .unwrap();
+        user_id
+    };
+
+    let device_id = Uuid::new_v4();
+
+    let activate_body = json!({
+        "badgeId": "AGENT-ACTIVE-001",
+        "activationCode": "123456",
+        "deviceId": device_id,
+        "publicKeyBase64": "dGVzdGtleQ=="
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "activate should return 400 for user not in PENDING_ACTIVATION status"
+    );
+}
+
+#[tokio::test]
+async fn test_activate_invalid_otp() {
+    let (db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+        setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+
+    // Create agent user with PENDING_ACTIVATION status
+    let agent_id = {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO users (
+                id, username, email, phone_number, 
+                role, status, full_name, created_at, organization_id, badge_id
+            )
+            VALUES ($1, $2, $3, $4, 'agent'::user_role, 'PENDING_ACTIVATION'::user_status, $5, NOW(), $6, $7)
+            "#,
+        )
+        .bind(user_id)
+        .bind(format!("agent_{}", user_id.to_string().split('-').next().unwrap()))
+        .bind(format!("agent{}@test.com", user_id.to_string().split('-').next().unwrap()))
+        .bind("+1234567893")
+        .bind("Test Agent")
+        .bind(org_id)
+        .bind("AGENT-OTP-001")
+        .execute(&db)
+        .await
+        .unwrap();
+        user_id
+    };
+
+    let device_id = Uuid::new_v4();
+
+    // Store correct OTP in Redis using the app's Redis pool
+    store_test_otp(&_redis, agent_id, "123456")
+        .await
+        .expect("Failed to store test OTP");
+
+    // Try to activate with WRONG OTP
+    let activate_body = json!({
+        "badgeId": "AGENT-OTP-001",
+        "activationCode": "000000",
+        "deviceId": device_id,
+        "publicKeyBase64": "dGVzdGtleQ=="
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/auth/activate")
+                .header("content-type", "application/json")
+                .body(Body::from(activate_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Note: The handler wraps OTP validation errors in BadRequest (400), not Unauthorized (401)
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "activate should return 400 for invalid OTP"
     );
 }
