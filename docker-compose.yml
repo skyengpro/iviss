@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iviss_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
     ports:
       - "5435:5432"
     volumes:
@@ -81,6 +81,8 @@ services:
       target: development
     container_name: iviss-backend
     restart: unless-stopped
+    env_file:
+      - ./iviss-backend/.env
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -123,7 +125,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 180s
     logging:
       driver: "json-file"
       options:
@@ -142,6 +144,9 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
     environment:
       - NODE_ENV=development
       - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
