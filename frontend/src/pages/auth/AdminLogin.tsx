@@ -21,7 +21,7 @@ export default function AdminLogin() {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'manager') {
         navigate('/backoffice');
       } else {
         navigate('/mobile');
