@@ -80,12 +80,8 @@ pub fn assembly(state: AppState) -> Router {
             "/admin/devices/{id}/unsuspend",
             post(crate::handlers::device_management::unsuspend_device),
         )
-        .route(
-            "/admin/resend-activation-code",
-            post(crate::handlers::user_management::resend_activation_code),
-        )
+        .route("/admin/resend-activation-code", post(crate::handlers::user_management::resend_activation_code))
         .route("/admin/controls/paged", get(get_list_control_paged))
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 

@@ -128,12 +128,15 @@ pub async fn require_auth(
         }
     }
 
-    if !validation_context.device_is_active {
+    // Device check: Agents MUST have an active and bound device.
+    // Admin/Manager do not use physical devices for web login.
+    if claims.role != "admin" && claims.role != "manager" && !validation_context.device_is_active {
         tracing::warn!(
             %method,
             %path,
             user_id = %claims.sub,
             device_id = %claims.device_id,
+            role = %claims.role,
             "auth: rejected (device not active or not bound)"
         );
         return Err(AppError::unauthorized(

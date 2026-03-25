@@ -145,6 +145,8 @@ pub async fn login(
         phone_number: Some(user.phone_number.clone()),
         avatar_initials: None,
         status: UserStatus::Active,
+        session_status: None,
+        last_revoked_at: None,
         is_active: true,
     };
 
