@@ -17,7 +17,8 @@ pub fn assembly(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/health", get(crate::handlers::health::health_check))
         .route("/auth/login", post(crate::handlers::auth::login))
-        .route("/auth/register", post(crate::handlers::auth::register))
+        // TODO: Enable once register is fully implemented
+        // .route("/auth/register", post(crate::handlers::auth::register))
         .route("/auth/activate", post(crate::handlers::auth::activate))
         .route(
             "/auth/refresh",
@@ -139,7 +140,8 @@ pub fn assembly(state: AppState) -> Router {
             "/users/location",
             post(crate::handlers::users::update_location),
         )
-        .route("/auth/logout", post(crate::handlers::auth::logout))
+        // TODO: Enable once logout is fully implemented
+        // .route("/auth/logout", post(crate::handlers::auth::logout))
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes

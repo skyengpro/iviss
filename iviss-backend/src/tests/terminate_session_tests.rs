@@ -87,7 +87,7 @@ async fn setup_test_app() -> (
         twilio_from_number: "mock".into(),
         activation_code_pepper: TEST_PEPPER.to_string(),
         shift_start_hour: 8,
-        shift_end_hour: 18,
+        shift_end_hour: 20,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("admin123".to_string()),
         admin_bootstrap_phone: Some("+1234567890".to_string()),
