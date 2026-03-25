@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Decode the JWT payload (middle segment) to check expiry WITHOUT
           // signature verification. This lets us reject stale tokens from old
           // key pairs or expired sessions before a 401 can trigger a forced logout.
-          const parts = sessionData.token?.split('.');
+          const parts = sessionData.accessToken?.split('.');
           let isValid = false;
           if (parts && parts.length === 3) {
             try {
@@ -179,11 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isValid) {
             setSession(sessionData);
             setUser(sessionData.user);
-            applyAuthTokenToApiClient(sessionData.token);
+            applyAuthTokenToApiClient(sessionData.accessToken);
 
             // Sync token manager with existing session token
-            if (sessionData.token && !getAccessToken()) {
-              setAccessToken(sessionData.token);
+            if (sessionData.accessToken && !getAccessToken()) {
+              setAccessToken(sessionData.accessToken);
             }
           } else {
             // Silently clear the stale/expired session
@@ -393,18 +393,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const newSession = {
-        token: data.token,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         user: data.user,
       };
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
-      // Admin login returns token only (no separate refreshToken in AuthResponse)
-      setAccessToken(data.token);
-      setRefreshToken(data.token);
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
 
-      applyAuthTokenToApiClient(data.token);
+      applyAuthTokenToApiClient(data.accessToken);
 
-      setSession(newSession);
+      setSession(newSession as unknown as AuthResponse);
       setUser(data.user);
 
       return { success: true };
