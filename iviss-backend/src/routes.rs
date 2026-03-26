@@ -3,7 +3,7 @@ use crate::handlers::{
     list_control::{get_list_control, get_list_control_paged},
     search_vehicle::search_vehicle,
 };
-use crate::middleware::{auth, cors};
+use crate::middleware::{auth, cors, rbac};
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
@@ -39,6 +39,7 @@ pub fn assembly(state: AppState) -> Router {
             post(crate::handlers::auth::verify_daily_login),
         );
 
+    // Admin routes require both web auth (JWT) and admin role check
     let admin_routes = Router::new()
         .route(
             "/admin/submissions",
@@ -71,19 +72,25 @@ pub fn assembly(state: AppState) -> Router {
             "/admin/restart-session",
             post(crate::handlers::user_management::restart_session),
         )
-        .route(
-            "/admin/devices/{id}/suspend",
-            post(crate::handlers::device_management::suspend_device),
-        )
-        .route(
-            "/admin/devices/{id}/unsuspend",
-            post(crate::handlers::device_management::unsuspend_device),
-        )
+        // .route(
+        //     "/admin/devices/{id}/suspend",
+        //     post(crate::handlers::device_management::suspend_device),
+        // )
+        // .route(
+        //     "/admin/devices/{id}/unsuspend",
+        //     post(crate::handlers::device_management::unsuspend_device),
+        // )
         .route(
             "/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
-        .route("/admin/controls/paged", get(get_list_control_paged));
+        .route("/admin/controls/paged", get(get_list_control_paged))
+        .route(
+            "/admin/stats",
+            get(crate::handlers::stats::get_dashboard_stats),
+        )
+        .layer(from_fn_with_state(state.clone(), rbac::require_admin))
+        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
     let protected_routes = Router::new()
         .route(
@@ -111,7 +118,6 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle_v1),
         )
-        .route("/stats", get(crate::handlers::stats::get_dashboard_stats))
         .route(
             "/stats/activity",
             get(crate::handlers::stats::get_control_activity),

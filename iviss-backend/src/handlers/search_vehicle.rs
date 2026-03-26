@@ -184,3 +184,106 @@ pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {
     }
     Ok(normalized)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── validate_plate_format tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_validate_plate_format_valid_standard() {
+        let result = validate_plate_format("CE128BC");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "CE128BC");
+    }
+
+    #[test]
+    fn test_validate_plate_format_valid_with_spaces() {
+        let result = validate_plate_format("CE 128 BC");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "CE128BC");
+    }
+
+    #[test]
+    fn test_validate_plate_format_valid_with_dashes() {
+        let result = validate_plate_format("CE-128-BC");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "CE128BC");
+    }
+
+    #[test]
+    fn test_validate_plate_format_valid_lowercase() {
+        let result = validate_plate_format("ce128bc");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "CE128BC");
+    }
+
+    #[test]
+    fn test_validate_plate_format_valid_with_whitespace() {
+        let result = validate_plate_format("  CE128BC  ");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "CE128BC");
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_too_short() {
+        let result = validate_plate_format("CE128B");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_too_long() {
+        let result = validate_plate_format("CE128BCD");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_wrong_pattern() {
+        // Missing digit in middle
+        let result = validate_plate_format("CE1ABBC");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_all_digits() {
+        let result = validate_plate_format("1234567");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_all_letters() {
+        let result = validate_plate_format("ABCDEFG");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_empty() {
+        let result = validate_plate_format("");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+
+    #[test]
+    fn test_validate_plate_format_invalid_special_chars() {
+        let result = validate_plate_format("CE@128BC");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Invalid plate format"));
+    }
+}
