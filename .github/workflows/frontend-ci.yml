@@ -180,10 +180,11 @@ jobs:
         working-directory: frontend
       - name: Upload coverage Report
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: coverage-report
           path: frontend/coverage
-          retention-days: 7
+          retention-days: 1
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
