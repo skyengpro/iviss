@@ -38,11 +38,16 @@ export function RequireAuth({
             navigate('/activate', { state: { from: location.pathname } });
           }
         }
-      } else if (allowedRoles && user && !allowedRoles.includes(user.role as unknown as string)) {
-        if (user.role === 'admin') {
-          navigate('/backoffice');
+      } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+        // Prevent infinite redirect loop if we are already at the target
+        if (user.role === 'admin' || user.role === 'manager') {
+          if (location.pathname !== '/backoffice') {
+            navigate('/backoffice');
+          }
         } else {
-          navigate('/mobile');
+          if (location.pathname !== '/mobile') {
+            navigate('/mobile');
+          }
         }
       }
     }
