@@ -2,8 +2,6 @@ use crate::app_state::AppState;
 
 use crate::dto::auth::{
     ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
-};
-use crate::dto::auth::{
     RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
     VerifyDailyLoginResponse,
 };
