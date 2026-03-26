@@ -41,6 +41,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["https://ghcr.io/docker-hub-mirror"]
 
 
       - name: Log in to the Container registry
