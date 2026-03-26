@@ -164,7 +164,6 @@ impl Modify for SecurityAddon {
             // ── auth ──
             LoginRequest,
             AuthResponse,
-            RegisterRequest,
             ResendActivationRequest,
             ResendActivationResponse,
             RequestDailyLoginRequest,
