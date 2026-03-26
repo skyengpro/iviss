@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
+
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RegisterRequest,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
 };
 use crate::dto::auth::{
     RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
@@ -179,7 +180,9 @@ pub async fn login(
     operation_id = "registerUser"
 )]
 #[cfg(not(test))] //TODO
-pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoResponse, AppError> {
+pub async fn register(
+    Json(payload): Json<crate::dto::auth::RegisterRequest>,
+) -> Result<impl IntoResponse, AppError> {
     // MOCK REGISTER - Note: Registration is not implemented for admin login
     // This is kept as a placeholder for potential future implementation
     Ok((

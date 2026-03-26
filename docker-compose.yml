@@ -148,9 +148,6 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    depends_on:
-      backend:
-        condition: service_healthy
     environment:
       - NODE_ENV=development
       - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
