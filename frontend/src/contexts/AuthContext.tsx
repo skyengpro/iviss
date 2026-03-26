@@ -1,6 +1,4 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { loginUser } from '@/openapi-rq/requests/services.gen';
-import { mockAuthService } from '@/services/mock/mockAuth';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/device/deviceId';
@@ -10,14 +8,14 @@ import {
   getAccessToken,
   clearAccessToken,
 } from '@/services/auth/tokenManager';
-import { client } from '@/openapi-rq/requests/services.gen';
 import {
+  client,
   activateDevice,
   getUserProfile,
   requestDailyLogin,
   verifyDailyLogin,
+  loginUser,
 } from '@/openapi-rq/requests/services.gen';
-import { toast } from 'sonner';
 
 const SESSION_KEY = 'iviss_session';
 const REFRESH_TOKEN_KEY = 'iviss_refresh_token';
@@ -166,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Decode the JWT payload (middle segment) to check expiry WITHOUT
           // signature verification. This lets us reject stale tokens from old
           // key pairs or expired sessions before a 401 can trigger a forced logout.
-          const parts = sessionData.token?.split('.');
+          const parts = sessionData.accessToken?.split('.');
           let isValid = false;
           if (parts && parts.length === 3) {
             try {
@@ -181,11 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isValid) {
             setSession(sessionData);
             setUser(sessionData.user);
-            applyAuthTokenToApiClient(sessionData.token);
+            applyAuthTokenToApiClient(sessionData.accessToken);
 
             // Sync token manager with existing session token
-            if (sessionData.token && !getAccessToken()) {
-              setAccessToken(sessionData.token);
+            if (sessionData.accessToken && !getAccessToken()) {
+              setAccessToken(sessionData.accessToken);
             }
           } else {
             // Silently clear the stale/expired session
@@ -377,55 +375,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const result = await loginUser({
-        body: {
-          email: username, // Backend LoginRequest uses email field for identification
-          password,
-        },
-        throwOnError: true,
+      const res = await loginUser({
+        body: { email, password },
+        throwOnError: false,
       });
 
-      if (result.data) {
-        const backendSession = {
-          token: result.data.token,
-          user: result.data.user as unknown as UserProfile,
-        } as unknown as AuthResponse;
-
-        localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
-        // Note: Backend login might not return refresh token yet
-        const responseData = result.data as Record<string, unknown>;
-        if (responseData.refreshToken && typeof responseData.refreshToken === 'string') {
-          localStorage.setItem(REFRESH_TOKEN_KEY, responseData.refreshToken);
-        }
-        applyAuthTokenToApiClient(backendSession.token);
-
-        setSession(backendSession);
-        setUser(backendSession.user);
-
-        // Persist tokens for the auth interceptor and token manager
-        if (backendSession.token) {
-          setAccessToken(backendSession.token);
-          // In a real flow, the backend would also return a refresh_token
-          // For now with mock auth, we store the same token as refresh
-          setRefreshToken(backendSession.token);
-
-          // Ensure session persistence matching activation flow
-          localStorage.setItem(SESSION_KEY, JSON.stringify(backendSession));
-        }
-
-        return { success: true };
+      if (res.error) {
+        const errPayload = res.error as { message?: string };
+        return { success: false, error: errPayload?.message || 'Login failed' };
       }
-      return { success: false, error: 'Login failed' };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : 'Invalid credentials',
+
+      const data = res.data;
+      if (!data) {
+        return { success: false, error: 'Login failed' };
+      }
+
+      const newSession = {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user,
       };
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+
+      applyAuthTokenToApiClient(data.accessToken);
+
+      setSession(newSession as unknown as AuthResponse);
+      setUser(data.user);
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Login failed' };
     }
   };
-  const getMockCredentials = () => mockAuthService.getMockCredentials();
 
   const value: AuthContextType = {
     user,
@@ -437,7 +423,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dailyLoginRequest,
     dailyLoginVerify,
     logout,
-    getMockCredentials,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
