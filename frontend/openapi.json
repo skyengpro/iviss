@@ -3121,29 +3121,6 @@
                     }
                 }
             },
-            "RegisterRequest": {
-                "type": "object",
-                "required": [
-                    "email",
-                    "password",
-                    "full_name",
-                    "role"
-                ],
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "full_name": {
-                        "type": "string"
-                    },
-                    "password": {
-                        "type": "string"
-                    },
-                    "role": {
-                        "$ref": "#/components/schemas/UserRole"
-                    }
-                }
-            },
             "RequestDailyLoginRequest": {
                 "type": "object",
                 "required": [
