@@ -9,7 +9,6 @@ use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
-use crate::services::otp_service::OtpService;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -46,13 +45,10 @@ pub async fn provision_user(
     if matches!(user.role, crate::dto::users::UserRole::Agent) {
         if let Some(phone) = user.phone_number.clone() {
             let user_id = user.id;
-            let redis = state.redis.clone();
-            let sms = state.sms_pvd.clone();
-            let pepper = state.pepper.clone();
+            let otp_svc = state.otp_svc.clone();
 
             tokio::spawn(async move {
-                let svc = OtpService::new(redis, sms, pepper);
-                if let Err(e) = svc.request_otp(&user_id, &phone).await {
+                if let Err(e) = otp_svc.request_otp(&user_id, &phone).await {
                     warn!("Failed to send activation code to {}: {}", phone, e);
                 }
             });
@@ -321,11 +317,7 @@ pub async fn resend_activation_code(
     }
 
     // Build OtpService from shared state resources
-    let otp_svc = OtpService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
+    let otp_svc = &state.otp_svc;
 
     // Generate, store and send the activation code via SMS
     otp_svc.request_otp(&user_id, &phone_number).await?;

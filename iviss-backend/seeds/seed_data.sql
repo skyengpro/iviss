@@ -58,10 +58,10 @@ VALUES
 (
     'e390f1ee-6c54-4b01-90e6-d701748f0852',
     'd290f1ee-6c54-4b01-90e6-d701748f0851',
-    'admin',
+    'manager2',
     'admin@iviss.gov',
     '$2b$12$LQv3c1yqBWVHxkd0LqZGueOQ/H/XJmK8m7B/K8yK8yK8yK8yK8yK8',
-    'admin',
+    'manager',
     'ADM-001',
     'System Administrator',
     '+254700123456',
