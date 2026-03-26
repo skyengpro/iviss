@@ -1,9 +1,9 @@
 import { lazy } from 'react';
-import { UserRole } from '@/services/mock/mockAuth';
 
 // Lazy Pages
 const Activate = lazy(() => import('../pages/auth/Activate'));
 const DailyLogin = lazy(() => import('../pages/auth/DailyLogin'));
+const AdminLogin = lazy(() => import('../pages/auth/AdminLogin'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Mobile Pages
@@ -29,7 +29,7 @@ const BackOfficeReports = lazy(() => import('../pages/backoffice/BackOfficeRepor
 export interface AppRoute {
   path: string;
   component: React.ComponentType | null;
-  allowedRoles?: UserRole[];
+  allowedRoles?: string[];
   redirectTo?: string;
   replace?: boolean;
 }
@@ -38,47 +38,48 @@ export const publicRoutes: AppRoute[] = [
   { path: '/activate', component: Activate },
   { path: '/login', component: Activate },
   { path: '/daily-login', component: DailyLogin },
+  { path: '/admin-login', component: AdminLogin },
   { path: '/', component: null, redirectTo: '/activate', replace: true },
 ];
 
 export const mobileRoutes: AppRoute[] = [
-  { path: '/mobile', component: MobileDashboard, allowedRoles: ['agent', 'supervisor'] },
-  { path: '/mobile/search', component: MobileSearch, allowedRoles: ['agent', 'supervisor'] },
-  { path: '/mobile/scan', component: MobileScan, allowedRoles: ['agent', 'supervisor'] },
+  { path: '/mobile', component: MobileDashboard, allowedRoles: ['agent', 'manager', 'admin'] },
+  { path: '/mobile/search', component: MobileSearch, allowedRoles: ['agent', 'manager', 'admin'] },
+  { path: '/mobile/scan', component: MobileScan, allowedRoles: ['agent', 'manager', 'admin'] },
   {
     path: '/mobile/history',
     component: MobileHistory,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
   {
     path: '/mobile/profile',
     component: MobileProfile,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
   {
     path: '/mobile/vehicle/:plateNumber',
     component: MobileVehicleResult,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
   {
     path: '/mobile/history/:id',
     component: MobileHistoryDetail,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
   {
     path: '/mobile/carte-grise',
     component: MobileCarteGrise,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
   {
     path: '/mobile/support',
     component: MobileSupport,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
   {
     path: '/mobile/settings',
     component: MobileSettings,
-    allowedRoles: ['agent', 'supervisor'],
+    allowedRoles: ['agent', 'manager', 'admin'],
   },
 ];
 
@@ -86,24 +87,24 @@ export const backOfficeRoutes: AppRoute[] = [
   {
     path: '/backoffice',
     component: BackOfficeDashboard,
-    allowedRoles: ['admin', 'supervisor'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   {
     path: '/backoffice/controls',
     component: ControlHistory,
-    allowedRoles: ['admin', 'supervisor'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   {
     path: '/backoffice/controls/:controlId',
     component: ControlDetail,
-    allowedRoles: ['admin', 'supervisor'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   { path: '/backoffice/users', component: UserManagement, allowedRoles: ['admin'] },
   { path: '/backoffice/validation', component: PendingVehicles, allowedRoles: ['admin'] },
   {
     path: '/backoffice/reports',
     component: BackOfficeReports,
-    allowedRoles: ['admin', 'supervisor'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   { path: '/backoffice/vehicles', component: BackOfficeDashboard, allowedRoles: ['admin'] },
   {

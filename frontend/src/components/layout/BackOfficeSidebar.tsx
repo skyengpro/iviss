@@ -27,8 +27,10 @@ export function BackOfficeSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [adminOpen, setAdminOpen] = useState(true);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { collapsed, toggle } = useSidebar();
+
+  const isAdmin = user?.role === 'admin';
 
   const mainNavItems = [
     { href: '/backoffice', icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
@@ -63,7 +65,7 @@ export function BackOfficeSidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/daily-login');
+    navigate('/admin-login');
   };
 
   return (
@@ -131,35 +133,11 @@ export function BackOfficeSidebar() {
             ))}
           </div>
 
-          {/* Admin section */}
-          <div className="mt-4">
-            {collapsed ? (
-              <div className="space-y-0.5">
-                {adminNavItems.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    label={item.label}
-                    isActive={location.pathname === item.href}
-                    collapsed={collapsed}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
-                <CollapsibleTrigger asChild>
-                  <button className="flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors">
-                    {t('backOfficeSidebar.administration')}
-                    <ChevronDown
-                      className={cn(
-                        'h-3.5 w-3.5 transition-transform duration-200',
-                        adminOpen && 'rotate-180'
-                      )}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-0.5">
+          {/* Admin section — only visible to admin users */}
+          {isAdmin && (
+            <div className="mt-4">
+              {collapsed ? (
+                <div className="space-y-0.5">
                   {adminNavItems.map((item) => (
                     <NavLink
                       key={item.href}
@@ -170,10 +148,36 @@ export function BackOfficeSidebar() {
                       collapsed={collapsed}
                     />
                   ))}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-          </div>
+                </div>
+              ) : (
+                <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors">
+                      {t('backOfficeSidebar.administration')}
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 transition-transform duration-200',
+                          adminOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-0.5">
+                    {adminNavItems.map((item) => (
+                      <NavLink
+                        key={item.href}
+                        href={item.href}
+                        icon={item.icon}
+                        label={item.label}
+                        isActive={location.pathname === item.href}
+                        collapsed={collapsed}
+                      />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
+          )}
         </nav>
 
         {/* User section */}
