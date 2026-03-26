@@ -167,54 +167,6 @@ pub async fn login(
     ))
 }
 
-/// Register a new user
-#[utoipa::path(
-    post,
-    path = "/auth/register",
-    request_body = RegisterRequest,
-    responses(
-        (status = 201, description = "User created", body = AuthResponse),
-        (status = 400, description = "Bad request", body = AppErrorResponse)
-    ),
-    tag = "auth",
-    operation_id = "registerUser"
-)]
-#[cfg(not(test))] //TODO
-pub async fn register(
-    Json(payload): Json<crate::dto::auth::RegisterRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    // MOCK REGISTER - Note: Registration is not implemented for admin login
-    // This is kept as a placeholder for potential future implementation
-    Ok((
-        StatusCode::CREATED,
-        Json(AuthResponse {
-            access_token: "mock-jwt-token".to_string(),
-            refresh_token: "mock-refresh-token".to_string(),
-            user: UserProfile {
-                id: uuid::Uuid::new_v4(),
-                username: payload
-                    .email
-                    .split('@')
-                    .next()
-                    .unwrap_or("user")
-                    .to_string(),
-                email: Some(payload.email),
-                name: payload.full_name,
-                role: payload.role,
-                organization_id: Some(uuid::Uuid::new_v4()),
-                organization: Some("Independent".to_string()),
-                badge_id: Some("TEMP-01".to_string()),
-                phone_number: None,
-                avatar_initials: Some("NU".to_string()),
-                status: crate::dto::users::UserStatus::Active,
-                session_status: None,
-                last_revoked_at: None,
-                is_active: true,
-            },
-        }),
-    ))
-}
-
 /// Logout and invalidate session
 #[utoipa::path(
     post,

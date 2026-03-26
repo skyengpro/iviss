@@ -1,8 +1,5 @@
 use crate::app_state::AppState;
-use crate::handlers::{
-    list_control::{get_list_control, get_list_control_paged},
-    search_vehicle::search_vehicle,
-};
+use crate::handlers::list_control::{get_list_control, get_list_control_paged};
 use crate::middleware::{auth, cors, rbac};
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
@@ -43,34 +40,34 @@ pub fn assembly(state: AppState) -> Router {
     // Admin routes require both web auth (JWT) and admin role check
     let admin_routes = Router::new()
         .route(
-            "/admin/submissions",
+            "/api/v1/admin/submissions",
             get(crate::handlers::pending_submission::list_pending_submissions),
         )
         .route(
-            "/admin/submissions/:id",
+            "/api/v1/admin/submissions/:id",
             get(crate::handlers::pending_submission::get_pending_submission),
         )
         .route(
-            "/admin/users",
+            "/api/v1/admin/users",
             get(crate::handlers::user_management::list_users)
                 .post(crate::handlers::user_management::provision_user),
         )
         .route(
-            "/admin/users/:id",
+            "/api/v1/admin/users/:id",
             get(crate::handlers::user_management::get_user)
                 .put(crate::handlers::user_management::update_user)
                 .delete(crate::handlers::user_management::delete_user),
         )
         .route(
-            "/admin/organizations",
+            "/api/v1/admin/organizations",
             get(crate::handlers::user_management::list_organizations),
         )
         .route(
-            "/admin/terminate-session",
+            "/api/v1/admin/terminate-session",
             post(crate::handlers::user_management::terminate_session),
         )
         .route(
-            "/admin/restart-session",
+            "/api/v1/admin/restart-session",
             post(crate::handlers::user_management::restart_session),
         )
         // .route(
@@ -82,12 +79,12 @@ pub fn assembly(state: AppState) -> Router {
         //     post(crate::handlers::device_management::unsuspend_device),
         // )
         .route(
-            "/admin/resend-activation-code",
+            "/api/v1/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
-        .route("/admin/controls/paged", get(get_list_control_paged))
+        .route("/api/v1/admin/controls/paged", get(get_list_control_paged))
         .route(
-            "/admin/stats",
+            "/api/v1/admin/stats",
             get(crate::handlers::stats::get_dashboard_stats),
         )
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
@@ -102,42 +99,40 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/photo/plate",
             post(crate::handlers::photo::photo_plate),
         )
-        .route("/vehicles/search", post(search_vehicle))
         .route(
             "/api/v1/vehicles/search",
             post(crate::handlers::search_vehicle::search_vehicle_v1),
         )
         .route(
-            "/controls",
+            "/api/v1/controls",
             get(get_list_control).post(crate::handlers::list_control::create_control),
-        )
-        .route(
-            "/vehicles/pending",
-            post(crate::handlers::pending_submission::submit_vehicle),
         )
         .route(
             "/api/v1/vehicles/pending",
             post(crate::handlers::pending_submission::submit_vehicle_v1),
         )
         .route(
-            "/stats/activity",
+            "/api/v1/stats/activity",
             get(crate::handlers::stats::get_control_activity),
         )
         .route(
-            "/stats/top-agents",
+            "/api/v1/stats/top-agents",
             get(crate::handlers::stats::get_top_agents),
         )
         .route(
-            "/stats/activity-feed",
+            "/api/v1/stats/activity-feed",
             get(crate::handlers::stats::get_activity_feed),
         )
         .route(
-            "/stats/recent-alerts",
+            "/api/v1/stats/recent-alerts",
             get(crate::handlers::stats::get_recent_alerts),
         )
-        .route("/users/me", get(crate::handlers::users::get_user_profile))
         .route(
-            "/users/location",
+            "/api/v1/users/me",
+            get(crate::handlers::users::get_user_profile),
+        )
+        .route(
+            "/api/v1/users/location",
             post(crate::handlers::users::update_location),
         )
         // TODO: Enable once logout is fully implemented
