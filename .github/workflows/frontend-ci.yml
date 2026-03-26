@@ -183,6 +183,7 @@ jobs:
         with:
           name: coverage-report
           path: frontend/coverage
+          retention-days: 7
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
