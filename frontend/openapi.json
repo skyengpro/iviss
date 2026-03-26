@@ -1015,32 +1015,6 @@
                 }
             }
         },
-        "/auth/logout": {
-            "post": {
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Logout and invalidate session",
-                "operationId": "logoutUser",
-                "responses": {
-                    "200": {
-                        "description": "Logout successful",
-                        "content": {
-                            "text/plain": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearer_auth": []
-                    }
-                ]
-            }
-        },
         "/auth/refresh": {
             "post": {
                 "tags": [
@@ -1114,47 +1088,6 @@
                     },
                     "401": {
                         "description": "Signature verification failed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/register": {
-            "post": {
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Register a new user",
-                "operationId": "registerUser",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RegisterRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "201": {
-                        "description": "User created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AuthResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
                         "content": {
                             "application/json": {
                                 "schema": {
