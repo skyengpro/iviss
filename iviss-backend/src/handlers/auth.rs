@@ -38,7 +38,7 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
 /// Login with email and password (admin / manager only)
 #[utoipa::path(
     post,
-    path = "/auth/login",
+    path = "/api/v1/auth/login",
     request_body = LoginRequest,
     responses(
         (status = 200, description = "Login successful", body = AuthResponse),
@@ -168,7 +168,7 @@ pub async fn login(
 /// Logout and invalidate session
 #[utoipa::path(
     post,
-    path = "/auth/logout",
+    path = "/api/v1/auth/logout",
     responses(
         (status = 200, description = "Logout successful", body = String)
     ),
@@ -184,7 +184,7 @@ pub async fn logout() -> Result<impl IntoResponse, AppError> {
 /// Activate an agent account by validating OTP and registering device public key
 #[utoipa::path(
     post,
-    path = "/auth/activate",
+    path = "/api/v1/auth/activate",
     request_body = ActivateRequest,
     responses(
         (status = 200, description = "Activation successful", body = ActivateResponse),
@@ -359,7 +359,7 @@ pub async fn activate(
 // Request a daily OTP login code
 #[utoipa::path(
     post,
-    path = "/auth/request-daily-login",
+    path = "/api/v1/auth/request-daily-login",
     request_body = RequestDailyLoginRequest,
     responses(
         (status = 201, description = "OTP sent successfully", body = RequestDailyLoginResponse),
@@ -441,7 +441,7 @@ pub async fn request_daily_login(
 
 #[utoipa::path(
     post,
-    path = "/auth/verify-daily-login",
+    path = "/api/v1/auth/verify-daily-login",
     request_body = VerifyDailyLoginRequest,
     responses(
         (status = 200, description = "Login successful", body = VerifyDailyLoginResponse),
@@ -692,7 +692,7 @@ pub struct VerifyRefreshResponse {
 /// and returns it to the client for signing.
 #[utoipa::path(
     post,
-    path = "/auth/refresh",
+    path = "/api/v1/auth/refresh",
     request_body = RefreshRequest,
     responses(
         (status = 200, description = "Challenge nonce issued", body = RefreshChallengeResponse),
@@ -866,7 +866,7 @@ async fn request_refresh_admin(
 /// then issues a new access token.
 #[utoipa::path(
     post,
-    path = "/auth/refresh/verify",
+    path = "/api/v1/auth/refresh/verify",
     request_body = VerifyRefreshRequest,
     responses(
         (status = 200, description = "New access token issued", body = VerifyRefreshResponse),

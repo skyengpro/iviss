@@ -12,28 +12,28 @@ pub fn assembly(state: AppState) -> Router {
     let state = Arc::new(state);
 
     let public_routes = Router::new()
-        .route("/health", get(crate::handlers::health::health_check))
-        .route("/auth/login", post(crate::handlers::auth::login))
+        .route("/api/v1/health", get(crate::handlers::health::health_check))
+        .route("/api/v1/auth/login", post(crate::handlers::auth::login))
         // TODO: Enable once register is fully implemented
         // .route("/auth/register", post(crate::handlers::auth::register))
-        .route("/auth/activate", post(crate::handlers::auth::activate))
+        .route("/api/v1/auth/activate", post(crate::handlers::auth::activate))
         .route(
-            "/auth/refresh",
+            "/api/v1/auth/refresh",
             post(crate::handlers::auth::request_refresh),
         )
         .route(
-            "/auth/refresh/verify",
+            "/api/v1/auth/refresh/verify",
             post(crate::handlers::auth::verify_refresh),
         )
         .route(
-            "/auth/request-daily-login",
+            "/api/v1/auth/request-daily-login",
             post(crate::handlers::auth::request_daily_login).layer(from_fn_with_state(
                 state.clone(),
                 crate::middleware::agent_work_scope::require_shift_hours,
             )),
         )
         .route(
-            "/auth/verify-daily-login",
+            "/api/v1/auth/verify-daily-login",
             post(crate::handlers::auth::verify_daily_login),
         );
 
