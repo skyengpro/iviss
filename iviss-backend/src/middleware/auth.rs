@@ -14,9 +14,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
     pub user_id: Uuid,
-    #[allow(dead_code)]
     pub device_id: Uuid,
-    #[allow(dead_code)]
     pub role: String,
 }
 
@@ -39,12 +37,6 @@ pub async fn require_auth(
     let path = request.uri().path();
 
     tracing::info!(%method, %path, "auth: start");
-
-    // Exclude admin and stats routes from auth for now as requested
-    if path.starts_with("/admin/") || path == "/stats" || path.starts_with("/stats/") {
-        tracing::info!(%method, %path, "auth: skipping auth for admin route");
-        return Ok(next.run(request).await);
-    }
 
     let token = match extract_bearer_token(request.headers().get(AUTHORIZATION)) {
         Ok(token) => {
@@ -136,12 +128,15 @@ pub async fn require_auth(
         }
     }
 
-    if !validation_context.device_is_active {
+    // Device check: Agents MUST have an active and bound device.
+    // Admin/Manager do not use physical devices for web login.
+    if claims.role != "admin" && claims.role != "manager" && !validation_context.device_is_active {
         tracing::warn!(
             %method,
             %path,
             user_id = %claims.sub,
             device_id = %claims.device_id,
+            role = %claims.role,
             "auth: rejected (device not active or not bound)"
         );
         return Err(AppError::unauthorized(
@@ -165,7 +160,7 @@ pub async fn require_auth(
     Ok(next.run(request).await)
 }
 
-fn extract_bearer_token(header: Option<&HeaderValue>) -> Result<&str, AppError> {
+pub fn extract_bearer_token(header: Option<&HeaderValue>) -> Result<&str, AppError> {
     let auth_header = header
         .ok_or_else(|| AppError::unauthorized("Missing Authorization header"))?
         .to_str()
@@ -192,7 +187,7 @@ fn extract_bearer_token(header: Option<&HeaderValue>) -> Result<&str, AppError> 
     Ok(token)
 }
 
-fn decode_access_token_rs256(
+pub fn decode_access_token_rs256(
     token: &str,
     jwt_public_key_pem: &str,
 ) -> Result<AccessTokenClaims, AppError> {

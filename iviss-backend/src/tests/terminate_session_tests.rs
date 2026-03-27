@@ -87,7 +87,11 @@ async fn setup_test_app() -> (
         twilio_from_number: "mock".into(),
         activation_code_pepper: TEST_PEPPER.to_string(),
         shift_start_hour: 8,
-        shift_end_hour: 18,
+        shift_end_hour: 20,
+        admin_bootstrap_email: Some("admin@example.com".to_string()),
+        admin_bootstrap_password: Some("admin123".to_string()),
+        admin_bootstrap_phone: Some("+1234567890".to_string()),
+        admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
@@ -111,11 +115,11 @@ async fn setup_test_app() -> (
 }
 
 /// Helper: seed an organization, admin user, and agent user (with device + refresh token).
-/// Returns (org_id, admin_user_id, agent_user_id, device_id, access_token).
+/// Returns (org_id, admin_user_id, agent_user_id, device_id, admin_access_token, agent_access_token).
 async fn seed_users_with_active_session(
     db: &sqlx::PgPool,
     jwt_private_key_pem: &str,
-) -> (Uuid, Uuid, Uuid, Uuid, String) {
+) -> (Uuid, Uuid, Uuid, Uuid, String, String) {
     let org_id = Uuid::new_v4();
     sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
         .bind(org_id)
@@ -210,9 +214,20 @@ async fn seed_users_with_active_session(
     .await
     .unwrap();
 
-    // Issue a JWT access token for the agent
+    // Issue a JWT access token for the admin
     let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
-    let access_token = jwt_svc
+    let admin_access_token = jwt_svc
+        .issue_access_token_with_shift(
+            admin_id,
+            Uuid::nil(), // admin has no device
+            crate::dto::users::UserRole::Admin,
+            now_secs.try_into().unwrap(),
+            shift_end.try_into().unwrap(),
+        )
+        .unwrap();
+
+    // Issue a JWT access token for the agent
+    let agent_access_token = jwt_svc
         .issue_access_token_with_shift(
             agent_id,
             device_id,
@@ -222,7 +237,14 @@ async fn seed_users_with_active_session(
         )
         .unwrap();
 
-    (org_id, admin_id, agent_id, device_id, access_token)
+    (
+        org_id,
+        admin_id,
+        agent_id,
+        device_id,
+        admin_access_token,
+        agent_access_token,
+    )
 }
 
 #[tokio::test]
@@ -230,7 +252,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
     let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
         setup_test_app().await;
 
-    let (_org_id, _admin_id, agent_id, device_id, agent_access_token) =
+    let (_org_id, _admin_id, agent_id, device_id, admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
 
     // -- 1. Call POST /admin/terminate-session ──
@@ -241,8 +263,9 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
                 .unwrap(),
         )
@@ -304,8 +327,8 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/users/me")
-                .header("Authorization", format!("Bearer {}", agent_access_token))
+                .uri("/api/v1/users/me")
+                .header("Authorization", format!("Bearer {}", _agent_access_token))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -324,7 +347,7 @@ async fn terminate_session_rejects_non_agent_user() {
     let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
         setup_test_app().await;
 
-    let (_org_id, admin_id, _agent_id, _device_id, _agent_access_token) =
+    let (_org_id, admin_id, _agent_id, _device_id, _admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
 
     // Try to terminate the admin's session — should fail with 400
@@ -334,8 +357,9 @@ async fn terminate_session_rejects_non_agent_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", _admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
                 .unwrap(),
         )
@@ -355,7 +379,8 @@ async fn terminate_session_returns_404_for_unknown_user() {
         setup_test_app().await;
 
     // Seed some data so the app is initialized properly
-    let _ = seed_users_with_active_session(&db, &jwt_private_key_pem).await;
+    let (_org_id, _admin_id, _agent_id, _device_id, admin_access_token, _agent_access_token) =
+        seed_users_with_active_session(&db, &jwt_private_key_pem).await;
 
     let unknown_id = Uuid::new_v4();
     let terminate_body = json!({ "userId": unknown_id });
@@ -364,8 +389,9 @@ async fn terminate_session_returns_404_for_unknown_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
                 .unwrap(),
         )
@@ -384,18 +410,19 @@ async fn terminate_session_blocks_otp_on_same_day() {
     let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
         setup_test_app().await;
 
-    let (_org_id, _admin_id, agent_id, device_id, _agent_access_token) =
+    let (_org_id, _admin_id, agent_id, device_id, admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
 
     // -- 1. Terminate session ──
     let terminate_body = json!({ "userId": agent_id });
-    let _response = app
+    let _terminate_response = app
         .clone()
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
                 .unwrap(),
         )
@@ -412,7 +439,7 @@ async fn terminate_session_blocks_otp_on_same_day() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(otp_body.to_string()))
                 .unwrap(),

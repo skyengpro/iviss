@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 #[utoipa::path(
     post,
-    path = "/vehicles/pending",
+    path = "/api/v1/vehicles/pending",
     tag = "vehicles",
     operation_id = "submitVehicle",
     request_body = CreatePendingSubmissionRequest,
@@ -110,8 +110,8 @@ async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, 
 /// List submissions for admin review, optionally filtered by status
 #[utoipa::path(
     get,
-    path = "/admin/submissions",
-    tag = "admin",
+    path = "/api/v1/admin/submissions",
+    tag = "vehicles",
     operation_id = "listPendingSubmissions",
     params(
         ("status" = Option<String>, Query, description = "Filter by status: pending, approved, rejected")
@@ -139,8 +139,8 @@ pub async fn list_pending_submissions(
 /// Get full details of a single submission
 #[utoipa::path(
     get,
-    path = "/admin/submissions/{id}",
-    tag = "admin",
+    path = "/api/v1/admin/submissions/{id}",
+    tag = "vehicles",
     operation_id = "getPendingSubmission",
     params(
         ("id" = Uuid, Path, description = "Submission UUID")
@@ -165,8 +165,8 @@ pub async fn get_pending_submission(
 /// Admin reviews a pending submission: approve (with vehicle data) or reject (with reason)
 #[utoipa::path(
     post,
-    path = "/admin/submissions/{id}/review",
-    tag = "admin",
+    path = "/api/v1/admin/submissions/{id}/review",
+    tag = "vehicles",
     operation_id = "reviewSubmission",
     params(
         ("id" = Uuid, Path, description = "Submission UUID")
@@ -273,8 +273,8 @@ async fn get_admin_reviewer_id(pool: &sqlx::PgPool) -> Result<Uuid, AppError> {
 /// Get the audit trail for a submission
 #[utoipa::path(
     get,
-    path = "/admin/submissions/{id}/audit",
-    tag = "admin",
+    path = "/api/v1/admin/submissions/{id}/audit",
+    tag = "vehicles",
     operation_id = "getSubmissionAuditLog",
     params(
         ("id" = Uuid, Path, description = "Submission UUID")

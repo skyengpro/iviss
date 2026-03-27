@@ -180,6 +180,18 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_forbidden_response() {
+        let err = AppError::Forbidden("Admin access required".into());
+        let response = err.into_response();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+        let body = get_body_json(response).await;
+        assert_eq!(body["code"], "FORBIDDEN");
+        assert_eq!(body["message"], "Admin access required");
+    }
+
+    #[tokio::test]
     async fn test_external_api_failure_response() {
         let err = AppError::ExternalApiFailure("Timeout connecting to provider".into());
         let response = err.into_response();

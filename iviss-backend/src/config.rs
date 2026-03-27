@@ -79,7 +79,6 @@ pub struct Config {
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
-    #[allow(dead_code)]
     pub jwt_secret: String,
     pub jwt_private_key_pem: String,
     pub jwt_public_key_pem: String,
@@ -91,6 +90,11 @@ pub struct Config {
     pub activation_code_pepper: String,
     pub shift_start_hour: u32,
     pub shift_end_hour: u32,
+    // Bootstrap admin — used only at first startup if no admin exists
+    pub admin_bootstrap_email: Option<String>,
+    pub admin_bootstrap_password: Option<String>,
+    pub admin_bootstrap_phone: Option<String>,
+    pub admin_bootstrap_username: Option<String>,
 }
 
 impl Config {
@@ -200,6 +204,13 @@ impl Config {
                 shift_end_hour
             ));
         }
+
+        // Bootstrap admin — all optional, seed is skipped if any is missing
+        let admin_bootstrap_email = env::var("ADMIN_BOOTSTRAP_EMAIL").ok();
+        let admin_bootstrap_password = env::var("ADMIN_BOOTSTRAP_PASSWORD").ok();
+        let admin_bootstrap_phone = env::var("ADMIN_BOOTSTRAP_PHONE").ok();
+        let admin_bootstrap_username = env::var("ADMIN_BOOTSTRAP_USERNAME").ok();
+
         Ok(Self {
             database_url,
             redis_url,
@@ -216,6 +227,10 @@ impl Config {
             activation_code_pepper,
             shift_start_hour,
             shift_end_hour,
+            admin_bootstrap_email,
+            admin_bootstrap_password,
+            admin_bootstrap_phone,
+            admin_bootstrap_username,
         })
     }
 
@@ -238,13 +253,11 @@ impl Config {
     }
 
     /// Check if running in production environment
-    #[allow(dead_code)]
     pub fn is_production(&self) -> bool {
         self.environment == Environment::Production
     }
 
     /// Check if running in local environment
-    #[allow(dead_code)]
     pub fn is_local(&self) -> bool {
         self.environment == Environment::Local
     }
@@ -320,6 +333,10 @@ mod tests {
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
             shift_start_hour: 8,
             shift_end_hour: 18,
+            admin_bootstrap_email: Some("admin@iviss.local".into()),
+            admin_bootstrap_password: Some("ChangeMe!2025".into()),
+            admin_bootstrap_phone: Some("+237600000000".into()),
+            admin_bootstrap_username: Some("admin".into()),
         };
 
         assert!(config.is_local());

@@ -2,7 +2,7 @@ use axum::{http::StatusCode, response::IntoResponse};
 
 #[utoipa::path(
     get,
-    path = "/health",
+    path = "/api/v1/health",
     tag = "health",
     operation_id = "health",
     responses(
