@@ -49,18 +49,7 @@ export interface PendingSubmissionDetail {
   vehicleData: VehicleDataEntry | null;
 }
 
-export interface ReviewSubmissionRequest {
-  decision: SubmissionStatus;
-  rejectionReason?: string;
-  vehicleData?: VehicleDataEntry;
-}
 
-export interface ReviewSubmissionResponse {
-  message: string;
-  submissionId: string;
-  status: SubmissionStatus;
-  vehicleId: string | null;
-}
 
 export interface SubmissionAuditLogEntry {
   id: string;
@@ -95,23 +84,7 @@ export async function getSubmissionById(
   return response.json();
 }
 
-export async function reviewSubmission(
-  id: string,
-  request: ReviewSubmissionRequest
-): Promise<ReviewSubmissionResponse> {
-  const response = await fetchWithAuth(`/api/v1/admin/submissions/${id}/review`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(
-      body.message || `Failed to review submission: ${response.status}`
-    );
-  }
-  return response.json();
-}
+
 
 export async function getSubmissionAuditLog(
   id: string

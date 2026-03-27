@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
+      POSTGRES_DB: iviss_dev
     ports:
       - "5435:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d ${POSTGRES_DB:-iviss_db}",
+          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d iviss_dev",
         ]
       interval: 10s
       timeout: 5s
