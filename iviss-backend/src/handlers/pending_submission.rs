@@ -1,13 +1,17 @@
 use crate::app_state::AppState;
-use crate::dto::pending_submission::DataEntryResponse;
+use crate::dto::pending_submission::{
+    DataEntryResponse, ReviewSubmissionResponse, SubmissionListQuery, SubmissionStatus,
+};
 use crate::errors::AppError;
 use axum::{
-    extract::{Json, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
 };
 use std::sync::Arc;
 use uuid::Uuid;
+
+// ── Submit (agent-facing) ─────────────────────────────────────────────────────
 
 #[utoipa::path(
     post,
@@ -17,11 +21,11 @@ use uuid::Uuid;
     request_body = CreatePendingSubmissionRequest,
     responses(
         (status = 202, description = "Submission accepted for review", body = DataEntryResponse),
-        (status = 400, description = "Invalid request",        body = AppErrorResponse, 
+        (status = 400, description = "Invalid request",        body = AppErrorResponse,
              example = json!({ "code": "INVALID_REQUEST", "message": "Missing required field 'plate'" })),
-         (status = 401, description = "Unauthorized",          body = AppErrorResponse, 
+         (status = 401, description = "Unauthorized",          body = AppErrorResponse,
              example = json!({ "code": "UNAUTHORIZED", "message": "Invalid token" })),
-         (status = 500, description = "Internal server error", body = AppErrorResponse ,
+         (status = 500, description = "Internal server error", body = AppErrorResponse,
               example = json!({ "code": "INTERNAL_ERROR", "message": "Internal Server Error" })),
     ),
     security(("bearer_auth" = []))
@@ -30,9 +34,6 @@ pub async fn submit_vehicle(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<super::super::dto::pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // In a real app we'd decode base64 images and upload to S3/Cloud storage here
-    // For now we assume the frontend sends URLs or we just store the strings as-is (stub behavior for images)
-
     let agent_id = resolve_agent_id(&state.db, payload.agent_id).await?;
 
     let submission_id = crate::queries::submission_queries::create_pending_submission(
@@ -44,12 +45,9 @@ pub async fn submit_vehicle(
         payload.notes,
         payload.latitude,
         payload.longitude,
-        None, // address not in DTO yet, pass allowed None
+        None,
     )
     .await?;
-
-    // Location fields are now passed to the query
-    // match (payload.latitude, payload.longitude) { ... }
 
     let response = DataEntryResponse {
         message: "Submission accepted for review".to_string(),
@@ -107,48 +105,193 @@ async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, 
     }
 }
 
-/// List all pending submissions for admin review
+// ── List (admin) ──────────────────────────────────────────────────────────────
+
+/// List submissions for admin review, optionally filtered by status
 #[utoipa::path(
     get,
     path = "/admin/submissions",
-    tag = "vehicles",
+    tag = "admin",
     operation_id = "listPendingSubmissions",
+    params(
+        ("status" = Option<String>, Query, description = "Filter by status: pending, approved, rejected")
+    ),
     responses(
-        (status = 200, description = "List of pending submissions", body = [PendingSubmissionListItem]),
+        (status = 200, description = "List of submissions", body = [PendingSubmissionListItem]),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
+    Query(query): Query<SubmissionListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submissions: Vec<_> =
-        crate::queries::submission_queries::get_pending_submissions(&state.db).await?;
+    let submissions = crate::queries::submission_queries::get_pending_submissions(
+        &state.db,
+        query.status.as_deref(),
+    )
+    .await?;
     Ok((StatusCode::OK, Json(submissions)))
 }
 
-/// Get details of a single pending submission
+// ── Detail (admin) ────────────────────────────────────────────────────────────
+
+/// Get full details of a single submission
 #[utoipa::path(
     get,
     path = "/admin/submissions/{id}",
-    tag = "vehicles",
+    tag = "admin",
     operation_id = "getPendingSubmission",
     params(
         ("id" = Uuid, Path, description = "Submission UUID")
     ),
     responses(
-        (status = 200, description = "Submission details", body = PendingSubmissionRequest),
+        (status = 200, description = "Submission details", body = PendingSubmissionDetail),
         (status = 404, description = "Submission not found", body = AppErrorResponse),
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn get_pending_submission(
     State(state): State<Arc<AppState>>,
-    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+    Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submission: crate::dto::pending_submission::PendingSubmissionRequest =
+    let submission =
         crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
     Ok((StatusCode::OK, Json(submission)))
+}
+
+// ── Review (admin approve/reject) ─────────────────────────────────────────────
+
+/// Admin reviews a pending submission: approve (with vehicle data) or reject (with reason)
+#[utoipa::path(
+    post,
+    path = "/admin/submissions/{id}/review",
+    tag = "admin",
+    operation_id = "reviewSubmission",
+    params(
+        ("id" = Uuid, Path, description = "Submission UUID")
+    ),
+    request_body = ReviewSubmissionRequest,
+    responses(
+        (status = 200, description = "Review processed", body = ReviewSubmissionResponse),
+        (status = 400, description = "Invalid request", body = AppErrorResponse),
+        (status = 404, description = "Submission not found", body = AppErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn review_submission(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<super::super::dto::pending_submission::ReviewSubmissionRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // For now, use a placeholder reviewer ID. In production, extract from auth middleware.
+    // Try to get the authenticated user from request extensions
+    let reviewer_id = get_admin_reviewer_id(&state.db).await?;
+
+    // Fetch the submission first to get the plate number
+    let submission =
+        crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
+
+    match payload.decision {
+        SubmissionStatus::Approved => {
+            let vehicle_data = payload.vehicle_data.ok_or_else(|| {
+                AppError::bad_request(
+                    "Vehicle data is required when approving a submission",
+                )
+            })?;
+
+            let vehicle_id = crate::queries::submission_queries::approve_submission(
+                &state.db,
+                id,
+                reviewer_id,
+                &submission.plate_number,
+                &vehicle_data,
+            )
+            .await?;
+
+            Ok((
+                StatusCode::OK,
+                Json(ReviewSubmissionResponse {
+                    message: "Submission approved and vehicle data saved".to_string(),
+                    submission_id: id,
+                    status: SubmissionStatus::Approved,
+                    vehicle_id: Some(vehicle_id),
+                }),
+            ))
+        }
+        SubmissionStatus::Rejected => {
+            let reason = payload.rejection_reason.ok_or_else(|| {
+                AppError::bad_request(
+                    "A rejection reason is required when rejecting a submission",
+                )
+            })?;
+
+            if reason.trim().is_empty() {
+                return Err(AppError::bad_request("Rejection reason cannot be empty"));
+            }
+
+            crate::queries::submission_queries::reject_submission(
+                &state.db,
+                id,
+                reviewer_id,
+                &reason,
+            )
+            .await?;
+
+            Ok((
+                StatusCode::OK,
+                Json(ReviewSubmissionResponse {
+                    message: "Submission rejected".to_string(),
+                    submission_id: id,
+                    status: SubmissionStatus::Rejected,
+                    vehicle_id: None,
+                }),
+            ))
+        }
+        SubmissionStatus::Pending => {
+            Err(AppError::bad_request(
+                "Decision must be 'approved' or 'rejected', not 'pending'",
+            ))
+        }
+    }
+}
+
+/// Get the first admin user ID. In production this comes from the auth token.
+async fn get_admin_reviewer_id(pool: &sqlx::PgPool) -> Result<Uuid, AppError> {
+    let id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM users WHERE role = 'admin' AND is_active = TRUE ORDER BY created_at ASC LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    id.ok_or_else(|| AppError::not_found("No admin user found"))
+}
+
+// ── Audit Log (admin) ─────────────────────────────────────────────────────────
+
+/// Get the audit trail for a submission
+#[utoipa::path(
+    get,
+    path = "/admin/submissions/{id}/audit",
+    tag = "admin",
+    operation_id = "getSubmissionAuditLog",
+    params(
+        ("id" = Uuid, Path, description = "Submission UUID")
+    ),
+    responses(
+        (status = 200, description = "Audit log entries", body = [SubmissionAuditLogEntry]),
+        (status = 404, description = "Submission not found", body = AppErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_submission_audit_log(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<impl IntoResponse, AppError> {
+    let entries =
+        crate::queries::submission_queries::get_submission_audit_log(&state.db, id).await?;
+    Ok((StatusCode::OK, Json(entries)))
 }
 
 #[cfg(test)]
@@ -156,7 +299,6 @@ mod tests {
     use super::*;
     use crate::dto::pending_submission::{CreatePendingSubmissionRequest, SubmissionStatus};
 
-    // Mock test data
     fn create_test_submission_request() -> CreatePendingSubmissionRequest {
         CreatePendingSubmissionRequest {
             plate_number: "TEST123".to_string(),
@@ -171,12 +313,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_vehicle_success() {
-        // This test would require a test database setup
-        // For now, we'll test the structure and basic functionality
-
         let request = create_test_submission_request();
-
-        // Verify request structure
         assert_eq!(request.plate_number, "TEST123");
         assert!(request.front_image_url.contains("front.jpg"));
         assert!(request.back_image_url.contains("back.jpg"));
@@ -187,14 +324,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_vehicle_request_validation() {
-        // Test with missing required fields
         let mut request = create_test_submission_request();
-
-        // Test empty plate number
         request.plate_number = "".to_string();
         assert!(request.plate_number.is_empty());
 
-        // Test with None values for optional fields
         request.notes = None;
         request.latitude = None;
         request.longitude = None;
@@ -204,29 +337,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_pending_submission_structure() {
-        // Test that the function has the correct signature and return type
-
-        // Verify the function exists and has the expected behavior
-        // In a real test with a test database, you would:
-        // 1. Set up a test database connection
-        // 2. Insert a test submission
-        // 3. Call the function with the submission ID
-        // 4. Verify the response contains the correct submission
-
-        // For now, we verify the function compiles and has correct types
-        let test_uuid = uuid::Uuid::new_v4();
-
-        // Test UUID parsing
-        let path_param = axum::extract::Path(test_uuid);
-        assert_eq!(path_param.0, test_uuid);
-
-        assert!(true); // Placeholder test to verify compilation
-    }
-
-    #[tokio::test]
     async fn test_data_entry_response_structure() {
-        // Test the response structure
         let submission_id = uuid::Uuid::new_v4();
         let response = DataEntryResponse {
             message: "Submission accepted for review".to_string(),
@@ -241,7 +352,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_submission_status_enum() {
-        // Test the SubmissionStatus enum
         let pending = SubmissionStatus::Pending;
         let approved = SubmissionStatus::Approved;
         let rejected = SubmissionStatus::Rejected;
@@ -250,21 +360,48 @@ mod tests {
         assert_eq!(approved, SubmissionStatus::Approved);
         assert_eq!(rejected, SubmissionStatus::Rejected);
 
-        // Test inequality
         assert!(pending != approved);
         assert!(approved != rejected);
         assert!(pending != rejected);
     }
 
     #[tokio::test]
-    async fn test_create_pending_submission_request_serialization() {
-        // Test that the request can be serialized/deserialized correctly
-        let request = create_test_submission_request();
+    async fn test_submission_status_from_db_str() {
+        assert_eq!(SubmissionStatus::from_db_str("pending"), SubmissionStatus::Pending);
+        assert_eq!(SubmissionStatus::from_db_str("approved"), SubmissionStatus::Approved);
+        assert_eq!(SubmissionStatus::from_db_str("rejected"), SubmissionStatus::Rejected);
+        assert_eq!(SubmissionStatus::from_db_str("unknown"), SubmissionStatus::Pending);
+    }
 
-        // Test that all fields are accessible
+    #[tokio::test]
+    async fn test_submission_status_as_db_str() {
+        assert_eq!(SubmissionStatus::Pending.as_db_str(), "pending");
+        assert_eq!(SubmissionStatus::Approved.as_db_str(), "approved");
+        assert_eq!(SubmissionStatus::Rejected.as_db_str(), "rejected");
+    }
+
+    #[tokio::test]
+    async fn test_review_response_structure() {
+        let submission_id = uuid::Uuid::new_v4();
+        let vehicle_id = uuid::Uuid::new_v4();
+
+        let response = ReviewSubmissionResponse {
+            message: "Submission approved".to_string(),
+            submission_id,
+            status: SubmissionStatus::Approved,
+            vehicle_id: Some(vehicle_id),
+        };
+
+        assert_eq!(response.status, SubmissionStatus::Approved);
+        assert_eq!(response.vehicle_id, Some(vehicle_id));
+    }
+
+    #[tokio::test]
+    async fn test_create_pending_submission_request_serialization() {
+        let request = create_test_submission_request();
         assert!(!request.plate_number.is_empty());
         assert!(!request.front_image_url.is_empty());
         assert!(!request.back_image_url.is_empty());
-        assert!(!request.agent_id.is_nil()); // UUID should be valid (not nil)
+        assert!(!request.agent_id.is_nil());
     }
 }

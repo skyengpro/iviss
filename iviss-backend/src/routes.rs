@@ -49,6 +49,14 @@ pub fn assembly(state: AppState) -> Router {
             get(crate::handlers::pending_submission::get_pending_submission),
         )
         .route(
+            "/admin/submissions/:id/review",
+            post(crate::handlers::pending_submission::review_submission),
+        )
+        .route(
+            "/admin/submissions/:id/audit",
+            get(crate::handlers::pending_submission::get_submission_audit_log),
+        )
+        .route(
             "/admin/users",
             get(crate::handlers::user_management::list_users)
                 .post(crate::handlers::user_management::provision_user),
