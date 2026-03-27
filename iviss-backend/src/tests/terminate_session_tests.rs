@@ -263,7 +263,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
@@ -327,7 +327,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/users/me")
+                .uri("/api/v1/users/me")
                 .header("Authorization", format!("Bearer {}", _agent_access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -357,7 +357,7 @@ async fn terminate_session_rejects_non_agent_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", _admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
@@ -389,7 +389,7 @@ async fn terminate_session_returns_404_for_unknown_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
@@ -420,7 +420,7 @@ async fn terminate_session_blocks_otp_on_same_day() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/terminate-session")
+                .uri("/api/v1/admin/terminate-session")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::from(terminate_body.to_string()))
@@ -439,7 +439,7 @@ async fn terminate_session_blocks_otp_on_same_day() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(otp_body.to_string()))
                 .unwrap(),

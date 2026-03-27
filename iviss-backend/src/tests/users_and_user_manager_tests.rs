@@ -282,7 +282,7 @@ async fn test_provision_user_creates_new_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/users")
+                .uri("/api/v1/admin/users")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::from(provision_body.to_string()))
@@ -348,7 +348,7 @@ async fn test_provision_user_requires_admin_role() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/users")
+                .uri("/api/v1/admin/users")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", agent_token))
                 .body(Body::from(provision_body.to_string()))
@@ -379,7 +379,7 @@ async fn test_list_users_returns_all_users() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/admin/users")
+                .uri("/api/v1/admin/users")
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -418,7 +418,7 @@ async fn test_get_user_returns_specific_user() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/admin/users/{}", agent_id))
+                .uri(format!("/api/v1/admin/users/{}", agent_id))
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -454,7 +454,7 @@ async fn test_get_user_returns_404_for_nonexistent_user() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/admin/users/{}", nonexistent_id))
+                .uri(format!("/api/v1/admin/users/{}", nonexistent_id))
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -488,7 +488,7 @@ async fn test_update_user_updates_fields() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(format!("/admin/users/{}", agent_id))
+                .uri(format!("/api/v1/admin/users/{}", agent_id))
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::from(update_body.to_string()))
@@ -525,7 +525,7 @@ async fn test_delete_user_removes_user() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/admin/users/{}", agent_id))
+                .uri(format!("/api/v1/admin/users/{}", agent_id))
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -583,7 +583,7 @@ async fn test_update_user_can_reactivate_suspended_admin() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(format!("/admin/users/{}", suspended_admin_id))
+                .uri(format!("/api/v1/admin/users/{}", suspended_admin_id))
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::from(update_body.to_string()))
@@ -632,7 +632,7 @@ async fn test_update_user_can_suspend_active_admin() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(format!("/admin/users/{}", target_admin_id))
+                .uri(format!("/api/v1/admin/users/{}", target_admin_id))
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", admin_token))
                 .body(Body::from(update_body.to_string()))
@@ -702,7 +702,7 @@ async fn test_get_current_user_profile() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/users/me")
+                .uri("/api/v1/users/me")
                 .header("Authorization", format!("Bearer {}", agent_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -769,7 +769,7 @@ async fn test_manager_cannot_provision_admin_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/admin/users")
+                .uri("/api/v1/admin/users")
                 .header("content-type", "application/json")
                 .header("Authorization", format!("Bearer {}", manager_token))
                 .body(Body::from(provision_body.to_string()))
@@ -819,7 +819,7 @@ async fn test_agent_cannot_access_user_management_endpoints() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/admin/users")
+                .uri("/api/v1/admin/users")
                 .header("Authorization", format!("Bearer {}", agent_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -890,7 +890,7 @@ async fn test_activate_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -952,7 +952,7 @@ async fn test_activate_missing_badge_id() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -985,7 +985,7 @@ async fn test_activate_missing_activation_code() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -1018,7 +1018,7 @@ async fn test_activate_invalid_base64_public_key() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -1051,7 +1051,7 @@ async fn test_activate_user_not_found() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -1111,7 +1111,7 @@ async fn test_activate_non_agent_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -1177,7 +1177,7 @@ async fn test_activate_user_not_pending_activation() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),
@@ -1243,7 +1243,7 @@ async fn test_activate_invalid_otp() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/activate")
+                .uri("/api/v1/auth/activate")
                 .header("content-type", "application/json")
                 .body(Body::from(activate_body.to_string()))
                 .unwrap(),

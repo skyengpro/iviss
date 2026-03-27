@@ -317,7 +317,7 @@ async fn test_get_dashboard_stats_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/admin/stats")
+                .uri("/api/v1/admin/stats")
                 .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -384,7 +384,7 @@ async fn test_get_dashboard_stats_empty_database() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/admin/stats")
+                .uri("/api/v1/admin/stats")
                 .header("Authorization", format!("Bearer {}", admin_access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -423,7 +423,7 @@ async fn test_get_dashboard_stats_unauthorized() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/admin/stats")
+                .uri("/api/v1/admin/stats")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -451,7 +451,7 @@ async fn test_get_dashboard_stats_forbidden_for_agent() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/admin/stats")
+                .uri("/api/v1/admin/stats")
                 .header("Authorization", format!("Bearer {}", agent_access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -484,7 +484,7 @@ async fn test_get_control_activity_default_range() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/activity")
+                .uri("/api/v1/stats/activity")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -543,7 +543,7 @@ async fn test_get_control_activity_7d_range() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/activity?range=7d")
+                .uri("/api/v1/stats/activity?range=7d")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -581,7 +581,7 @@ async fn test_get_control_activity_30d_range() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/activity?range=30d")
+                .uri("/api/v1/stats/activity?range=30d")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -627,7 +627,7 @@ async fn test_get_top_agents_default() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/top-agents")
+                .uri("/api/v1/stats/top-agents")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -696,7 +696,7 @@ async fn test_get_top_agents_with_limit() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/top-agents?limit=5")
+                .uri("/api/v1/stats/top-agents?limit=5")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -741,7 +741,7 @@ async fn test_get_activity_feed_default() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/activity-feed")
+                .uri("/api/v1/stats/activity-feed")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -796,7 +796,7 @@ async fn test_get_activity_feed_with_limit() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/activity-feed?limit=2")
+                .uri("/api/v1/stats/activity-feed?limit=2")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -833,7 +833,7 @@ async fn test_get_activity_feed_empty() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/activity-feed")
+                .uri("/api/v1/stats/activity-feed")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -874,7 +874,7 @@ async fn test_get_recent_alerts_default() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/recent-alerts")
+                .uri("/api/v1/stats/recent-alerts")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -885,7 +885,7 @@ async fn test_get_recent_alerts_default() {
     assert_eq!(
         response.status(),
         StatusCode::OK,
-        "GET /stats/recent-alerts should return 200"
+        "GET /api/v1/stats/recent-alerts should return 200"
     );
 
     let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
@@ -938,7 +938,7 @@ async fn test_get_recent_alerts_with_limit() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/recent-alerts?limit=1")
+                .uri("/api/v1/stats/recent-alerts?limit=1")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
@@ -989,7 +989,7 @@ async fn test_get_recent_alerts_no_alerts() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/stats/recent-alerts")
+                .uri("/api/v1/stats/recent-alerts")
                 .header("Authorization", format!("Bearer {}", access_token))
                 .body(Body::empty())
                 .unwrap(),
