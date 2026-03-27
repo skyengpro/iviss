@@ -13,7 +13,7 @@ use crate::errors::AppError;
 
 #[utoipa::path(
     get,
-    path = "/stats",
+    path = "/api/v1/admin/stats",
     tag = "stats",
     operation_id = "getDashboardStats",
     responses(
@@ -40,7 +40,7 @@ pub struct ActivityQuery {
 
 #[utoipa::path(
     get,
-    path = "/stats/activity",
+    path = "/api/v1/stats/activity",
     tag = "stats",
     operation_id = "getControlActivity",
     params(ActivityQuery),
@@ -75,7 +75,7 @@ pub struct TopAgentsQuery {
 
 #[utoipa::path(
     get,
-    path = "/stats/top-agents",
+    path = "/api/v1/stats/top-agents",
     tag = "stats",
     operation_id = "getTopAgents",
     params(TopAgentsQuery),
@@ -107,7 +107,7 @@ pub struct ActivityFeedQuery {
 
 #[utoipa::path(
     get,
-    path = "/stats/activity-feed",
+    path = "/api/v1/stats/activity-feed",
     tag = "stats",
     operation_id = "getActivityFeed",
     params(ActivityFeedQuery),
@@ -137,7 +137,7 @@ pub struct RecentAlertsQuery {
 
 #[utoipa::path(
     get,
-    path = "/stats/recent-alerts",
+    path = "/api/v1/stats/recent-alerts",
     tag = "stats",
     operation_id = "getRecentAlerts",
     params(RecentAlertsQuery),

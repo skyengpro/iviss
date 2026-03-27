@@ -86,8 +86,8 @@ impl Modify for SecurityAddon {
         crate::handlers::users::get_user_profile,
         crate::handlers::users::update_location,
         crate::handlers::auth::login,
-        crate::handlers::auth::register,
-        crate::handlers::auth::logout,
+        // crate::handlers::auth::register,
+        // crate::handlers::auth::logout,
         crate::handlers::auth::request_daily_login,
         crate::handlers::auth::verify_daily_login,
         // crate::handlers::device_management::suspend_device,
@@ -164,7 +164,6 @@ impl Modify for SecurityAddon {
             // ── auth ──
             LoginRequest,
             AuthResponse,
-            RegisterRequest,
             ResendActivationRequest,
             ResendActivationResponse,
             RequestDailyLoginRequest,
