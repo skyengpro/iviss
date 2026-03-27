@@ -225,7 +225,7 @@ async fn test_request_daily_login_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -256,7 +256,7 @@ async fn test_request_daily_login_missing_badge_id() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -300,7 +300,7 @@ async fn test_request_daily_login_non_agent_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -333,7 +333,7 @@ async fn test_request_daily_login_suspended_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -365,7 +365,7 @@ async fn test_request_daily_login_suspended_device() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -406,7 +406,7 @@ async fn test_request_daily_login_invalid_badge_format() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/request-daily-login")
+                .uri("/api/v1/auth/request-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -433,7 +433,7 @@ async fn test_verify_daily_login_missing_badge_id() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -459,7 +459,7 @@ async fn test_verify_daily_login_missing_activation_code() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -492,7 +492,7 @@ async fn test_verify_daily_login_invalid_otp() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -537,7 +537,7 @@ async fn test_verify_daily_login_non_agent_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -585,7 +585,7 @@ async fn test_verify_daily_login_inactive_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -624,7 +624,7 @@ async fn test_verify_daily_login_suspended_device() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -650,7 +650,7 @@ async fn test_verify_daily_login_user_not_found() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/verify-daily-login")
+                .uri("/api/v1/auth/verify-daily-login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),

@@ -195,7 +195,7 @@ async fn test_admin_login_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -230,7 +230,7 @@ async fn test_admin_login_invalid_credentials() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -258,7 +258,7 @@ async fn test_admin_login_inactive_account() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -282,7 +282,7 @@ async fn test_admin_login_empty_email() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -306,7 +306,7 @@ async fn test_admin_login_empty_password() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -330,7 +330,7 @@ async fn test_admin_login_nonexistent_user() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -379,7 +379,7 @@ async fn test_admin_refresh_token_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -412,7 +412,7 @@ async fn test_admin_refresh_token_invalid() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -456,7 +456,7 @@ async fn test_admin_refresh_token_inactive_account() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -500,7 +500,7 @@ async fn test_admin_refresh_token_expired() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -544,7 +544,7 @@ async fn test_admin_refresh_token_non_admin_role() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -567,7 +567,7 @@ async fn test_admin_refresh_token_empty() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -611,7 +611,7 @@ async fn test_admin_refresh_token_revoked() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(request_body.to_string()))
                 .unwrap(),
@@ -645,7 +645,7 @@ async fn test_rbac_admin_middleware_allowed() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(login_body.to_string()))
                 .unwrap(),
@@ -679,7 +679,7 @@ async fn test_rbac_manager_middleware_allowed() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/login")
+                .uri("/api/v1/auth/login")
                 .header("content-type", "application/json")
                 .body(Body::from(login_body.to_string()))
                 .unwrap(),
