@@ -43,6 +43,12 @@ DELETE FROM vehicles WHERE id IN (
     '0790f1ee-6c54-4b01-90e6-d701748f085d'
 );
 
+-- Delete user-dependent data
+DELETE FROM pending_submissions WHERE agent_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2'));
+DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2'));
+DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2'));
+DELETE FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2');
+
 -- 1. Insert Organization
 INSERT INTO organizations (id, name, type, region)
 VALUES (
@@ -58,10 +64,10 @@ VALUES
 (
     'e390f1ee-6c54-4b01-90e6-d701748f0852',
     'd290f1ee-6c54-4b01-90e6-d701748f0851',
-    'admin',
-    'admin@iviss.gov',
-    '$2b$12$LQv3c1yqBWVHxkd0LqZGueOQ/H/XJmK8m7B/K8yK8yK8yK8yK8yK8',
-    'admin',
+    'manager2',
+    'manager2@iviss.gov',
+    '$argon2id$v=19$m=19456,t=2,p=1$R7W/+cytB6MIpNljj9mr2w$eaq4+uhWQjiYhlFgd+O/utthO2smslxZAAu7C4Y4yzE',
+    'manager',
     'ADM-001',
     'System Administrator',
     '+254700123456',
@@ -84,7 +90,7 @@ VALUES
     'd290f1ee-6c54-4b01-90e6-d701748f0851',
     'manager1',
     'manager@iviss.gov',
-    '$2b$12$LQv3c1yqBWVHxkd0LqZGueOQ/H/XJmK8m7B/K8yK8yK8yK8yK8yK8',
+    '$argon2id$v=19$m=19456,t=2,p=1$R7W/+cytB6MIpNljj9mr2w$eaq4+uhWQjiYhlFgd+O/utthO2smslxZAAu7C4Y4yzE',
     'manager',
     'MGR-103',
     'Jane Smith',

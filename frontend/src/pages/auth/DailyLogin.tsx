@@ -119,16 +119,8 @@ export default function DailyLogin() {
     }
   };
 
-  const handleAdminLogin = async () => {
-    setIsLoading(true);
-    const result = await login('admin01', 'admin123');
-    setIsLoading(false);
-
-    if (result.success) {
-      navigate('/backoffice');
-    } else {
-      setError(result.error || 'Admin login failed');
-    }
+  const handleAdminLogin = () => {
+    navigate('/admin-login');
   };
 
   return (

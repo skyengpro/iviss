@@ -201,6 +201,10 @@ async fn setup_test_infrastructure() -> (
         activation_code_pepper: TEST_PEPPER.to_string(),
         shift_start_hour: 8,
         shift_end_hour: 18,
+        admin_bootstrap_email: Some("admin@example.com".to_string()),
+        admin_bootstrap_password: Some("admin123".to_string()),
+        admin_bootstrap_phone: Some("+1234567890".to_string()),
+        admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
@@ -240,7 +244,7 @@ async fn test_refresh_flow_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(refresh_body.to_string()))
                 .unwrap(),
@@ -270,7 +274,7 @@ async fn test_refresh_flow_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh/verify")
+                .uri("/api/v1/auth/refresh/verify")
                 .header("content-type", "application/json")
                 .body(Body::from(verify_body.to_string()))
                 .unwrap(),
@@ -302,7 +306,7 @@ async fn test_refresh_with_invalid_token() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(refresh_body.to_string()))
                 .unwrap(),
@@ -329,7 +333,7 @@ async fn test_refresh_with_invalid_signature() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(refresh_body.to_string()))
                 .unwrap(),
@@ -359,7 +363,7 @@ async fn test_refresh_with_invalid_signature() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh/verify")
+                .uri("/api/v1/auth/refresh/verify")
                 .header("content-type", "application/json")
                 .body(Body::from(verify_body.to_string()))
                 .unwrap(),
