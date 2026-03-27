@@ -82,7 +82,7 @@ jobs:
           path: iviss-backend/target/coverage/html/
           retention-days: 7
   backend_fmt:
-    name: Backend Format
+    name: Backend Format  
     runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
