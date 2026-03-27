@@ -9,7 +9,153 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/admin/organizations": {
+        "/api/v1/admin/controls/paged": {
+            "get": {
+                "tags": [
+                    "controls"
+                ],
+                "operationId": "getControlsPaged",
+                "parameters": [
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "agent_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "organization_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Status"
+                                }
+                            ],
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "plate",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64",
+                            "nullable": true
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64",
+                            "nullable": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paged control records",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PagedControlsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/organizations": {
             "get": {
                 "tags": [
                     "admin"
@@ -58,7 +204,7 @@
                 ]
             }
         },
-        "/admin/resend-activation-code": {
+        "/api/v1/admin/resend-activation-code": {
             "post": {
                 "tags": [
                     "admin"
@@ -109,7 +255,7 @@
                 }
             }
         },
-        "/admin/restart-session": {
+        "/api/v1/admin/restart-session": {
             "post": {
                 "tags": [
                     "admin"
@@ -165,7 +311,52 @@
                 ]
             }
         },
-        "/admin/submissions": {
+        "/api/v1/admin/stats": {
+            "get": {
+                "tags": [
+                    "stats"
+                ],
+                "operationId": "getDashboardStats",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard statistics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DashboardStats"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer_auth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/submissions": {
             "get": {
                 "tags": [
                     "vehicles"
@@ -204,7 +395,7 @@
                 ]
             }
         },
-        "/admin/submissions/{id}": {
+        "/api/v1/admin/submissions/{id}": {
             "get": {
                 "tags": [
                     "vehicles"
@@ -252,7 +443,7 @@
                 ]
             }
         },
-        "/admin/terminate-session": {
+        "/api/v1/admin/terminate-session": {
             "post": {
                 "tags": [
                     "admin"
@@ -309,7 +500,7 @@
                 ]
             }
         },
-        "/admin/users": {
+        "/api/v1/admin/users": {
             "get": {
                 "tags": [
                     "admin"
@@ -422,7 +613,7 @@
                 ]
             }
         },
-        "/admin/users/{id}": {
+        "/api/v1/admin/users/{id}": {
             "get": {
                 "tags": [
                     "admin"
@@ -635,295 +826,7 @@
                 ]
             }
         },
-        "/api/v1/photo/plate": {
-            "post": {
-                "tags": [
-                    "photo"
-                ],
-                "operationId": "photoPlate",
-                "requestBody": {
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ImageUploadRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OCR result (photo capture)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid or missing image",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported media type",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal OCR error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/scan/plate": {
-            "post": {
-                "tags": [
-                    "scanning"
-                ],
-                "operationId": "scanPlate",
-                "requestBody": {
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ImageUploadRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OCR result (may have low confidence)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid or missing image",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported media type",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal OCR error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ScanPlateResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/vehicles/pending": {
-            "post": {
-                "tags": [
-                    "vehicles"
-                ],
-                "operationId": "submitVehicleV1",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreatePendingSubmissionRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "202": {
-                        "description": "Submission accepted for review",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/DataEntryResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "INVALID_REQUEST",
-                                    "message": "Missing required field 'plate'"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "UNAUTHORIZED",
-                                    "message": "Invalid token"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "INTERNAL_ERROR",
-                                    "message": "Internal Server Error"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearer_auth": []
-                    }
-                ]
-            }
-        },
-        "/api/v1/vehicles/search": {
-            "post": {
-                "tags": [
-                    "vehicles"
-                ],
-                "operationId": "searchVehicleV1",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/VehicleSearchRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Vehicle found with status results",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/VehicleSearchResult"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid plate format",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "INVALID_PLATE",
-                                    "message": "Plate number must be 6-8 alphanumeric characters"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "UNAUTHORIZED",
-                                    "message": "Invalid token"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Plate not found in registry",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "NOT_FOUND",
-                                    "message": "No vehicle found with the provided plate  number"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                },
-                                "example": {
-                                    "code": "INTERNAL_ERROR",
-                                    "message": "Internal Server Error"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearer_auth": []
-                    }
-                ]
-            }
-        },
-        "/auth/activate": {
+        "/api/v1/auth/activate": {
             "post": {
                 "tags": [
                     "auth"
@@ -974,7 +877,7 @@
                 }
             }
         },
-        "/auth/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "tags": [
                     "auth"
@@ -1015,7 +918,7 @@
                 }
             }
         },
-        "/auth/refresh": {
+        "/api/v1/auth/refresh": {
             "post": {
                 "tags": [
                     "auth"
@@ -1057,7 +960,7 @@
                 }
             }
         },
-        "/auth/refresh/verify": {
+        "/api/v1/auth/refresh/verify": {
             "post": {
                 "tags": [
                     "auth"
@@ -1099,7 +1002,7 @@
                 }
             }
         },
-        "/auth/request-daily-login": {
+        "/api/v1/auth/request-daily-login": {
             "post": {
                 "tags": [
                     "auth"
@@ -1169,7 +1072,7 @@
                 }
             }
         },
-        "/auth/verify-daily-login": {
+        "/api/v1/auth/verify-daily-login": {
             "post": {
                 "tags": [
                     "auth"
@@ -1229,7 +1132,7 @@
                 }
             }
         },
-        "/controls": {
+        "/api/v1/controls": {
             "get": {
                 "tags": [
                     "controls"
@@ -1419,153 +1322,7 @@
                 ]
             }
         },
-        "/controls/paged": {
-            "get": {
-                "tags": [
-                    "controls"
-                ],
-                "operationId": "getControlsPaged",
-                "parameters": [
-                    {
-                        "name": "start_date",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "end_date",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "agent_id",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "organization_id",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/components/schemas/Status"
-                                }
-                            ],
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "plate",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "q",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "nullable": true
-                        }
-                    },
-                    {
-                        "name": "page_size",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "nullable": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Paged control records",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/PagedControlsResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearer_auth": []
-                    }
-                ]
-            }
-        },
-        "/health": {
+        "/api/v1/health": {
             "get": {
                 "tags": [
                     "health"
@@ -1585,52 +1342,127 @@
                 }
             }
         },
-        "/stats": {
-            "get": {
+        "/api/v1/photo/plate": {
+            "post": {
                 "tags": [
-                    "stats"
+                    "photo"
                 ],
-                "operationId": "getDashboardStats",
+                "operationId": "photoPlate",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ImageUploadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
                 "responses": {
                     "200": {
-                        "description": "Dashboard statistics retrieved successfully",
+                        "description": "OCR result (photo capture)",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/DashboardStats"
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
                                 }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "400": {
+                        "description": "Invalid or missing image",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
                                 }
                             }
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal OCR error",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/AppErrorResponse"
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
                                 }
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearer_auth": []
-                    }
-                ]
+                }
             }
         },
-        "/stats/activity": {
+        "/api/v1/scan/plate": {
+            "post": {
+                "tags": [
+                    "scanning"
+                ],
+                "operationId": "scanPlate",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ImageUploadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OCR result (may have low confidence)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or missing image",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal OCR error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScanPlateResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/stats/activity": {
             "get": {
                 "tags": [
                     "stats"
@@ -1690,7 +1522,7 @@
                 ]
             }
         },
-        "/stats/activity-feed": {
+        "/api/v1/stats/activity-feed": {
             "get": {
                 "tags": [
                     "stats"
@@ -1747,7 +1579,7 @@
                 ]
             }
         },
-        "/stats/recent-alerts": {
+        "/api/v1/stats/recent-alerts": {
             "get": {
                 "tags": [
                     "stats"
@@ -1804,7 +1636,7 @@
                 ]
             }
         },
-        "/stats/top-agents": {
+        "/api/v1/stats/top-agents": {
             "get": {
                 "tags": [
                     "stats"
@@ -1874,7 +1706,7 @@
                 ]
             }
         },
-        "/users/location": {
+        "/api/v1/users/location": {
             "post": {
                 "tags": [
                     "users"
@@ -1924,7 +1756,7 @@
                 }
             }
         },
-        "/users/me": {
+        "/api/v1/users/me": {
             "get": {
                 "tags": [
                     "users"
@@ -1977,12 +1809,12 @@
                 ]
             }
         },
-        "/vehicles/pending": {
+        "/api/v1/vehicles/pending": {
             "post": {
                 "tags": [
                     "vehicles"
                 ],
-                "operationId": "submitVehicle",
+                "operationId": "submitVehicleV1",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -2054,12 +1886,12 @@
                 ]
             }
         },
-        "/vehicles/search": {
+        "/api/v1/vehicles/search": {
             "post": {
                 "tags": [
                     "vehicles"
                 ],
-                "operationId": "searchVehicle",
+                "operationId": "searchVehicleV1",
                 "requestBody": {
                     "content": {
                         "application/json": {
