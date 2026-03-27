@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iviss_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
     ports:
       - "5435:5432"
     volumes:
@@ -81,6 +81,8 @@ services:
       target: development
     container_name: iviss-backend
     restart: unless-stopped
+    env_file:
+      - ./iviss-backend/.env
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -105,6 +107,10 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3000
       RUST_LOG: ${RUST_LOG:-info}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
+      ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
+      ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
     ports:
       - "3000:3000"
     volumes:
@@ -123,7 +129,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 180s
     logging:
       driver: "json-file"
       options:

@@ -4,6 +4,7 @@ use iviss_backend::app_state::AppState;
 use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::initialize_redis_pool;
+use iviss_backend::db::seed_admin::run_bootstrap_seed;
 use iviss_backend::routes;
 use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
 use std::net::SocketAddr;
@@ -52,6 +53,9 @@ async fn main() -> anyhow::Result<()> {
     info!("Running migrations...");
     sqlx::migrate!("./migrations").run(&db_pool).await?;
     info!("Migrations completed");
+
+    info!("Running admin bootstrap seed...");
+    run_bootstrap_seed(&db_pool, &config).await;
 
     let state = AppState::new(db_pool, redis_pool, sms_provider, &config);
     let app = routes::assembly(state)

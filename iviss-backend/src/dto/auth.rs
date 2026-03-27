@@ -1,4 +1,4 @@
-use crate::dto::users::{UserProfile, UserRole};
+use crate::dto::users::UserProfile;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -39,17 +39,11 @@ pub struct LoginRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
-    pub token: String,
+    pub access_token: String,
+    pub refresh_token: String,
     pub user: UserProfile,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct RegisterRequest {
-    pub email: String,
-    pub password: String,
-    pub full_name: String,
-    pub role: UserRole,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -73,5 +67,5 @@ pub struct ActivateResponse {
 #[serde(rename_all = "camelCase")]
 pub struct RefreshRequest {
     pub refresh_token: String,
-    pub device_id: Uuid,
+    pub device_id: Option<Uuid>,
 }
