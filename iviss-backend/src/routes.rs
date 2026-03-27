@@ -16,7 +16,10 @@ pub fn assembly(state: AppState) -> Router {
         .route("/api/v1/auth/login", post(crate::handlers::auth::login))
         // TODO: Enable once register is fully implemented
         // .route("/auth/register", post(crate::handlers::auth::register))
-        .route("/api/v1/auth/activate", post(crate::handlers::auth::activate))
+        .route(
+            "/api/v1/auth/activate",
+            post(crate::handlers::auth::activate),
+        )
         .route(
             "/api/v1/auth/refresh",
             post(crate::handlers::auth::request_refresh),
