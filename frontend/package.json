@@ -88,7 +88,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@7nohe/openapi-react-query-codegen": "^2.0.0",
+    "@7nohe/openapi-react-query-codegen": "^2.1.0",
     "@eslint/js": "^9.32.0",
     "@hey-api/openapi-ts": "^0.52.1",
     "@tailwindcss/typography": "^0.5.16",
@@ -102,7 +102,7 @@
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.9.19",
     "commander": "12.1.0",
-    "eslint": "^9.32.0",
+    "eslint": "^10.1.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
@@ -111,9 +111,9 @@
     "postcss": "^8.5.6",
     "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",
-    "ts-morph": "^23.0.0",
+    "ts-morph": "^27.0.2",
     "typescript": "~5.5.4",
-    "typescript-eslint": "^8.38.0",
+    "typescript-eslint": "^8.57.2",
     "vite": "^7.3.1",
     "vitest": "^3.2.4"
   },
