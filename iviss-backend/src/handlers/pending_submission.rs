@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 #[utoipa::path(
     post,
-    path = "/vehicles/pending",
+    path = "/api/v1/vehicles/pending",
     tag = "vehicles",
     operation_id = "submitVehicle",
     request_body = CreatePendingSubmissionRequest,
@@ -110,7 +110,7 @@ async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, 
 /// List all pending submissions for admin review
 #[utoipa::path(
     get,
-    path = "/admin/submissions",
+    path = "/api/v1/admin/submissions",
     tag = "vehicles",
     operation_id = "listPendingSubmissions",
     responses(
@@ -130,7 +130,7 @@ pub async fn list_pending_submissions(
 /// Get details of a single pending submission
 #[utoipa::path(
     get,
-    path = "/admin/submissions/{id}",
+    path = "/api/v1/admin/submissions/{id}",
     tag = "vehicles",
     operation_id = "getPendingSubmission",
     params(

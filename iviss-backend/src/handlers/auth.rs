@@ -1,8 +1,7 @@
 use crate::app_state::AppState;
+
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest, RegisterRequest,
-};
-use crate::dto::auth::{
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
     RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
     VerifyDailyLoginResponse,
 };
@@ -39,7 +38,7 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
 /// Login with email and password (admin / manager only)
 #[utoipa::path(
     post,
-    path = "/auth/login",
+    path = "/api/v1/auth/login",
     request_body = LoginRequest,
     responses(
         (status = 200, description = "Login successful", body = AuthResponse),
@@ -60,10 +59,10 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
 
-    if user.status != "ACTIVE" {
+    if user.status != UserStatus::Active {
         tracing::warn!(
             email = %payload.email,
-            status = %user.status,
+            status = %user.status.as_str(),
             "login: rejected — account not active"
         );
         return Err(AppError::unauthorized("Account is not active"));
@@ -83,7 +82,9 @@ pub async fn login(
 
     //    Issue access token
     //    Admins have no device
-    let role = user.role.parse::<UserRole>().unwrap_or(UserRole::Admin);
+    if user.role != UserRole::Admin && user.role != UserRole::Manager {
+        return Err(AppError::unauthorized("Invalid credentials"));
+    }
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -97,7 +98,7 @@ pub async fn login(
     let jwt_svc = &state.jwt_svc;
 
     let access_token = jwt_svc
-        .issue_access_token_with_shift(user.id, Uuid::nil(), role, shift_start, shift_end)
+        .issue_access_token_with_shift(user.id, Uuid::nil(), user.role, shift_start, shift_end)
         .map_err(AppError::Internal)?;
 
     // Generate refresh token
@@ -129,13 +130,13 @@ pub async fn login(
     .await
     .map_err(AppError::Database)?;
 
-    // Build user profile — admin has no org
+    // Build user profile
     let user_profile = UserProfile {
         id: user.id,
         username: user.username.clone(),
         name: user.full_name.clone(),
         email: Some(user.email.clone()),
-        role,
+        role: user.role,
         organization_id: user.organization_id,
         organization: None,
         badge_id: None,
@@ -150,7 +151,7 @@ pub async fn login(
     tracing::info!(
         user_id = %user.id,
         email = %user.email,
-        role = %user.role,
+        role = %user.role.as_str(),
         "login: success"
     );
 
@@ -164,55 +165,10 @@ pub async fn login(
     ))
 }
 
-/// Register a new user
-#[utoipa::path(
-    post,
-    path = "/auth/register",
-    request_body = RegisterRequest,
-    responses(
-        (status = 201, description = "User created", body = AuthResponse),
-        (status = 400, description = "Bad request", body = AppErrorResponse)
-    ),
-    tag = "auth",
-    operation_id = "registerUser"
-)]
-pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoResponse, AppError> {
-    // MOCK REGISTER - Note: Registration is not implemented for admin login
-    // This is kept as a placeholder for potential future implementation
-    Ok((
-        StatusCode::CREATED,
-        Json(AuthResponse {
-            access_token: "mock-jwt-token".to_string(),
-            refresh_token: "mock-refresh-token".to_string(),
-            user: UserProfile {
-                id: uuid::Uuid::new_v4(),
-                username: payload
-                    .email
-                    .split('@')
-                    .next()
-                    .unwrap_or("user")
-                    .to_string(),
-                email: Some(payload.email),
-                name: payload.full_name,
-                role: payload.role,
-                organization_id: Some(uuid::Uuid::new_v4()),
-                organization: Some("Independent".to_string()),
-                badge_id: Some("TEMP-01".to_string()),
-                phone_number: None,
-                avatar_initials: Some("NU".to_string()),
-                status: crate::dto::users::UserStatus::Active,
-                session_status: None,
-                last_revoked_at: None,
-                is_active: true,
-            },
-        }),
-    ))
-}
-
 /// Logout and invalidate session
 #[utoipa::path(
     post,
-    path = "/auth/logout",
+    path = "/api/v1/auth/logout",
     responses(
         (status = 200, description = "Logout successful", body = String)
     ),
@@ -220,6 +176,7 @@ pub async fn register(Json(payload): Json<RegisterRequest>) -> Result<impl IntoR
     operation_id = "logoutUser",
     security(("bearer_auth" = []))
 )]
+#[cfg(not(test))] //TODO
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
@@ -227,7 +184,7 @@ pub async fn logout() -> Result<impl IntoResponse, AppError> {
 /// Activate an agent account by validating OTP and registering device public key
 #[utoipa::path(
     post,
-    path = "/auth/activate",
+    path = "/api/v1/auth/activate",
     request_body = ActivateRequest,
     responses(
         (status = 200, description = "Activation successful", body = ActivateResponse),
@@ -257,7 +214,7 @@ pub async fn activate(
     let user_row = sqlx::query(
         r#"
         SELECT id,
-               role::TEXT AS role,
+               role,
                status::TEXT AS status
         FROM users
         WHERE badge_id = $1
@@ -271,10 +228,10 @@ pub async fn activate(
     .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
     let user_id: Uuid = user_row.get("id");
-    let user_role: String = user_row.get("role");
+    let user_role: UserRole = user_row.get("role");
     let user_status: String = user_row.get("status");
 
-    if user_role != "agent" {
+    if user_role != UserRole::Agent {
         return Err(AppError::BadRequest(
             "Activation is only available for agents".into(),
         ));
@@ -402,7 +359,7 @@ pub async fn activate(
 // Request a daily OTP login code
 #[utoipa::path(
     post,
-    path = "/auth/request-daily-login",
+    path = "/api/v1/auth/request-daily-login",
     request_body = RequestDailyLoginRequest,
     responses(
         (status = 201, description = "OTP sent successfully", body = RequestDailyLoginResponse),
@@ -484,7 +441,7 @@ pub async fn request_daily_login(
 
 #[utoipa::path(
     post,
-    path = "/auth/verify-daily-login",
+    path = "/api/v1/auth/verify-daily-login",
     request_body = VerifyDailyLoginRequest,
     responses(
         (status = 200, description = "Login successful", body = VerifyDailyLoginResponse),
@@ -510,8 +467,8 @@ pub async fn verify_daily_login(
         r#"
         SELECT
             u.id              AS user_id,
-            u.role::TEXT      AS user_role,
-            u.status::TEXT    AS user_status,
+            u.role            AS user_role,
+            u.status          AS user_status,
             COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
         FROM users u
         LEFT JOIN devices d
@@ -529,21 +486,21 @@ pub async fn verify_daily_login(
     .ok_or_else(|| AppError::not_found("User or device not found"))?;
 
     let user_id: Uuid = row.get("user_id");
-    let user_role: String = row.get("user_role");
-    let user_status: String = row.get("user_status");
+    let user_role: UserRole = row.get("user_role");
+    let user_status: UserStatus = row.get("user_status");
     let device_status: String = row.get("device_status");
 
     // ── Status checks
-    if user_role != "agent" {
+    if user_role != UserRole::Agent {
         return Err(AppError::unauthorized(
             "Daily login is only available for agents",
         ));
     }
 
-    if user_status != "ACTIVE" {
+    if user_status != UserStatus::Active {
         return Err(AppError::unauthorized(format!(
             "User account is {}",
-            user_status.to_lowercase()
+            user_status.as_str()
         )));
     }
 
@@ -587,15 +544,11 @@ pub async fn verify_daily_login(
     // ── Issue access token (15 min, carries today's static shift bounds) ──────
     let jwt_svc = &state.jwt_svc;
 
-    let role = user_role
-        .parse::<crate::dto::users::UserRole>()
-        .map_err(|_| AppError::internal_error("Invalid user role in database"))?;
-
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             user_id,
             payload.device_id,
-            role,
+            user_role,
             shift_start.try_into().unwrap_or(0usize),
             shift_end.try_into().unwrap_or(0usize),
         )
@@ -739,7 +692,7 @@ pub struct VerifyRefreshResponse {
 /// and returns it to the client for signing.
 #[utoipa::path(
     post,
-    path = "/auth/refresh",
+    path = "/api/v1/auth/refresh",
     request_body = RefreshRequest,
     responses(
         (status = 200, description = "Challenge nonce issued", body = RefreshChallengeResponse),
@@ -913,7 +866,7 @@ async fn request_refresh_admin(
 /// then issues a new access token.
 #[utoipa::path(
     post,
-    path = "/auth/refresh/verify",
+    path = "/api/v1/auth/refresh/verify",
     request_body = VerifyRefreshRequest,
     responses(
         (status = 200, description = "New access token issued", body = VerifyRefreshResponse),

@@ -18,11 +18,11 @@ use regex::Regex;
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ── GET /vehicles/{plate_number} ──────────────────────────────────────────────
+// ── POST /api/v1/vehicles/search ──────────────────────────────────────────────
 
 #[utoipa::path(
     post,
-    path = "/vehicles/search",
+    path = "/api/v1/vehicles/search",
     tag = "vehicles",
     operation_id = "searchVehicle",
     request_body = VehicleSearchRequest,
@@ -39,7 +39,6 @@ use uuid::Uuid;
     ),
     security(("bearer_auth" = []))
 )]
-
 pub async fn search_vehicle(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,

@@ -244,7 +244,7 @@ async fn test_refresh_flow_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(refresh_body.to_string()))
                 .unwrap(),
@@ -274,7 +274,7 @@ async fn test_refresh_flow_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh/verify")
+                .uri("/api/v1/auth/refresh/verify")
                 .header("content-type", "application/json")
                 .body(Body::from(verify_body.to_string()))
                 .unwrap(),
@@ -306,7 +306,7 @@ async fn test_refresh_with_invalid_token() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(refresh_body.to_string()))
                 .unwrap(),
@@ -333,7 +333,7 @@ async fn test_refresh_with_invalid_signature() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("content-type", "application/json")
                 .body(Body::from(refresh_body.to_string()))
                 .unwrap(),
@@ -363,7 +363,7 @@ async fn test_refresh_with_invalid_signature() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/auth/refresh/verify")
+                .uri("/api/v1/auth/refresh/verify")
                 .header("content-type", "application/json")
                 .body(Body::from(verify_body.to_string()))
                 .unwrap(),
