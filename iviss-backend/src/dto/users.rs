@@ -35,8 +35,9 @@ pub struct RestartSessionResponse {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq, Clone, Copy, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum UserRole {
     Admin,
     Agent,
@@ -65,16 +66,18 @@ impl UserRole {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq, sqlx::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[sqlx(type_name = "user_status", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UserStatus {
     PendingActivation,
     Active,
     Suspended,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Copy, PartialEq, sqlx::Type)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[sqlx(type_name = "device_status", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DeviceStatus {
     Pending,
     Active,
@@ -142,7 +145,7 @@ pub struct UserProfile {
     pub name: String,
     pub email: Option<String>,
     pub role: UserRole,
-    pub organization_id: Uuid,
+    pub organization_id: Option<Uuid>,
     pub organization: Option<String>,
     pub badge_id: Option<String>,
     pub phone_number: Option<String>,

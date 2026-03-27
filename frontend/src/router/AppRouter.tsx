@@ -16,11 +16,7 @@ export const AppRouter = () => {
   const accessToken = getAccessToken();
   const refreshToken = getRefreshToken();
   const entryRedirect =
-    !refreshToken && !accessToken
-      ? '/activate'
-      : refreshToken && !accessToken
-        ? '/daily-login'
-        : '/daily-login';
+    !refreshToken && !accessToken ? '/activate' : accessToken ? '/backoffice' : '/daily-login';
 
   return (
     <Suspense fallback={<PageLoader />}>
