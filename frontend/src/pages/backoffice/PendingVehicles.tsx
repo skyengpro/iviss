@@ -13,7 +13,6 @@ import {
   Clock,
   Eye,
   AlertCircle,
-  Shield,
   ChevronRight,
   History,
   X,
@@ -22,13 +21,11 @@ import { toast } from '@/hooks/ui/use-toast';
 import {
   getSubmissions,
   getSubmissionById,
-  reviewSubmission,
   getSubmissionAuditLog,
   type PendingSubmissionListItem,
   type PendingSubmissionDetail,
   type SubmissionAuditLogEntry,
   type SubmissionStatus,
-  type VehicleDataEntry,
 } from '@/services/api/submissionService';
 
 // ── Status filter tabs ──────────────────────────────────────────────────────
@@ -50,20 +47,7 @@ const statusVariantMap: Record<SubmissionStatus, 'pending' | 'valid' | 'critical
 
 // ── Vehicle data entry form defaults ────────────────────────────────────────
 
-function emptyVehicleData(): VehicleDataEntry {
-  return {
-    chassisNumber: '',
-    brand: '',
-    model: '',
-    year: new Date().getFullYear(),
-    color: '',
-    enginePower: '',
-    fuelType: '',
-    ownerName: '',
-    ownerAddress: '',
-    ownerNationalId: '',
-  };
-}
+
 
 // ── Main component ──────────────────────────────────────────────────────────
 
@@ -79,12 +63,7 @@ export default function PendingVehicles() {
   const [selectedDetail, setSelectedDetail] = useState<PendingSubmissionDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
-  // Review states
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showApproveForm, setShowApproveForm] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [vehicleData, setVehicleData] = useState<VehicleDataEntry>(emptyVehicleData());
-  const [rejectionReason, setRejectionReason] = useState('');
+
 
   // Audit log
   const [auditLog, setAuditLog] = useState<SubmissionAuditLogEntry[]>([]);
@@ -116,13 +95,10 @@ export default function PendingVehicles() {
 
   const loadDetail = async (id: string) => {
     setIsLoadingDetail(true);
-    setShowApproveForm(false);
-    setShowRejectDialog(false);
     setShowAuditLog(false);
     try {
       const detail = await getSubmissionById(id);
       setSelectedDetail(detail);
-      setVehicleData(detail.vehicleData ?? emptyVehicleData());
     } catch (error) {
       console.error('Failed to load submission detail:', error);
       toast({
@@ -145,90 +121,7 @@ export default function PendingVehicles() {
     }
   };
 
-  // ── Review Actions ────────────────────────────────────────────────────
 
-  const handleApprove = async () => {
-    if (!selectedDetail) return;
-
-    // Validate required fields
-    if (!vehicleData.chassisNumber || !vehicleData.brand || !vehicleData.model || !vehicleData.ownerName) {
-      toast({
-        title: t('pendingValidation.toastError'),
-        description: t('pendingValidation.requiredFieldsMissing'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await reviewSubmission(selectedDetail.id, {
-        decision: 'approved',
-        vehicleData,
-      });
-
-      toast({
-        title: t('pendingValidation.toastApproved'),
-        description: t('pendingValidation.toastApprovedDesc', {
-          plate: selectedDetail.plateNumber,
-        }),
-      });
-
-      setSelectedDetail(null);
-      setShowApproveForm(false);
-      setVehicleData(emptyVehicleData());
-      loadSubmissions();
-    } catch (error) {
-      toast({
-        title: t('pendingValidation.toastError'),
-        description: error instanceof Error ? error.message : t('pendingValidation.reviewError'),
-        variant: 'destructive',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedDetail) return;
-
-    if (!rejectionReason.trim()) {
-      toast({
-        title: t('pendingValidation.toastError'),
-        description: t('pendingValidation.reasonRequired'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await reviewSubmission(selectedDetail.id, {
-        decision: 'rejected',
-        rejectionReason,
-      });
-
-      toast({
-        title: t('pendingValidation.toastRejected'),
-        description: t('pendingValidation.toastRejectedDesc', {
-          plate: selectedDetail.plateNumber,
-        }),
-      });
-
-      setSelectedDetail(null);
-      setShowRejectDialog(false);
-      setRejectionReason('');
-      loadSubmissions();
-    } catch (error) {
-      toast({
-        title: t('pendingValidation.toastError'),
-        description: error instanceof Error ? error.message : t('pendingValidation.reviewError'),
-        variant: 'destructive',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -495,203 +388,11 @@ export default function PendingVehicles() {
                     </Button>
                   )}
 
-                  {/* Actions (only for pending) */}
-                  {selectedDetail.status === 'pending' && (
-                    <div className="flex gap-3 pt-4 border-t border-border">
-                      <Button
-                        className="flex-1 gap-2 bg-status-valid text-status-valid-foreground hover:bg-status-valid/90"
-                        onClick={() => {
-                          setShowApproveForm(true);
-                          setShowRejectDialog(false);
-                        }}
-                        disabled={isProcessing}
-                      >
-                        <CheckCircle className="h-5 w-5" />
-                        {t('pendingValidation.approve')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 gap-2 text-status-critical hover:text-status-critical hover:bg-status-critical/10"
-                        onClick={() => {
-                          setShowRejectDialog(true);
-                          setShowApproveForm(false);
-                        }}
-                        disabled={isProcessing}
-                      >
-                        <XCircle className="h-5 w-5" />
-                        {t('pendingValidation.reject')}
-                      </Button>
-                    </div>
-                  )}
+
                 </CardContent>
               </Card>
 
-              {/* ── Approve form (vehicle data entry) ──────────── */}
-              {showApproveForm && selectedDetail.status === 'pending' && (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Shield className="h-5 w-5 text-status-valid" />
-                        {t('pendingValidation.enterVehicleData')}
-                      </CardTitle>
-                      <button
-                        onClick={() => setShowApproveForm(false)}
-                        className="rounded-lg p-1 hover:bg-muted"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {t('pendingValidation.enterVehicleDataDesc')}
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <FormField
-                        label={t('pendingValidation.field_chassisNumber')}
-                        value={vehicleData.chassisNumber}
-                        onChange={(v) => setVehicleData({ ...vehicleData, chassisNumber: v })}
-                        required
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_brand')}
-                        value={vehicleData.brand}
-                        onChange={(v) => setVehicleData({ ...vehicleData, brand: v })}
-                        required
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_model')}
-                        value={vehicleData.model}
-                        onChange={(v) => setVehicleData({ ...vehicleData, model: v })}
-                        required
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_year')}
-                        value={vehicleData.year.toString()}
-                        onChange={(v) =>
-                          setVehicleData({ ...vehicleData, year: parseInt(v, 10) || 0 })
-                        }
-                        type="number"
-                        required
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_color')}
-                        value={vehicleData.color ?? ''}
-                        onChange={(v) => setVehicleData({ ...vehicleData, color: v })}
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_enginePower')}
-                        value={vehicleData.enginePower ?? ''}
-                        onChange={(v) => setVehicleData({ ...vehicleData, enginePower: v })}
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_fuelType')}
-                        value={vehicleData.fuelType ?? ''}
-                        onChange={(v) => setVehicleData({ ...vehicleData, fuelType: v })}
-                      />
-                      <div className="sm:col-span-2 pt-2 border-t border-border">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                          {t('pendingValidation.ownerInformation')}
-                        </p>
-                      </div>
-                      <FormField
-                        label={t('pendingValidation.field_ownerName')}
-                        value={vehicleData.ownerName}
-                        onChange={(v) => setVehicleData({ ...vehicleData, ownerName: v })}
-                        required
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_ownerNationalId')}
-                        value={vehicleData.ownerNationalId ?? ''}
-                        onChange={(v) => setVehicleData({ ...vehicleData, ownerNationalId: v })}
-                      />
-                      <FormField
-                        label={t('pendingValidation.field_ownerAddress')}
-                        value={vehicleData.ownerAddress ?? ''}
-                        onChange={(v) => setVehicleData({ ...vehicleData, ownerAddress: v })}
-                        className="sm:col-span-2"
-                      />
-                    </div>
 
-                    <div className="flex gap-3 mt-6">
-                      <Button
-                        className="flex-1 gap-2 bg-status-valid text-status-valid-foreground hover:bg-status-valid/90"
-                        onClick={handleApprove}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4" />
-                        )}
-                        {t('pendingValidation.confirmApprove')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowApproveForm(false)}
-                        disabled={isProcessing}
-                      >
-                        {t('pendingValidation.cancel')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* ── Reject dialog ──────────────────────────────── */}
-              {showRejectDialog && selectedDetail.status === 'pending' && (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-base text-status-critical">
-                        <XCircle className="h-5 w-5" />
-                        {t('pendingValidation.rejectSubmission')}
-                      </CardTitle>
-                      <button
-                        onClick={() => setShowRejectDialog(false)}
-                        className="rounded-lg p-1 hover:bg-muted"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <label className="block text-sm font-medium mb-2">
-                      {t('pendingValidation.rejectionReasonLabel')}
-                      <span className="text-status-critical ml-1">*</span>
-                    </label>
-                    <textarea
-                      className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent min-h-[100px] resize-none"
-                      placeholder={t('pendingValidation.rejectionReasonPlaceholder')}
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                    />
-                    <div className="flex gap-3 mt-4">
-                      <Button
-                        variant="destructive"
-                        className="flex-1 gap-2"
-                        onClick={handleReject}
-                        disabled={isProcessing || !rejectionReason.trim()}
-                      >
-                        {isProcessing ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <XCircle className="h-4 w-4" />
-                        )}
-                        {t('pendingValidation.confirmReject')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowRejectDialog(false)}
-                        disabled={isProcessing}
-                      >
-                        {t('pendingValidation.cancel')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* ── Audit Log ──────────────────────────────────── */}
               {showAuditLog && auditLog.length > 0 && (
@@ -839,33 +540,4 @@ function ImageCard({
   );
 }
 
-function FormField({
-  label,
-  value,
-  onChange,
-  required,
-  type = 'text',
-  className,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  type?: string;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-        {label}
-        {required && <span className="text-status-critical ml-0.5">*</span>}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
-      />
-    </div>
-  );
-}
+

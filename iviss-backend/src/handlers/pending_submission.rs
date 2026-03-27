@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::dto::pending_submission::{
-    DataEntryResponse, ReviewSubmissionResponse, SubmissionListQuery, SubmissionStatus,
+    DataEntryResponse, SubmissionListQuery,
 };
 use crate::errors::AppError;
 use axum::{
@@ -160,113 +160,7 @@ pub async fn get_pending_submission(
     Ok((StatusCode::OK, Json(submission)))
 }
 
-// ── Review (admin approve/reject) ─────────────────────────────────────────────
 
-/// Admin reviews a pending submission: approve (with vehicle data) or reject (with reason)
-#[utoipa::path(
-    post,
-    path = "/api/v1/admin/submissions/{id}/review",
-    tag = "vehicles",
-    operation_id = "reviewSubmission",
-    params(
-        ("id" = Uuid, Path, description = "Submission UUID")
-    ),
-    request_body = ReviewSubmissionRequest,
-    responses(
-        (status = 200, description = "Review processed", body = ReviewSubmissionResponse),
-        (status = 400, description = "Invalid request", body = AppErrorResponse),
-        (status = 404, description = "Submission not found", body = AppErrorResponse),
-    ),
-    security(("bearer_auth" = []))
-)]
-pub async fn review_submission(
-    State(state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<super::super::dto::pending_submission::ReviewSubmissionRequest>,
-) -> Result<impl IntoResponse, AppError> {
-    // For now, use a placeholder reviewer ID. In production, extract from auth middleware.
-    // Try to get the authenticated user from request extensions
-    let reviewer_id = get_admin_reviewer_id(&state.db).await?;
-
-    // Fetch the submission first to get the plate number
-    let submission =
-        crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
-
-    match payload.decision {
-        SubmissionStatus::Approved => {
-            let vehicle_data = payload.vehicle_data.ok_or_else(|| {
-                AppError::bad_request(
-                    "Vehicle data is required when approving a submission",
-                )
-            })?;
-
-            let vehicle_id = crate::queries::submission_queries::approve_submission(
-                &state.db,
-                id,
-                reviewer_id,
-                &submission.plate_number,
-                &vehicle_data,
-            )
-            .await?;
-
-            Ok((
-                StatusCode::OK,
-                Json(ReviewSubmissionResponse {
-                    message: "Submission approved and vehicle data saved".to_string(),
-                    submission_id: id,
-                    status: SubmissionStatus::Approved,
-                    vehicle_id: Some(vehicle_id),
-                }),
-            ))
-        }
-        SubmissionStatus::Rejected => {
-            let reason = payload.rejection_reason.ok_or_else(|| {
-                AppError::bad_request(
-                    "A rejection reason is required when rejecting a submission",
-                )
-            })?;
-
-            if reason.trim().is_empty() {
-                return Err(AppError::bad_request("Rejection reason cannot be empty"));
-            }
-
-            crate::queries::submission_queries::reject_submission(
-                &state.db,
-                id,
-                reviewer_id,
-                &reason,
-            )
-            .await?;
-
-            Ok((
-                StatusCode::OK,
-                Json(ReviewSubmissionResponse {
-                    message: "Submission rejected".to_string(),
-                    submission_id: id,
-                    status: SubmissionStatus::Rejected,
-                    vehicle_id: None,
-                }),
-            ))
-        }
-        SubmissionStatus::Pending => {
-            Err(AppError::bad_request(
-                "Decision must be 'approved' or 'rejected', not 'pending'",
-            ))
-        }
-    }
-}
-
-/// Get the first admin user ID. In production this comes from the auth token.
-async fn get_admin_reviewer_id(pool: &sqlx::PgPool) -> Result<Uuid, AppError> {
-    let id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM users WHERE role = 'admin' AND is_active = TRUE ORDER BY created_at ASC LIMIT 1",
-    )
-    .fetch_optional(pool)
-    .await
-    .map_err(AppError::database)?;
-
-    id.ok_or_else(|| AppError::not_found("No admin user found"))
-}
 
 // ── Audit Log (admin) ─────────────────────────────────────────────────────────
 
