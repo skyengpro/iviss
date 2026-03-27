@@ -87,24 +87,24 @@ export const backOfficeRoutes: AppRoute[] = [
   {
     path: '/backoffice',
     component: BackOfficeDashboard,
-    allowedRoles: ['admin', 'manager'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   {
     path: '/backoffice/controls',
     component: ControlHistory,
-    allowedRoles: ['admin', 'manager'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   {
     path: '/backoffice/controls/:controlId',
     component: ControlDetail,
-    allowedRoles: ['admin', 'manager'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   { path: '/backoffice/users', component: UserManagement, allowedRoles: ['admin'] },
   { path: '/backoffice/validation', component: PendingVehicles, allowedRoles: ['admin'] },
   {
     path: '/backoffice/reports',
     component: BackOfficeReports,
-    allowedRoles: ['admin', 'manager'],
+    allowedRoles: ['admin', 'manager', 'admin'],
   },
   { path: '/backoffice/vehicles', component: BackOfficeDashboard, allowedRoles: ['admin'] },
   {
