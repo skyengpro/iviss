@@ -6,9 +6,7 @@ import { ErrorBoundary } from '../shared/ErrorBoundary';
 // Mock the ErrorFallback component to avoid deep dependency issues
 vi.mock('../shared/error/ErrorFallback', () => ({
   ErrorFallback: ({ error }: { error: Error | null; onReset: () => void }) => (
-    <div data-testid="error-fallback">
-      Error: {error?.message ?? 'Unknown'}
-    </div>
+    <div data-testid="error-fallback">Error: {error?.message ?? 'Unknown'}</div>
   ),
 }));
 
@@ -43,9 +41,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByTestId('error-fallback')).toHaveTextContent(
-      'Error: Test render error'
-    );
+    expect(screen.getByTestId('error-fallback')).toHaveTextContent('Error: Test render error');
   });
 
   it('should render custom fallback when provided', () => {

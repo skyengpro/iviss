@@ -12,9 +12,7 @@ describe('useCamera', () => {
   });
 
   it('should accept custom initial facing mode', () => {
-    const { result } = renderHook(() =>
-      useCamera({ initialFacingMode: 'user' })
-    );
+    const { result } = renderHook(() => useCamera({ initialFacingMode: 'user' }));
 
     expect(result.current.facingMode).toBe('user');
   });
@@ -65,9 +63,7 @@ describe('useCamera', () => {
     const { result } = renderHook(() => useCamera());
 
     act(() => {
-      result.current.handleUserMediaError(
-        new DOMException('NotAllowedError')
-      );
+      result.current.handleUserMediaError(new DOMException('NotAllowedError'));
     });
 
     expect(result.current.error).toBe('NotAllowedError');

@@ -11,11 +11,7 @@ describe('cn utility', () => {
     const isActive = true;
     const isDisabled = false;
 
-    const result = cn(
-      'base-class',
-      isActive && 'active-class',
-      isDisabled && 'disabled-class'
-    );
+    const result = cn('base-class', isActive && 'active-class', isDisabled && 'disabled-class');
 
     expect(result).toContain('base-class');
     expect(result).toContain('active-class');

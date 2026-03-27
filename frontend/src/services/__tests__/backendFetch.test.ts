@@ -75,9 +75,7 @@ describe('fetchWithAuth', () => {
 
   it('should dispatch iviss:session-revoked on 401', async () => {
     mockedGetAccessToken.mockReturnValue('expired-token');
-    fetchSpy.mockResolvedValueOnce(
-      new Response('Unauthorized', { status: 401 })
-    );
+    fetchSpy.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }));
 
     await fetchWithAuth(`${BASE_URL}/api/test`);
 
