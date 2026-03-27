@@ -16,7 +16,7 @@ pub struct DeviceActionResponse {
 // ── Suspend
 #[utoipa::path(
     post,
-    path = "/admin/devices/{id}/suspend",
+    path = "/api/v1/admin/devices/{id}/suspend",
     params(
         ("id" = Uuid, Path, description = "Device UUID to suspend")
     ),
@@ -72,7 +72,7 @@ pub async fn suspend_device(
 
 #[utoipa::path(
     post,
-    path = "/admin/devices/{id}/unsuspend",
+    path = "/api/v1/admin/devices/{id}/unsuspend",
     params(
         ("id" = Uuid, Path, description = "Device UUID to unsuspend")
     ),

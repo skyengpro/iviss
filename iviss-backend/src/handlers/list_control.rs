@@ -17,7 +17,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/controls",
+    path = "/api/v1/controls",
     tag = "controls",
     request_body = CreateControlRequest,
     operation_id = "createControl",
@@ -45,7 +45,7 @@ pub async fn create_control(
 
 #[utoipa::path(
     get,
-    path = "/controls",
+    path = "/api/v1/controls",
     tag = "controls",
     params(
         ("start_date" = Option<String>, Query, description = "Filter controls from this date (inclusive)" ),
@@ -86,7 +86,7 @@ pub async fn get_list_control(
 
 #[utoipa::path(
     get,
-    path = "/controls/paged",
+    path = "/api/v1/admin/controls/paged",
     tag = "controls",
     params(ControlPagedQuery),
     operation_id = "getControlsPaged",

@@ -78,7 +78,7 @@ export async function getSubmissions(
   status?: SubmissionStatus
 ): Promise<PendingSubmissionListItem[]> {
   const params = status ? `?status=${status}` : '';
-  const response = await fetchWithAuth(`/admin/submissions${params}`);
+  const response = await fetchWithAuth(`/api/v1/admin/submissions${params}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch submissions: ${response.status}`);
   }
@@ -88,7 +88,7 @@ export async function getSubmissions(
 export async function getSubmissionById(
   id: string
 ): Promise<PendingSubmissionDetail> {
-  const response = await fetchWithAuth(`/admin/submissions/${id}`);
+  const response = await fetchWithAuth(`/api/v1/admin/submissions/${id}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch submission: ${response.status}`);
   }
@@ -99,7 +99,7 @@ export async function reviewSubmission(
   id: string,
   request: ReviewSubmissionRequest
 ): Promise<ReviewSubmissionResponse> {
-  const response = await fetchWithAuth(`/admin/submissions/${id}/review`, {
+  const response = await fetchWithAuth(`/api/v1/admin/submissions/${id}/review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -116,7 +116,7 @@ export async function reviewSubmission(
 export async function getSubmissionAuditLog(
   id: string
 ): Promise<SubmissionAuditLogEntry[]> {
-  const response = await fetchWithAuth(`/admin/submissions/${id}/audit`);
+  const response = await fetchWithAuth(`/api/v1/admin/submissions/${id}/audit`);
   if (!response.ok) {
     throw new Error(`Failed to fetch audit log: ${response.status}`);
   }

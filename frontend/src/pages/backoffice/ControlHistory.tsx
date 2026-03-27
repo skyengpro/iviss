@@ -121,7 +121,7 @@ export default function ControlHistory() {
         qs.set('end_date', `${endDate} 23:59:59`);
       }
 
-      const res = await fetchWithAuth(`/admin/controls/paged?${qs.toString()}`);
+      const res = await fetchWithAuth(`/api/v1/admin/controls/paged?${qs.toString()}`);
       if (!res.ok) {
         const body = await res.text();
         throw new Error(body || `Failed to fetch controls: ${res.status}`);

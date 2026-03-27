@@ -36,6 +36,7 @@ reqwest = { version = "0.12", features = ["json"] }
 sha2 = "0.10"
 hmac = "0.12"
 rand = "0.8"
+argon2 = "0.5"
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 rsa = { version = "0.9", features = ["pem"] }
 base64 = "0.22.1"
@@ -47,6 +48,7 @@ ecdsa = { version = "0.16", features = ["verifying"] }
 [dev-dependencies]
 testcontainers = "0.23"
 testcontainers-modules = { version = "0.11", features = ["redis", "postgres"] }
+mockito = "1.4"
 tokio-test = "0.4"
 tower = "0.5"
 
