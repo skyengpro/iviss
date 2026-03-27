@@ -3,13 +3,13 @@ use crate::dto::users::{
     ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, RestartSessionRequest,
     RestartSessionResponse, TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest,
 };
+use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
 use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
-use crate::services::otp_service::OtpService;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -24,7 +24,7 @@ use uuid::Uuid;
 /// Provision a new user (admin only)
 #[utoipa::path(
     post,
-    path = "/admin/users",
+    path = "/api/v1/admin/users",
     request_body = ProvisionUserRequest,
     responses(
         (status = 201, description = "User provisioned successfully", body = UserProfile),
@@ -46,13 +46,10 @@ pub async fn provision_user(
     if matches!(user.role, crate::dto::users::UserRole::Agent) {
         if let Some(phone) = user.phone_number.clone() {
             let user_id = user.id;
-            let redis = state.redis.clone();
-            let sms = state.sms_pvd.clone();
-            let pepper = state.pepper.clone();
+            let otp_svc = state.otp_svc.clone();
 
             tokio::spawn(async move {
-                let svc = OtpService::new(redis, sms, pepper);
-                if let Err(e) = svc.request_otp(&user_id, &phone).await {
+                if let Err(e) = otp_svc.request_otp(&user_id, &phone).await {
                     warn!("Failed to send activation code to {}: {}", phone, e);
                 }
             });
@@ -67,7 +64,7 @@ pub async fn provision_user(
 /// List all users (admin only)
 #[utoipa::path(
     get,
-    path = "/admin/users",
+    path = "/api/v1/admin/users",
     responses(
         (status = 200, description = "Users retrieved successfully", body = [UserProfile]),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
@@ -85,7 +82,7 @@ pub async fn list_users(State(state): State<Arc<AppState>>) -> Result<impl IntoR
 /// Get a specific user by ID (admin only)
 #[utoipa::path(
     get,
-    path = "/admin/users/{id}",
+    path = "/api/v1/admin/users/{id}",
     responses(
         (status = 200, description = "User retrieved successfully", body = UserProfile),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
@@ -110,7 +107,7 @@ pub async fn get_user(
 /// Update a user (admin only)
 #[utoipa::path(
     put,
-    path = "/admin/users/{id}",
+    path = "/api/v1/admin/users/{id}",
     request_body = UpdateUserRequest,
     responses(
         (status = 200, description = "User updated successfully", body = UserProfile),
@@ -138,7 +135,7 @@ pub async fn update_user(
 /// Delete a user (admin only)
 #[utoipa::path(
     delete,
-    path = "/admin/users/{id}",
+    path = "/api/v1/admin/users/{id}",
     responses(
         (status = 204, description = "User deleted successfully"),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
@@ -163,7 +160,7 @@ pub async fn delete_user(
 /// List all organizations (admin only)
 #[utoipa::path(
     get,
-    path = "/admin/organizations",
+    path = "/api/v1/admin/organizations",
     responses(
         (status = 200, description = "Organizations retrieved successfully", body = [Organization]),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
@@ -188,7 +185,7 @@ pub async fn list_organizations(
 /// the user account. The next request from that user will return 401.
 #[utoipa::path(
     post,
-    path = "/admin/terminate-session",
+    path = "/api/v1/admin/terminate-session",
     request_body = TerminateSessionRequest,
     responses(
         (status = 200, description = "Session terminated", body = TerminateSessionResponse),
@@ -225,7 +222,7 @@ pub async fn terminate_session(
 /// Restarts/Extends a session for an agent
 #[utoipa::path(
     post,
-    path = "/admin/restart-session",
+    path = "/api/v1/admin/restart-session",
     request_body = RestartSessionRequest,
     responses(
         (status = 200, description = "Session restarted", body = RestartSessionResponse),
@@ -268,7 +265,7 @@ pub async fn restart_session(
 /// Resend activation code via SMS to a pending agent
 #[utoipa::path(
     post,
-    path = "/admin/resend-activation-code",
+    path = "/api/v1/admin/resend-activation-code",
     request_body = ResendActivationRequest,
     responses(
         (status = 201, description = "Activation code sent", body = ResendActivationResponse),
@@ -287,8 +284,8 @@ pub async fn resend_activation_code(
         r#"
         SELECT id,
                phone_number,
-               role::TEXT AS role,
-               status::TEXT AS status
+               role,
+               status
         FROM users
         WHERE id = $1
         AND deleted_at IS NULL
@@ -302,30 +299,26 @@ pub async fn resend_activation_code(
 
     let user_id: Uuid = user_raw.get("id");
     let phone_number: String = user_raw.get("phone_number");
-    let role: String = user_raw.get("role");
-    let status: String = user_raw.get("status");
+    let role: UserRole = user_raw.get("role");
+    let status: UserStatus = user_raw.get("status");
 
     // Only agents can receive an activation code
-    if role != "agent" {
+    if role != UserRole::Agent {
         return Err(AppError::BadRequest(
             "Activation is only available for agents".into(),
         ));
     }
 
-    // Only agents in PENDING_ACTIVATION status can receive a new code
-    if status != "PENDING_ACTIVATION" {
+    // Agent must be in PENDING_ACTIVATION status
+    if status != UserStatus::PendingActivation {
         return Err(AppError::BadRequest(format!(
-            "Resending activation code is only allowed for users in PENDING_ACTIVATION state (current: {})",
-            status
+            "User is not pending activation — current status: {}",
+            status.as_str()
         )));
     }
 
     // Build OtpService from shared state resources
-    let otp_svc = OtpService::new(
-        state.redis.clone(),
-        state.sms_pvd.clone(),
-        state.pepper.clone(),
-    );
+    let otp_svc = &state.otp_svc;
 
     // Generate, store and send the activation code via SMS
     otp_svc.request_otp(&user_id, &phone_number).await?;

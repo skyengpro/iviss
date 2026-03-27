@@ -10,7 +10,7 @@ use crate::errors::AppError;
 
 #[utoipa::path(
     get,
-    path = "/users/me",
+    path = "/api/v1/users/me",
     tag = "users",
     operation_id = "getUserProfile",
     responses(
@@ -31,7 +31,7 @@ pub async fn get_user_profile(
 
 #[utoipa::path(
     post,
-    path = "/users/location",
+    path = "/api/v1/users/location",
     tag = "users",
     request_body = UpdateLocationRequest,
     operation_id = "updateLocation",

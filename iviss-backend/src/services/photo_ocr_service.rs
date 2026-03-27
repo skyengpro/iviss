@@ -60,7 +60,7 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     Ok(pick_best(first, second))
 }
 
-fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
+pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     // If the scan pipeline already extracted a plate, keep it (even if format is invalid).
     // Photo mode should still surface the best candidate to the client.
     if !r.plate.is_empty() {
@@ -82,7 +82,7 @@ fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     r
 }
 
-fn extract_plate_strict(raw: &str) -> Option<String> {
+pub(crate) fn extract_plate_strict(raw: &str) -> Option<String> {
     let cleaned: String = raw
         .to_uppercase()
         .chars()
@@ -94,7 +94,7 @@ fn extract_plate_strict(raw: &str) -> Option<String> {
         .map(|m| m.as_str().to_string())
 }
 
-fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData {
+pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData {
     // Priority 1: Valid format
     if a.format_valid && !b.format_valid {
         return a;

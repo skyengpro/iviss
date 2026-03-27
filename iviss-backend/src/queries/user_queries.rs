@@ -1,26 +1,27 @@
-use crate::dto::users::{UserProfile, UserRole};
+use crate::dto::users::{DeviceStatus, UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
 pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile, AppError> {
+    // 1. Optimisation SQL avec LATERAL
     let row = sqlx::query(
         r#"
         SELECT 
             u.id, 
             u.full_name, 
             u.email, 
-            u.role::TEXT as role, 
+            u.role,      
             u.organization_id, 
-            o.name as organization_name,
+            o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status::TEXT as status,
+            u.status,
             u.username,
-            d.status::TEXT as session_status,
-            d.revoked_at as last_revoked_at
+            d.status AS session_status,
+            d.revoked_at AS last_revoked_at
         FROM users u
-        JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN organizations o ON u.organization_id = o.id
         LEFT JOIN (
             SELECT DISTINCT ON (user_id)
                 user_id, status, revoked_at
@@ -36,15 +37,10 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
     .map_err(AppError::database)?
     .ok_or_else(|| AppError::not_found("User not found"))?;
 
-    let role_str: String = row.get("role");
-    let role = role_str.parse::<UserRole>().unwrap();
+    let role: UserRole = row.get("role");
+    let status: UserStatus = row.get("status");
 
-    let status_str: String = row.get("status");
-    let status = status_str.parse::<crate::dto::users::UserStatus>().unwrap();
-
-    let session_status_str: Option<String> = row.get("session_status");
-    let session_status =
-        session_status_str.map(|s| s.parse::<crate::dto::users::DeviceStatus>().unwrap());
+    let session_status: Option<DeviceStatus> = row.get("session_status");
 
     Ok(UserProfile {
         id: row.get("id"),
@@ -57,7 +53,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile,
         badge_id: row.get("badge_id"),
         phone_number: row.get("phone_number"),
         avatar_initials: None,
-        is_active: status_str == "ACTIVE",
+        is_active: status == UserStatus::Active,
         status,
         session_status,
         last_revoked_at: row.get("last_revoked_at"),
@@ -110,17 +106,17 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
             u.id, 
             u.full_name, 
             u.email, 
-            u.role::TEXT as role, 
+            u.role AS role,
             u.organization_id, 
-            o.name as organization_name,
+            o.name AS organization_name,
             u.badge_id,
             u.phone_number,
-            u.status::TEXT as status,
+            u.status,
             u.username,
-            d.status::TEXT as session_status,
-            d.revoked_at as last_revoked_at
+            d.status AS session_status,
+            d.revoked_at AS last_revoked_at
         FROM users u
-        JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN organizations o ON u.organization_id = o.id
         LEFT JOIN (
             SELECT DISTINCT ON (user_id)
                 user_id, status, revoked_at
@@ -138,15 +134,10 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
     let users = rows
         .into_iter()
         .map(|row| {
-            let role_str: String = row.get("role");
-            let role = role_str.parse::<UserRole>().unwrap();
+            let role: UserRole = row.get("role");
+            let status: UserStatus = row.get("status");
 
-            let status_str: String = row.get("status");
-            let status = status_str.parse::<crate::dto::users::UserStatus>().unwrap();
-
-            let session_status_str: Option<String> = row.get("session_status");
-            let session_status =
-                session_status_str.map(|s| s.parse::<crate::dto::users::DeviceStatus>().unwrap());
+            let session_status: Option<DeviceStatus> = row.get("session_status");
 
             UserProfile {
                 id: row.get("id"),
@@ -159,7 +150,7 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
                 badge_id: row.get("badge_id"),
                 phone_number: row.get("phone_number"),
                 avatar_initials: None,
-                is_active: status_str == "ACTIVE",
+                is_active: status == UserStatus::Active,
                 status,
                 session_status,
                 last_revoked_at: row.get("last_revoked_at"),
