@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/hooks/auth/use-auth';
-import { useSearchVehicle, useSubmitVehicle } from '../../openapi-rq/queries/queries';
+import { useSearchVehicleV1, useSubmitVehicleV1 } from '../../openapi-rq/queries/queries';
 import {
   VehicleSearchRequest,
   CreatePendingSubmissionRequest,
@@ -88,14 +88,14 @@ export function useVehicles() {
     mutateAsync: searchMutate,
     isPending: isSearching,
     error: searchError,
-  } = useSearchVehicle();
+  } = useSearchVehicleV1();
 
   const {
     mutateAsync: submitMutate,
     isPending: isSubmitting,
     error: submitError,
     isSuccess: submitSuccess,
-  } = useSubmitVehicle();
+  } = useSubmitVehicleV1();
 
   const search = useCallback(
     async (request: VehicleSearchRequest) => {
