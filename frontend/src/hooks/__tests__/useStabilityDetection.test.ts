@@ -23,9 +23,7 @@ describe('useStabilityDetection', () => {
   });
 
   it('should reset on low-confidence input', () => {
-    const { result } = renderHook(() =>
-      useStabilityDetection({ minConfidence: 75 })
-    );
+    const { result } = renderHook(() => useStabilityDetection({ minConfidence: 75 }));
 
     // Add a valid detection first
     act(() => {
@@ -42,9 +40,7 @@ describe('useStabilityDetection', () => {
   });
 
   it('should reset when plate number changes', () => {
-    const { result } = renderHook(() =>
-      useStabilityDetection({ requiredMatches: 3 })
-    );
+    const { result } = renderHook(() => useStabilityDetection({ requiredMatches: 3 }));
 
     act(() => {
       result.current.addDetection({ plateNumber: 'CE 128 BC', confidence: 90 });
