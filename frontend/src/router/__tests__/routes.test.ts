@@ -15,19 +15,29 @@ describe('route configuration', () => {
       });
     });
 
-    it('should have a non-null component for each route', () => {
-      publicRoutes.forEach((route) => {
+    it('should have a non-null component for navigable routes', () => {
+      const navigableRoutes = publicRoutes.filter((r) => !r.redirectTo);
+      navigableRoutes.forEach((route) => {
         expect(route.component).not.toBeNull();
+      });
+    });
+
+    it('should have redirect routes with a redirectTo target', () => {
+      const redirectRoutes = publicRoutes.filter((r) => r.redirectTo);
+      expect(redirectRoutes.length).toBeGreaterThan(0);
+      redirectRoutes.forEach((route) => {
+        expect(route.redirectTo).toBeDefined();
       });
     });
   });
 
   describe('mobileRoutes', () => {
-    it('should all require agent or supervisor roles', () => {
+    it('should all require agent, manager, or admin roles', () => {
       mobileRoutes.forEach((route) => {
         expect(route.allowedRoles).toBeDefined();
         expect(route.allowedRoles).toContain('agent');
-        expect(route.allowedRoles).toContain('supervisor');
+        expect(route.allowedRoles).toContain('manager');
+        expect(route.allowedRoles).toContain('admin');
       });
     });
 
@@ -45,11 +55,11 @@ describe('route configuration', () => {
   });
 
   describe('backOfficeRoutes', () => {
-    it('should all require admin or supervisor roles', () => {
+    it('should all require admin or manager roles', () => {
       backOfficeRoutes.forEach((route) => {
         expect(route.allowedRoles).toBeDefined();
         route.allowedRoles!.forEach((role) => {
-          expect(['admin', 'supervisor']).toContain(role);
+          expect(['admin', 'manager']).toContain(role);
         });
       });
     });
