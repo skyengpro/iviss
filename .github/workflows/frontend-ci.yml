@@ -178,6 +178,11 @@ jobs:
       - name: Unit tests
         run: npm run coverage -- --reporter=verbose
         working-directory: frontend
+      - name: Cache coverage
+        uses: actions/cache/save@v4
+        with:
+          path: frontend/coverage
+          key: frontend-coverage-${{ github.sha }}
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
@@ -192,6 +197,11 @@ jobs:
         with:
           path: frontend/src/openapi-rq
           key: ${{ github.sha }}
+      - name: Restore coverage
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/coverage
+          key: frontend-coverage-${{ github.sha }}
       - uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -201,6 +211,7 @@ jobs:
             -Dsonar.projectKey=IVISS
             -Dsonar.projectBaseDir=frontend
             -Dsonar.sources=src
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.qualitygate.wait=true
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
