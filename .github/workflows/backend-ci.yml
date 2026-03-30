@@ -48,8 +48,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang lld pkg-config libssl-dev build-essential libleptonica-dev libtesseract-dev tesseract-ocr
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install cargo-nextest
+        run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
       - name: Test
-        run: cargo test --verbose
+        run: cargo nextest run --verbose
+        working-directory: iviss-backend
+      - name: Doc Test
+        run: cargo test --doc --verbose
         working-directory: iviss-backend
 
   backend_coverage:
@@ -71,8 +76,10 @@ jobs:
       - name: Install cargo-llvm-cov
         if: steps.cache-cargo-llvm-cov.outputs.cache-hit != 'true'
         run: cargo install cargo-llvm-cov
+      - name: Install cargo-nextest
+        run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
       - name: Generate coverage report
-        run: cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60
+        run: cargo llvm-cov --nextest --html --output-dir target/coverage/html --fail-under-lines 60
         working-directory: iviss-backend
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
