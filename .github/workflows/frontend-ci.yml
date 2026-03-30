@@ -178,13 +178,6 @@ jobs:
       - name: Unit tests
         run: npm run coverage -- --reporter=verbose
         working-directory: frontend
-      - name: Upload coverage Report
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: coverage-report
-          path: frontend/coverage
-          retention-days: 1
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
@@ -199,11 +192,6 @@ jobs:
         with:
           path: frontend/src/openapi-rq
           key: ${{ github.sha }}
-      - name: Download coverage Report
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report
-          path: frontend/coverage
       - uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -213,7 +201,6 @@ jobs:
             -Dsonar.projectKey=IVISS
             -Dsonar.projectBaseDir=frontend
             -Dsonar.sources=src
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.qualitygate.wait=true
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
