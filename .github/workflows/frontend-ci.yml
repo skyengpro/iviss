@@ -176,7 +176,7 @@ jobs:
           path: frontend/src/openapi-rq
           key: ${{ github.sha }}
       - name: Unit tests
-        run: npm run coverage
+        run: npm run coverage -- --reporter=verbose
         working-directory: frontend
       - name: Upload coverage Report
         uses: actions/upload-artifact@v4
