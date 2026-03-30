@@ -81,13 +81,6 @@ jobs:
       - name: Generate coverage report
         run: cargo llvm-cov --nextest --html --output-dir target/coverage/html --fail-under-lines 60
         working-directory: iviss-backend
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: coverage-report
-          path: iviss-backend/target/coverage/html/
-          retention-days: 7
   backend_fmt:
     name: Backend Format
     runs-on: arc-runner-set
