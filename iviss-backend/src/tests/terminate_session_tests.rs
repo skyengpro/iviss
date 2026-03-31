@@ -78,7 +78,6 @@ async fn setup_test_app() -> (
         server_host: "127.0.0.1".into(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
-        jwt_secret: "dummy_testing_value_long_enough_to_pass_validation".into(),
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,

@@ -86,7 +86,6 @@ async fn setup_admin_login_test() -> (
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
-        jwt_secret: "secret_longer_than_32_characters_for_test".to_string(),
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,

@@ -1,7 +1,7 @@
+use crate::dto::common::SubmissionLocation;
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use crate::dto::common::SubmissionLocation;
 
 pub async fn create_pending_submission(
     pool: &PgPool,

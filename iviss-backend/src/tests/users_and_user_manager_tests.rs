@@ -127,7 +127,6 @@ async fn setup_test_app() -> (
         server_host: "0.0.0.0".to_string(),
         server_port: 8080,
         log_level: LogLevel::Info,
-        jwt_secret: "test_secret".to_string(),
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: Environment::Local,

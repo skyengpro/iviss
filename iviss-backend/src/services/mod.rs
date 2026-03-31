@@ -1,5 +1,3 @@
-#[cfg(not(test))]
-pub mod activation_service;
 pub mod jwt_service;
 pub mod ocr_service;
 pub mod otp_service;
