@@ -72,14 +72,13 @@ impl LogLevel {
 
 /// Application configuration
 #[derive(Clone, Debug)]
-// jwt_secret and helper methods will be used in future JWT implementation
+// jwt and helper methods will be used in future JWT implementation
 pub struct Config {
     pub database_url: String,
     pub redis_url: String,
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
-    pub jwt_secret: String,
     pub jwt_private_key_pem: String,
     pub jwt_public_key_pem: String,
     pub environment: Environment,
@@ -115,22 +114,8 @@ impl Config {
         if redis_url.trim().is_empty() {
             return Err(anyhow!("REDIS_URL cannot be empty"));
         }
+
         // Load and validate JWT_PRIVATE_KEY_PEM (critical)
-        let jwt_secret =
-            env::var("JWT_PRIVATE_KEY_PEM").context("JWT_PRIVATE_KEY_PEM must be set")?;
-
-        if jwt_secret.trim().is_empty() {
-            return Err(anyhow!("JWT_PRIVATE_KEY_PEM cannot be empty"));
-        }
-
-        // Enforce minimum length for JWT_PRIVATE_KEY_PEM for security
-        if jwt_secret.len() < 32 {
-            return Err(anyhow!(
-                "JWT_PRIVATE_KEY_PEM must be at least 32 characters long for security. Current length: {}",
-                jwt_secret.len()
-            ));
-        }
-
         let jwt_private_key_pem = env::var("JWT_PRIVATE_KEY_PEM")
             .context("JWT_PRIVATE_KEY_PEM must be set")?
             .replace("\\n", "\n");
@@ -217,7 +202,6 @@ impl Config {
             server_host,
             server_port,
             log_level,
-            jwt_secret,
             jwt_private_key_pem,
             jwt_public_key_pem,
             environment,
@@ -323,7 +307,6 @@ mod tests {
             server_host: "0.0.0.0".into(),
             server_port: 3000,
             log_level: LogLevel::Info,
-            jwt_secret: "secret_longer_than_32_characters_for_test".into(),
             jwt_private_key_pem: "priv".into(),
             jwt_public_key_pem: "pub".into(),
             environment: Environment::Local,
