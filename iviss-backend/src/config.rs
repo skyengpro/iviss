@@ -72,7 +72,7 @@ impl LogLevel {
 
 /// Application configuration
 #[derive(Clone, Debug)]
-#[allow(dead_code)] // jwt_secret and helper methods will be used in future JWT implementation
+// jwt_secret and helper methods will be used in future JWT implementation
 pub struct Config {
     pub database_url: String,
     pub redis_url: String,

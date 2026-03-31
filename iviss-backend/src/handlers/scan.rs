@@ -1,7 +1,5 @@
 use axum::{extract::Multipart, http::StatusCode, response::IntoResponse, Json};
 
-#[allow(unused_imports)]
-use crate::dto::scan::ImageUploadRequest;
 use crate::dto::scan::{ScanErrorData, ScanPlateResponse, ScanResultData};
 use crate::services::ocr_service;
 
@@ -23,7 +21,7 @@ const OCR_TIMEOUT_MS: u64 = 9000;
     tag = "scanning",
     operation_id = "scanPlate",
     request_body(
-        content = ImageUploadRequest,
+        content = crate::dto::scan::ImageUploadRequest,
         content_type = "multipart/form-data"
     ),
     responses(
