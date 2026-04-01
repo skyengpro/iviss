@@ -21,6 +21,7 @@ async fn setup_test_infrastructure() -> (
     testcontainers::ContainerAsync<Redis>,
 ) {
     let pg = Postgres::default()
+        .with_host_auth()
         .start()
         .await
         .expect("Failed to start Postgres");
@@ -29,7 +30,7 @@ async fn setup_test_infrastructure() -> (
         .await
         .expect("Failed to get Postgres port");
     let db_url = format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        "postgres://postgres@127.0.0.1:{}/postgres",
         pg_port
     );
 

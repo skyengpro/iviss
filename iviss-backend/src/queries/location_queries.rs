@@ -38,10 +38,10 @@ mod tests {
     use testcontainers_modules::{postgres::Postgres, testcontainers::runners::AsyncRunner};
 
     async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres>) {
-        let postgres = Postgres::default().start().await.unwrap();
+        let postgres = Postgres::default().with_host_auth().start().await.unwrap();
         let pg_host = postgres.get_host().await.unwrap();
         let pg_port = postgres.get_host_port_ipv4(5432).await.unwrap();
-        let db_url = format!("postgres://postgres:postgres@{pg_host}:{pg_port}/postgres");
+        let db_url = format!("postgres://postgres@{pg_host}:{pg_port}/postgres");
 
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(5)
