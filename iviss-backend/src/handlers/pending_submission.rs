@@ -9,6 +9,9 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[allow(unused_imports)]
+use crate::dto::pending_submission::DataEntryResponse;
+
 #[utoipa::path(
     post,
     path = "/api/v1/vehicles/pending",
@@ -70,7 +73,7 @@ pub async fn submit_vehicle(
     operation_id = "submitVehicleV1",
     request_body = CreatePendingSubmissionRequest,
     responses(
-        (status = 202, description = "Submission accepted for review", body = pending_submission::DataEntryResponse),
+        (status = 202, description = "Submission accepted for review", body = DataEntryResponse),
         (status = 400, description = "Invalid request",        body = AppErrorResponse,
              example = json!({ "code": "INVALID_REQUEST", "message": "Missing required field 'plate'" })),
          (status = 401, description = "Unauthorized",          body = AppErrorResponse,
