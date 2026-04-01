@@ -32,10 +32,10 @@ async fn setup_test_app() -> (
     testcontainers::ContainerAsync<Postgres>,
     testcontainers::ContainerAsync<Redis>,
 ) {
-    let pg = Postgres::default().start().await.unwrap();
+    let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
     let db_url = format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        "postgres://postgres@127.0.0.1:{}/postgres",
         pg_port
     );
 

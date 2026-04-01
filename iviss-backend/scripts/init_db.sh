@@ -20,7 +20,11 @@ fi
 
 if [ -z "${DATABASE_URL:-}" ]; then
     POSTGRES_USER_VALUE="${POSTGRES_USER:-iviss_user}"
-    POSTGRES_PASSWORD_VALUE="${POSTGRES_PASSWORD:-iviss_password}"
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+        echo "POSTGRES_PASSWORD must be set in .env before running init_db.sh" >&2
+        exit 1
+    fi
+    POSTGRES_PASSWORD_VALUE="${POSTGRES_PASSWORD}"
     POSTGRES_DB_VALUE="${POSTGRES_DB:-iviss_db}"
     DATABASE_URL="postgres://${POSTGRES_USER_VALUE}:${POSTGRES_PASSWORD_VALUE}@localhost:5435/${POSTGRES_DB_VALUE}"
     export DATABASE_URL
@@ -47,5 +51,4 @@ sqlx migrate run
 
 echo "setup complete!"
 echo "You can visualize the database at http://localhost:8081"
-echo "Login: System=PostgreSQL, Server=db, Username=postgres, Password=postgres, Database=iviss_dev"
-
+echo "Login: System=PostgreSQL, Server=db, Username=${POSTGRES_USER:-iviss_user}, Password=<your local POSTGRES_PASSWORD>, Database=${POSTGRES_DB:-iviss_db}"

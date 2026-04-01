@@ -91,10 +91,10 @@ async fn setup_test_app() -> (
     testcontainers::ContainerAsync<Redis>,
 ) {
     // Start PostgreSQL container
-    let postgres = Postgres::default().start().await.unwrap();
+    let postgres = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_host = postgres.get_host().await.unwrap();
     let pg_port = postgres.get_host_port_ipv4(5432).await.unwrap();
-    let db_url = format!("postgres://postgres:postgres@{pg_host}:{pg_port}/postgres");
+    let db_url = format!("postgres://postgres@{pg_host}:{pg_port}/postgres");
 
     // Start Redis container
     let redis = Redis::default().start().await.unwrap();
