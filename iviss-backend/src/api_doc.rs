@@ -4,6 +4,7 @@ use utoipa::{
 };
 
 use crate::dto::{
+    audit::{AuditAction, AuditLogEntry, AuditLogListResponse},
     auth::*,
     common::*,
     create_control::*,
@@ -104,6 +105,8 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::list_organizations,
         crate::handlers::user_management::terminate_session,
         crate::handlers::user_management::restart_session,
+        crate::handlers::audit_log::list_audit_logs,
+        crate::handlers::audit_log::export_audit_logs,
     ),
 
     components(
@@ -188,6 +191,10 @@ impl Modify for SecurityAddon {
             OrganizationType,
             // crate::handlers::device_management::DeviceActionResponse,
             DeviceStatus,
+            // ── audit ──
+            AuditAction,
+            AuditLogEntry,
+            AuditLogListResponse,
         )
     ),
     modifiers(&SecurityAddon),

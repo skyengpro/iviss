@@ -90,6 +90,14 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/admin/stats",
             get(crate::handlers::stats::get_dashboard_stats),
         )
+        .route(
+            "/api/v1/admin/audit-logs",
+            get(crate::handlers::audit_log::list_audit_logs),
+        )
+        .route(
+            "/api/v1/admin/audit-logs/export",
+            get(crate::handlers::audit_log::export_audit_logs),
+        )
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 

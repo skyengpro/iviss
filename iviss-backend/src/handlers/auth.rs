@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
 
+use crate::dto::audit::AuditAction;
 use crate::dto::auth::{
     ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
     RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
@@ -9,8 +10,11 @@ use base64::Engine;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
+use crate::queries::audit_log_queries::insert_audit_log;
 use crate::queries::auth_queries;
-use axum::extract::State;
+use crate::utils::ip::extract_client_ip_with_peer;
+use axum::extract::{ConnectInfo, State};
+use axum::http::HeaderMap;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
@@ -49,15 +53,35 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
 )]
 pub async fn login(
     State(state): State<Arc<AppState>>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let client_ip = extract_client_ip_with_peer(&headers, Some(peer));
+
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
         return Err(AppError::bad_request("Email and password are required"));
     }
 
-    let user = auth_queries::find_admin_by_email(&state.db, &payload.email)
-        .await?
-        .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
+    let user = match auth_queries::find_admin_by_email(&state.db, &payload.email).await? {
+        Some(u) => u,
+        None => {
+            // Log failed login — unknown user
+            let _ = insert_audit_log(
+                &state.db,
+                None,
+                AuditAction::LoginFailed,
+                client_ip.as_deref(),
+                None,
+                None,
+                Some(serde_json::json!({ "email": payload.email, "reason": "user_not_found" })),
+                None,
+                None,
+            )
+            .await;
+            return Err(AppError::unauthorized("Invalid credentials"));
+        }
+    };
 
     if user.status != UserStatus::Active {
         tracing::warn!(
@@ -65,6 +89,18 @@ pub async fn login(
             status = %user.status.as_str(),
             "login: rejected — account not active"
         );
+        let _ = insert_audit_log(
+            &state.db,
+            Some(user.id),
+            AuditAction::LoginFailed,
+            client_ip.as_deref(),
+            Some("user"),
+            Some(user.id),
+            Some(serde_json::json!({ "reason": "account_not_active", "status": user.status.as_str() })),
+            None,
+            None,
+        )
+        .await;
         return Err(AppError::unauthorized("Account is not active"));
     }
 
@@ -77,6 +113,18 @@ pub async fn login(
 
     if !matches {
         tracing::warn!(email = %payload.email, "login: rejected — wrong password");
+        let _ = insert_audit_log(
+            &state.db,
+            Some(user.id),
+            AuditAction::LoginFailed,
+            client_ip.as_deref(),
+            Some("user"),
+            Some(user.id),
+            Some(serde_json::json!({ "reason": "invalid_password" })),
+            None,
+            None,
+        )
+        .await;
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -147,6 +195,20 @@ pub async fn login(
         last_revoked_at: None,
         is_active: true,
     };
+
+    // Audit log — successful login
+    let _ = insert_audit_log(
+        &state.db,
+        Some(user.id),
+        AuditAction::LoginSuccess,
+        client_ip.as_deref(),
+        Some("user"),
+        Some(user.id),
+        Some(serde_json::json!({ "role": user.role.as_str() })),
+        None,
+        None,
+    )
+    .await;
 
     tracing::info!(
         user_id = %user.id,

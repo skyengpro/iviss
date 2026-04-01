@@ -1,20 +1,24 @@
 use crate::app_state::AppState;
+use crate::dto::audit::AuditAction;
 use crate::dto::users::{
     ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, RestartSessionRequest,
     RestartSessionResponse, TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest,
 };
 use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
+use crate::middleware::rbac::AuthenticatedAdmin;
+use crate::queries::audit_log_queries::insert_audit_log;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
 use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
+use crate::utils::ip::extract_client_ip_with_peer;
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
+    extract::{ConnectInfo, Path, State},
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use sqlx::Row;
 use std::sync::Arc;
@@ -38,6 +42,9 @@ use uuid::Uuid;
 )]
 pub async fn provision_user(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Json(payload): Json<ProvisionUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let user = create_user(&state.db, payload).await?;
@@ -55,6 +62,21 @@ pub async fn provision_user(
             });
         }
     }
+
+    // Audit log
+    let after_snapshot = serde_json::to_value(&user).ok();
+    let _ = insert_audit_log(
+        &state.db,
+        Some(admin.user_id),
+        AuditAction::UserCreated,
+        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        Some("user"),
+        Some(user.id),
+        None,
+        None,
+        after_snapshot,
+    )
+    .await;
 
     tracing::info!("User created successfully: {}", user.id);
 
@@ -125,10 +147,33 @@ pub async fn get_user(
 )]
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    // Capture before state
+    let before_user = get_user_by_id(&state.db, id).await?;
+    let before_snapshot = serde_json::to_value(&before_user).ok();
+
     let user = update_user_query(&state.db, id, payload).await?;
+
+    // Audit log with before/after
+    let after_snapshot = serde_json::to_value(&user).ok();
+    let _ = insert_audit_log(
+        &state.db,
+        Some(admin.user_id),
+        AuditAction::UserUpdated,
+        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        Some("user"),
+        Some(id),
+        None,
+        before_snapshot,
+        after_snapshot,
+    )
+    .await;
+
     Ok((StatusCode::OK, Json(user)))
 }
 
@@ -151,9 +196,31 @@ pub async fn update_user(
 )]
 pub async fn delete_user(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
+    // Capture before state
+    let before_user = get_user_by_id(&state.db, id).await?;
+    let before_snapshot = serde_json::to_value(&before_user).ok();
+
     hard_delete_user(&state.db, id).await?;
+
+    // Audit log
+    let _ = insert_audit_log(
+        &state.db,
+        Some(admin.user_id),
+        AuditAction::UserDeleted,
+        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        Some("user"),
+        Some(id),
+        None,
+        before_snapshot,
+        None,
+    )
+    .await;
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -198,6 +265,9 @@ pub async fn list_organizations(
 )]
 pub async fn terminate_session(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Json(payload): Json<TerminateSessionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Verify target user exists and is an agent
@@ -209,7 +279,27 @@ pub async fn terminate_session(
         ));
     }
 
+    let before_snapshot = serde_json::to_value(&user).ok();
+
     crate::queries::session_queries::terminate_user_sessions(&state.db, payload.user_id).await?;
+
+    // Capture after state
+    let after_user = get_user_by_id(&state.db, payload.user_id).await.ok();
+    let after_snapshot = after_user.and_then(|u| serde_json::to_value(&u).ok());
+
+    // Audit log
+    let _ = insert_audit_log(
+        &state.db,
+        Some(admin.user_id),
+        AuditAction::SessionTerminated,
+        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        Some("user"),
+        Some(payload.user_id),
+        None,
+        before_snapshot,
+        after_snapshot,
+    )
+    .await;
 
     Ok((
         StatusCode::OK,
@@ -235,6 +325,9 @@ pub async fn terminate_session(
 )]
 pub async fn restart_session(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Json(payload): Json<RestartSessionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Verify target user exists and is an agent
@@ -246,6 +339,8 @@ pub async fn restart_session(
         ));
     }
 
+    let before_snapshot = serde_json::to_value(&user).ok();
+
     // Refresh the device status and shift_end (default to 8 hours for restart)
     crate::queries::session_queries::restart_user_session(
         &state.db,
@@ -253,6 +348,24 @@ pub async fn restart_session(
         std::time::Duration::from_secs(8 * 3600),
     )
     .await?;
+
+    // Capture after state
+    let after_user = get_user_by_id(&state.db, payload.user_id).await.ok();
+    let after_snapshot = after_user.and_then(|u| serde_json::to_value(&u).ok());
+
+    // Audit log
+    let _ = insert_audit_log(
+        &state.db,
+        Some(admin.user_id),
+        AuditAction::SessionRestarted,
+        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        Some("user"),
+        Some(payload.user_id),
+        None,
+        before_snapshot,
+        after_snapshot,
+    )
+    .await;
 
     Ok((
         StatusCode::OK,
@@ -277,6 +390,9 @@ pub async fn restart_session(
 )]
 pub async fn resend_activation_code(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: HeaderMap,
     Json(payload): Json<ResendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
@@ -322,6 +438,20 @@ pub async fn resend_activation_code(
 
     // Generate, store and send the activation code via SMS
     otp_svc.request_otp(&user_id, &phone_number).await?;
+
+    // Audit log
+    let _ = insert_audit_log(
+        &state.db,
+        Some(admin.user_id),
+        AuditAction::ActivationCodeResent,
+        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        Some("user"),
+        Some(user_id),
+        Some(serde_json::json!({ "phone_number": phone_number })),
+        None,
+        None,
+    )
+    .await;
 
     Ok((
         StatusCode::CREATED,

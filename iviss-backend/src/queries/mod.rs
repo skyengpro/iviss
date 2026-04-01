@@ -1,3 +1,4 @@
+pub mod audit_log_queries;
 pub mod auth_queries;
 pub mod control_queries;
 pub mod location_queries;

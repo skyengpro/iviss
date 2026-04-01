@@ -1,3 +1,4 @@
+pub mod audit_log;
 pub mod auth;
 #[cfg(not(test))]
 pub mod device_management;
