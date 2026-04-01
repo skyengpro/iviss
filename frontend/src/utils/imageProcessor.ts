@@ -217,7 +217,7 @@ export class ImageProcessor {
    */
   static validateCameroonPlate(text: string): string | null {
     // Remove all whitespace and special characters except letters and numbers
-    const cleaned = text.replace(/[^A-Z0-9]/g, '');
+    const cleaned = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     // Cameroon plate format: 2 letters + 3 digits + 2 letters
     const regex = /^([A-Z]{2})(\d{3})([A-Z]{2})$/;
