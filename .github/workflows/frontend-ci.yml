@@ -31,9 +31,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-v1-
+            ${{ runner.os }}-node-v2-
 
   openapi_codegen:
     name: OpenAPI Codegen
