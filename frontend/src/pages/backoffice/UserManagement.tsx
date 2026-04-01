@@ -290,7 +290,7 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>{t('backOfficeUserManagement.editUser')}</DialogTitle>
                 <DialogDescription>
-                  Update the professional details and access level for this user.
+                  {t('backOfficeUserManagement.editUserDescription')}
                 </DialogDescription>
               </DialogHeader>
               {selectedUser && (
@@ -534,7 +534,7 @@ export default function UserManagement() {
                             Active
                           </StatusBadge>
                         ) : user.sessionStatus === 'REVOKED' ? (
-                          <StatusBadge variant="destructive" size="sm">
+                          <StatusBadge variant="critical" size="sm">
                             Terminated
                           </StatusBadge>
                         ) : (
@@ -591,7 +591,7 @@ export default function UserManagement() {
                               disabled={user.role !== 'agent' || user.sessionStatus !== 'ACTIVE'}
                             >
                               <PowerOff className="mr-2 h-4 w-4" />
-                              Terminate Session
+                              {t('backOfficeUserManagement.terminateSession')}
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
@@ -626,7 +626,7 @@ export default function UserManagement() {
                               ) : (
                                 <RefreshCw className="mr-2 h-4 w-4" />
                               )}
-                              Resend activation code
+                              {t('backOfficeUserManagement.resendActivationCode')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
