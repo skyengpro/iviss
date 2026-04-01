@@ -12,6 +12,11 @@ DELETE FROM control_records WHERE id IN (
     'a290f1ee-6c54-4b01-90e6-d701748f0860',
     'a390f1ee-6c54-4b01-90e6-d701748f0861'
 );
+DELETE FROM organizations WHERE id IN (
+    '04960f91-57cb-4f23-b308-721998e7373c',
+    '17b7eb7c-78a4-43b3-8123-8c3772bff021',
+    'be5e79c0-28fc-484e-b66a-435b1c53ee4f'
+);
 
 DELETE FROM vehicle_owners WHERE vehicle_id IN (
     '0190f1ee-6c54-4b01-90e6-d701748f0854',
@@ -57,6 +62,13 @@ VALUES (
     'police',
     'Capital Region'
 ) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO organizations (id, name, type, region)
+VALUES 
+('04960f91-57cb-4f23-b308-721998e7373c', 'Police Nationale', 'police', 'National'),
+('17b7eb7c-78a4-43b3-8123-8c3772bff021', 'Gendarmerie', 'police', 'National'),
+('be5e79c0-28fc-484e-b66a-435b1c53ee4f', 'Douanes', 'customs', 'Border')
+ON CONFLICT (id) DO NOTHING;
 
 -- 2. Insert Users (updated for new schema with phone_number, status, and nullable email/password_hash)
 INSERT INTO users (id, organization_id, username, email, password_hash, role, badge_id, full_name, phone_number, status)
