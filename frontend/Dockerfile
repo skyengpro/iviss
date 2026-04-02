@@ -6,7 +6,7 @@ COPY openapi.json ./
 
 # Dependencies stage
 FROM base AS deps
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Development stage
 FROM base AS dev
