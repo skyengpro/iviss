@@ -1,7 +1,5 @@
 use crate::app_state::AppState;
-use crate::dto::pending_submission::{
-    DataEntryResponse, SubmissionListQuery,
-};
+use crate::dto::pending_submission::{DataEntryResponse, SubmissionListQuery};
 use crate::errors::AppError;
 use axum::{
     extract::{Json, Path, Query, State},
