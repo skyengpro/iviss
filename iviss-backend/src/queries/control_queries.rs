@@ -214,7 +214,7 @@ pub async fn get_control_records(
             agent_id: row.get("agent_id"),
             organization_id: row.get("organization_id"),
             timestamp: row
-                .get::<time::PrimitiveDateTime, _>("timestamp")
+                .get::<time::OffsetDateTime, _>("timestamp")
                 .to_string(), // Simplified date handling
             status,
             identification_mode,
@@ -419,7 +419,7 @@ pub async fn get_paged_control_records(
             agent_id: row.get("agent_id"),
             organization_id: row.get("organization_id"),
             timestamp: row
-                .get::<time::PrimitiveDateTime, _>("timestamp")
+                .get::<time::OffsetDateTime, _>("timestamp")
                 .to_string(),
             status,
             identification_mode,
@@ -493,7 +493,7 @@ async fn get_actions_for_control(
             action_type,
             description: row.get("description"),
             timestamp: row
-                .get::<time::PrimitiveDateTime, _>("timestamp")
+                .get::<time::OffsetDateTime, _>("timestamp")
                 .to_string(),
         });
     }
