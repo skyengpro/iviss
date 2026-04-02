@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -40,7 +40,7 @@ jobs:
 
   backend_test:
     name: Backend Test
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
 
   backend_coverage:
     name: Backend Code Coverage
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
           retention-days: 3
   backend_fmt:
     name: Backend Format
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -103,7 +103,7 @@ jobs:
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -118,7 +118,7 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -144,7 +144,7 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
