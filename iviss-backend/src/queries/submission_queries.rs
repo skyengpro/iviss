@@ -132,8 +132,7 @@ pub async fn get_submission_by_id(
     .ok_or_else(|| AppError::not_found("Submission not found"))?;
 
     let status_str: String = row.try_get("status").map_err(AppError::database)?;
-    let created_at: time::OffsetDateTime =
-        row.try_get("created_at").map_err(AppError::database)?;
+    let created_at: time::OffsetDateTime = row.try_get("created_at").map_err(AppError::database)?;
     let reviewed_at: Option<time::OffsetDateTime> = row.try_get("reviewed_at").ok();
     let vehicle_data_json: Option<serde_json::Value> = row.try_get("vehicle_data").ok();
 
@@ -152,8 +151,8 @@ pub async fn get_submission_by_id(
         }
     };
 
-    let vehicle_data: Option<VehicleDataEntry> = vehicle_data_json
-        .and_then(|v| serde_json::from_value(v).ok());
+    let vehicle_data: Option<VehicleDataEntry> =
+        vehicle_data_json.and_then(|v| serde_json::from_value(v).ok());
 
     Ok(PendingSubmissionDetail {
         id: row.try_get("id").map_err(AppError::database)?,
@@ -193,14 +192,13 @@ pub async fn approve_submission(
     let mut tx = pool.begin().await.map_err(AppError::database)?;
 
     // 1. Ensure the submission is still pending
-    let current_status: String = sqlx::query_scalar(
-        "SELECT status FROM pending_submissions WHERE id = $1 FOR UPDATE",
-    )
-    .bind(submission_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(AppError::database)?
-    .ok_or_else(|| AppError::not_found("Submission not found"))?;
+    let current_status: String =
+        sqlx::query_scalar("SELECT status FROM pending_submissions WHERE id = $1 FOR UPDATE")
+            .bind(submission_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(AppError::database)?
+            .ok_or_else(|| AppError::not_found("Submission not found"))?;
 
     if current_status != "pending" {
         return Err(AppError::bad_request(format!(
@@ -318,14 +316,13 @@ pub async fn reject_submission(
     let mut tx = pool.begin().await.map_err(AppError::database)?;
 
     // 1. Ensure the submission is still pending
-    let current_status: String = sqlx::query_scalar(
-        "SELECT status FROM pending_submissions WHERE id = $1 FOR UPDATE",
-    )
-    .bind(submission_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(AppError::database)?
-    .ok_or_else(|| AppError::not_found("Submission not found"))?;
+    let current_status: String =
+        sqlx::query_scalar("SELECT status FROM pending_submissions WHERE id = $1 FOR UPDATE")
+            .bind(submission_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(AppError::database)?
+            .ok_or_else(|| AppError::not_found("Submission not found"))?;
 
     if current_status != "pending" {
         return Err(AppError::bad_request(format!(

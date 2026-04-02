@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::dto::pending_submission::{
-    DataEntryResponse, SubmissionListQuery,
+    DataEntryResponse, ReviewSubmissionResponse, SubmissionListQuery,
 };
 use crate::errors::AppError;
 use axum::{
@@ -160,8 +160,6 @@ pub async fn get_pending_submission(
     Ok((StatusCode::OK, Json(submission)))
 }
 
-
-
 // ── Audit Log (admin) ─────────────────────────────────────────────────────────
 
 /// Get the audit trail for a submission
@@ -261,10 +259,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_submission_status_from_db_str() {
-        assert_eq!(SubmissionStatus::from_db_str("pending"), SubmissionStatus::Pending);
-        assert_eq!(SubmissionStatus::from_db_str("approved"), SubmissionStatus::Approved);
-        assert_eq!(SubmissionStatus::from_db_str("rejected"), SubmissionStatus::Rejected);
-        assert_eq!(SubmissionStatus::from_db_str("unknown"), SubmissionStatus::Pending);
+        assert_eq!(
+            SubmissionStatus::from_db_str("pending"),
+            SubmissionStatus::Pending
+        );
+        assert_eq!(
+            SubmissionStatus::from_db_str("approved"),
+            SubmissionStatus::Approved
+        );
+        assert_eq!(
+            SubmissionStatus::from_db_str("rejected"),
+            SubmissionStatus::Rejected
+        );
+        assert_eq!(
+            SubmissionStatus::from_db_str("unknown"),
+            SubmissionStatus::Pending
+        );
     }
 
     #[tokio::test]
