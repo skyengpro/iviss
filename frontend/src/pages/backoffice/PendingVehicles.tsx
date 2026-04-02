@@ -47,8 +47,6 @@ const statusVariantMap: Record<SubmissionStatus, 'pending' | 'valid' | 'critical
 
 // ── Vehicle data entry form defaults ────────────────────────────────────────
 
-
-
 // ── Main component ──────────────────────────────────────────────────────────
 
 export default function PendingVehicles() {
@@ -62,8 +60,6 @@ export default function PendingVehicles() {
   // Detail state
   const [selectedDetail, setSelectedDetail] = useState<PendingSubmissionDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-
-
 
   // Audit log
   const [auditLog, setAuditLog] = useState<SubmissionAuditLogEntry[]>([]);
@@ -120,8 +116,6 @@ export default function PendingVehicles() {
       console.error('Failed to load audit log:', error);
     }
   };
-
-
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -213,10 +207,7 @@ export default function PendingVehicles() {
                         <span className="font-mono font-bold tracking-wider text-sm">
                           {sub.plateNumber}
                         </span>
-                        <StatusBadge
-                          variant={statusVariantMap[sub.status]}
-                          size="sm"
-                        >
+                        <StatusBadge variant={statusVariantMap[sub.status]} size="sm">
                           {t(`pendingValidation.status_${sub.status}`)}
                         </StatusBadge>
                       </div>
@@ -257,10 +248,7 @@ export default function PendingVehicles() {
                       <FileText className="h-5 w-5 text-accent" />
                       {t('pendingValidation.reviewSubmission')}
                     </CardTitle>
-                    <StatusBadge
-                      variant={statusVariantMap[selectedDetail.status]}
-                      size="lg"
-                    >
+                    <StatusBadge variant={statusVariantMap[selectedDetail.status]} size="lg">
                       {t(`pendingValidation.status_${selectedDetail.status}`).toUpperCase()}
                     </StatusBadge>
                   </div>
@@ -353,7 +341,9 @@ export default function PendingVehicles() {
                         <p className="text-xs text-muted-foreground mt-2">
                           {t('pendingValidation.rejectedBy', {
                             name: selectedDetail.reviewerName,
-                            date: selectedDetail.reviewedAt ? formatDate(selectedDetail.reviewedAt) : '',
+                            date: selectedDetail.reviewedAt
+                              ? formatDate(selectedDetail.reviewedAt)
+                              : '',
                           })}
                         </p>
                       )}
@@ -369,7 +359,9 @@ export default function PendingVehicles() {
                       <p className="text-xs text-muted-foreground">
                         {t('pendingValidation.approvedBy', {
                           name: selectedDetail.reviewerName,
-                          date: selectedDetail.reviewedAt ? formatDate(selectedDetail.reviewedAt) : '',
+                          date: selectedDetail.reviewedAt
+                            ? formatDate(selectedDetail.reviewedAt)
+                            : '',
                         })}
                       </p>
                     </div>
@@ -387,12 +379,8 @@ export default function PendingVehicles() {
                       {t('pendingValidation.viewAuditLog')}
                     </Button>
                   )}
-
-
                 </CardContent>
               </Card>
-
-
 
               {/* ── Audit Log ──────────────────────────────────── */}
               {showAuditLog && auditLog.length > 0 && (
@@ -436,7 +424,8 @@ export default function PendingVehicles() {
                               {t(`pendingValidation.auditAction_${entry.action}`)}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {entry.performerName ?? entry.performedBy} • {formatDate(entry.createdAt)}
+                              {entry.performerName ?? entry.performedBy} •{' '}
+                              {formatDate(entry.createdAt)}
                             </p>
                             {entry.reason && (
                               <p className="text-xs text-muted-foreground mt-1 italic">
@@ -528,16 +517,10 @@ function ImageCard({
             >
               <X className="h-6 w-6" />
             </button>
-            <img
-              src={url}
-              alt={label}
-              className="max-h-[80vh] rounded-lg shadow-2xl"
-            />
+            <img src={url} alt={label} className="max-h-[80vh] rounded-lg shadow-2xl" />
           </div>
         </div>
       )}
     </>
   );
 }
-
-
