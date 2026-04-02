@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::dto::pending_submission::{
-    DataEntryResponse, ReviewSubmissionResponse, SubmissionListQuery,
+    DataEntryResponse, SubmissionListQuery,
 };
 use crate::errors::AppError;
 use axum::{
@@ -189,7 +189,9 @@ pub async fn get_submission_audit_log(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dto::pending_submission::{CreatePendingSubmissionRequest, SubmissionStatus};
+    use crate::dto::pending_submission::{
+        CreatePendingSubmissionRequest, ReviewSubmissionResponse, SubmissionStatus,
+    };
 
     fn create_test_submission_request() -> CreatePendingSubmissionRequest {
         CreatePendingSubmissionRequest {
