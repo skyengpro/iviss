@@ -49,8 +49,6 @@ export interface PendingSubmissionDetail {
   vehicleData: VehicleDataEntry | null;
 }
 
-
-
 export interface SubmissionAuditLogEntry {
   id: string;
   action: string;
@@ -74,9 +72,7 @@ export async function getSubmissions(
   return response.json();
 }
 
-export async function getSubmissionById(
-  id: string
-): Promise<PendingSubmissionDetail> {
+export async function getSubmissionById(id: string): Promise<PendingSubmissionDetail> {
   const response = await fetchWithAuth(`/api/v1/admin/submissions/${id}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch submission: ${response.status}`);
@@ -84,11 +80,7 @@ export async function getSubmissionById(
   return response.json();
 }
 
-
-
-export async function getSubmissionAuditLog(
-  id: string
-): Promise<SubmissionAuditLogEntry[]> {
+export async function getSubmissionAuditLog(id: string): Promise<SubmissionAuditLogEntry[]> {
   const response = await fetchWithAuth(`/api/v1/admin/submissions/${id}/audit`);
   if (!response.ok) {
     throw new Error(`Failed to fetch audit log: ${response.status}`);
