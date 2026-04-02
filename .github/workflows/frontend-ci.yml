@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Generate OpenAPI client
         run: npm run codegen
         working-directory: frontend
@@ -73,7 +73,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -97,7 +97,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -121,7 +121,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -145,7 +145,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -169,7 +169,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v1-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -213,4 +213,3 @@ jobs:
             -Dsonar.sources=src
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.qualitygate.wait=true
-
