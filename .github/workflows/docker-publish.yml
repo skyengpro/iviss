@@ -2,15 +2,15 @@ name: Docker
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   workflow_dispatch:
     inputs:
       confirm:
         description: 'Type "yes" to confirm starting the workflow'
         required: true
-        default: 'no'
+        default: "no"
 
 env:
   REGISTRY: ghcr.io

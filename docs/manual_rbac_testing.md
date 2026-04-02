@@ -86,7 +86,7 @@ curl -X POST http://localhost:3000/admin/users \
   }'
 ```
 
-*Note: Ensure the `organizationId` exists in your database.*
+_Note: Ensure the `organizationId` exists in your database._
 
 ### Step 2: Activate and Set Password (Manual)
 
@@ -101,7 +101,7 @@ docker exec iviss-db psql -U iviss_user -d iviss_db -c "UPDATE users SET status 
 
 Navigate to `http://localhost:8080/admin-login` and use the manager credentials.
 
-*Note: The "Admin login" button on the Daily Login page correctly redirects you to this screen.*
+_Note: The "Admin login" button on the Daily Login page correctly redirects you to this screen._
 
 Confirm the response (visible in network logs or after redirect) shows the user has the `"role": "manager"`.
 
@@ -117,11 +117,11 @@ Verify that the backend correctly protects admin-only endpoints.
 
 ### Test Cases
 
-| Scenario | Endpoint | Expected Result |
-| :--- | :--- | :--- |
-| Unauthenticated | `GET /admin/users` | `401 Unauthorized` |
-| Non-Admin User (Manager) | `GET /admin/users` | `403 Forbidden` |
-| Admin User | `GET /admin/users` | `200 OK` |
+| Scenario                 | Endpoint           | Expected Result    |
+| :----------------------- | :----------------- | :----------------- |
+| Unauthenticated          | `GET /admin/users` | `401 Unauthorized` |
+| Non-Admin User (Manager) | `GET /admin/users` | `403 Forbidden`    |
+| Admin User               | `GET /admin/users` | `200 OK`           |
 
 **Example Curl (Unauthorized)**
 
