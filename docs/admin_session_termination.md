@@ -8,7 +8,7 @@ This feature introduces remote session termination allowing administrators to fo
 
 ### 1.1 Generating RSA Keys
 
-You must have a matching 2048-bit RSA key pair for the backend to sign and verify JWTs correctly.
+You must have a matching 2048-bit RSA key pair for the backend to sign and verify JWTs correctly...
 
 Run the following commands in your terminal to generate them:
 
