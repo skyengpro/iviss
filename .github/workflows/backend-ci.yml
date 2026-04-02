@@ -77,7 +77,6 @@ jobs:
         with:
           name: coverage-report-backend
           path: iviss-backend/target/coverage/html/
-          retention-days: 3
 
   backend_fmt:
     name: Backend Format
