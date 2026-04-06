@@ -71,10 +71,7 @@ interface AuditLogListResponse {
 
 // ── Action Config ────────────────────────────────────────────────────────
 
-const ACTION_CONFIG: Record<
-  string,
-  { icon: React.ElementType; color: string; bg: string }
-> = {
+const ACTION_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   LOGIN_SUCCESS: {
     icon: LogIn,
     color: 'text-emerald-400',
@@ -378,9 +375,7 @@ export default function AuditLogs() {
             <div className="border-b border-border/60 px-6 py-5">
               <DialogHeader className="space-y-2">
                 <DialogTitle className="flex flex-wrap items-center gap-3">
-                  <span className="text-lg font-bold">
-                    {t('backOfficeAuditLogs.logDetail')}
-                  </span>
+                  <span className="text-lg font-bold">{t('backOfficeAuditLogs.logDetail')}</span>
                   {selectedLog && <ActionBadge action={selectedLog.action} />}
                 </DialogTitle>
                 <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -416,9 +411,7 @@ export default function AuditLogs() {
                       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         {t('backOfficeAuditLogs.resourceType')}
                       </p>
-                      <p className="mt-1 text-sm font-medium">
-                        {selectedLog.resourceType ?? '—'}
-                      </p>
+                      <p className="mt-1 text-sm font-medium">{selectedLog.resourceType ?? '—'}</p>
                     </div>
                     <div className="rounded-xl border border-border/50 bg-background/70 p-3">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -431,17 +424,16 @@ export default function AuditLogs() {
                   </div>
 
                   {/* Metadata */}
-                  {selectedLog.metadata &&
-                    Object.keys(selectedLog.metadata).length > 0 && (
-                      <div className="rounded-xl border border-border/50 bg-background/70 p-4">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          {t('backOfficeAuditLogs.metadata')}
-                        </p>
-                        <pre className="overflow-auto font-mono text-xs leading-relaxed text-foreground/80">
-                          {JSON.stringify(selectedLog.metadata, null, 2)}
-                        </pre>
-                      </div>
-                    )}
+                  {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
+                    <div className="rounded-xl border border-border/50 bg-background/70 p-4">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        {t('backOfficeAuditLogs.metadata')}
+                      </p>
+                      <pre className="overflow-auto font-mono text-xs leading-relaxed text-foreground/80">
+                        {JSON.stringify(selectedLog.metadata, null, 2)}
+                      </pre>
+                    </div>
+                  )}
 
                   {/* Before / After Snapshots */}
                   {(selectedLog.beforeSnapshot || selectedLog.afterSnapshot) && (
@@ -489,7 +481,10 @@ export default function AuditLogs() {
               </div>
 
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="h-10 w-[200px] rounded-xl text-sm" id="audit-action-filter">
+                <SelectTrigger
+                  className="h-10 w-[200px] rounded-xl text-sm"
+                  id="audit-action-filter"
+                >
                   <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
                   <SelectValue placeholder={t('backOfficeAuditLogs.actionType')} />
                 </SelectTrigger>
@@ -516,9 +511,7 @@ export default function AuditLogs() {
                   className="h-6 bg-transparent text-sm text-foreground outline-none"
                 />
                 <span className="text-sm text-muted-foreground">-</span>
-                <span className="text-xs text-muted-foreground">
-                  {t('backOfficeAuditLogs.to')}
-                </span>
+                <span className="text-xs text-muted-foreground">{t('backOfficeAuditLogs.to')}</span>
                 <input
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
