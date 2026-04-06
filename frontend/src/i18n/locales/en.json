@@ -405,6 +405,7 @@
     "allActions": "All Actions",
     "from": "From",
     "to": "To",
+    "userIdPlaceholder": "Filter by User UUID...",
     "clearFilters": "Clear",
     "exportCsv": "Export CSV",
     "showingLogs": "Showing {{count}} logs",

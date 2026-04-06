@@ -406,6 +406,7 @@
     "allActions": "Toutes les actions",
     "from": "Du",
     "to": "Au",
+    "userIdPlaceholder": "Filtrer par UUID Utilisateur...",
     "clearFilters": "Effacer",
     "exportCsv": "Exporter CSV",
     "showingLogs": "Affichage de {{count}} journaux",
