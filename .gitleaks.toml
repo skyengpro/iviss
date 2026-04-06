@@ -7,6 +7,7 @@ useDefault = true
 paths = [
   '''^\.env$''',
   '''^\.env\.example$''',
+  '''^\.env\.prod\.example$''',
   '''^iviss-backend/\.env$''',
   '''^iviss-backend/\.env\.example$''',
   '''^iviss-backend/src/tests/fixtures/test_private_key\.pem$''',
