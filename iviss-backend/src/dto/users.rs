@@ -36,12 +36,13 @@ pub struct RestartSessionResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq, Clone, Copy, sqlx::Type)]
-#[serde(rename_all = "lowercase")]
-#[sqlx(type_name = "user_role", rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
+#[sqlx(type_name = "user_role", rename_all = "snake_case")]
 pub enum UserRole {
     Admin,
     Agent,
     Manager,
+    OrgAdmin,
 }
 
 impl std::str::FromStr for UserRole {
@@ -52,6 +53,7 @@ impl std::str::FromStr for UserRole {
             "admin" => Ok(Self::Admin),
             "manager" => Ok(Self::Manager),
             "agent" => Ok(Self::Agent),
+            "org_admin" => Ok(Self::OrgAdmin),
             _ => Ok(Self::Agent),
         }
     }
@@ -62,6 +64,7 @@ impl UserRole {
             Self::Admin => "admin",
             Self::Manager => "manager",
             Self::Agent => "agent",
+            Self::OrgAdmin => "org_admin",
         }
     }
 }
@@ -191,6 +194,7 @@ mod tests {
         assert_eq!(UserRole::Admin.as_str(), "admin");
         assert_eq!(UserRole::Manager.as_str(), "manager");
         assert_eq!(UserRole::Agent.as_str(), "agent");
+        assert_eq!(UserRole::OrgAdmin.as_str(), "org_admin");
 
         use std::str::FromStr;
         assert!(matches!(
@@ -208,6 +212,10 @@ mod tests {
         assert!(matches!(
             UserRole::from_str("agent").unwrap(),
             UserRole::Agent
+        ));
+        assert!(matches!(
+            UserRole::from_str("org_admin").unwrap(),
+            UserRole::OrgAdmin
         ));
         assert!(matches!(
             UserRole::from_str("unknown").unwrap(),
