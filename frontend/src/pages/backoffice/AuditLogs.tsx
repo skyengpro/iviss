@@ -270,6 +270,7 @@ function JsonSnapshot({
 
 export default function AuditLogs() {
   const { t } = useTranslation();
+  const [userIdFilter, setUserIdFilter] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -280,15 +281,16 @@ export default function AuditLogs() {
 
   useEffect(() => {
     setPage(1);
-  }, [actionFilter, startDate, endDate]);
+  }, [userIdFilter, actionFilter, startDate, endDate]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['audit-logs', page, pageSize, actionFilter, startDate, endDate],
+    queryKey: ['audit-logs', page, pageSize, userIdFilter, actionFilter, startDate, endDate],
     queryFn: async (): Promise<AuditLogListResponse> => {
       const qs = new URLSearchParams();
       qs.set('page', String(page));
       qs.set('page_size', String(pageSize));
 
+      if (userIdFilter) qs.set('user_id', userIdFilter);
       if (actionFilter !== 'all') qs.set('action', actionFilter);
       if (startDate) qs.set('start_date', startDate);
       if (endDate) qs.set('end_date', endDate);
@@ -314,9 +316,10 @@ export default function AuditLogs() {
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(total, page * pageSize);
 
-  const isAnyFilterActive = actionFilter !== 'all' || startDate || endDate;
+  const isAnyFilterActive = userIdFilter || actionFilter !== 'all' || startDate || endDate;
 
   const clearFilters = () => {
+    setUserIdFilter('');
     setActionFilter('all');
     setStartDate('');
     setEndDate('');
@@ -325,6 +328,7 @@ export default function AuditLogs() {
 
   const handleExport = async () => {
     const qs = new URLSearchParams();
+    if (userIdFilter) qs.set('user_id', userIdFilter);
     if (actionFilter !== 'all') qs.set('action', actionFilter);
     if (startDate) qs.set('start_date', startDate);
     if (endDate) qs.set('end_date', endDate);
@@ -472,6 +476,18 @@ export default function AuditLogs() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder={t('backOfficeAuditLogs.userIdPlaceholder')}
+                  value={userIdFilter}
+                  onChange={(e) => setUserIdFilter(e.target.value)}
+                  className="h-10 w-[240px] rounded-xl border border-border/80 bg-background pl-9 pr-3 text-sm outline-none ring-primary/20 transition-all focus:border-primary focus:ring-4"
+                  id="audit-user-id-filter"
+                />
+              </div>
+
               <Select value={actionFilter} onValueChange={setActionFilter}>
                 <SelectTrigger className="h-10 w-[200px] rounded-xl text-sm" id="audit-action-filter">
                   <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
