@@ -31,6 +31,8 @@ export function BackOfficeSidebar() {
   const { collapsed, toggle } = useSidebar();
 
   const isAdmin = user?.role === 'admin';
+  const isOrgAdmin = user?.role === 'org_admin';
+  const hasAdminAccess = isAdmin || isOrgAdmin;
 
   const mainNavItems = [
     { href: '/backoffice', icon: LayoutDashboard, label: t('backOfficeSidebar.dashboard') },
@@ -54,18 +56,28 @@ export function BackOfficeSidebar() {
 
   const adminNavItems = [
     { href: '/backoffice/users', icon: Users, label: t('backOfficeSidebar.userManagement') },
-    {
-      href: '/backoffice/organizations',
-      icon: Building2,
-      label: t('backOfficeSidebar.organizations'),
-    },
-    { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
+    ...(isAdmin
+      ? [
+          {
+            href: '/backoffice/organizations',
+            icon: Building2,
+            label: t('backOfficeSidebar.organizations'),
+          },
+          { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
+        ]
+      : []),
     { href: '/backoffice/settings', icon: Settings, label: t('backOfficeSidebar.settings') },
   ];
 
   const handleLogout = async () => {
     await logout();
     navigate('/admin-login');
+  };
+
+  const getRoleLabel = () => {
+    if (isAdmin) return t('backOfficeSidebar.superAdmin');
+    if (isOrgAdmin) return t('backOfficeUserManagement.org_admin');
+    return user?.role || '';
   };
 
   return (
@@ -133,8 +145,8 @@ export function BackOfficeSidebar() {
             ))}
           </div>
 
-          {/* Admin section — only visible to admin users */}
-          {isAdmin && (
+          {/* Admin section — visible to Super Admin and Org Admin */}
+          {hasAdminAccess && (
             <div className="mt-4">
               {collapsed ? (
                 <div className="space-y-0.5">
@@ -199,13 +211,13 @@ export function BackOfficeSidebar() {
           ) : (
             <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent p-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-                AD
+                {user?.name?.substring(0, 2).toUpperCase() || 'AD'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{t('backOfficeSidebar.adminUser')}</p>
-                <p className="truncate text-[10px] text-sidebar-foreground/50">
-                  {t('backOfficeSidebar.superAdmin')}
+                <p className="truncate text-sm font-semibold">
+                  {user?.name || t('backOfficeSidebar.adminUser')}
                 </p>
+                <p className="truncate text-[10px] text-sidebar-foreground/50">{getRoleLabel()}</p>
               </div>
               <button
                 onClick={handleLogout}
