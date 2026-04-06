@@ -55,12 +55,9 @@ async fn setup_admin_login_test() -> (
     testcontainers::ContainerAsync<Postgres>,
     testcontainers::ContainerAsync<Redis>,
 ) {
-    let pg = Postgres::default().start().await.unwrap();
+    let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
-    let db_url = format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
-        pg_port
-    );
+    let db_url = format!("postgres://postgres@127.0.0.1:{}/postgres", pg_port);
 
     let db = PgPoolOptions::new()
         .max_connections(5)
@@ -86,7 +83,6 @@ async fn setup_admin_login_test() -> (
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
-        jwt_secret: "secret_longer_than_32_characters_for_test".to_string(),
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
