@@ -63,7 +63,14 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route(
             "/api/v1/admin/organizations",
-            get(crate::handlers::user_management::list_organizations),
+            get(crate::handlers::user_management::list_organizations)
+                .post(crate::handlers::organization_management::create_organization),
+        )
+        .route(
+            "/api/v1/admin/organizations/:id",
+            get(crate::handlers::organization_management::get_organization)
+                .put(crate::handlers::organization_management::update_organization)
+                .delete(crate::handlers::organization_management::delete_organization),
         )
         .route(
             "/api/v1/admin/terminate-session",
