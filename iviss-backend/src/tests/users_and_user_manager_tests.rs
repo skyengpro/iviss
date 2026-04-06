@@ -180,6 +180,7 @@ async fn create_test_user(db: &PgPool, org_id: Uuid, role: UserRole, status: Use
         UserRole::Admin => "admin",
         UserRole::Manager => "manager",
         UserRole::Agent => "agent",
+        UserRole::OrgAdmin => "org_admin",
     };
     let status_str = match status {
         UserStatus::Active => "ACTIVE",
