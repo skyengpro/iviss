@@ -5,6 +5,7 @@ use sqlx::Row;
 use uuid::Uuid;
 
 /// Insert a new audit log entry.
+#[allow(clippy::too_many_arguments)]
 pub async fn insert_audit_log(
     pool: &PgPool,
     user_id: Option<Uuid>,

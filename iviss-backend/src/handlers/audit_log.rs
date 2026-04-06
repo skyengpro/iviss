@@ -82,11 +82,17 @@ pub async fn export_audit_logs(
             "{},{},{},{},{},{},{},{},\"{}\",\"{}\"\n",
             entry.id,
             entry.created_at,
-            entry.user_id.map(|u: uuid::Uuid| u.to_string()).unwrap_or_default(),
+            entry
+                .user_id
+                .map(|u: uuid::Uuid| u.to_string())
+                .unwrap_or_default(),
             entry.user_name.as_deref().unwrap_or(""),
             entry.action.as_str(),
             entry.resource_type.as_deref().unwrap_or(""),
-            entry.resource_id.map(|u: uuid::Uuid| u.to_string()).unwrap_or_default(),
+            entry
+                .resource_id
+                .map(|u: uuid::Uuid| u.to_string())
+                .unwrap_or_default(),
             entry.ip_address.as_deref().unwrap_or(""),
             before,
             after,

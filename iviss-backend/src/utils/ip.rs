@@ -31,7 +31,10 @@ pub fn extract_client_ip(headers: &HeaderMap) -> Option<String> {
 }
 
 /// Extract client IP with a ConnectInfo<SocketAddr> fallback for direct connections.
-pub fn extract_client_ip_with_peer(headers: &HeaderMap, peer: Option<SocketAddr>) -> Option<String> {
+pub fn extract_client_ip_with_peer(
+    headers: &HeaderMap,
+    peer: Option<SocketAddr>,
+) -> Option<String> {
     extract_client_ip(headers).or_else(|| peer.map(|addr| addr.ip().to_string()))
 }
 
@@ -43,7 +46,10 @@ mod tests {
     #[test]
     fn test_extracts_from_x_forwarded_for() {
         let mut headers = HeaderMap::new();
-        headers.insert("x-forwarded-for", "192.168.1.100, 10.0.0.1".parse().unwrap());
+        headers.insert(
+            "x-forwarded-for",
+            "192.168.1.100, 10.0.0.1".parse().unwrap(),
+        );
         assert_eq!(extract_client_ip(&headers), Some("192.168.1.100".into()));
     }
 
