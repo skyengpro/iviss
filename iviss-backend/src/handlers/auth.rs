@@ -53,11 +53,11 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
 )]
 pub async fn login(
     State(state): State<Arc<AppState>>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let client_ip = extract_client_ip_with_peer(&headers, Some(peer));
+    let client_ip = extract_client_ip_with_peer(&headers, peer.map(|p| p.0));
 
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
         return Err(AppError::bad_request("Email and password are required"));

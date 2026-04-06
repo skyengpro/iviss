@@ -43,7 +43,7 @@ use uuid::Uuid;
 pub async fn provision_user(
     State(state): State<Arc<AppState>>,
     Extension(admin): Extension<AuthenticatedAdmin>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Json(payload): Json<ProvisionUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -69,7 +69,7 @@ pub async fn provision_user(
         &state.db,
         Some(admin.user_id),
         AuditAction::UserCreated,
-        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
         Some("user"),
         Some(user.id),
         None,
@@ -148,7 +148,7 @@ pub async fn get_user(
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
     Extension(admin): Extension<AuthenticatedAdmin>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateUserRequest>,
@@ -165,7 +165,7 @@ pub async fn update_user(
         &state.db,
         Some(admin.user_id),
         AuditAction::UserUpdated,
-        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
         Some("user"),
         Some(id),
         None,
@@ -197,7 +197,7 @@ pub async fn update_user(
 pub async fn delete_user(
     State(state): State<Arc<AppState>>,
     Extension(admin): Extension<AuthenticatedAdmin>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -212,7 +212,7 @@ pub async fn delete_user(
         &state.db,
         Some(admin.user_id),
         AuditAction::UserDeleted,
-        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
         Some("user"),
         Some(id),
         None,
@@ -266,7 +266,7 @@ pub async fn list_organizations(
 pub async fn terminate_session(
     State(state): State<Arc<AppState>>,
     Extension(admin): Extension<AuthenticatedAdmin>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Json(payload): Json<TerminateSessionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -292,7 +292,7 @@ pub async fn terminate_session(
         &state.db,
         Some(admin.user_id),
         AuditAction::SessionTerminated,
-        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
         Some("user"),
         Some(payload.user_id),
         None,
@@ -326,7 +326,7 @@ pub async fn terminate_session(
 pub async fn restart_session(
     State(state): State<Arc<AppState>>,
     Extension(admin): Extension<AuthenticatedAdmin>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Json(payload): Json<RestartSessionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -358,7 +358,7 @@ pub async fn restart_session(
         &state.db,
         Some(admin.user_id),
         AuditAction::SessionRestarted,
-        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
         Some("user"),
         Some(payload.user_id),
         None,
@@ -391,7 +391,7 @@ pub async fn restart_session(
 pub async fn resend_activation_code(
     State(state): State<Arc<AppState>>,
     Extension(admin): Extension<AuthenticatedAdmin>,
-    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
     headers: HeaderMap,
     Json(payload): Json<ResendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -444,7 +444,7 @@ pub async fn resend_activation_code(
         &state.db,
         Some(admin.user_id),
         AuditAction::ActivationCodeResent,
-        extract_client_ip_with_peer(&headers, Some(peer)).as_deref(),
+        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
         Some("user"),
         Some(user_id),
         Some(serde_json::json!({ "phone_number": phone_number })),

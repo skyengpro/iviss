@@ -200,3 +200,16 @@ impl Modify for SecurityAddon {
     modifiers(&SecurityAddon),
 )]
 pub struct ApiDoc;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn export_openapi() {
+        let openapi = ApiDoc::openapi();
+        println!("---BEGIN_OPENAPI---");
+        println!("{}", openapi.to_json().unwrap());
+        println!("---END_OPENAPI---");
+    }
+}
