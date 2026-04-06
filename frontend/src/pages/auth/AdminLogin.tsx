@@ -79,14 +79,14 @@ export default function AdminLogin() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="admin-email">Email</Label>
+                <Label htmlFor="admin-identity">Email or Username</Label>
                 <Input
-                  id="admin-email"
-                  type="email"
+                  id="admin-identity"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@iviss.gov"
-                  autoComplete="email"
+                  placeholder="admin@iviss.gov or org_admin"
+                  autoComplete="username"
                   autoFocus
                 />
               </div>
