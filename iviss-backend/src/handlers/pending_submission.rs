@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::dto::pending_submission::DataEntryResponse;
+use crate::dto::{common, pending_submission};
 use crate::errors::AppError;
 use axum::{
     extract::{Json, State},
@@ -8,6 +8,9 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+
+#[allow(unused_imports)]
+use crate::dto::pending_submission::DataEntryResponse;
 
 #[utoipa::path(
     post,
@@ -28,13 +31,18 @@ use uuid::Uuid;
 )]
 pub async fn submit_vehicle(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<super::super::dto::pending_submission::CreatePendingSubmissionRequest>,
+    Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // In a real app we'd decode base64 images and upload to S3/Cloud storage here
     // For now we assume the frontend sends URLs or we just store the strings as-is (stub behavior for images)
 
     let agent_id = resolve_agent_id(&state.db, payload.agent_id).await?;
 
+    let location = common::SubmissionLocation {
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        address: None, // address not in DTO yet, pass allowed None
+    };
     let submission_id = crate::queries::submission_queries::create_pending_submission(
         &state.db,
         agent_id,
@@ -42,16 +50,14 @@ pub async fn submit_vehicle(
         payload.front_image_url,
         payload.back_image_url,
         payload.notes,
-        payload.latitude,
-        payload.longitude,
-        None, // address not in DTO yet, pass allowed None
+        location,
     )
     .await?;
 
     // Location fields are now passed to the query
     // match (payload.latitude, payload.longitude) { ... }
 
-    let response = DataEntryResponse {
+    let response = pending_submission::DataEntryResponse {
         message: "Submission accepted for review".to_string(),
         submission_id,
         plate_number: payload.plate_number,
@@ -79,7 +85,7 @@ pub async fn submit_vehicle(
 )]
 pub async fn submit_vehicle_v1(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<super::super::dto::pending_submission::CreatePendingSubmissionRequest>,
+    Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     submit_vehicle(State(state), Json(payload)).await
 }
@@ -146,7 +152,7 @@ pub async fn get_pending_submission(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submission: crate::dto::pending_submission::PendingSubmissionRequest =
+    let submission: pending_submission::PendingSubmissionRequest =
         crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
     Ok((StatusCode::OK, Json(submission)))
 }
@@ -154,7 +160,7 @@ pub async fn get_pending_submission(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dto::pending_submission::{CreatePendingSubmissionRequest, SubmissionStatus};
+    use pending_submission::{CreatePendingSubmissionRequest, SubmissionStatus};
 
     // Mock test data
     fn create_test_submission_request() -> CreatePendingSubmissionRequest {
@@ -228,7 +234,7 @@ mod tests {
     async fn test_data_entry_response_structure() {
         // Test the response structure
         let submission_id = uuid::Uuid::new_v4();
-        let response = DataEntryResponse {
+        let response = pending_submission::DataEntryResponse {
             message: "Submission accepted for review".to_string(),
             submission_id,
             plate_number: "TEST123".to_string(),
