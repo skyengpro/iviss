@@ -203,7 +203,7 @@ jobs:
           path: frontend/coverage
           key: frontend-coverage-${{ github.sha }}
       - uses: SonarSource/sonarqube-scan-action@v6
-        env: 
+        env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
@@ -213,5 +213,3 @@ jobs:
             -Dsonar.sources=src
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.qualitygate.wait=true
-
-
