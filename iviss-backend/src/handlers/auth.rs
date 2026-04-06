@@ -55,7 +55,7 @@ pub async fn login(
         return Err(AppError::bad_request("Email and password are required"));
     }
 
-    let user = auth_queries::find_admin_by_email(&state.db, &payload.email)
+    let user = auth_queries::find_admin_by_identity(&state.db, &payload.email)
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
 
@@ -82,7 +82,7 @@ pub async fn login(
 
     //    Issue access token
     //    Admins have no device
-    if user.role != UserRole::Admin && user.role != UserRole::Manager {
+    if user.role != UserRole::Admin && user.role != UserRole::Manager && user.role != UserRole::OrgAdmin {
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
