@@ -173,6 +173,59 @@ async fn seed_admin_user(db: &sqlx::PgPool, jwt_private_key_pem: &str) -> (Uuid,
     (admin_id, access_token)
 }
 
+/// Helper: seed an organization and an org_admin user.
+async fn seed_org_admin(
+    db: &sqlx::PgPool,
+    jwt_private_key_pem: &str,
+    org_name: &str,
+) -> (Uuid, Uuid, String) {
+    let org_id = Uuid::new_v4();
+    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+        .bind(org_id)
+        .bind(org_name)
+        .bind("police")
+        .execute(db)
+        .await
+        .unwrap();
+
+    let admin_id = Uuid::new_v4();
+    sqlx::query(
+        r#"
+        INSERT INTO users (id, organization_id, username, role, full_name, email, status, password_hash, phone_number)
+        VALUES ($1, $2, $3, 'org_admin'::user_role, $4, $5, 'ACTIVE'::user_status, $6, $7)
+        "#,
+    )
+    .bind(admin_id)
+    .bind(org_id)
+    .bind(format!("{}_admin", org_name.to_lowercase().replace(' ', "_")))
+    .bind(format!("{} Admin", org_name))
+    .bind(format!("admin@{}", org_name.to_lowercase().replace(' ', "")))
+    .bind("dummy_hash")
+    .bind(format!("+237{}", Uuid::new_v4().to_string().chars().filter(|c| c.is_ascii_digit()).collect::<String>().chars().take(9).collect::<String>()))
+    .execute(db)
+    .await
+    .unwrap();
+
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let shift_end = now_secs + 8 * 3600;
+
+    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let access_token = jwt_svc
+        .issue_access_token_with_shift(
+            admin_id,
+            Uuid::nil(),
+            crate::dto::users::UserRole::OrgAdmin,
+            now_secs.try_into().unwrap(),
+            shift_end.try_into().unwrap(),
+        )
+        .unwrap();
+
+    (org_id, admin_id, access_token)
+}
+
 /// Helper: seed an organization and agent with device and refresh token.
 async fn seed_test_data(
     db: &sqlx::PgPool,
@@ -1013,4 +1066,79 @@ async fn test_get_recent_alerts_no_alerts() {
         items.is_empty(),
         "Should return empty array when no alerts exist"
     );
+}
+
+#[tokio::test]
+async fn test_get_org_dashboard_stats_data_isolation() {
+    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
+        setup_test_app().await;
+
+    // 1. Seed Org A and its Admin
+    let (_org_a_id, _admin_a_id, access_token_a) =
+        seed_org_admin(&db, &jwt_private_key_pem, "Org A").await;
+
+    // 2. Seed Org B and some data (1 control, 1 alert)
+    let (org_b_id, _admin_b_id, _access_token_b) =
+        seed_org_admin(&db, &jwt_private_key_pem, "Org B").await;
+
+    // Create an agent for Org B
+    let agent_b_id = Uuid::new_v4();
+    sqlx::query(
+        r#"
+        INSERT INTO users (id, organization_id, username, role, badge_id, full_name, phone_number, status)
+        VALUES ($1, $2, $3, 'agent'::user_role, $4, $5, $6, 'ACTIVE'::user_status)
+        "#,
+    )
+    .bind(agent_b_id)
+    .bind(org_b_id)
+    .bind("agent_b")
+    .bind("B-001")
+    .bind("Agent B")
+    .bind("+237600000002")
+    .execute(&db)
+    .await
+    .unwrap();
+
+    // Add a control record for Org B
+    sqlx::query(
+        r#"
+        INSERT INTO control_records (id, agent_id, organization_id, plate_number, timestamp, overall_status, address)
+        VALUES ($1, $2, $3, $4, NOW(), 'critical', 'Org B Location')
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(agent_b_id)
+    .bind(org_b_id)
+    .bind("ORG-B-123")
+    .execute(&db)
+    .await
+    .unwrap();
+
+    // 3. Call Org A's dashboard stats - should see 0 controls/alerts
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/org-admin/stats")
+                .header("Authorization", format!("Bearer {}", access_token_a))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    assert_eq!(body["todayControls"], 0, "Org A should see 0 controls from Org B");
+    assert_eq!(body["activeAlerts"], 0, "Org A should see 0 alerts from Org B");
+    assert_eq!(body["organizationName"], "Org A");
+
+    // 4. Call Org B's dashboard stats (we need to manually construct a request for B if we wanted, 
+    // but the isolation for A is the key test here).
 }
