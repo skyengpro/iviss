@@ -395,3 +395,4 @@ sequenceDiagram
 ## 9. Conclusion
 
 The IVISS authentication architecture ensures a frictionless but highly secure passwordless experience. By tightly coupling identities to physical hardware and enforcing daily operational verification, it establishes a high-trust environment suitable for critical government-scale mobile applications.
+ 
