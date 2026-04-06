@@ -25,6 +25,8 @@ const ControlDetail = lazy(() => import('../pages/backoffice/ControlDetail'));
 const UserManagement = lazy(() => import('../pages/backoffice/UserManagement'));
 const PendingVehicles = lazy(() => import('../pages/backoffice/PendingVehicles'));
 const BackOfficeReports = lazy(() => import('../pages/backoffice/BackOfficeReports'));
+const Dashboard = lazy(() => import('../pages/backoffice/Dashboard'));
+const OrgAdminDashboard = lazy(() => import('../pages/backoffice/OrgAdminDashboard'));
 
 export interface AppRoute {
   path: string;
@@ -86,34 +88,48 @@ export const mobileRoutes: AppRoute[] = [
 export const backOfficeRoutes: AppRoute[] = [
   {
     path: '/backoffice',
+    component: Dashboard,
+    allowedRoles: ['admin', 'manager', 'org_admin'],
+  },
+  {
+    path: '/backoffice/overall',
     component: BackOfficeDashboard,
-    allowedRoles: ['admin', 'manager', 'admin'],
+    allowedRoles: ['admin'],
+  },
+  {
+    path: '/backoffice/org',
+    component: OrgAdminDashboard,
+    allowedRoles: ['org_admin', 'admin'],
   },
   {
     path: '/backoffice/controls',
     component: ControlHistory,
-    allowedRoles: ['admin', 'manager', 'admin'],
+    allowedRoles: ['admin', 'manager', 'org_admin'],
   },
   {
     path: '/backoffice/controls/:controlId',
     component: ControlDetail,
-    allowedRoles: ['admin', 'manager', 'admin'],
+    allowedRoles: ['admin', 'manager', 'org_admin'],
   },
-  { path: '/backoffice/users', component: UserManagement, allowedRoles: ['admin'] },
-  { path: '/backoffice/validation', component: PendingVehicles, allowedRoles: ['admin'] },
+  { path: '/backoffice/users', component: UserManagement, allowedRoles: ['admin', 'org_admin'] },
+  {
+    path: '/backoffice/validation',
+    component: PendingVehicles,
+    allowedRoles: ['admin', 'org_admin'],
+  },
   {
     path: '/backoffice/reports',
     component: BackOfficeReports,
-    allowedRoles: ['admin', 'manager', 'admin'],
+    allowedRoles: ['admin', 'manager', 'org_admin'],
   },
-  { path: '/backoffice/vehicles', component: BackOfficeDashboard, allowedRoles: ['admin'] },
+  { path: '/backoffice/vehicles', component: Dashboard, allowedRoles: ['admin', 'org_admin'] },
   {
     path: '/backoffice/organizations',
-    component: BackOfficeDashboard,
+    component: Dashboard,
     allowedRoles: ['admin'],
   },
-  { path: '/backoffice/audit', component: BackOfficeDashboard, allowedRoles: ['admin'] },
-  { path: '/backoffice/settings', component: BackOfficeDashboard, allowedRoles: ['admin'] },
+  { path: '/backoffice/audit', component: Dashboard, allowedRoles: ['admin'] },
+  { path: '/backoffice/settings', component: Dashboard, allowedRoles: ['admin', 'org_admin'] },
 ];
 
 export const catchAllRoute = { path: '*', component: NotFound };
