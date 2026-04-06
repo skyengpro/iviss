@@ -115,7 +115,6 @@ mod tests {
             server_host: "0.0.0.0".to_string(),
             server_port: 8080,
             log_level: crate::config::LogLevel::Info,
-            jwt_secret: "secret_longer_than_32_characters_for_test".to_string(),
             jwt_private_key_pem: "test_key".to_string(),
             jwt_public_key_pem: "test_pub".to_string(),
             environment: crate::config::Environment::Local,
@@ -133,10 +132,10 @@ mod tests {
     }
 
     async fn setup_test_db() -> (sqlx::PgPool, testcontainers::ContainerAsync<Postgres>) {
-        let postgres = Postgres::default().start().await.unwrap();
+        let postgres = Postgres::default().with_host_auth().start().await.unwrap();
         let host = postgres.get_host().await.unwrap();
         let port = postgres.get_host_port_ipv4(5432).await.unwrap();
-        let db_url = format!("postgres://postgres:postgres@{}:{}/postgres", host, port);
+        let db_url = format!("postgres://postgres@{}:{}/postgres", host, port);
 
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(5)

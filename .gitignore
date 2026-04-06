@@ -38,6 +38,7 @@ iviss-backend/lcov.info
 **/*.rs.bk
 .kilocode/
 /plans
+.codex
 
 # Environment variables
 .env
