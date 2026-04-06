@@ -44,7 +44,6 @@ pub struct ScanPlateResponse {
     pub error: Option<ScanErrorData>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, ToSchema)]
 pub struct ImageUploadRequest {
     #[schema(value_type = String, format = Binary)]

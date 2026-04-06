@@ -6,7 +6,6 @@ use axum::{
 use serde::Serialize;
 use utoipa::ToSchema;
 
-#[allow(dead_code)]
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
@@ -20,14 +19,12 @@ pub enum ErrorCode {
     InternalError,
 }
 
-#[allow(dead_code)]
 #[derive(Serialize, ToSchema)]
 pub struct AppErrorResponse {
     code: ErrorCode,
     message: String,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -55,7 +52,6 @@ pub enum AppError {
     Internal(#[from] anyhow::Error),
 }
 
-#[allow(dead_code)]
 impl AppError {
     pub fn database(err: impl Into<sqlx::Error>) -> Self {
         Self::Database(err.into())
