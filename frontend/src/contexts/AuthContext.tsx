@@ -15,6 +15,7 @@ import {
   requestDailyLogin,
   verifyDailyLogin,
   loginUser,
+  logoutUser,
 } from '@/openapi-rq/requests/services.gen';
 
 const SESSION_KEY = 'iviss_session';
@@ -71,6 +72,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = async (forced = false) => {
+    const accessToken = getAccessToken();
+
+    if (!forced && accessToken) {
+      try {
+        await logoutUser({
+          headers: { Authorization: `Bearer ${accessToken}` },
+          throwOnError: false,
+        });
+      } catch {
+        // We still clear local auth state even if the remote logout request fails.
+      }
+    }
+
     setSession(null);
     setUser(null);
 
