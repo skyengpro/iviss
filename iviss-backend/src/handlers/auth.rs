@@ -1,9 +1,9 @@
 use crate::app_state::AppState;
 
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
-    RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
-    VerifyDailyLoginResponse,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, LogoutRequestHeaders,
+    RefreshRequest, RequestDailyLoginRequest, RequestDailyLoginResponse,
+    VerifyDailyLoginRequest, VerifyDailyLoginResponse,
 };
 use crate::middleware::auth::decode_access_token_rs256;
 use axum::extract::State;
@@ -171,6 +171,7 @@ pub async fn login(
 #[utoipa::path(
     post,
     path = "/api/v1/auth/logout",
+    params(LogoutRequestHeaders),
     responses(
         (status = 204, description = "Logout successful"),
         (status = 401, description = "Unauthorized - invalid or missing token", body = AppErrorResponse)
