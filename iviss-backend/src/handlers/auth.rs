@@ -199,24 +199,6 @@ pub async fn logout(
     // Decode the token to get claims (JTI, user_id, exp)
     let claims = decode_access_token_rs256(token, &state.jwt_public_key_pem)?;
 
-    // Calculate remaining TTL for the token
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|_| AppError::internal_error("System time error"))?
-        .as_secs() as usize;
-
-    let ttl = if claims.exp > now {
-        (claims.exp - now) as u64
-    } else {
-        0
-    };
-
-    // Blacklist the JTI in Redis (prevents further use of this access token)
-    if ttl > 0 {
-        auth_queries::blacklist_jti(&state.redis, &claims.jti.to_string(), ttl).await?;
-    }
-
-    // Revoke all refresh tokens for this user
     revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;
 
     // Audit log
