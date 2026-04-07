@@ -1135,10 +1135,16 @@ async fn test_get_org_dashboard_stats_data_isolation() {
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert_eq!(body["todayControls"], 0, "Org A should see 0 controls from Org B");
-    assert_eq!(body["activeAlerts"], 0, "Org A should see 0 alerts from Org B");
+    assert_eq!(
+        body["todayControls"], 0,
+        "Org A should see 0 controls from Org B"
+    );
+    assert_eq!(
+        body["activeAlerts"], 0,
+        "Org A should see 0 alerts from Org B"
+    );
     assert_eq!(body["organizationName"], "Org A");
 
-    // 4. Call Org B's dashboard stats (we need to manually construct a request for B if we wanted, 
+    // 4. Call Org B's dashboard stats (we need to manually construct a request for B if we wanted,
     // but the isolation for A is the key test here).
 }

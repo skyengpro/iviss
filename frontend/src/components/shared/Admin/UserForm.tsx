@@ -23,6 +23,10 @@ import { ProvisionUserRequest, UserRole } from '@/openapi-rq/requests/types.gen'
 import { Loader2 } from 'lucide-react';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 
+// 'superadmin' — role locked to org_admin, org selector shown
+// 'org_admin'  — role selector (agent/manager only), org locked to their own
+type FormMode = 'superadmin' | 'org_admin';
+
 const formSchema = z.object({
   username: z.string().min(3, { message: 'tooShort' }),
   fullName: z
@@ -33,8 +37,8 @@ const formSchema = z.object({
     .string()
     .min(1, { message: 'required' })
     .regex(/^\+237\d{8,12}$/, { message: 'invalidPhone' }),
-  role: z.enum(['admin', 'agent', 'manager'] as const),
-  organizationId: z.string().min(1, { message: 'required' }).uuid({ message: 'invalidUuid' }),
+  role: z.enum(['agent', 'manager', 'org_admin'] as const),
+  organizationId: z.string().uuid({ message: 'invalidUuid' }).optional().or(z.literal('')),
   email: z.string().email({ message: 'invalidEmail' }).optional().or(z.literal('')),
   badgeId: z.string().optional(),
 });
@@ -46,11 +50,23 @@ interface UserFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   initialData?: Partial<ProvisionUserRequest>;
+  mode?: FormMode;
+  /** Required when mode is 'org_admin' — the org admin's own org id */
+  lockedOrgId?: string;
 }
 
-export function UserForm({ onSubmit, onCancel, isLoading, initialData }: UserFormProps) {
+export function UserForm({
+  onSubmit,
+  onCancel,
+  isLoading,
+  initialData,
+  mode = 'superadmin',
+  lockedOrgId,
+}: UserFormProps) {
   const { t } = useTranslation();
   const { organizations, isLoading: isLoadingOrgs } = useOrganizations();
+
+  const defaultRole = mode === 'superadmin' ? 'org_admin' : 'agent';
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -58,20 +74,21 @@ export function UserForm({ onSubmit, onCancel, isLoading, initialData }: UserFor
       username: initialData?.username || '',
       fullName: initialData?.fullName || '',
       phoneNumber: initialData?.phoneNumber || '+237',
-      role: initialData?.role || 'agent',
-      organizationId: initialData?.organizationId || '',
+      role: (initialData?.role as FormValues['role']) || defaultRole,
+      organizationId: initialData?.organizationId || lockedOrgId || '',
       email: initialData?.email || '',
       badgeId: initialData?.badgeId || '',
     },
   });
 
   const handleSubmit = async (values: FormValues) => {
+    const orgId = mode === 'org_admin' ? lockedOrgId! : values.organizationId;
     const payload: ProvisionUserRequest = {
       username: values.username,
       fullName: values.fullName,
       phoneNumber: values.phoneNumber,
       role: values.role as UserRole,
-      organizationId: values.organizationId,
+      organizationId: orgId || '',
       email: values.email || undefined,
       badgeId: values.badgeId || undefined,
     };
@@ -81,6 +98,42 @@ export function UserForm({ onSubmit, onCancel, isLoading, initialData }: UserFor
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        {/* Role — fixed label for superadmin, selector for org admin */}
+        {mode === 'superadmin' ? (
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            {t('backOfficeUserManagement.role')}:{' '}
+            <span className="font-medium text-foreground">
+              {t('backOfficeUserManagement.org_admin', 'Organization Admin')}
+            </span>
+          </div>
+        ) : (
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('backOfficeUserManagement.role')}</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('backOfficeUserManagement.role')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="agent">
+                      {t('backOfficeUserManagement.agent', 'Agent')}
+                    </SelectItem>
+                    <SelectItem value="manager">
+                      {t('backOfficeUserManagement.supervisor', 'Supervisor')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -178,33 +231,8 @@ export function UserForm({ onSubmit, onCancel, isLoading, initialData }: UserFor
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('backOfficeUserManagement.role')}</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('backOfficeUserManagement.role')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="admin">
-                      {t('backOfficeUserManagement.super_admin')}
-                    </SelectItem>
-                    <SelectItem value="manager">
-                      {t('backOfficeUserManagement.supervisor')}
-                    </SelectItem>
-                    <SelectItem value="agent">{t('backOfficeUserManagement.agent')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Org selector — only for superadmin; org admin's org is implicit */}
+        {mode === 'superadmin' && (
           <FormField
             control={form.control}
             name="organizationId"
@@ -244,7 +272,7 @@ export function UserForm({ onSubmit, onCancel, isLoading, initialData }: UserFor
               </FormItem>
             )}
           />
-        </div>
+        )}
 
         <FormField
           control={form.control}

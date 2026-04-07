@@ -96,6 +96,11 @@ pub fn assembly(state: AppState) -> Router {
     // Org-admin routes — scoped to org_admin users with a valid organization_id
     let org_admin_routes = Router::new()
         .route(
+            "/api/v1/org-admin/users",
+            get(crate::handlers::user_management::list_org_users)
+                .post(crate::handlers::user_management::provision_org_user),
+        )
+        .route(
             "/api/v1/org-admin/stats",
             get(crate::handlers::stats::get_org_dashboard_stats),
         )
@@ -116,6 +121,14 @@ pub fn assembly(state: AppState) -> Router {
             get(crate::handlers::stats::get_org_control_activity),
         )
         .layer(from_fn_with_state(state.clone(), rbac::require_org_admin))
+        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
+
+    // Web-authenticated routes - accessible to admin, manager, org_admin
+    let web_auth_routes = Router::new()
+        .route(
+            "/api/v1/auth/change-password",
+            post(crate::handlers::auth::change_password),
+        )
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
     let protected_routes = Router::new()
@@ -170,6 +183,7 @@ pub fn assembly(state: AppState) -> Router {
     public_routes
         .merge(admin_routes)
         .merge(org_admin_routes)
+        .merge(web_auth_routes)
         .merge(protected_routes)
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))

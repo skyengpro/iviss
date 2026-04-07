@@ -20,9 +20,10 @@ use crate::dto::{
         TopAgentsResponse,
     },
     users::{
-        DeviceStatus, ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
-        RestartSessionRequest, RestartSessionResponse, TerminateSessionRequest,
-        TerminateSessionResponse, UpdateUserRequest, UserProfile, UserRole, UserStatus,
+        DeviceStatus, ProvisionUserRequest, ProvisionUserResponse, ResendActivationRequest,
+        ResendActivationResponse, RestartSessionRequest, RestartSessionResponse,
+        TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest, UserProfile,
+        UserRole, UserStatus,
     },
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
@@ -110,6 +111,9 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::list_organizations,
         crate::handlers::user_management::terminate_session,
         crate::handlers::user_management::restart_session,
+        crate::handlers::auth::change_password,
+        crate::handlers::user_management::list_org_users,
+        crate::handlers::user_management::provision_org_user,
     ),
 
     components(
@@ -171,6 +175,8 @@ impl Modify for SecurityAddon {
             // ── auth ──
             LoginRequest,
             AuthResponse,
+            ChangePasswordRequest,
+            ChangePasswordResponse,
             ResendActivationRequest,
             ResendActivationResponse,
             RequestDailyLoginRequest,
@@ -185,6 +191,7 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::VerifyRefreshRequest,
             crate::handlers::auth::VerifyRefreshResponse,
             ProvisionUserRequest,
+            ProvisionUserResponse,
             UpdateUserRequest,
             TerminateSessionRequest,
             TerminateSessionResponse,

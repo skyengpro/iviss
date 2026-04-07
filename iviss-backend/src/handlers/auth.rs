@@ -1,16 +1,17 @@
 use crate::app_state::AppState;
 
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
-    RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
-    VerifyDailyLoginResponse,
+    ActivateRequest, ActivateResponse, AuthResponse, ChangePasswordRequest, ChangePasswordResponse,
+    LoginRequest, RefreshRequest, RequestDailyLoginRequest, RequestDailyLoginResponse,
+    VerifyDailyLoginRequest, VerifyDailyLoginResponse,
 };
 use base64::Engine;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
+use crate::middleware::rbac::AuthenticatedAdmin;
 use crate::queries::auth_queries;
-use axum::extract::State;
+use axum::extract::{Extension, State};
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
@@ -82,7 +83,10 @@ pub async fn login(
 
     //    Issue access token
     //    Admins have no device
-    if user.role != UserRole::Admin && user.role != UserRole::Manager && user.role != UserRole::OrgAdmin {
+    if user.role != UserRole::Admin
+        && user.role != UserRole::Manager
+        && user.role != UserRole::OrgAdmin
+    {
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -161,6 +165,7 @@ pub async fn login(
             access_token,
             refresh_token,
             user: user_profile,
+            must_change_password: user.must_change_password,
         }),
     ))
 }
@@ -1073,4 +1078,55 @@ fn verify_es256_jws(
     tracing::warn!("ES256 Signature successfully verified against public key");
 
     Ok(())
+}
+
+/// Change password for admin/org_admin users (used for forced password change on first login)
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/change-password",
+    request_body = ChangePasswordRequest,
+    responses(
+        (status = 200, description = "Password changed successfully", body = ChangePasswordResponse),
+        (status = 400, description = "Bad request", body = AppErrorResponse),
+    ),
+    tag = "auth",
+    operation_id = "changePassword",
+    security(("bearer_auth" = []))
+)]
+pub async fn change_password(
+    State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
+    Json(payload): Json<ChangePasswordRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    if payload.new_password != payload.confirm_password {
+        return Err(AppError::bad_request("Passwords do not match"));
+    }
+
+    if payload.new_password.trim().is_empty() {
+        return Err(AppError::bad_request("New password cannot be empty"));
+    }
+
+    let new_hash = crate::utils::password::hash_password(&payload.new_password).await?;
+
+    sqlx::query(
+        r#"
+        UPDATE users
+        SET password_hash = $1, must_change_password = FALSE
+        WHERE id = $2
+        "#,
+    )
+    .bind(&new_hash)
+    .bind(requester.user_id)
+    .execute(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
+    tracing::info!(user_id = %requester.user_id, "Password changed successfully");
+
+    Ok((
+        StatusCode::OK,
+        Json(ChangePasswordResponse {
+            message: "Password changed successfully".to_string(),
+        }),
+    ))
 }

@@ -27,6 +27,8 @@ const PendingVehicles = lazy(() => import('../pages/backoffice/PendingVehicles')
 const BackOfficeReports = lazy(() => import('../pages/backoffice/BackOfficeReports'));
 const Dashboard = lazy(() => import('../pages/backoffice/Dashboard'));
 const OrgAdminDashboard = lazy(() => import('../pages/backoffice/OrgAdminDashboard'));
+const ChangePassword = lazy(() => import('../pages/auth/ChangePassword'));
+const Settings = lazy(() => import('../pages/backoffice/Settings'));
 
 export interface AppRoute {
   path: string;
@@ -41,6 +43,7 @@ export const publicRoutes: AppRoute[] = [
   { path: '/login', component: Activate },
   { path: '/daily-login', component: DailyLogin },
   { path: '/admin-login', component: AdminLogin },
+  { path: '/change-password', component: ChangePassword },
   { path: '/', component: null, redirectTo: '/activate', replace: true },
 ];
 
@@ -129,7 +132,7 @@ export const backOfficeRoutes: AppRoute[] = [
     allowedRoles: ['admin'],
   },
   { path: '/backoffice/audit', component: Dashboard, allowedRoles: ['admin'] },
-  { path: '/backoffice/settings', component: Dashboard, allowedRoles: ['admin', 'org_admin'] },
+  { path: '/backoffice/settings', component: Settings, allowedRoles: ['admin', 'org_admin'] },
 ];
 
 export const catchAllRoute = { path: '*', component: NotFound };
