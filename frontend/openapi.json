@@ -550,7 +550,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
+                  "$ref": "#/components/schemas/ProvisionUserResponse"
                 }
               }
             }
@@ -847,6 +847,50 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Change password for admin/org_admin users (used for forced password change on first login)",
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/api/v1/auth/login": {
@@ -1627,6 +1671,105 @@
         ]
       }
     },
+    "/api/v1/org-admin/users": {
+      "get": {
+        "tags": ["org-admin"],
+        "summary": "List users scoped to the org admin's organization",
+        "operationId": "listOrgUsers",
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfile"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["org-admin"],
+        "summary": "Create an agent or supervisor within the org admin's organization",
+        "operationId": "provisionOrgUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/photo/plate": {
       "post": {
         "tags": ["photo"],
@@ -2373,11 +2516,35 @@
           "accessToken": {
             "type": "string"
           },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
           "refreshToken": {
             "type": "string"
           },
           "user": {
             "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": ["newPassword", "confirmPassword"],
+        "properties": {
+          "confirmPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangePasswordResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
           }
         }
       },
@@ -3078,6 +3245,19 @@
           },
           "username": {
             "type": "string"
+          }
+        }
+      },
+      "ProvisionUserResponse": {
+        "type": "object",
+        "required": ["user"],
+        "properties": {
+          "tempPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
           }
         }
       },

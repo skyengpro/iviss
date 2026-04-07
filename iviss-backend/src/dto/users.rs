@@ -172,6 +172,14 @@ pub struct ProvisionUserRequest {
     pub badge_id: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ProvisionUserResponse {
+    pub user: UserProfile,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temp_password: Option<String>,
+}
+
 /// Request for PATCH /admin/users/:id (update)
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]

@@ -41,6 +41,19 @@ impl OtpService {
         let code = self.generate_code();
         let code_hash = self.hash_code(&code);
 
+        // Print OTP to console for development/debugging
+        println!(
+            "\n┌─────────────────────────────────────┐\
+             \n│  OTP CODE                           │\
+             \n│  User  : {:<28}│\
+             \n│  Phone : {:<28}│\
+             \n│  Code  : {:<28}│\
+             \n└─────────────────────────────────────┘\n",
+            user_id.to_string(),
+            phone,
+            code,
+        );
+
         let entry = OtpEntry {
             code_hash,
             attempts: 0,

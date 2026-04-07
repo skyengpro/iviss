@@ -14,6 +14,7 @@ pub struct AuthenticatedAdmin {
     pub user_id: Uuid,
     pub role: String,
     pub organization_id: Option<Uuid>,
+    pub email: String,
 }
 
 /// JWT middleware for web users (admin / manager / org_admin).
@@ -40,14 +41,20 @@ pub async fn require_auth_web(
         err
     })?;
 
-    // Look up the user's organization_id from the database
-    let org_id: Option<Uuid> =
-        sqlx::query("SELECT organization_id FROM users WHERE id = $1 AND deleted_at IS NULL")
-            .bind(claims.sub)
-            .fetch_optional(&state.db)
-            .await
-            .map_err(AppError::database)?
-            .and_then(|row| row.get("organization_id"));
+    // Look up the user's organization_id and email from the database
+    let row = sqlx::query(
+        "SELECT organization_id, email FROM users WHERE id = $1 AND deleted_at IS NULL",
+    )
+    .bind(claims.sub)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::database)?;
+
+    let (org_id, email): (Option<Uuid>, Option<String>) = row
+        .map(|r| (r.get("organization_id"), r.get("email")))
+        .ok_or_else(|| AppError::not_found("User not found"))?;
+
+    let email = email.unwrap_or_default();
 
     tracing::info!(
         %method,
@@ -62,6 +69,7 @@ pub async fn require_auth_web(
         user_id: claims.sub,
         role: claims.role.clone(),
         organization_id: org_id,
+        email,
     });
 
     Ok(next.run(request).await)

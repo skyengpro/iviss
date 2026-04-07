@@ -44,6 +44,8 @@ pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub user: UserProfile,
+    #[serde(default)]
+    pub must_change_password: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -68,4 +70,17 @@ pub struct ActivateResponse {
 pub struct RefreshRequest {
     pub refresh_token: String,
     pub device_id: Option<Uuid>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangePasswordRequest {
+    pub new_password: String,
+    pub confirm_password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangePasswordResponse {
+    pub message: String,
 }

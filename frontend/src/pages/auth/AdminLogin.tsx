@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldCheck, LogIn } from 'lucide-react';
+import { ShieldCheck, LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/use-auth';
 
 export default function AdminLogin() {
@@ -13,6 +13,7 @@ export default function AdminLogin() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,6 +50,9 @@ export default function AdminLogin() {
 
       if (!result.success) {
         setError(result.error || 'Login failed');
+      } else if (result.mustChangePassword) {
+        // Redirect to change password page for org admins with temp password
+        navigate('/change-password');
       }
       // Navigation handled by the useEffect above when isAuthenticated changes
     } catch (err) {
@@ -93,14 +97,25 @@ export default function AdminLogin() {
 
               <div className="space-y-2">
                 <Label htmlFor="admin-password">Password</Label>
-                <Input
-                  id="admin-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                />
+                <div className="relative">
+                  <Input
+                    id="admin-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {error ? <p className="text-sm text-destructive">{error}</p> : null}

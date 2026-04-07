@@ -303,10 +303,16 @@ async fn test_provision_user_creates_new_user() {
         .await
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert_eq!(body["username"], "newagent");
-    assert_eq!(body["email"], "newagent@test.com");
-    assert_eq!(body["role"], "agent");
-    assert_eq!(body["status"], "PENDING_ACTIVATION");
+    assert_eq!(body["user"]["username"], "newagent");
+    assert_eq!(body["user"]["email"], "newagent@test.com");
+    // superadmin endpoint always creates org_admin regardless of requested role
+    assert_eq!(body["user"]["role"], "org_admin");
+    assert_eq!(body["user"]["status"], "ACTIVE");
+    // temp password must be present
+    assert!(
+        body["tempPassword"].is_string(),
+        "tempPassword should be returned"
+    );
 }
 
 #[tokio::test]

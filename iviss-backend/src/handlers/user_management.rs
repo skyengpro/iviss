@@ -1,24 +1,26 @@
 use crate::app_state::AppState;
 use crate::dto::users::{
-    ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, RestartSessionRequest,
-    RestartSessionResponse, TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest,
+    ProvisionUserRequest, ProvisionUserResponse, ResendActivationRequest, ResendActivationResponse,
+    RestartSessionRequest, RestartSessionResponse, TerminateSessionRequest,
+    TerminateSessionResponse, UpdateUserRequest,
 };
 use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
+use crate::middleware::rbac::AuthenticatedAdmin;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
 use crate::queries::user_queries::{
-    create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
-    update_user as update_user_query,
+    create_org_admin_user_with_temp_password, get_user_by_id, hard_delete_user,
+    list_users as list_users_query, list_users_by_org, update_user as update_user_query,
 };
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use base64::Engine;
 use sqlx::Row;
 use std::sync::Arc;
-use tracing::warn;
 use uuid::Uuid;
 
 /// Provision a new user (admin only)
@@ -27,7 +29,7 @@ use uuid::Uuid;
     path = "/api/v1/admin/users",
     request_body = ProvisionUserRequest,
     responses(
-        (status = 201, description = "User provisioned successfully", body = UserProfile),
+        (status = 201, description = "User provisioned successfully", body = ProvisionUserResponse),
         (status = 400, description = "Bad request", body = AppErrorResponse),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
         (status = 403, description = "Forbidden", body = AppErrorResponse)
@@ -38,27 +40,56 @@ use uuid::Uuid;
 )]
 pub async fn provision_user(
     State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
     Json(payload): Json<ProvisionUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let user = create_user(&state.db, payload).await?;
-
-    // If user is an agent, send activation code
-    if matches!(user.role, crate::dto::users::UserRole::Agent) {
-        if let Some(phone) = user.phone_number.clone() {
-            let user_id = user.id;
-            let otp_svc = state.otp_svc.clone();
-
-            tokio::spawn(async move {
-                if let Err(e) = otp_svc.request_otp(&user_id, &phone).await {
-                    warn!("Failed to send activation code to {}: {}", phone, e);
-                }
-            });
-        }
+    if requester.role != "admin" {
+        return Err(AppError::forbidden(
+            "Only superadmin can provision organization admins",
+        ));
     }
 
-    tracing::info!("User created successfully: {}", user.id);
+    if payload.email.as_deref().unwrap_or("").trim().is_empty() {
+        return Err(AppError::bad_request("email is required"));
+    }
 
-    Ok((StatusCode::CREATED, Json(user)))
+    let mut req = payload;
+    req.role = UserRole::OrgAdmin;
+
+    let temp_password =
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(uuid::Uuid::new_v4().as_bytes());
+    let password_hash = crate::utils::password::hash_password(&temp_password).await?;
+
+    let user = create_org_admin_user_with_temp_password(&state.db, req, password_hash).await?;
+
+    println!(
+        "\n╔══════════════════════════════════════════════════╗\
+         \n║        ORG ADMIN ACCOUNT CREATED                 ║\
+         \n╠══════════════════════════════════════════════════╣\
+         \n║  Email    : {:<38}║\
+         \n║  Password : {:<38}║\
+         \n║  User ID  : {:<38}║\
+         \n╚══════════════════════════════════════════════════╝\
+         \n  ⚠  Share these credentials securely.\
+         \n  ⚠  The user must change the password on first login.\n",
+        user.email.as_deref().unwrap_or("(none)"),
+        temp_password,
+        user.id,
+    );
+
+    tracing::info!(
+        user_id = %user.id,
+        email = %user.email.as_deref().unwrap_or(""),
+        "Org admin created successfully"
+    );
+
+    Ok((
+        StatusCode::CREATED,
+        Json(ProvisionUserResponse {
+            user,
+            temp_password: Some(temp_password),
+        }),
+    ))
 }
 
 /// List all users (admin only)
@@ -327,6 +358,94 @@ pub async fn resend_activation_code(
         StatusCode::CREATED,
         Json(ResendActivationResponse {
             message: "Activation code sent successfully".into(),
+        }),
+    ))
+}
+
+/// List users scoped to the org admin's organization
+#[utoipa::path(
+    get,
+    path = "/api/v1/org-admin/users",
+    responses(
+        (status = 200, description = "Users retrieved successfully", body = [UserProfile]),
+        (status = 401, description = "Unauthorized", body = AppErrorResponse),
+        (status = 403, description = "Forbidden",    body = AppErrorResponse)
+    ),
+    tag = "org-admin",
+    operation_id = "listOrgUsers",
+    security(("bearer_auth" = []))
+)]
+pub async fn list_org_users(
+    State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
+) -> Result<impl IntoResponse, AppError> {
+    let org_id = requester
+        .organization_id
+        .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
+    let users = list_users_by_org(&state.db, org_id).await?;
+    Ok((StatusCode::OK, Json(users)))
+}
+
+/// Create an agent or supervisor within the org admin's organization
+#[utoipa::path(
+    post,
+    path = "/api/v1/org-admin/users",
+    request_body = ProvisionUserRequest,
+    responses(
+        (status = 201, description = "User created successfully", body = ProvisionUserResponse),
+        (status = 400, description = "Bad request",  body = AppErrorResponse),
+        (status = 403, description = "Forbidden",    body = AppErrorResponse)
+    ),
+    tag = "org-admin",
+    operation_id = "provisionOrgUser",
+    security(("bearer_auth" = []))
+)]
+pub async fn provision_org_user(
+    State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
+    Json(payload): Json<ProvisionUserRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let org_id = requester
+        .organization_id
+        .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
+
+    if !matches!(payload.role, UserRole::Agent | UserRole::Manager) {
+        return Err(AppError::forbidden(
+            "Org admin can only create agents or supervisors",
+        ));
+    }
+
+    let mut req = payload;
+    req.organization_id = org_id;
+
+    // phone_number is required to send the activation OTP
+    if req.phone_number.trim().is_empty() {
+        return Err(AppError::bad_request("phone_number is required"));
+    }
+
+    let user = crate::queries::user_queries::create_user(&state.db, req).await?;
+
+    // Send activation OTP via SMS so the agent can activate their device
+    state
+        .otp_svc
+        .request_otp(&user.id, user.phone_number.as_deref().unwrap_or(""))
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %user.id, error = %e, "Failed to send activation OTP");
+            AppError::internal_error("User created but failed to send activation SMS")
+        })?;
+
+    tracing::info!(
+        user_id = %user.id,
+        org_id = %org_id,
+        "User created by org admin and activation OTP sent"
+    );
+
+    Ok((
+        StatusCode::CREATED,
+        Json(ProvisionUserResponse {
+            user,
+            temp_password: None,
         }),
     ))
 }
