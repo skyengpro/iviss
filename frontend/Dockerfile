@@ -20,6 +20,7 @@ CMD ["npm", "run", "dev", "--", "--host"]
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN node ../scripts/fetch_openapi.mjs || true
 RUN npm run codegen
 RUN npm run build
 
