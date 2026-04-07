@@ -1,4 +1,7 @@
-use crate::dto::organizations::{CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType, UpdateOrganizationRequest};
+use crate::dto::organizations::{
+    CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType,
+    UpdateOrganizationRequest,
+};
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -227,7 +230,10 @@ pub async fn update_organization(
         param_count += 1;
     }
 
-    query.push_str(&format!(" WHERE id = ${} RETURNING id, name, type, region", param_count));
+    query.push_str(&format!(
+        " WHERE id = ${} RETURNING id, name, type, region",
+        param_count
+    ));
 
     let mut query_builder = sqlx::query(&query);
 

@@ -9,7 +9,10 @@ use crate::dto::{
     create_control::*,
     list_control::*,
     location::{UpdateLocationRequest, UpdateLocationResponse},
-    organizations::{CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType, UpdateOrganizationRequest},
+    organizations::{
+        CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType,
+        UpdateOrganizationRequest,
+    },
     pending_submission::*,
     scan::*,
     search_vehicle::*,
