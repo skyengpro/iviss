@@ -27,6 +27,15 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+ensure_cargo_llvm_cov() {
+    if command -v cargo-llvm-cov &> /dev/null; then
+        return 0
+    fi
+
+    print_warning "cargo-llvm-cov not found. Installing..."
+    cargo install cargo-llvm-cov
+}
+
 # Check if we're in the correct directory
 if [ ! -f "Cargo.toml" ]; then
     print_error "Cargo.toml not found. Please run this script from the iviss-backend directory."
@@ -41,8 +50,9 @@ else
     exit 1
 fi
 
-echo "🧪 Step 2: Running tests..."
-if cargo test --verbose; then
+echo "🧪 Step 2: Running tests with coverage instrumentation..."
+ensure_cargo_llvm_cov
+if cargo llvm-cov clean --workspace && cargo llvm-cov --no-report nextest --verbose; then
     print_status "Tests passed"
 else
     print_error "Tests failed"
@@ -94,26 +104,13 @@ fi
 
 
 echo "📊 Step 7: Generating code coverage..."
-if command -v cargo-llvm-cov &> /dev/null; then
-    echo "Running coverage with 60% minimum threshold..."
-    if cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60; then
-        print_status "Coverage report generated successfully"
-        echo "📁 Coverage report available at: target/coverage/html/index.html"
-    else
-        print_error "Coverage below 60% threshold or coverage generation failed"
-        exit 1
-    fi
+echo "Generating report from the previous instrumented test run..."
+if cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 60; then
+    print_status "Coverage report generated successfully"
+    echo "📁 Coverage report available at: target/coverage/html/index.html"
 else
-    print_warning "cargo-llvm-cov not found. Installing..."
-    cargo install cargo-llvm-cov
-    echo "Running coverage with 60% minimum threshold..."
-    if cargo llvm-cov --html --output-dir target/coverage/html --fail-under-lines 60; then
-        print_status "Coverage report generated successfully after installation"
-        echo "📁 Coverage report available at: target/coverage/html/index.html"
-    else
-        print_error "Coverage below 60% threshold or coverage generation failed"
-        exit 1
-    fi
+    print_error "Coverage below 60% threshold or coverage generation failed"
+    exit 1
 fi
 
 echo ""

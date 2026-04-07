@@ -349,23 +349,11 @@
     "/api/v1/admin/submissions": {
       "get": {
         "tags": ["vehicles"],
-        "summary": "List submissions for admin review, optionally filtered by status",
+        "summary": "List all pending submissions for admin review",
         "operationId": "listPendingSubmissions",
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "description": "Filter by status: pending, approved, rejected",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          }
-        ],
         "responses": {
           "200": {
-            "description": "List of submissions",
+            "description": "List of pending submissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -398,7 +386,7 @@
     "/api/v1/admin/submissions/{id}": {
       "get": {
         "tags": ["vehicles"],
-        "summary": "Get full details of a single submission",
+        "summary": "Get details of a single pending submission",
         "operationId": "getPendingSubmission",
         "parameters": [
           {
@@ -418,56 +406,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PendingSubmissionDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Submission not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/admin/submissions/{id}/audit": {
-      "get": {
-        "tags": ["vehicles"],
-        "summary": "Get the audit trail for a submission",
-        "operationId": "getSubmissionAuditLog",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Submission UUID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Audit log entries",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SubmissionAuditLogEntry"
-                  }
+                  "$ref": "#/components/schemas/PendingSubmissionRequest"
                 }
               }
             }
@@ -2383,17 +2322,17 @@
       },
       "DataEntryResponse": {
         "type": "object",
-        "description": "Response after creating a pending submission",
-        "required": ["message", "submissionId", "plateNumber"],
+        "description": "Response after approved and enters vehicle data",
+        "required": ["message", "submission_id", "plate_number"],
         "properties": {
           "message": {
             "type": "string"
           },
-          "plateNumber": {
+          "plate_number": {
             "type": "string",
-            "description": "Plate number that was submitted"
+            "description": "Plate number that was added to the external registry"
           },
-          "submissionId": {
+          "submission_id": {
             "type": "string",
             "format": "uuid"
           }
@@ -2611,28 +2550,62 @@
           }
         }
       },
-      "PendingSubmissionDetail": {
+      "PendingSubmissionListItem": {
         "type": "object",
-        "description": "Detailed view of a pending submission (for admin review)",
-        "required": ["id", "plateNumber", "agentId", "status", "submittedAt"],
+        "description": "Lightweight list item for admin dashboard",
+        "required": ["id", "plate_number", "status", "submitted_at"],
         "properties": {
-          "agentId": {
+          "agent_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
             "type": "string",
             "format": "uuid"
           },
-          "agentName": {
+          "plate_number": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "submitted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "PendingSubmissionRequest": {
+        "type": "object",
+        "description": "Detailed view of a pending submission (for admin review)",
+        "required": [
+          "id",
+          "plate_number",
+          "agent_id",
+          "front_image_url",
+          "back_image_url",
+          "status",
+          "submitted_at"
+        ],
+        "properties": {
+          "admin_note": {
             "type": "string",
             "nullable": true
           },
-          "backImageUrl": {
+          "agent_id": {
             "type": "string",
-            "description": "URL or Base64 of back image",
+            "format": "uuid"
+          },
+          "agent_name": {
+            "type": "string",
             "nullable": true
           },
-          "frontImageUrl": {
+          "back_image_url": {
             "type": "string",
-            "description": "URL or Base64 of front image",
-            "nullable": true
+            "description": "URL or Base64 of back image"
+          },
+          "front_image_url": {
+            "type": "string",
+            "description": "URL or Base64 of front image"
           },
           "id": {
             "type": "string",
@@ -2650,62 +2623,22 @@
             "type": "string",
             "nullable": true
           },
-          "plateNumber": {
+          "plate_number": {
             "type": "string"
           },
-          "rejectionReason": {
+          "reviewed_at": {
             "type": "string",
             "nullable": true
           },
-          "reviewedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "reviewedBy": {
+          "reviewed_by": {
             "type": "string",
             "format": "uuid",
             "nullable": true
           },
-          "reviewerName": {
-            "type": "string",
-            "nullable": true
-          },
           "status": {
             "$ref": "#/components/schemas/SubmissionStatus"
           },
-          "submittedAt": {
-            "type": "string"
-          },
-          "vehicleData": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VehicleDataEntry"
-              }
-            ],
-            "nullable": true
-          }
-        }
-      },
-      "PendingSubmissionListItem": {
-        "type": "object",
-        "description": "Lightweight list item for admin dashboard",
-        "required": ["id", "plateNumber", "status", "submittedAt"],
-        "properties": {
-          "agentName": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plateNumber": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SubmissionStatus"
-          },
-          "submittedAt": {
+          "submitted_at": {
             "type": "string"
           }
         }
@@ -2984,48 +2917,6 @@
           }
         }
       },
-      "SubmissionAuditLogEntry": {
-        "type": "object",
-        "description": "Audit log entry for a submission action",
-        "required": ["id", "action", "performedBy", "createdAt"],
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "details": {
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "performedBy": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "performerName": {
-            "type": "string",
-            "nullable": true
-          },
-          "reason": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "SubmissionListQuery": {
-        "type": "object",
-        "description": "Query parameters for listing submissions with optional status filter",
-        "properties": {
-          "status": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
       "SubmissionLocation": {
         "type": "object",
         "properties": {
@@ -3291,49 +3182,6 @@
       "UserStatus": {
         "type": "string",
         "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
-      },
-      "VehicleDataEntry": {
-        "type": "object",
-        "description": "Vehicle details entered by the admin during approval",
-        "required": ["chassisNumber", "brand", "model", "year", "ownerName"],
-        "properties": {
-          "brand": {
-            "type": "string"
-          },
-          "chassisNumber": {
-            "type": "string"
-          },
-          "color": {
-            "type": "string",
-            "nullable": true
-          },
-          "enginePower": {
-            "type": "string",
-            "nullable": true
-          },
-          "fuelType": {
-            "type": "string",
-            "nullable": true
-          },
-          "model": {
-            "type": "string"
-          },
-          "ownerAddress": {
-            "type": "string",
-            "nullable": true
-          },
-          "ownerName": {
-            "type": "string"
-          },
-          "ownerNationalId": {
-            "type": "string",
-            "nullable": true
-          },
-          "year": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
       },
       "VehicleInfo": {
         "type": "object",
