@@ -40,13 +40,13 @@ docker compose ps
 
 ## Access
 
-| Service            | Precise URL                                                    | Credentials       |
-| ------------------ | -------------------------------------------------------------- | ----------------- |
-| **Frontend**       | [http://localhost:8080/](http://localhost:8080/)               | —                 |
-| **Grafana**        | [http://localhost:3001/login](http://localhost:3001/login)     | `admin` / `admin` |
-| **Prometheus**     | [http://localhost:9090/targets](http://localhost:9090/targets) | —                 |
-| **Metrics Data**   | [http://localhost:9091/metrics](http://localhost:9091/metrics) | —                 |
-| **Backend Health** | [http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)   | —                 |
+| Service            | Precise URL                                                                | Credentials       |
+| ------------------ | -------------------------------------------------------------------------- | ----------------- |
+| **Frontend**       | [http://localhost:8080/](http://localhost:8080/)                           | —                 |
+| **Grafana**        | [http://localhost:3001/login](http://localhost:3001/login)                 | `admin` / `admin` |
+| **Prometheus**     | [http://localhost:9090/targets](http://localhost:9090/targets)             | —                 |
+| **Metrics Data**   | [http://localhost:9091/metrics](http://localhost:9091/metrics)             | —                 |
+| **Backend Health** | [http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health) | —                 |
 
 ## Verification Steps
 
