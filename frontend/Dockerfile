@@ -20,7 +20,7 @@ CMD ["npm", "run", "dev", "--", "--host"]
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# RUN npm run codegen
+RUN npm run codegen
 RUN npm run build
 
 # Production stage
