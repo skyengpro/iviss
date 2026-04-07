@@ -33,7 +33,11 @@ import { Building2, Plus, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { OrganizationForm } from '@/components/shared/Admin/OrganizationForm';
 import { toast } from 'sonner';
-import type { Organization } from '@/openapi-rq/requests/types.gen';
+import type {
+  Organization,
+  CreateOrganizationRequest,
+  UpdateOrganizationRequest,
+} from '@/openapi-rq/types.gen';
 
 export default function OrganizationManagement() {
   const { t } = useTranslation();
@@ -61,25 +65,29 @@ export default function OrganizationManagement() {
     return matchesSearch && matchesType;
   });
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: CreateOrganizationRequest) => {
     try {
       await createOrganization(data);
       toast.success(t('organizationManagement.organizationCreated'));
       setShowForm(false);
-    } catch (error: any) {
-      toast.error(error.message || t('organizationManagement.createError'));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('organizationManagement.createError');
+      toast.error(message);
     }
   };
 
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = async (data: UpdateOrganizationRequest) => {
     if (!editingOrg) return;
     try {
       await updateOrganization(editingOrg.id, data);
       toast.success(t('organizationManagement.organizationUpdated'));
       setEditingOrg(null);
       setShowForm(false);
-    } catch (error: any) {
-      toast.error(error.message || t('organizationManagement.updateError'));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('organizationManagement.updateError');
+      toast.error(message);
     }
   };
 
@@ -89,8 +97,10 @@ export default function OrganizationManagement() {
       await deleteOrganization(deletingOrg.id);
       toast.success(t('organizationManagement.organizationDeleted'));
       setDeletingOrg(null);
-    } catch (error: any) {
-      toast.error(error.message || t('organizationManagement.deleteError'));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('organizationManagement.deleteError');
+      toast.error(message);
     }
   };
 

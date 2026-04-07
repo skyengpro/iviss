@@ -135,7 +135,7 @@ mod tests {
         let postgres = Postgres::default().with_host_auth().start().await.unwrap();
         let host = postgres.get_host().await.unwrap();
         let port = postgres.get_host_port_ipv4(5432).await.unwrap();
-        let db_url = format!("postgres://postgres@{}:{}/postgres", host, port);
+        let db_url = format!("postgres://postgres@{host}:{port}/postgres");
 
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(5)

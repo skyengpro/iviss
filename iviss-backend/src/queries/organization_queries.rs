@@ -216,23 +216,22 @@ pub async fn update_organization(
     let mut param_count = 1;
 
     if req.name.is_some() {
-        query.push_str(&format!(", name = ${}", param_count));
+        query.push_str(&format!(", name = ${param_count}"));
         param_count += 1;
     }
 
     if req.org_type.is_some() {
-        query.push_str(&format!(", type = ${}", param_count));
+        query.push_str(&format!(", type = ${param_count}"));
         param_count += 1;
     }
 
     if req.region.is_some() {
-        query.push_str(&format!(", region = ${}", param_count));
+        query.push_str(&format!(", region = ${param_count}"));
         param_count += 1;
     }
 
     query.push_str(&format!(
-        " WHERE id = ${} RETURNING id, name, type, region",
-        param_count
+        " WHERE id = ${param_count} RETURNING id, name, type, region"
     ));
 
     let mut query_builder = sqlx::query(&query);
@@ -310,9 +309,8 @@ pub async fn delete_organization(pool: &PgPool, id: Uuid) -> Result<(), AppError
     .map_err(AppError::database)?;
 
     if user_count > 0 {
-        return Err(AppError::bad_request(&format!(
-            "Cannot delete organization with {} active users",
-            user_count
+        return Err(AppError::bad_request(format!(
+            "Cannot delete organization with {user_count} active users"
         )));
     }
 
