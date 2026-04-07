@@ -44,3 +44,4 @@ iviss-backend/lcov.info
 .env
 .vscode/settings.json
 iviss-backend/scripts/log_out_test.sh
+iviss-backend/scripts/test_token_invalidation.sh
