@@ -5,7 +5,6 @@ use uuid::Uuid;
 /// Tracks gray-card image submissions awaiting admin validation.
 /// Maps to the `pending_submissions` table.
 #[derive(Debug, FromRow)]
-#[allow(dead_code)]
 pub struct PendingSubmission {
     pub id: Uuid,
     pub plate_number: String,

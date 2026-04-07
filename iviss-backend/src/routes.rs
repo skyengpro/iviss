@@ -14,8 +14,6 @@ pub fn assembly(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/api/v1/health", get(crate::handlers::health::health_check))
         .route("/api/v1/auth/login", post(crate::handlers::auth::login))
-        // TODO: Enable once register is fully implemented
-        // .route("/auth/register", post(crate::handlers::auth::register))
         .route(
             "/api/v1/auth/activate",
             post(crate::handlers::auth::activate),
@@ -77,14 +75,6 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/admin/restart-session",
             post(crate::handlers::user_management::restart_session),
         )
-        // .route(
-        //     "/admin/devices/{id}/suspend",
-        //     post(crate::handlers::device_management::suspend_device),
-        // )
-        // .route(
-        //     "/admin/devices/{id}/unsuspend",
-        //     post(crate::handlers::device_management::unsuspend_device),
-        // )
         .route(
             "/api/v1/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),

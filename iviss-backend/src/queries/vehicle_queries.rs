@@ -104,7 +104,6 @@ pub struct VehicleStatusRow {
     pub technical_expiry: Option<time::Date>,
     pub stolen_status: bool,
     pub vehicle_image_url: Option<String>,
-    #[allow(dead_code)]
     pub last_updated: Option<time::OffsetDateTime>,
 }
 
