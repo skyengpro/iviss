@@ -6,7 +6,7 @@ COPY openapi.json ./
 
 # Dependencies stage
 FROM base AS deps
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --ignore-scripts
 
 # Development stage
 FROM base AS dev
@@ -20,8 +20,6 @@ CMD ["npm", "run", "dev", "--", "--host"]
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN node ../scripts/fetch_openapi.mjs || true
-RUN npm run codegen
 RUN npm run build
 
 # Production stage
