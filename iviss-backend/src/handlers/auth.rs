@@ -2,8 +2,8 @@ use crate::app_state::AppState;
 
 use crate::dto::auth::{
     ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, LogoutRequestHeaders,
-    RefreshRequest, RequestDailyLoginRequest, RequestDailyLoginResponse,
-    VerifyDailyLoginRequest, VerifyDailyLoginResponse,
+    RefreshRequest, RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
+    VerifyDailyLoginResponse,
 };
 use crate::middleware::auth::decode_access_token_rs256;
 use axum::extract::State;
