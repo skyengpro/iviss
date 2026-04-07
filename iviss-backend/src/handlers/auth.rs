@@ -764,10 +764,11 @@ async fn request_refresh_agent(
     let nonce_key = format!("{NONCE_KEY_PREFIX}:{device_id}");
     {
         use deadpool_redis::redis::AsyncCommands;
-        let mut conn =
-            state.redis.get().await.map_err(|e| {
-                AppError::Internal(anyhow::anyhow!("Redis connection error: {e}"))
-            })?;
+        let mut conn = state
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {e}")))?;
         conn.set_ex::<_, _, ()>(&nonce_key, &nonce, NONCE_TTL_SECS)
             .await
             .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {e}")))?;
@@ -885,10 +886,11 @@ pub async fn verify_refresh(
     let nonce_key = format!("{NONCE_KEY_PREFIX}:{}", payload.device_id);
     let stored_nonce: Option<String> = {
         use deadpool_redis::redis::AsyncCommands;
-        let mut conn =
-            state.redis.get().await.map_err(|e| {
-                AppError::Internal(anyhow::anyhow!("Redis connection error: {e}"))
-            })?;
+        let mut conn = state
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {e}")))?;
         let val: Option<String> = conn
             .get(&nonce_key)
             .await
