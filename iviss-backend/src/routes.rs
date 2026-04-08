@@ -81,6 +81,14 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route("/api/v1/admin/controls/paged", get(get_list_control_paged))
         .route(
+            "/api/v1/admin/audit",
+            get(crate::handlers::audit::list_audit_logs),
+        )
+        .route(
+            "/api/v1/admin/audit/export",
+            get(crate::handlers::audit::export_audit_logs),
+        )
+        .route(
             "/api/v1/admin/stats",
             get(crate::handlers::stats::get_dashboard_stats),
         )
