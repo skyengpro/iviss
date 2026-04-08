@@ -27,7 +27,6 @@ To prevent automated tools from breaking the codebase, the API client output was
 The Github Actions workflow was updated to ensure build stability.
 
 **Fixes:**
-- Resolved merge conflict markers in `.github/workflows/frontend-ci.yml`.
 - Standardized Node.js version to `20` (minimum supported by Vite 7).
 - Verified caching mechanisms for the restructured `src/openapi-rq` path.
 
@@ -45,6 +44,3 @@ If the backend OpenAPI specification changes, follow these steps to update the f
     npm run codegen
     ```
 3.  **Verify**: Run `npm run build` to ensure all type-safe hooks and services are correctly integrated.
-
----
-*Document Created: 2026-04-08*
