@@ -3,15 +3,7 @@ import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Search,
-  Download,
-  Shield,
-  User,
-  Clock,
-  Activity,
-  ArrowUpDown,
-} from 'lucide-react';
+import { Search, Download, Shield, User, Clock, Activity, ArrowUpDown } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useListAuditLogs, useExportAuditLogs } from '@/openapi-rq/queries/queries';
 import { format } from 'date-fns';
@@ -38,7 +30,7 @@ export default function AuditLogPage() {
       const response = await exportMutation.refetch();
       if (response.data) {
         // Blob handling for CSV export
-        const blob = new Blob([response.data as any], { type: 'text/csv' });
+        const blob = new Blob([response.data as string], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -54,7 +46,7 @@ export default function AuditLogPage() {
 
   const auditLogs = useMemo(() => data?.items ?? [], [data]);
 
-  const getActionColor = (action: string) => {
+  const getActionColor = (action: string): 'valid' | 'critical' | 'neutral' => {
     if (action.includes('Approved') || action.includes('Login')) return 'valid';
     if (action.includes('Rejected') || action.includes('Delete')) return 'critical';
     return 'neutral';
@@ -71,9 +63,9 @@ export default function AuditLogPage() {
       title={t('backOfficeAudit.title')}
       subtitle={t('backOfficeAudit.subtitle')}
       actions={
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="rounded-xl border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
           onClick={handleExport}
           disabled={exportMutation.isFetching}
@@ -143,8 +135,8 @@ export default function AuditLogPage() {
                   </tr>
                 ) : (
                   auditLogs.map((log) => {
-                     const ActionIcon = getActionIcon(log.action);
-                     return (
+                    const ActionIcon = getActionIcon(log.action);
+                    return (
                       <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-6 py-4 whitespace-nowrap text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3.5 w-3.5" />
@@ -152,16 +144,18 @@ export default function AuditLogPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                             <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                                {log.userName?.charAt(0).toUpperCase() ?? '?'}
-                             </div>
-                             <span className="font-semibold">{log.userName ?? 'System'}</span>
+                            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
+                              {log.userName?.charAt(0).toUpperCase() ?? '?'}
+                            </div>
+                            <span className="font-semibold">{log.userName ?? 'System'}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge variant={getActionColor(log.action) as any} className="capitalize">
+                          <StatusBadge variant={getActionColor(log.action)} className="capitalize">
                             <ActionIcon className="mr-1.5 h-3 w-3" />
-                            {t(`backOfficeAudit.${log.action.toLowerCase()}`, { defaultValue: log.action })}
+                            {t(`backOfficeAudit.${log.action.toLowerCase()}`, {
+                              defaultValue: log.action,
+                            })}
                           </StatusBadge>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground">
@@ -181,14 +175,17 @@ export default function AuditLogPage() {
         {/* Pagination placeholder */}
         <div className="flex items-center justify-between px-2">
           <p className="text-xs text-muted-foreground">
-            {t('backOfficeControlHistory.pageOf', { currentPage: page, totalPages: data?.totalPages ?? 1 })}
+            {t('backOfficeControlHistory.pageOf', {
+              currentPage: page,
+              totalPages: data?.totalPages ?? 1,
+            })}
           </p>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               className="rounded-xl"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
             >
               {t('backOfficeControlHistory.previous')}
@@ -197,7 +194,7 @@ export default function AuditLogPage() {
               variant="outline"
               size="sm"
               className="rounded-xl"
-              onClick={() => setPage(p => p + 1)}
+              onClick={() => setPage((p) => p + 1)}
               disabled={page >= (data?.totalPages ?? 1)}
             >
               {t('backOfficeControlHistory.next')}
