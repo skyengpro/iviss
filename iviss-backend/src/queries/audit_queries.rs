@@ -1,4 +1,5 @@
-use crate::dto::audit::{AuditLogEntry, AuditLogQuery, AuditAction};
+use std::str::FromStr;
+use crate::dto::audit::{AuditAction, AuditLogEntry, AuditLogQuery};
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -16,7 +17,8 @@ pub async fn get_audit_logs(
         FROM audit_logs a
         LEFT JOIN users u ON a.user_id = u.id
         WHERE 1=1
-    "#.to_string();
+    "#
+    .to_string();
 
     if query.user_id.is_some() {
         sql.push_str(" AND a.user_id = $3");
@@ -27,9 +29,7 @@ pub async fn get_audit_logs(
 
     sql.push_str(" ORDER BY a.created_at DESC LIMIT $1 OFFSET $2");
 
-    let mut sql_query = sqlx::query(&sql)
-        .bind(limit)
-        .bind(offset);
+    let mut sql_query = sqlx::query(&sql).bind(limit).bind(offset);
 
     if let Some(user_id) = query.user_id {
         sql_query = sql_query.bind(user_id);
@@ -38,12 +38,16 @@ pub async fn get_audit_logs(
         sql_query = sql_query.bind(action);
     }
 
-    let rows = sql_query.fetch_all(pool).await.map_err(AppError::database)?;
+    let rows = sql_query
+        .fetch_all(pool)
+        .await
+        .map_err(AppError::database)?;
 
     let mut entries = Vec::new();
     for row in rows {
         let action_str: String = row.try_get("action").map_err(AppError::database)?;
-        let created_at: time::OffsetDateTime = row.try_get("created_at").map_err(AppError::database)?;
+        let created_at: time::OffsetDateTime =
+            row.try_get("created_at").map_err(AppError::database)?;
 
         entries.push(AuditLogEntry {
             id: row.try_get("id").map_err(AppError::database)?,
@@ -61,9 +65,7 @@ pub async fn get_audit_logs(
     Ok(entries)
 }
 
-pub async fn export_audit_logs_csv(
-    pool: &PgPool,
-) -> Result<String, AppError> {
+pub async fn export_audit_logs_csv(pool: &PgPool) -> Result<String, AppError> {
     // For export, we fetch a larger chunk (e.g., last 1000 logs)
     let rows = sqlx::query(
         r#"
@@ -72,7 +74,7 @@ pub async fn export_audit_logs_csv(
         LEFT JOIN users u ON a.user_id = u.id
         ORDER BY a.created_at DESC
         LIMIT 1000
-        "#
+        "#,
     )
     .fetch_all(pool)
     .await
@@ -88,7 +90,9 @@ pub async fn export_audit_logs_csv(
         csv.push_str(&format!(
             "{},{},{},{}\n",
             id,
-            timestamp.format(&time::format_description::well_known::Rfc3339).unwrap_or_default(),
+            timestamp
+                .format(&time::format_description::well_known::Rfc3339)
+                .unwrap_or_default(),
             user.unwrap_or_else(|| "System".to_string()),
             action
         ));

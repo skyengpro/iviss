@@ -1,5 +1,7 @@
 use crate::app_state::AppState;
-use crate::dto::audit::{AuditLogEntry, AuditLogQuery};
+#[allow(unused_imports)]
+use crate::dto::audit::AuditLogEntry;
+use crate::dto::audit::AuditLogQuery;
 use crate::errors::AppError;
 use axum::{
     extract::{Query, State},
@@ -48,11 +50,14 @@ pub async fn export_audit_logs(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, AppError> {
     let csv_data = crate::queries::audit_queries::export_audit_logs_csv(&state.db).await?;
-    
+
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "text/csv")
-        .header(header::CONTENT_DISPOSITION, "attachment; filename=\"audit_logs.csv\"")
+        .header(
+            header::CONTENT_DISPOSITION,
+            "attachment; filename=\"audit_logs.csv\"",
+        )
         .body(csv_data)
         .map_err(|e| AppError::internal_error(e.to_string()))?;
 

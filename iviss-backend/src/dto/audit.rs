@@ -1,5 +1,6 @@
+use std::str::FromStr;
 use serde::{Deserialize, Serialize};
-use utoipa::{ToSchema, IntoParams};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq, Clone)]
@@ -31,6 +32,33 @@ pub enum AuditAction {
     PendingSubmissionReviewed,
 }
 
+impl FromStr for AuditAction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "LOGIN_SUCCESS" => Ok(Self::LoginSuccess),
+            "LOGIN_FAILED" => Ok(Self::LoginFailed),
+            "LOGOUT" => Ok(Self::Logout),
+            "TOKEN_REFRESHED" => Ok(Self::TokenRefreshed),
+            "OTP_REQUESTED" => Ok(Self::OtpRequested),
+            "OTP_VERIFIED" => Ok(Self::OtpVerified),
+            "OTP_FAILED" => Ok(Self::OtpFailed),
+            "DEVICE_REGISTERED" => Ok(Self::DeviceRegistered),
+            "DEVICE_REVOKED" => Ok(Self::DeviceRevoked),
+            "USER_CREATED" => Ok(Self::UserCreated),
+            "USER_UPDATED" => Ok(Self::UserUpdated),
+            "USER_SUSPENDED" => Ok(Self::UserSuspended),
+            "USER_ACTIVATED" => Ok(Self::UserActivated),
+            "VEHICLE_SEARCHED" => Ok(Self::VehicleSearched),
+            "VEHICLE_NOT_FOUND" => Ok(Self::VehicleNotFound),
+            "PENDING_SUBMISSION_CREATED" => Ok(Self::PendingSubmissionCreated),
+            "PENDING_SUBMISSION_REVIEWED" => Ok(Self::PendingSubmissionReviewed),
+            _ => Err(()),
+        }
+    }
+}
+
 impl AuditAction {
     pub fn as_str(&self) -> &str {
         match self {
@@ -51,29 +79,6 @@ impl AuditAction {
             Self::VehicleNotFound => "VEHICLE_NOT_FOUND",
             Self::PendingSubmissionCreated => "PENDING_SUBMISSION_CREATED",
             Self::PendingSubmissionReviewed => "PENDING_SUBMISSION_REVIEWED",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "LOGIN_SUCCESS" => Some(Self::LoginSuccess),
-            "LOGIN_FAILED" => Some(Self::LoginFailed),
-            "LOGOUT" => Some(Self::Logout),
-            "TOKEN_REFRESHED" => Some(Self::TokenRefreshed),
-            "OTP_REQUESTED" => Some(Self::OtpRequested),
-            "OTP_VERIFIED" => Some(Self::OtpVerified),
-            "OTP_FAILED" => Some(Self::OtpFailed),
-            "DEVICE_REGISTERED" => Some(Self::DeviceRegistered),
-            "DEVICE_REVOKED" => Some(Self::DeviceRevoked),
-            "USER_CREATED" => Some(Self::UserCreated),
-            "USER_UPDATED" => Some(Self::UserUpdated),
-            "USER_SUSPENDED" => Some(Self::UserSuspended),
-            "USER_ACTIVATED" => Some(Self::UserActivated),
-            "VEHICLE_SEARCHED" => Some(Self::VehicleSearched),
-            "VEHICLE_NOT_FOUND" => Some(Self::VehicleNotFound),
-            "PENDING_SUBMISSION_CREATED" => Some(Self::PendingSubmissionCreated),
-            "PENDING_SUBMISSION_REVIEWED" => Some(Self::PendingSubmissionReviewed),
-            _ => None,
         }
     }
 }
