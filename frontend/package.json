@@ -20,8 +20,8 @@
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
     "postinstall": "npm run codegen:types",
-    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch",
-    "codegen:types": "openapi-ts --input openapi.json --output ./src/openapi-rq/requests --client @hey-api/client-fetch"
+    "codegen": "npx openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch && sed -i -E 's/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/use\\1/g' src/openapi-rq/queries/index.ts && npx openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && echo \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\" > src/openapi-rq/requests/services.gen.ts && echo \"export * from './index';\" > src/openapi-rq/queries/queries.ts",
+    "codegen:types": "npx openapi-ts --input openapi.json --output ./src/openapi-rq/requests --client @hey-api/client-fetch"
   },
   "dependencies": {
     "@hey-api/client-fetch": "^0.5.1",
@@ -89,9 +89,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@7nohe/openapi-react-query-codegen": "^2.0.0",
+    "@7nohe/openapi-react-query-codegen": "^0.3.0",
     "@eslint/js": "^9.32.0",
-    "@hey-api/openapi-ts": "^0.94.5",
+    "@hey-api/openapi-ts": "0.80.0",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.0",
@@ -103,15 +103,17 @@
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.10.13",
-    "commander": "12.1.0",
+    "commander": "11.1.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "install": "^0.13.0",
     "jsdom": "^29.0.1",
+    "openapi-typescript-codegen": "^0.24.0",
     "postcss": "^8.5.6",
     "prettier": "^3.4.2",
+    "tailwindcss": "^3.4.17",
     "ts-morph": "^27.0.2",
     "typescript": "~5.5.4",
     "typescript-eslint": "^8.38.0",
@@ -119,6 +121,6 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    "commander": "12.1.0"
+    "commander": "11.1.0"
   }
 }
