@@ -1,7 +1,7 @@
-use std::str::FromStr;
 use crate::dto::audit::{AuditAction, AuditLogEntry, AuditLogQuery};
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
+use std::str::FromStr;
 use uuid::Uuid;
 
 pub async fn get_audit_logs(
