@@ -395,6 +395,26 @@
     "toastSuccess": "Utilisateur créé avec succès",
     "toastError": "Échec de la création de l'utilisateur"
   },
+  "backOfficeAudit": {
+    "title": "Journaux d'Audit Système",
+    "subtitle": "Suivi de toutes les actions administratives et de sécurité",
+    "searchPlaceholder": "Rechercher par utilisateur ou action...",
+    "action": "Action",
+    "user": "Utilisateur",
+    "timestamp": "Horodatage",
+    "ipAddress": "Adresse IP",
+    "details": "Détails",
+    "export": "Exporter CSV",
+    "loading": "Chargement des journaux d'audit...",
+    "noLogsFound": "Aucun journal d'audit trouvé correspondant à vos critères.",
+    "allActions": "Toutes les actions",
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "userUpdate": "Utilisateur Mis à Jour",
+    "userDelete": "Utilisateur Supprimé",
+    "submissionApproved": "Soumission Approuvée",
+    "submissionRejected": "Soumission Rejetée"
+  },
   "mobileSidebar": {
     "frontOffice": "Portail Mobile",
     "online": "En ligne",

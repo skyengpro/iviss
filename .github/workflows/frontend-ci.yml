@@ -186,11 +186,7 @@ jobs:
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
-<<<<<<< HEAD
-    needs: [ frontend_build, frontend_unit_tests ]
-=======
     needs: [frontend_build, frontend_unit_tests]
->>>>>>> d530efa734cf74a9fbd848d2d0195b563f7b2965
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
