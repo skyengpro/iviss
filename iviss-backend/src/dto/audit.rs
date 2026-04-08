@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
