@@ -4,6 +4,7 @@ use utoipa::{
 };
 
 use crate::dto::{
+    audit::*,
     auth::*,
     common::*,
     create_control::*,
@@ -79,6 +80,7 @@ impl Modify for SecurityAddon {
         crate::handlers::pending_submission::submit_vehicle_v1,
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,
+        crate::handlers::pending_submission::get_submission_audit_log,
         crate::handlers::scan::scan_plate,
         crate::handlers::photo::photo_plate,
         crate::handlers::stats::get_dashboard_stats,
@@ -89,7 +91,7 @@ impl Modify for SecurityAddon {
         crate::handlers::users::get_user_profile,
         crate::handlers::users::update_location,
         crate::handlers::auth::login,
-        // crate::handlers::auth::logout,
+        crate::handlers::auth::logout,
         crate::handlers::auth::request_daily_login,
         crate::handlers::auth::verify_daily_login,
         crate::handlers::auth::activate,
@@ -108,6 +110,8 @@ impl Modify for SecurityAddon {
         crate::handlers::organization_management::delete_organization,
         crate::handlers::user_management::terminate_session,
         crate::handlers::user_management::restart_session,
+        crate::handlers::audit::list_audit_logs,
+        crate::handlers::audit::export_audit_logs,
     ),
 
     components(
@@ -137,10 +141,13 @@ impl Modify for SecurityAddon {
             CreateControlRequest,
             CreateControlResponse,
             CreatePendingSubmissionRequest,
-            PendingSubmissionRequest,
+            PendingSubmissionDetail,
             PendingSubmissionListItem,
             SubmissionStatus,
             DataEntryResponse,
+            VehicleDataEntry,
+            SubmissionAuditLogEntry,
+            SubmissionListQuery,
             // ── errors ──
             AppErrorResponse,
             ErrorCode,
@@ -194,6 +201,9 @@ impl Modify for SecurityAddon {
             UpdateOrganizationRequest,
             OrganizationDetails,
             DeviceStatus,
+            AuditLogEntry,
+            AuditAction,
+            AuditLogQuery,
         )
     ),
     modifiers(&SecurityAddon),

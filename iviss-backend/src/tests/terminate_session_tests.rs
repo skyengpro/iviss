@@ -193,8 +193,6 @@ async fn seed_users_with_active_session(
     let refresh_token = "test-refresh-token-value";
     let refresh_token_hash = format!("{:x}", sha2::Sha256::digest(refresh_token.as_bytes()));
     let refresh_expires = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-    let refresh_expires_primitive =
-        time::PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
 
     sqlx::query(
         r#"
@@ -205,7 +203,7 @@ async fn seed_users_with_active_session(
     .bind(&refresh_token_hash)
     .bind(agent_id)
     .bind(device_id)
-    .bind(refresh_expires_primitive)
+    .bind(refresh_expires)
     .execute(db)
     .await
     .unwrap();
