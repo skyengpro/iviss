@@ -110,7 +110,7 @@ pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForL
 #[derive(Debug, FromRow)]
 pub struct DeviceForLogin {
     pub status: String,
-    pub revoked_at: Option<time::PrimitiveDateTime>,
+    pub revoked_at: Option<time::OffsetDateTime>,
 }
 
 pub async fn get_device_by_user_optional(
@@ -185,7 +185,7 @@ pub async fn suspend_device_and_revoke_tokens(
 }
 
 pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Result<(), AppError> {
-    let key = format!("blacklist:jti:{}", jti);
+    let key = format!("blacklist:jti:{jti}");
     let mut conn = redis
         .get()
         .await

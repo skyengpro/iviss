@@ -159,7 +159,7 @@ pub async fn login(
     let token_hash = {
         use sha2::Digest;
         let digest = sha2::Sha256::digest(refresh_token.as_bytes());
-        format!("{:x}", digest)
+        format!("{digest:x}")
     };
 
     let expires_at = time::OffsetDateTime::now_utc() + time::Duration::days(30);
@@ -238,7 +238,6 @@ pub async fn login(
     operation_id = "logoutUser",
     security(("bearer_auth" = []))
 )]
-#[cfg(not(test))] //TODO
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
@@ -300,8 +299,7 @@ pub async fn activate(
     }
     if user_status != "PENDING_ACTIVATION" {
         return Err(AppError::BadRequest(format!(
-            "User is not pending activation - current status: {}",
-            user_status
+            "User is not pending activation - current status: {user_status}"
         )));
     }
 
@@ -372,12 +370,9 @@ pub async fn activate(
     let refresh_token_hash = {
         use sha2::Digest;
         let digest = sha2::Sha256::digest(refresh_token.as_bytes());
-        format!("{:x}", digest)
+        format!("{digest:x}")
     };
-    let refresh_expires_at = {
-        let dt = OffsetDateTime::now_utc() + time::Duration::days(30);
-        time::PrimitiveDateTime::new(dt.date(), dt.time())
-    };
+    let refresh_expires_at = OffsetDateTime::now_utc() + time::Duration::days(30);
 
     sqlx::query(
         r#"
@@ -472,8 +467,8 @@ pub async fn request_daily_login(
     if let Some(revoked_at) = device.revoked_at {
         // Assume UTC for the stored TIMESTAMP (project convention)
         let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+        let revoked_local = revoked_at.to_offset(local_offset);
         let now = OffsetDateTime::now_utc().to_offset(local_offset);
-        let revoked_local = revoked_at.assume_utc().to_offset(local_offset);
 
         if revoked_local.date() == now.date() {
             return Err(AppError::Forbidden(
@@ -647,7 +642,7 @@ pub async fn verify_daily_login(
     };
 
     // ── Conditionally build new refresh token
-    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> =
+    let new_refresh: Option<(String, String, time::OffsetDateTime)> =
         if device_exists && !has_valid_refresh {
             let raw = {
                 let mut bytes = [0u8; 32];
@@ -656,12 +651,10 @@ pub async fn verify_daily_login(
             };
             let hash = {
                 use sha2::Digest;
-                format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
+                let digest = sha2::Sha256::digest(raw.as_bytes());
+                format!("{digest:x}")
             };
-            let expires_at = {
-                let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-                time::PrimitiveDateTime::new(dt.date(), dt.time())
-            };
+            let expires_at = time::OffsetDateTime::now_utc() + time::Duration::days(30);
             Some((raw, hash, expires_at))
         } else {
             None
@@ -788,7 +781,7 @@ async fn request_refresh_agent(
     let token_hash = {
         use sha2::Digest;
         let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
-        format!("{:x}", digest)
+        format!("{digest:x}")
     };
 
     // Validate refresh token exists, is not revoked, and not expired
@@ -823,16 +816,17 @@ async fn request_refresh_agent(
     };
 
     // Store nonce in Redis with device_id as key, TTL 60s
-    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, device_id);
+    let nonce_key = format!("{NONCE_KEY_PREFIX}:{device_id}");
     {
         use deadpool_redis::redis::AsyncCommands;
-        let mut conn =
-            state.redis.get().await.map_err(|e| {
-                AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e))
-            })?;
+        let mut conn = state
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {e}")))?;
         conn.set_ex::<_, _, ()>(&nonce_key, &nonce, NONCE_TTL_SECS)
             .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {}", e)))?;
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {e}")))?;
     }
 
     tracing::info!(
@@ -856,7 +850,7 @@ async fn request_refresh_admin(
     let token_hash = {
         use sha2::Digest;
         let digest = sha2::Sha256::digest(refresh_token.as_bytes());
-        format!("{:x}", digest)
+        format!("{digest:x}")
     };
 
     // Validate refresh token — device_id must be NULL (admin token)
@@ -944,17 +938,18 @@ pub async fn verify_refresh(
     tracing::warn!(device_id = %payload.device_id, "--- [BACKEND] verify_refresh: Processing start ---");
 
     // 1. Retrieve and consume the nonce from Redis (one-time use)
-    let nonce_key = format!("{}:{}", NONCE_KEY_PREFIX, payload.device_id);
+    let nonce_key = format!("{NONCE_KEY_PREFIX}:{}", payload.device_id);
     let stored_nonce: Option<String> = {
         use deadpool_redis::redis::AsyncCommands;
-        let mut conn =
-            state.redis.get().await.map_err(|e| {
-                AppError::Internal(anyhow::anyhow!("Redis connection error: {}", e))
-            })?;
+        let mut conn = state
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {e}")))?;
         let val: Option<String> = conn
             .get(&nonce_key)
             .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis GET error: {}", e)))?;
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis GET error: {e}")))?;
         // Delete immediately to prevent replay
         conn.del::<_, ()>(&nonce_key).await.ok();
         val
@@ -971,7 +966,7 @@ pub async fn verify_refresh(
     let token_hash = {
         use sha2::Digest;
         let digest = sha2::Sha256::digest(payload.refresh_token.as_bytes());
-        format!("{:x}", digest)
+        format!("{digest:x}")
     };
 
     let token_row = sqlx::query(
@@ -1125,7 +1120,7 @@ fn verify_es256_jws(
     })?;
 
     // The message that was signed is "<header>.<payload>" (the JWS signing input)
-    let signing_input = format!("{}.{}", header_b64, payload_b64);
+    let signing_input = format!("{header_b64}.{payload_b64}");
 
     verifying_key.verify(signing_input.as_bytes(), &signature).map_err(|e| {
         tracing::warn!(error = %e, "Cryptographic failure: ES256 Signature verification failed");

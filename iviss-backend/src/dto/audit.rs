@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
@@ -34,6 +35,38 @@ pub enum AuditAction {
     VehicleNotFound,
     PendingSubmissionCreated,
     PendingSubmissionReviewed,
+}
+
+impl FromStr for AuditAction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "LOGIN_SUCCESS" => Ok(Self::LoginSuccess),
+            "LOGIN_FAILED" => Ok(Self::LoginFailed),
+            "LOGOUT" => Ok(Self::Logout),
+            "TOKEN_REFRESHED" => Ok(Self::TokenRefreshed),
+            "OTP_REQUESTED" => Ok(Self::OtpRequested),
+            "OTP_VERIFIED" => Ok(Self::OtpVerified),
+            "OTP_FAILED" => Ok(Self::OtpFailed),
+            "DEVICE_REGISTERED" => Ok(Self::DeviceRegistered),
+            "DEVICE_REVOKED" => Ok(Self::DeviceRevoked),
+            "DEVICE_SUSPENDED" => Ok(Self::DeviceSuspended),
+            "USER_CREATED" => Ok(Self::UserCreated),
+            "USER_UPDATED" => Ok(Self::UserUpdated),
+            "USER_SUSPENDED" => Ok(Self::UserSuspended),
+            "USER_ACTIVATED" => Ok(Self::UserActivated),
+            "USER_DELETED" => Ok(Self::UserDeleted),
+            "SESSION_TERMINATED" => Ok(Self::SessionTerminated),
+            "SESSION_RESTARTED" => Ok(Self::SessionRestarted),
+            "ACTIVATION_CODE_RESENT" => Ok(Self::ActivationCodeResent),
+            "VEHICLE_SEARCHED" => Ok(Self::VehicleSearched),
+            "VEHICLE_NOT_FOUND" => Ok(Self::VehicleNotFound),
+            "PENDING_SUBMISSION_CREATED" => Ok(Self::PendingSubmissionCreated),
+            "PENDING_SUBMISSION_REVIEWED" => Ok(Self::PendingSubmissionReviewed),
+            _ => Err(()),
+        }
+    }
 }
 
 impl AuditAction {
