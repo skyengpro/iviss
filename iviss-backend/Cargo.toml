@@ -50,6 +50,7 @@ base64 = "0.22.1"
 
 p256 = { version = "0.13", features = ["ecdsa", "jwk"] }
 ecdsa = { version = "0.16", features = ["verifying"] }
+moka = { version = "0.12.15", features = ["future"] }
 
 [dev-dependencies]
 testcontainers = "0.23"
