@@ -213,9 +213,7 @@ pub async fn get_control_records(
             agent_name: row.get("agent_name"),
             agent_id: row.get("agent_id"),
             organization_id: row.get("organization_id"),
-            timestamp: row
-                .get::<time::PrimitiveDateTime, _>("timestamp")
-                .to_string(), // Simplified date handling
+            timestamp: row.get::<time::OffsetDateTime, _>("timestamp").to_string(), // Simplified date handling
             status,
             identification_mode,
             confidence: row.get("ocr_confidence"), // Integer in DB, float in DTO? Check schema
@@ -418,9 +416,7 @@ pub async fn get_paged_control_records(
             agent_name: row.get("agent_name"),
             agent_id: row.get("agent_id"),
             organization_id: row.get("organization_id"),
-            timestamp: row
-                .get::<time::PrimitiveDateTime, _>("timestamp")
-                .to_string(),
+            timestamp: row.get::<time::OffsetDateTime, _>("timestamp").to_string(),
             status,
             identification_mode,
             confidence: row.get("ocr_confidence"),
@@ -492,9 +488,7 @@ async fn get_actions_for_control(
         actions.push(ControlAction {
             action_type,
             description: row.get("description"),
-            timestamp: row
-                .get::<time::PrimitiveDateTime, _>("timestamp")
-                .to_string(),
+            timestamp: row.get::<time::OffsetDateTime, _>("timestamp").to_string(),
         });
     }
 

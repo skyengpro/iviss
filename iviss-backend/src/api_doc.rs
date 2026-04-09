@@ -4,6 +4,7 @@ use utoipa::{
 };
 
 use crate::dto::{
+    audit::*,
     auth::*,
     common::*,
     create_control::*,
@@ -76,6 +77,7 @@ impl Modify for SecurityAddon {
         crate::handlers::pending_submission::submit_vehicle_v1,
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,
+        crate::handlers::pending_submission::get_submission_audit_log,
         crate::handlers::scan::scan_plate,
         crate::handlers::photo::photo_plate,
         crate::handlers::stats::get_dashboard_stats,
@@ -101,6 +103,8 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::list_organizations,
         crate::handlers::user_management::terminate_session,
         crate::handlers::user_management::restart_session,
+        crate::handlers::audit::list_audit_logs,
+        crate::handlers::audit::export_audit_logs,
     ),
 
     components(
@@ -130,10 +134,13 @@ impl Modify for SecurityAddon {
             CreateControlRequest,
             CreateControlResponse,
             CreatePendingSubmissionRequest,
-            PendingSubmissionRequest,
+            PendingSubmissionDetail,
             PendingSubmissionListItem,
             SubmissionStatus,
             DataEntryResponse,
+            VehicleDataEntry,
+            SubmissionAuditLogEntry,
+            SubmissionListQuery,
             // ── errors ──
             AppErrorResponse,
             ErrorCode,
@@ -184,6 +191,9 @@ impl Modify for SecurityAddon {
             Organization,
             OrganizationType,
             DeviceStatus,
+            AuditLogEntry,
+            AuditAction,
+            AuditLogQuery,
         )
     ),
     modifiers(&SecurityAddon),
