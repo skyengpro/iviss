@@ -25,9 +25,9 @@ async fn main() -> Result<()> {
     // We look for the file we created earlier
     let seed_file_path = "seeds/seed_data.sql";
 
-    println!("📖 Reading seed data from {}...", seed_file_path);
+    println!("📖 Reading seed data from {seed_file_path}...");
     let sql = fs::read_to_string(seed_file_path)
-        .context(format!("Failed to read seed file: {}", seed_file_path))?;
+        .context(format!("Failed to read seed file: {seed_file_path}"))?;
 
     // 4. Execute the SQL
     println!("🚀 Executing seed SQL...");
