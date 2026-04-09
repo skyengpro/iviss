@@ -122,7 +122,8 @@ services:
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -153,7 +154,8 @@ services:
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

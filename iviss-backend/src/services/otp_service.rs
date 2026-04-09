@@ -60,7 +60,7 @@ impl OtpService {
             .await
             .map_err(|e| AppError::internal_error(format!("Redis SET failed: {e}")))?;
 
-        let message = format!("Your IVISS login code is: {}. Valid for 5 minutes.", code);
+        let message = format!("Your IVISS login code is: {code}. Valid for 5 minutes.");
         self.sms
             .send_sms(phone, &message)
             .await
@@ -148,7 +148,7 @@ impl OtpService {
 
     /// Rate limit — max 3 OTP requests per phone number per 10 minutes
     async fn check_rate_limit(&self, phone: &str) -> Result<(), AppError> {
-        let key = format!("rate_limit:otp_request:{}", phone);
+        let key = format!("rate_limit:otp_request:{phone}");
         let mut conn = self
             .redis
             .get()
@@ -178,18 +178,19 @@ impl OtpService {
     }
 
     fn otp_key(user_id: &Uuid) -> String {
-        format!("user_otp:{}", user_id)
+        format!("user_otp:{user_id}")
     }
 
     fn generate_code(&self) -> String {
         let code: u32 = rand::thread_rng().gen_range(0..=999_999);
-        format!("{:06}", code)
+        format!("{code:06}")
     }
 
     fn hash_code(&self, code: &str) -> String {
         let mut mac =
             HmacSha256::new_from_slice(self.pepper.as_bytes()).expect("HMAC accepts any key size");
         mac.update(code.as_bytes());
-        format!("{:x}", mac.finalize().into_bytes())
+        let finalize = mac.finalize().into_bytes();
+        format!("{finalize:x}")
     }
 }
