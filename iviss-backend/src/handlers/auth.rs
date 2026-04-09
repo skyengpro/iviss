@@ -176,7 +176,6 @@ pub async fn login(
     operation_id = "logoutUser",
     security(("bearer_auth" = []))
 )]
-#[cfg(not(test))] //TODO
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }
@@ -312,10 +311,7 @@ pub async fn activate(
         let digest = sha2::Sha256::digest(refresh_token.as_bytes());
         format!("{:x}", digest)
     };
-    let refresh_expires_at = {
-        let dt = OffsetDateTime::now_utc() + time::Duration::days(30);
-        time::PrimitiveDateTime::new(dt.date(), dt.time())
-    };
+    let refresh_expires_at = OffsetDateTime::now_utc() + time::Duration::days(30);
 
     sqlx::query(
         r#"
@@ -410,8 +406,8 @@ pub async fn request_daily_login(
     if let Some(revoked_at) = device.revoked_at {
         // Assume UTC for the stored TIMESTAMP (project convention)
         let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+        let revoked_local = revoked_at.to_offset(local_offset);
         let now = OffsetDateTime::now_utc().to_offset(local_offset);
-        let revoked_local = revoked_at.assume_utc().to_offset(local_offset);
 
         if revoked_local.date() == now.date() {
             return Err(AppError::Forbidden(
@@ -585,7 +581,7 @@ pub async fn verify_daily_login(
     };
 
     // ── Conditionally build new refresh token
-    let new_refresh: Option<(String, String, time::PrimitiveDateTime)> =
+    let new_refresh: Option<(String, String, time::OffsetDateTime)> =
         if device_exists && !has_valid_refresh {
             let raw = {
                 let mut bytes = [0u8; 32];
@@ -596,10 +592,7 @@ pub async fn verify_daily_login(
                 use sha2::Digest;
                 format!("{:x}", sha2::Sha256::digest(raw.as_bytes()))
             };
-            let expires_at = {
-                let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-                time::PrimitiveDateTime::new(dt.date(), dt.time())
-            };
+            let expires_at = time::OffsetDateTime::now_utc() + time::Duration::days(30);
             Some((raw, hash, expires_at))
         } else {
             None
