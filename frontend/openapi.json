@@ -9,6 +9,138 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/admin/audit": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List general system audit logs (admin only)",
+        "operationId": "listAuditLogs",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of audit log entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/audit/export": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Export audit logs as CSV (admin only)",
+        "operationId": "exportAuditLogs",
+        "responses": {
+          "200": {
+            "description": "Audit logs in CSV format",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/controls/paged": {
       "get": {
         "tags": ["controls"],
@@ -628,11 +760,23 @@
     "/api/v1/admin/submissions": {
       "get": {
         "tags": ["vehicles"],
-        "summary": "List all pending submissions for admin review",
+        "summary": "List submissions for admin review, optionally filtered by status",
         "operationId": "listPendingSubmissions",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status: pending, approved, rejected",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "List of pending submissions",
+            "description": "List of submissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -665,7 +809,7 @@
     "/api/v1/admin/submissions/{id}": {
       "get": {
         "tags": ["vehicles"],
-        "summary": "Get details of a single pending submission",
+        "summary": "Get full details of a single submission",
         "operationId": "getPendingSubmission",
         "parameters": [
           {
@@ -685,7 +829,56 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PendingSubmissionRequest"
+                  "$ref": "#/components/schemas/PendingSubmissionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/submissions/{id}/audit": {
+      "get": {
+        "tags": ["vehicles"],
+        "summary": "Get the audit trail for a submission",
+        "operationId": "getSubmissionAuditLog",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit log entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionAuditLogEntry"
+                  }
                 }
               }
             }
@@ -1165,6 +1358,30 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Logout and invalidate session",
+        "operationId": "logoutUser",
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/api/v1/auth/refresh": {
@@ -2316,6 +2533,85 @@
           }
         }
       },
+      "AuditAction": {
+        "type": "string",
+        "enum": [
+          "LOGIN_SUCCESS",
+          "LOGIN_FAILED",
+          "LOGOUT",
+          "TOKEN_REFRESHED",
+          "OTP_REQUESTED",
+          "OTP_VERIFIED",
+          "OTP_FAILED",
+          "DEVICE_REGISTERED",
+          "DEVICE_REVOKED",
+          "USER_CREATED",
+          "USER_UPDATED",
+          "USER_SUSPENDED",
+          "USER_ACTIVATED",
+          "VEHICLE_SEARCHED",
+          "VEHICLE_NOT_FOUND",
+          "PENDING_SUBMISSION_CREATED",
+          "PENDING_SUBMISSION_REVIEWED"
+        ]
+      },
+      "AuditLogEntry": {
+        "type": "object",
+        "description": "DTO for an audit log entry",
+        "required": ["id", "action", "metadata", "createdAt"],
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AuditAction"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "metadata": {},
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AuditLogQuery": {
+        "type": "object",
+        "description": "Query parameters for listing audit logs",
+        "properties": {
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
       "AuthResponse": {
         "type": "object",
         "required": ["accessToken", "refreshToken", "user"],
@@ -2617,17 +2913,17 @@
       },
       "DataEntryResponse": {
         "type": "object",
-        "description": "Response after approved and enters vehicle data",
-        "required": ["message", "submission_id", "plate_number"],
+        "description": "Response after creating a pending submission",
+        "required": ["message", "submissionId", "plateNumber"],
         "properties": {
           "message": {
             "type": "string"
           },
-          "plate_number": {
+          "plateNumber": {
             "type": "string",
-            "description": "Plate number that was added to the external registry"
+            "description": "Plate number that was submitted"
           },
-          "submission_id": {
+          "submissionId": {
             "type": "string",
             "format": "uuid"
           }
@@ -2892,62 +3188,28 @@
           }
         }
       },
-      "PendingSubmissionListItem": {
-        "type": "object",
-        "description": "Lightweight list item for admin dashboard",
-        "required": ["id", "plate_number", "status", "submitted_at"],
-        "properties": {
-          "agent_name": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SubmissionStatus"
-          },
-          "submitted_at": {
-            "type": "string"
-          }
-        }
-      },
-      "PendingSubmissionRequest": {
+      "PendingSubmissionDetail": {
         "type": "object",
         "description": "Detailed view of a pending submission (for admin review)",
-        "required": [
-          "id",
-          "plate_number",
-          "agent_id",
-          "front_image_url",
-          "back_image_url",
-          "status",
-          "submitted_at"
-        ],
+        "required": ["id", "plateNumber", "agentId", "status", "submittedAt"],
         "properties": {
-          "admin_note": {
-            "type": "string",
-            "nullable": true
-          },
-          "agent_id": {
+          "agentId": {
             "type": "string",
             "format": "uuid"
           },
-          "agent_name": {
+          "agentName": {
             "type": "string",
             "nullable": true
           },
-          "back_image_url": {
+          "backImageUrl": {
             "type": "string",
-            "description": "URL or Base64 of back image"
+            "description": "URL or Base64 of back image",
+            "nullable": true
           },
-          "front_image_url": {
+          "frontImageUrl": {
             "type": "string",
-            "description": "URL or Base64 of front image"
+            "description": "URL or Base64 of front image",
+            "nullable": true
           },
           "id": {
             "type": "string",
@@ -2965,22 +3227,62 @@
             "type": "string",
             "nullable": true
           },
-          "plate_number": {
+          "plateNumber": {
             "type": "string"
           },
-          "reviewed_at": {
+          "rejectionReason": {
             "type": "string",
             "nullable": true
           },
-          "reviewed_by": {
+          "reviewedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedBy": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "reviewerName": {
+            "type": "string",
             "nullable": true
           },
           "status": {
             "$ref": "#/components/schemas/SubmissionStatus"
           },
-          "submitted_at": {
+          "submittedAt": {
+            "type": "string"
+          },
+          "vehicleData": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleDataEntry"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "PendingSubmissionListItem": {
+        "type": "object",
+        "description": "Lightweight list item for admin dashboard",
+        "required": ["id", "plateNumber", "status", "submittedAt"],
+        "properties": {
+          "agentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plateNumber": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "submittedAt": {
             "type": "string"
           }
         }
@@ -3254,6 +3556,48 @@
             "$ref": "#/components/schemas/TechnicalStatus"
           },
           "vehicle_image_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SubmissionAuditLogEntry": {
+        "type": "object",
+        "description": "Audit log entry for a submission action",
+        "required": ["id", "action", "performedBy", "createdAt"],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "details": {
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "performedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "performerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SubmissionListQuery": {
+        "type": "object",
+        "description": "Query parameters for listing submissions with optional status filter",
+        "properties": {
+          "status": {
             "type": "string",
             "nullable": true
           }
@@ -3545,6 +3889,49 @@
       "UserStatus": {
         "type": "string",
         "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
+      },
+      "VehicleDataEntry": {
+        "type": "object",
+        "description": "Vehicle details entered by the admin during approval",
+        "required": ["chassisNumber", "brand", "model", "year", "ownerName"],
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "chassisNumber": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "enginePower": {
+            "type": "string",
+            "nullable": true
+          },
+          "fuelType": {
+            "type": "string",
+            "nullable": true
+          },
+          "model": {
+            "type": "string"
+          },
+          "ownerAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "ownerNationalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "VehicleInfo": {
         "type": "object",

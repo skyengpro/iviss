@@ -1,6 +1,6 @@
 import { BackOfficeSidebar } from './BackOfficeSidebar';
 import { BackOfficeHeader } from './BackOfficeHeader';
-import { SidebarProvider } from '@/context/SidebarContext';
+import { SidebarProvider } from '@/context/SidebarProvider';
 import { useSidebar } from '@/hooks/ui/useSidebar';
 import { cn } from '@/lib/utils';
 import React from 'react';
