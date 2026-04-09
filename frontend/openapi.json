@@ -335,8 +335,8 @@
     "/api/v1/admin/resend-activation-code": {
       "post": {
         "tags": ["admin"],
-        "summary": "Resend activation code via SMS to a pending agent",
-        "operationId": "resendActivationCode",
+        "summary": "Create a new organization (admin only)",
+        "operationId": "createOrganization",
         "requestBody": {
           "content": {
             "application/json": {
@@ -349,7 +349,7 @@
         },
         "responses": {
           "201": {
-            "description": "Activation code sent",
+            "description": "Organization created successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -460,8 +460,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - admin only",
             "content": {
               "application/json": {
                 "schema": {
@@ -478,11 +478,11 @@
         ]
       }
     },
-    "/api/v1/admin/submissions": {
+    "/api/v1/admin/organizations/{id}": {
       "get": {
-        "tags": ["vehicles"],
-        "summary": "List submissions for admin review, optionally filtered by status",
-        "operationId": "listPendingSubmissions",
+        "tags": ["admin"],
+        "summary": "Get organization details by ID (admin only)",
+        "operationId": "getOrganization",
         "parameters": [
           {
             "name": "status",
@@ -497,7 +497,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of submissions",
+            "description": "Organization details retrieved",
             "content": {
               "application/json": {
                 "schema": {
@@ -556,7 +556,7 @@
             }
           },
           "404": {
-            "description": "Submission not found",
+            "description": "Organization not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -582,7 +582,7 @@
           {
             "name": "id",
             "in": "path",
-            "description": "Submission UUID",
+            "description": "Organization ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -590,9 +590,19 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "Audit log entries",
+            "description": "Organization updated successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -604,8 +614,8 @@
               }
             }
           },
-          "404": {
-            "description": "Submission not found",
+          "400": {
+            "description": "Bad request - validation error",
             "content": {
               "application/json": {
                 "schema": {

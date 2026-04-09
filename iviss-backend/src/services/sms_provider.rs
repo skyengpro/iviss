@@ -77,9 +77,7 @@ impl SmsProvider for TwilioSmsProvider {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(anyhow::anyhow!(
-                "Twilio error — status: {}, body: {}",
-                status,
-                body
+                "Twilio error — status: {status}, body: {body}"
             ));
         }
 
