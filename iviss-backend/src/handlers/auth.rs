@@ -176,7 +176,6 @@ pub async fn login(
     operation_id = "logoutUser",
     security(("bearer_auth" = []))
 )]
-#[cfg(not(test))] //TODO
 pub async fn logout() -> Result<impl IntoResponse, AppError> {
     Ok((StatusCode::OK, Json("Logout successful".to_string())))
 }

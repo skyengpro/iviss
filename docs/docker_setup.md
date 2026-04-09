@@ -9,7 +9,7 @@ This guide explains how to run the application using Docker Compose.
 
 ## Development (Local)
 
-The `docker-compose.yml` file is configured for local development by default, with hot-reloading enabled for both Frontend and Backend.
+The default services in `docker-compose.yml` are development-oriented, with hot reloading enabled for both Frontend and Backend.
 
 **Start the stack:**
 
@@ -19,12 +19,13 @@ docker compose up --build
 
 - **Frontend**: http://localhost:8080
 - **Backend**: http://localhost:3000
-- **Database**: Port 5432
+- **Database**: Port 5435
 
 **Features:**
 
 - **Hot Reloading**: Source code changes are reflected immediately.
 - **Data Persistence**: Database data is stored in the `postgres_data` volume.
+- **Adminer**: Available in local development on `http://localhost:8081`.
 
 ## Production (CI/CD)
 
@@ -36,9 +37,17 @@ Production images are built and pushed to GitHub Container Registry (GHCR) autom
   - `ghcr.io/<owner>/iviss/frontend`
   - `ghcr.io/<owner>/iviss/backend`
 
-To run production locally, you would need to use `docker compose -f docker-compose.yml` and override the `build.target` context or pull the images from the registry.
+To run the production-like stack locally from this compose file, use the dedicated prod services:
+
+```bash
+docker compose --profile prod up --build db redis backend-prod frontend-prod metrics
+```
+
+- `backend-prod` uses the backend `production` target.
+- `frontend-prod` uses the frontend `prod` target.
+- No source-code bind mounts are applied to these prod services.
 
 ## Troubleshooting
 
-- **Port Conflicts**: Ensure ports 8080, 3000, and 5432 are free.
+- **Port Conflicts**: Ensure ports 8080, 3000, 5435, 6380, and 8081 are free.
 - **Rebuild**: If dependencies change, run `docker compose up --build`.

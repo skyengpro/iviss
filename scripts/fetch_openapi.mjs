@@ -37,7 +37,7 @@ async function fetchFromBackend() {
     }
 
     const json = await res.json();
-    const pretty = JSON.stringify(json, null, 4);
+    const pretty = JSON.stringify(json, null, 2);
     writeFileSync(OUTPUT_PATH, pretty + "\n", "utf-8");
     console.log(`✅ OpenAPI spec saved to ${OUTPUT_PATH}`);
     return true;

@@ -402,6 +402,26 @@
     "restartSuccess": "Agent session restarted successfully",
     "restartError": "Failed to restart agent session"
   },
+  "backOfficeAudit": {
+    "title": "System Audit Logs",
+    "subtitle": "Track all administrative and security actions",
+    "searchPlaceholder": "Search by user or action...",
+    "action": "Action",
+    "user": "User",
+    "timestamp": "Timestamp",
+    "ipAddress": "IP Address",
+    "details": "Details",
+    "export": "Export CSV",
+    "loading": "Loading audit logs...",
+    "noLogsFound": "No audit logs found matching your criteria.",
+    "allActions": "All Actions",
+    "login": "Login",
+    "logout": "Logout",
+    "userUpdate": "User Updated",
+    "userDelete": "User Deleted",
+    "submissionApproved": "Submission Approved",
+    "submissionRejected": "Submission Rejected"
+  },
   "mobileSidebar": {
     "frontOffice": "Front Office",
     "online": "Online",

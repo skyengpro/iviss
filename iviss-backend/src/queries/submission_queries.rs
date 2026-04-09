@@ -1,3 +1,4 @@
+use crate::dto::common::SubmissionLocation;
 use crate::dto::pending_submission::{
     PendingSubmissionDetail, PendingSubmissionListItem, SubmissionAuditLogEntry, SubmissionStatus,
     VehicleDataEntry,
@@ -16,10 +17,11 @@ pub async fn create_pending_submission(
     front_image_url: String,
     back_image_url: String,
     notes: Option<String>,
-    latitude: Option<f64>,
-    longitude: Option<f64>,
-    address: Option<String>,
+    location: SubmissionLocation,
 ) -> Result<Uuid, AppError> {
+    let latitude: Option<f64> = location.latitude;
+    let longitude: Option<f64> = location.longitude;
+    let address: Option<String> = location.address;
     let rec = sqlx::query(
         r#"
         INSERT INTO pending_submissions (

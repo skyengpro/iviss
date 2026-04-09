@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { useScanPlate } from '@/hooks/feature/useScanPlate';
@@ -17,11 +17,25 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('useScanPlate', () => {
+  let fetchMock: any;
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(ImageProcessor, 'cropToViewfinderFast').mockResolvedValue(
       'data:image/jpeg;base64,AAA'
     );
+
+    fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (typeof input === 'string' && input.startsWith('data:image')) {
+        return {
+          ok: true,
+          blob: async () => new Blob(['x'], { type: 'image/jpeg' }),
+        } as unknown as Response;
+      }
+      throw new Error('Unexpected fetch call in test');
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
   });
 
   afterEach(() => {
@@ -33,32 +47,7 @@ describe('useScanPlate', () => {
   it('should accept immediately on high-confidence format-valid result (fast-path)', async () => {
     const onSuccess = vi.fn();
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      if (typeof input === 'string' && input.startsWith('data:image')) {
-        return {
-          ok: true,
-          blob: async () => new Blob(['x'], { type: 'image/jpeg' }),
-        } as unknown as Response;
-      }
-
-      throw new Error('Unexpected fetch call in test');
-    });
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    vi.mocked(scanPlate).mockResolvedValueOnce({
-      data: {
-        success: true,
-        data: {
-          plate: 'CE128BC',
-          confidence: 0.9,
-          format_valid: true,
-        },
-      },
-      error: undefined,
-    } as Awaited<ReturnType<typeof scanPlate>>);
-
-    vi.mocked(scanPlate).mockResolvedValueOnce({
+    vi.mocked(scanPlate).mockResolvedValue({
       data: {
         success: true,
         data: {
@@ -71,16 +60,14 @@ describe('useScanPlate', () => {
     } as Awaited<ReturnType<typeof scanPlate>>);
 
     const { result } = renderHook(() => useScanPlate({ onSuccess }));
-
     const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
 
     act(() => {
       result.current.startLiveScan(getScreenshot);
     });
 
-    // Stability requires 2 consecutive matches in the current hook implementation.
-    // Drive the scan loop (setTimeout) and let async fetch chain resolve.
-    for (let i = 0; i < 10 && onSuccess.mock.calls.length === 0; i += 1) {
+    // Drive the scan loop
+    for (let i = 0; i < 5 && onSuccess.mock.calls.length === 0; i += 1) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(120);
         await Promise.resolve();
@@ -89,32 +76,35 @@ describe('useScanPlate', () => {
     }
 
     expect(onSuccess).toHaveBeenCalledTimes(1);
-
     expect(onSuccess).toHaveBeenCalledWith({
       plateNumber: 'CE128BC',
       confidence: 90,
       status: 'valid',
     });
-
     expect(result.current.liveScanActive).toBe(false);
   });
 
-  it('stopLiveScan should reset scanning state and clear detections', async () => {
-    const onSuccess = vi.fn();
+  it('startLiveScan should no-op if already scanning', async () => {
+    const { result } = renderHook(() => useScanPlate());
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      if (typeof input === 'string' && input.startsWith('data:image')) {
-        return {
-          ok: true,
-          blob: async () => new Blob(['x'], { type: 'image/jpeg' }),
-        } as unknown as Response;
-      }
-
-      throw new Error('Unexpected fetch call in test');
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
     });
 
-    vi.stubGlobal('fetch', fetchMock);
+    expect(result.current.liveScanActive).toBe(true);
+    const initialDetections = result.current.liveDetections;
 
+    // Call again
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    // Should not have reset state
+    expect(result.current.liveDetections).toBe(initialDetections);
+  });
+
+  it('stopLiveScan should reset scanning state and clear detections', async () => {
     vi.mocked(scanPlate).mockResolvedValueOnce({
       data: {
         success: true,
@@ -127,16 +117,15 @@ describe('useScanPlate', () => {
       error: undefined,
     } as Awaited<ReturnType<typeof scanPlate>>);
 
-    const { result } = renderHook(() => useScanPlate({ onSuccess }));
-
+    const { result } = renderHook(() => useScanPlate());
     const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
 
     act(() => {
       result.current.startLiveScan(getScreenshot);
     });
 
-    // Flush pending microtasks/state updates.
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
       await Promise.resolve();
     });
 
@@ -148,23 +137,11 @@ describe('useScanPlate', () => {
 
     expect(result.current.liveScanActive).toBe(false);
     expect(result.current.liveDetections).toEqual([]);
+    expect(result.current.scanError).toBeNull();
   });
 
-  it('should set scanError on AbortError during frame processing', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      if (typeof input === 'string' && input.startsWith('data:image')) {
-        return {
-          ok: true,
-          blob: async () => new Blob(['x'], { type: 'image/jpeg' }),
-        } as unknown as Response;
-      }
-
-      throw new Error('Unexpected fetch call in test');
-    });
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    vi.mocked(scanPlate).mockRejectedValue(
+  it('should ignore AbortError during frame processing without setting scanError', async () => {
+    vi.mocked(scanPlate).mockRejectedValueOnce(
       new DOMException('signal is aborted without reason', 'AbortError')
     );
 
@@ -173,15 +150,84 @@ describe('useScanPlate', () => {
 
     await act(async () => {
       result.current.startLiveScan(getScreenshot);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    // Flush pending microtasks/state updates.
-    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
       await Promise.resolve();
     });
 
-    // AbortError is intentionally ignored by the hook.
     expect(result.current.scanError).toBeNull();
+  });
+
+  it('should set scanError on non-abort API failure', async () => {
+    vi.mocked(scanPlate).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Server crashed' },
+    } as Awaited<ReturnType<typeof scanPlate>>);
+
+    const { result } = renderHook(() => useScanPlate());
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
+
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.scanError).toBe('OCR API failed');
+  });
+
+  it('should add result to liveDetections when processing a frame successfully', async () => {
+    vi.mocked(scanPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: 'LT390HN',
+          confidence: 0.85,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
+
+    const { result } = renderHook(() => useScanPlate());
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
+
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    // Wait for the first frame to be processed
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.liveDetections.length).toBeGreaterThan(0);
+    expect(result.current.liveDetections[0].plateNumber).toBe('LT390HN');
+    expect(result.current.liveDetections[0].status).toBe('valid');
+  });
+
+  it('cleanup effect aborts in-flight request and clears timeout on unmount', () => {
+    const { result, unmount } = renderHook(() => useScanPlate());
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
+
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    // AbortController is created
+    expect(result.current.liveScanActive).toBe(true);
+
+    unmount();
+
+    // The AbortController abort would run, and interval cleared. We can't directly
+    // observe the internal AbortController from outside without mocking it, but we
+    // can verify the test completes cleanly without memory leaks or pending timers.
+    const timers = vi.getTimerCount();
+    expect(timers).toBe(0);
   });
 });

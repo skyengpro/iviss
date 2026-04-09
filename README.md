@@ -87,14 +87,18 @@ IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-
 # Clone repo & copy environment template
 cp .env.example .env
 
-# Edit .env if needed (defaults work for local development)
+# Set real local secrets before starting the stack
+# At minimum: POSTGRES_PASSWORD and EXTERNAL_POSTGRES_PASSWORD
 ```
 
 ### 2. Start Backend Services
 
 ```bash
-# Start PostgreSQL database + Rust backend
+# Start the local development stack
 docker compose up -d
+
+# Start the production-like local stack
+docker compose --profile prod up -d db redis backend-prod frontend-prod metrics
 
 # View real-time logs
 docker compose logs -f backend
@@ -111,7 +115,7 @@ docker compose down -v
 
 ```bash
 # Test health endpoint
-curl http://localhost:3000/health
+curl http://localhost:3000/api/v1/health
 # Should return: OK
 
 # Check service status
@@ -136,7 +140,7 @@ npm run dev
 
 ```bash
 # Health check
-curl http://localhost:3000/health
+curl http://localhost:3000/api/v1/health
 
 # Get your local IP (for mobile testing)
 hostname -I | awk '{print $1}'
@@ -161,7 +165,7 @@ hostname -I | awk '{print $1}'
 2. **Test from mobile browser:**
 
    ```
-   http://YOUR_IP:3000/health
+   http://YOUR_IP:3000/api/v1/health
    ```
 
    You should see "OK" response.
@@ -183,8 +187,8 @@ hostname -I | awk '{print $1}'
 
 **Expected Results:**
 
-- ✅ Mobile browser can access `http://YOUR_IP:3000/health`
-- ✅ Backend logs show incoming requests: `INFO Request: GET /health`
+- ✅ Mobile browser can access `http://YOUR_IP:3000/api/v1/health`
+- ✅ Backend logs show incoming requests on the health endpoint
 - ❌ **If you get connection timeout:** Check firewall or ensure devices are on same network
 
 ---
@@ -234,6 +238,11 @@ docker compose up -d
 # This DELETES all data:
 docker compose down -v
 ```
+
+### Dev vs Prod Local
+
+- `docker compose up -d` starts the development services: hot reload for backend and frontend, source mounts, Adminer.
+- `docker compose --profile prod up -d db redis backend-prod frontend-prod metrics` starts the production-like services: release backend image and nginx frontend image, without dev mounts.
 
 ---
 
