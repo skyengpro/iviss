@@ -4,6 +4,7 @@ use utoipa::{
 };
 
 use crate::dto::{
+    audit::*,
     auth::*,
     common::*,
     create_control::*,
@@ -87,16 +88,13 @@ impl Modify for SecurityAddon {
         crate::handlers::users::get_user_profile,
         crate::handlers::users::update_location,
         crate::handlers::auth::login,
-        // crate::handlers::auth::register,
-        // crate::handlers::auth::logout,
+        crate::handlers::auth::logout,
         crate::handlers::auth::request_daily_login,
         crate::handlers::auth::verify_daily_login,
-        // crate::handlers::device_management::suspend_device,
-        // crate::handlers::device_management::unsuspend_device,
         crate::handlers::auth::activate,
-        crate::handlers::user_management::resend_activation_code,
         crate::handlers::auth::request_refresh,
         crate::handlers::auth::verify_refresh,
+        crate::handlers::user_management::resend_activation_code,
         crate::handlers::user_management::provision_user,
         crate::handlers::user_management::list_users,
         crate::handlers::user_management::get_user,
@@ -105,6 +103,8 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::list_organizations,
         crate::handlers::user_management::terminate_session,
         crate::handlers::user_management::restart_session,
+        crate::handlers::audit::list_audit_logs,
+        crate::handlers::audit::export_audit_logs,
     ),
 
     components(
@@ -190,8 +190,10 @@ impl Modify for SecurityAddon {
             UserStatus,
             Organization,
             OrganizationType,
-            // crate::handlers::device_management::DeviceActionResponse,
             DeviceStatus,
+            AuditLogEntry,
+            AuditAction,
+            AuditLogQuery,
         )
     ),
     modifiers(&SecurityAddon),

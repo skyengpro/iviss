@@ -184,7 +184,6 @@ pub async fn suspend_device_and_revoke_tokens(
     .map_err(AppError::database)
 }
 
-#[allow(dead_code)]
 pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Result<(), AppError> {
     let key = format!("blacklist:jti:{}", jti);
     let mut conn = redis
