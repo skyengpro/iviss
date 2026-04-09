@@ -155,7 +155,7 @@ pub async fn get_control_records(
 
     if let Some(p) = plate {
         query_builder.push(" AND c.plate_number ILIKE ");
-        query_builder.push_bind(format!("%{}%", p));
+        query_builder.push_bind(format!("%{p}%"));
     }
 
     query_builder.push(" ORDER BY c.timestamp DESC LIMIT 100");

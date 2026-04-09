@@ -483,5 +483,46 @@
     "notes": {
       "foreignPlates": "Vehicle with foreign plates, driver claims recent import"
     }
+  },
+  "organizationManagement": {
+    "title": "Organization Management",
+    "subtitle": "Manage organizations in the system",
+    "addOrganization": "Add Organization",
+    "editOrganization": "Edit Organization",
+    "deleteOrganization": "Delete Organization",
+    "organizationName": "Organization Name",
+    "organizationType": "Type",
+    "region": "Region",
+    "actions": "Actions",
+    "searchPlaceholder": "Search organizations...",
+    "allTypes": "All Types",
+    "emptyState": "No organizations yet. Create your first organization.",
+    "noResults": "No organizations found matching your search.",
+    "confirmDelete": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+    "organizationCreated": "Organization created successfully",
+    "organizationUpdated": "Organization updated successfully",
+    "organizationDeleted": "Organization deleted successfully",
+    "createError": "Failed to create organization",
+    "updateError": "Failed to update organization",
+    "deleteError": "Failed to delete organization",
+    "createDescription": "Fill in the details to create a new organization",
+    "editDescription": "Update the organization details",
+    "namePlaceholder": "Enter organization name",
+    "regionPlaceholder": "Enter region (optional)",
+    "types": {
+      "police": "Police",
+      "customs": "Customs",
+      "border_control": "Border Control",
+      "other": "Other"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "create": "Create",
+    "update": "Update",
+    "saving": "Saving...",
+    "optional": "optional"
   }
 }
