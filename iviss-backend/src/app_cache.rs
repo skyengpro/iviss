@@ -1,9 +1,8 @@
 use moka::future::Cache;
-use std::time::Duration;
+use moka::Expiry;
+use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-
-const OTP_TTL_SECS: u64        = 300;  // 5 min
 const RATE_LIMIT_TTL_SECS: u64 = 600;  // 10 min
 const NONCE_TTL_SECS: u64      = 60;   // 1 min
 const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
@@ -12,9 +11,36 @@ const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 pub (crate) struct OtpEntry {
     pub code_hash: String,
     pub attempts: u8,
+    pub expires_at: Instant,
 }
+
+struct OtpExpiry;
+
+impl Expiry<Uuid, OtpEntry> for OtpExpiry {
+    fn expire_after_create(
+        &self,
+        _key: &Uuid,
+        value: &OtpEntry,
+        _created_at: Instant,
+    ) -> Option<Duration> {
+        
+        value.expires_at.checked_duration_since(Instant::now())
+    }
+
+    fn expire_after_update(
+        &self,
+        _key: &Uuid,
+        value: &OtpEntry,
+        _updated_at: Instant,
+        _duration_until_expiry: Option<Duration>,
+    ) -> Option<Duration> {
+        
+        value.expires_at.checked_duration_since(Instant::now())
+    }
+}
+
 #[derive(Clone)]
-pub (crate) struct AppCache {
+pub struct AppCache {
     /// Key: user_id (Uuid)
     /// Valeur : OtpEntry { code_hash, attempts }
    pub  otp_store: Cache<Uuid, OtpEntry>,
@@ -34,7 +60,7 @@ impl AppCache {
         Self {
             otp_store: Cache::builder()
                 .max_capacity(10_000)
-                .time_to_live(Duration::from_secs(OTP_TTL_SECS))
+                .expire_after(OtpExpiry)
                 .build(),
             rate_limit: Cache::builder()
                 .max_capacity(30_000)
