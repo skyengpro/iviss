@@ -212,9 +212,9 @@ pub async fn logout(
         0
     };
 
-    // Blacklist the JTI in Redis (prevents further use of this access token)
+    // Blacklist the JTI in Moka cache (prevents further use of this access token)
     if ttl > 0 {
-        auth_queries::blacklist_jti(&state.redis, &claims.jti.to_string(), ttl).await?;
+        auth_queries::blacklist_jti_cache(&state.app_cache, &claims.jti.to_string()).await?;
     }
 
     revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;

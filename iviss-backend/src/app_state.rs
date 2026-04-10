@@ -9,7 +9,7 @@ use crate::app_cache::AppCache;
 pub struct AppState {
     pub db: DbPool,
     pub redis: RedisPool,
-    pub (crate)app_cache: Arc<AppCache>,
+    pub app_cache: Arc<AppCache>,
     pub otp_svc: Arc<OtpService>,
     pub jwt_svc: Arc<JwtService>,
     pub jwt_public_key_pem: String,
