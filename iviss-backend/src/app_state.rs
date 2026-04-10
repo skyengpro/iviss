@@ -4,7 +4,7 @@ use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::SmsProvider;
 use std::sync::Arc;
-use crate::app_cache::{self, AppCache};
+use crate::app_cache::AppCache;
 #[derive(Clone)]
 pub struct AppState {
     pub db: DbPool,
