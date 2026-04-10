@@ -198,6 +198,12 @@ pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Resul
     Ok(())
 }
 
+/// Blacklist a JTI in the Moka cache (Redis replacement)
+pub async fn blacklist_jti_cache(cache: &crate::app_cache::AppCache, jti: &str) -> Result<(), AppError> {
+    cache.jti_blacklist.insert(jti.to_string(), ()).await;
+    Ok(())
+}
+
 pub async fn is_jti_blacklisted(redis: &RedisPool, jti: &str) -> Result<bool, AppError> {
     let key = format!("blacklist:jti:{}", jti);
     let mut conn = redis
