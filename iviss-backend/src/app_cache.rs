@@ -9,24 +9,24 @@ const NONCE_TTL_SECS: u64      = 60;   // 1 min
 const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 
 #[derive(Clone, Debug)]
-struct OtpEntry {
-    otp_hash: String,
-    attempts: u8,
+pub (crate) struct OtpEntry {
+    pub otp_hash: String,
+    pub attempts: u8,
 }
 #[derive(Clone)]
-struct AppCache {
+pub (crate) struct AppCache {
     /// Key: user_id (Uuid)
     /// Valeur : OtpEntry { code_hash, attempts }
-    otp_store: Cache<Uuid, OtpEntry>,
+   pub  otp_store: Cache<Uuid, OtpEntry>,
     /// Key: phone_number (String)
     /// Number of request in the last RATE_LIMIT_TTL_SECS time window
-    rate_limit: Cache<String, u32>,
+    pub rate_limit: Cache<String, u32>,
     /// Key: device_id (Uuid)
     /// Valeur : nonce base64 (String)
-    refresh_nonce: Cache<Uuid, String>,
+    pub refresh_nonce: Cache<Uuid, String>,
     /// Key: jti (String)
     /// Value: ()
-    jti_blacklist: Cache<String, ()>,
+    pub jti_blacklist: Cache<String, ()>,
 }
 
 impl AppCache {
