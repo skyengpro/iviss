@@ -63,7 +63,7 @@ impl OtpService {
         let mut entry: OtpEntry = otp_cache.get(user_id).await.ok_or_else(|| AppError::unauthorized("OTP expired or not found"))?;
 
         if entry.attempts >= MAX_ATTEMPTS {
-            otp_cache.invalidate(user_id);
+            otp_cache.invalidate(user_id).await;
             return Err(AppError::unauthorized(
                 "Max attempts reached — OTP invalidated",
             ));
@@ -75,7 +75,7 @@ impl OtpService {
             entry.attempts += 1;
 
             // Preserve absolute TTL — do not reset expiration
-            otp_cache.insert(*user_id, entry.clone());
+            otp_cache.insert(*user_id, entry.clone()).await;
 
             warn!(
                 target: "otp",
@@ -90,7 +90,7 @@ impl OtpService {
         }
 
         // Success — single use: delete immediately
-        otp_cache.invalidate(user_id);
+        otp_cache.invalidate(user_id).await;
         info!(target: "otp", user_id = %user_id, "OTP validated successfully");
         Ok(())
     }

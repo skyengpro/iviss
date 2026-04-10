@@ -8,7 +8,7 @@ const NONCE_TTL_SECS: u64      = 60;   // 1 min
 const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 
 #[derive(Clone, Debug)]
-pub (crate) struct OtpEntry {
+pub struct OtpEntry {
     pub code_hash: String,
     pub attempts: u8,
     pub expires_at: Instant,
