@@ -1,6 +1,7 @@
 use anyhow::Context;
 use iviss_backend::api_doc::ApiDoc;
 use iviss_backend::app_state::AppState;
+use iviss_backend::app_cache::AppCache;
 use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::initialize_redis_pool;
@@ -49,6 +50,8 @@ async fn main() -> anyhow::Result<()> {
 
     let redis_pool = initialize_redis_pool(&config.redis_url).await?;
     info!("Redis connection initialized");
+    let cache = Arc::new(AppCache::new());
+    info!("App cache initialized");
 
     info!("Running migrations...");
     sqlx::migrate!("./migrations").run(&db_pool).await?;
@@ -57,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Running admin bootstrap seed...");
     run_bootstrap_seed(&db_pool, &config).await;
 
-    let state = AppState::new(db_pool, redis_pool, sms_provider, &config);
+    let state = AppState::new(db_pool, redis_pool, cache, sms_provider, &config);
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
