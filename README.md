@@ -25,24 +25,30 @@
 
 ## Project Overview
 
-IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-tenant platform designed to empower law enforcement and regulatory organizations. It streamlines vehicle identification, automates compliance checks, and provides comprehensive tools for managing field operations efficiently. The system aims to enhance public safety and regulatory adherence through advanced technology.
+IVISS (Intelligent Vehicle Identification & Security System) is a platform that helps law enforcement and regulatory agencies check vehicles during roadside inspections. Field agents use mobile devices to scan license plates and check compliance status. Back-office staff manage users, organizations, and review submitted documents.
 
-**Target Users:** Law enforcement agencies, government regulatory bodies, and organizations responsible for vehicle compliance and security.
+See [docs/overview.md](docs/overview.md) for a complete system overview.
 
 ## Features
 
-- **License Plate Recognition**: Real-time Optical Character Recognition (OCR) scanning of vehicle license plates for rapid identification and data retrieval.
-- **Control History**: Comprehensive tracking and management of all vehicle control operations, including details of inspections, violations, and resolutions.
-- **Alert System**: Instant notification system for flagged vehicles (e.g., stolen, unregistered, or vehicles with outstanding warrants), enabling immediate action by field agents.
-- **Mobile First**: User interface and experience are optimized for mobile devices, ensuring field agents can efficiently perform tasks on the go.
-- **Multi-Tenant**: Supports multiple organizations with isolated data and configurations.
-- **Role-Based Access Control**: Granular access control system with predefined roles (Super Admin, Admin, Supervisor, Agent) to manage permissions and data visibility.
+- License plate OCR (camera scanning and photo upload)
+- Vehicle compliance checks (insurance, technical inspection, stolen status)
+- Control record logging with GPS location
+- Multi-tenant organization support with data isolation
+- Role-based access (admin, manager, agent)
+- Mobile-first interface for field agents
+- Back-office dashboard for administrators
+- Audit log with CSV export
 
-## Architecture:
+## Architecture
 
-- **Frontend**: React + TypeScript + Vite + shadcn/ui (Mobile-first design)
-- **Backend**: Rust + Axum + PostgreSQL (Dockerized with live reloading)
-- **Database**: PostgreSQL 9.4 (Dockerized)
+- Frontend: React + TypeScript + Vite + shadcn/ui
+- Backend: Rust + Axum
+- Database: PostgreSQL 15
+- Cache: Redis 7
+- All services run in Docker containers
+
+See [docs/architecture_spec.md](docs/architecture_spec.md) and [docs/components.md](docs/components.md) for technical details.
 
 ---
 
