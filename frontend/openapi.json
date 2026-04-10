@@ -3,9 +3,7 @@
   "info": {
     "title": "IVISS Backend API",
     "description": "Vehicle identification, carte grise submissions and back-office dashboard.",
-    "license": {
-      "name": ""
-    },
+    "license": { "name": "" },
     "version": "1.0.0"
   },
   "paths": {
@@ -19,40 +17,25 @@
             "name": "userId",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "nullable": true
-            }
+            "schema": { "type": "string", "format": "uuid", "nullable": true }
           },
           {
             "name": "action",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           },
           {
             "name": "offset",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           }
         ],
         "responses": {
@@ -62,9 +45,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AuditLogEntry"
-                  }
+                  "items": { "$ref": "#/components/schemas/AuditLogEntry" }
                 }
               }
             }
@@ -72,29 +53,17 @@
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/audit/export": {
@@ -105,40 +74,22 @@
         "responses": {
           "200": {
             "description": "Audit logs in CSV format",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "content": { "text/plain": { "schema": { "type": "string" } } }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/controls/paged": {
@@ -150,90 +101,55 @@
             "name": "start_date",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "end_date",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "agent_id",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "nullable": true
-            }
+            "schema": { "type": "string", "format": "uuid", "nullable": true }
           },
           {
             "name": "organization_id",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "nullable": true
-            }
+            "schema": { "type": "string", "format": "uuid", "nullable": true }
           },
           {
             "name": "status",
             "in": "query",
             "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Status"
-                }
-              ],
-              "nullable": true
-            }
+            "schema": { "allOf": [{ "$ref": "#/components/schemas/Status" }], "nullable": true }
           },
           {
             "name": "plate",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "q",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           },
           {
             "name": "page_size",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           }
         ],
         "responses": {
@@ -241,48 +157,30 @@
             "description": "Paged control records",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedControlsResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/PagedControlsResponse" }
               }
             }
           },
           "400": {
             "description": "Invalid request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/organizations": {
@@ -297,9 +195,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Organization"
-                  }
+                  "items": { "$ref": "#/components/schemas/Organization" }
                 }
               }
             }
@@ -307,29 +203,17 @@
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "post": {
         "tags": ["admin"],
@@ -338,9 +222,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateOrganizationRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateOrganizationRequest" }
             }
           },
           "required": true
@@ -349,49 +231,29 @@
           "201": {
             "description": "Organization created successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Organization"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Organization" } }
             }
           },
           "400": {
             "description": "Bad request - validation error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden - admin only",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/organizations/{id}": {
@@ -405,10 +267,7 @@
             "in": "path",
             "description": "Organization ID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -416,48 +275,30 @@
             "description": "Organization details retrieved",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationDetails"
-                }
+                "schema": { "$ref": "#/components/schemas/OrganizationDetails" }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden - admin only",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "Organization not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "put": {
         "tags": ["admin"],
@@ -469,18 +310,13 @@
             "in": "path",
             "description": "Organization ID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOrganizationRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateOrganizationRequest" }
             }
           },
           "required": true
@@ -489,59 +325,35 @@
           "200": {
             "description": "Organization updated successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Organization"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Organization" } }
             }
           },
           "400": {
             "description": "Bad request - validation error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden - admin only",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "Organization not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "delete": {
         "tags": ["admin"],
@@ -553,62 +365,37 @@
             "in": "path",
             "description": "Organization ID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Organization deleted successfully"
-          },
+          "204": { "description": "Organization deleted successfully" },
           "400": {
             "description": "Bad request - organization has active users",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden - admin only",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "Organization not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/resend-activation-code": {
@@ -619,9 +406,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResendActivationRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ResendActivationRequest" }
             }
           },
           "required": true
@@ -631,30 +416,20 @@
             "description": "Activation code sent",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResendActivationResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/ResendActivationResponse" }
               }
             }
           },
           "400": {
             "description": "Bad request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -668,9 +443,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RestartSessionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/RestartSessionRequest" }
             }
           },
           "required": true
@@ -680,38 +453,24 @@
             "description": "Session restarted",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RestartSessionResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/RestartSessionResponse" }
               }
             }
           },
           "400": {
             "description": "Bad request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/stats": {
@@ -722,39 +481,23 @@
           "200": {
             "description": "Dashboard statistics retrieved successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardStats"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/DashboardStats" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/submissions": {
@@ -768,10 +511,7 @@
             "in": "query",
             "description": "Filter by status: pending, approved, rejected",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           }
         ],
         "responses": {
@@ -781,9 +521,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PendingSubmissionListItem"
-                  }
+                  "items": { "$ref": "#/components/schemas/PendingSubmissionListItem" }
                 }
               }
             }
@@ -791,19 +529,11 @@
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/submissions/{id}": {
@@ -817,10 +547,7 @@
             "in": "path",
             "description": "Submission UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -828,28 +555,18 @@
             "description": "Submission details",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PendingSubmissionDetail"
-                }
+                "schema": { "$ref": "#/components/schemas/PendingSubmissionDetail" }
               }
             }
           },
           "404": {
             "description": "Submission not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/submissions/{id}/audit": {
@@ -863,10 +580,7 @@
             "in": "path",
             "description": "Submission UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -876,9 +590,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SubmissionAuditLogEntry"
-                  }
+                  "items": { "$ref": "#/components/schemas/SubmissionAuditLogEntry" }
                 }
               }
             }
@@ -886,19 +598,11 @@
           "404": {
             "description": "Submission not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/terminate-session": {
@@ -910,9 +614,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TerminateSessionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TerminateSessionRequest" }
             }
           },
           "required": true
@@ -922,38 +624,24 @@
             "description": "Session terminated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TerminateSessionResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TerminateSessionResponse" }
               }
             }
           },
           "400": {
             "description": "Bad request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/users": {
@@ -968,9 +656,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserProfile"
-                  }
+                  "items": { "$ref": "#/components/schemas/UserProfile" }
                 }
               }
             }
@@ -978,29 +664,17 @@
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "post": {
         "tags": ["admin"],
@@ -1009,9 +683,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProvisionUserRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ProvisionUserRequest" }
             }
           },
           "required": true
@@ -1020,49 +692,29 @@
           "201": {
             "description": "User provisioned successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserProfile" } }
             }
           },
           "400": {
             "description": "Bad request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/admin/users/{id}": {
@@ -1076,59 +728,36 @@
             "in": "path",
             "description": "User ID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
             "description": "User retrieved successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserProfile" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "put": {
         "tags": ["admin"],
@@ -1140,19 +769,12 @@
             "in": "path",
             "description": "User ID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUserRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserRequest" } }
           },
           "required": true
         },
@@ -1160,59 +782,35 @@
           "200": {
             "description": "User updated successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserProfile" } }
             }
           },
           "400": {
             "description": "Bad request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "delete": {
         "tags": ["admin"],
@@ -1224,52 +822,31 @@
             "in": "path",
             "description": "User ID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "User deleted successfully"
-          },
+          "204": { "description": "User deleted successfully" },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "403": {
             "description": "Forbidden",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/auth/activate": {
@@ -1279,11 +856,7 @@
         "operationId": "activateDevice",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActivateRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/ActivateRequest" } }
           },
           "required": true
         },
@@ -1291,31 +864,19 @@
           "200": {
             "description": "Activation successful",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActivateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ActivateResponse" } }
             }
           },
           "400": {
             "description": "Bad request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -1328,11 +889,7 @@
         "operationId": "loginUser",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } }
           },
           "required": true
         },
@@ -1340,21 +897,13 @@
           "200": {
             "description": "Login successful",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } }
             }
           },
           "401": {
             "description": "Invalid credentials",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -1365,23 +914,24 @@
         "tags": ["auth"],
         "summary": "Logout and invalidate session",
         "operationId": "logoutUser",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
         "responses": {
-          "200": {
-            "description": "Logout successful",
+          "204": { "description": "Logout successful" },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/auth/refresh": {
@@ -1392,11 +942,7 @@
         "operationId": "requestRefresh",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
-              }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/RefreshRequest" } }
           },
           "required": true
         },
@@ -1405,20 +951,14 @@
             "description": "Challenge nonce issued",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshChallengeResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/RefreshChallengeResponse" }
               }
             }
           },
           "401": {
             "description": "Invalid or expired refresh token",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -1433,9 +973,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyRefreshRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VerifyRefreshRequest" }
             }
           },
           "required": true
@@ -1445,20 +983,14 @@
             "description": "New access token issued",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyRefreshResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/VerifyRefreshResponse" }
               }
             }
           },
           "401": {
             "description": "Signature verification failed",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -1471,9 +1003,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestDailyLoginRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/RequestDailyLoginRequest" }
             }
           },
           "required": true
@@ -1483,50 +1013,32 @@
             "description": "OTP sent successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestDailyLoginResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/RequestDailyLoginResponse" }
               }
             }
           },
           "400": {
             "description": "Bad request — missing or invalid fields",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "User or device is suspended",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User or device not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "429": {
             "description": "Too many OTP requests",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -1539,9 +1051,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyDailyLoginRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VerifyDailyLoginRequest" }
             }
           },
           "required": true
@@ -1551,40 +1061,26 @@
             "description": "Login successful",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyDailyLoginResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/VerifyDailyLoginResponse" }
               }
             }
           },
           "400": {
             "description": "Bad request — missing or invalid fields",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Invalid OTP, expired, or device suspended",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "404": {
             "description": "User or device not found",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -1600,55 +1096,35 @@
             "in": "query",
             "description": "Filter controls from this date (inclusive)",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "end_date",
             "in": "query",
             "description": "Filter controls until this date (inclusive)",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           },
           {
             "name": "agent_id",
             "in": "query",
             "description": "Filter controls by agent UUID",
             "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "nullable": true
-            }
+            "schema": { "type": "string", "format": "uuid", "nullable": true }
           },
           {
             "name": "status",
             "in": "query",
             "description": "Filter controls by status",
             "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Status"
-                }
-              ],
-              "nullable": true
-            }
+            "schema": { "allOf": [{ "$ref": "#/components/schemas/Status" }], "nullable": true }
           },
           {
             "name": "plate",
             "in": "query",
             "description": "Filter controls by plate number",
             "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
+            "schema": { "type": "string", "nullable": true }
           }
         ],
         "responses": {
@@ -1658,9 +1134,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ListControlResponse"
-                  }
+                  "items": { "$ref": "#/components/schemas/ListControlResponse" }
                 }
               }
             }
@@ -1669,9 +1143,7 @@
             "description": "Invalid request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
                 "example": {
                   "code": "INVALID_REQUEST",
                   "message": "Invalid date format for 'start_date'"
@@ -1683,9 +1155,7 @@
             "description": "Not found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
                 "example": {
                   "code": "NOT_FOUND",
                   "message": "No controls found matching the provided filters"
@@ -1697,22 +1167,13 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "INTERNAL_ERROR", "message": "Internal Server Error" }
               }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       },
       "post": {
         "tags": ["controls"],
@@ -1720,9 +1181,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateControlRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateControlRequest" }
             }
           },
           "required": true
@@ -1732,48 +1191,30 @@
             "description": "Control created",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateControlResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/CreateControlResponse" }
               }
             }
           },
           "400": {
             "description": "Invalid request",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/health": {
@@ -1783,13 +1224,7 @@
         "responses": {
           "200": {
             "description": "Service is healthy",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "content": { "text/plain": { "schema": { "type": "string" } } }
           }
         }
       }
@@ -1801,9 +1236,7 @@
         "requestBody": {
           "content": {
             "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ImageUploadRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ImageUploadRequest" }
             }
           },
           "required": true
@@ -1812,41 +1245,25 @@
           "200": {
             "description": "OCR result (photo capture)",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           },
           "400": {
             "description": "Invalid or missing image",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           },
           "415": {
             "description": "Unsupported media type",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           },
           "500": {
             "description": "Internal OCR error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           }
         }
@@ -1859,9 +1276,7 @@
         "requestBody": {
           "content": {
             "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ImageUploadRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ImageUploadRequest" }
             }
           },
           "required": true
@@ -1870,41 +1285,25 @@
           "200": {
             "description": "OCR result (may have low confidence)",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           },
           "400": {
             "description": "Invalid or missing image",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           },
           "415": {
             "description": "Unsupported media type",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           },
           "500": {
             "description": "Internal OCR error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanPlateResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanPlateResponse" } }
             }
           }
         }
@@ -1920,11 +1319,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/DashboardRange"
-                }
-              ],
+              "allOf": [{ "$ref": "#/components/schemas/DashboardRange" }],
               "nullable": true
             }
           }
@@ -1934,38 +1329,24 @@
             "description": "Control activity series retrieved successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ControlActivityResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/ControlActivityResponse" }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/stats/activity-feed": {
@@ -1977,11 +1358,7 @@
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           }
         ],
         "responses": {
@@ -1989,38 +1366,24 @@
             "description": "Activity feed retrieved successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActivityFeedResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/ActivityFeedResponse" }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/stats/recent-alerts": {
@@ -2032,11 +1395,7 @@
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           }
         ],
         "responses": {
@@ -2044,38 +1403,24 @@
             "description": "Recent alerts retrieved successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecentAlertsResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/RecentAlertsResponse" }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/stats/top-agents": {
@@ -2088,11 +1433,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/DashboardRange"
-                }
-              ],
+              "allOf": [{ "$ref": "#/components/schemas/DashboardRange" }],
               "nullable": true
             }
           },
@@ -2100,50 +1441,30 @@
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
+            "schema": { "type": "integer", "format": "int64", "nullable": true }
           }
         ],
         "responses": {
           "200": {
             "description": "Top agents retrieved successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TopAgentsResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/TopAgentsResponse" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/users/location": {
@@ -2153,9 +1474,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateLocationRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateLocationRequest" }
             }
           },
           "required": true
@@ -2165,30 +1484,20 @@
             "description": "Location updated successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateLocationResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/UpdateLocationResponse" }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AppErrorResponse" } }
             }
           }
         }
@@ -2202,24 +1511,15 @@
           "200": {
             "description": "Current user profile",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserProfile" } }
             }
           },
           "401": {
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Invalid token"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "UNAUTHORIZED", "message": "Invalid token" }
               }
             }
           },
@@ -2227,22 +1527,13 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "INTERNAL_ERROR", "message": "Internal Server Error" }
               }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/vehicles/pending": {
@@ -2252,9 +1543,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePendingSubmissionRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreatePendingSubmissionRequest" }
             }
           },
           "required": true
@@ -2263,20 +1552,14 @@
           "202": {
             "description": "Submission accepted for review",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataEntryResponse"
-                }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/DataEntryResponse" } }
             }
           },
           "400": {
             "description": "Invalid request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
                 "example": {
                   "code": "INVALID_REQUEST",
                   "message": "Missing required field 'plate'"
@@ -2288,13 +1571,8 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Invalid token"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "UNAUTHORIZED", "message": "Invalid token" }
               }
             }
           },
@@ -2302,22 +1580,13 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "INTERNAL_ERROR", "message": "Internal Server Error" }
               }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     },
     "/api/v1/vehicles/search": {
@@ -2327,9 +1596,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VehicleSearchRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VehicleSearchRequest" }
             }
           },
           "required": true
@@ -2339,9 +1606,7 @@
             "description": "Vehicle found with status results",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VehicleSearchResult"
-                }
+                "schema": { "$ref": "#/components/schemas/VehicleSearchResult" }
               }
             }
           },
@@ -2349,9 +1614,7 @@
             "description": "Invalid plate format",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
                 "example": {
                   "code": "INVALID_PLATE",
                   "message": "Plate number must be 6-8 alphanumeric characters"
@@ -2363,13 +1626,8 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Invalid token"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "UNAUTHORIZED", "message": "Invalid token" }
               }
             }
           },
@@ -2377,9 +1635,7 @@
             "description": "Plate not found in registry",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
                 "example": {
                   "code": "NOT_FOUND",
                   "message": "No vehicle found with the provided plate  number"
@@ -2391,22 +1647,13 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppErrorResponse"
-                },
-                "example": {
-                  "code": "INTERNAL_ERROR",
-                  "message": "Internal Server Error"
-                }
+                "schema": { "$ref": "#/components/schemas/AppErrorResponse" },
+                "example": { "code": "INTERNAL_ERROR", "message": "Internal Server Error" }
               }
             }
           }
         },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ]
+        "security": [{ "bearer_auth": [] }]
       }
     }
   },
@@ -2420,69 +1667,38 @@
         "type": "object",
         "required": ["badgeId", "activationCode", "deviceId", "publicKeyBase64"],
         "properties": {
-          "activationCode": {
-            "type": "string"
-          },
-          "badgeId": {
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "publicKeyBase64": {
-            "type": "string"
-          }
+          "activationCode": { "type": "string" },
+          "badgeId": { "type": "string" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "publicKeyBase64": { "type": "string" }
         }
       },
       "ActivateResponse": {
         "type": "object",
         "required": ["accessToken", "refreshToken", "user"],
         "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/UserProfile"
-          }
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/UserProfile" }
         }
       },
       "ActivityData": {
         "type": "object",
         "required": ["hour", "count"],
         "properties": {
-          "count": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "hour": {
-            "type": "string"
-          }
+          "count": { "type": "integer", "format": "int64" },
+          "hour": { "type": "string" }
         }
       },
       "ActivityFeedItemDto": {
         "type": "object",
         "required": ["id", "plateNumber", "overallStatus", "createdAt", "agentName"],
         "properties": {
-          "agentName": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "overallStatus": {
-            "type": "string"
-          },
-          "plateNumber": {
-            "type": "string"
-          }
+          "agentName": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "id": { "type": "string", "format": "uuid" },
+          "overallStatus": { "type": "string" },
+          "plateNumber": { "type": "string" }
         }
       },
       "ActivityFeedResponse": {
@@ -2491,9 +1707,7 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ActivityFeedItemDto"
-            }
+            "items": { "$ref": "#/components/schemas/ActivityFeedItemDto" }
           }
         }
       },
@@ -2501,36 +1715,19 @@
         "type": "object",
         "required": ["agentId", "agentName", "latitude", "longitude", "lastUpdated"],
         "properties": {
-          "agentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agentName": {
-            "type": "string"
-          },
-          "lastUpdated": {
-            "type": "string"
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double"
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double"
-          }
+          "agentId": { "type": "string", "format": "uuid" },
+          "agentName": { "type": "string" },
+          "lastUpdated": { "type": "string" },
+          "latitude": { "type": "number", "format": "double" },
+          "longitude": { "type": "number", "format": "double" }
         }
       },
       "AppErrorResponse": {
         "type": "object",
         "required": ["code", "message"],
         "properties": {
-          "code": {
-            "$ref": "#/components/schemas/ErrorCode"
-          },
-          "message": {
-            "type": "string"
-          }
+          "code": { "$ref": "#/components/schemas/ErrorCode" },
+          "message": { "type": "string" }
         }
       },
       "AuditAction": {
@@ -2560,134 +1757,68 @@
         "description": "DTO for an audit log entry",
         "required": ["id", "action", "metadata", "createdAt"],
         "properties": {
-          "action": {
-            "$ref": "#/components/schemas/AuditAction"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "action": { "$ref": "#/components/schemas/AuditAction" },
+          "createdAt": { "type": "string" },
+          "deviceId": { "type": "string", "format": "uuid", "nullable": true },
+          "id": { "type": "string", "format": "uuid" },
           "metadata": {},
-          "userId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "userName": {
-            "type": "string",
-            "nullable": true
-          }
+          "userId": { "type": "string", "format": "uuid", "nullable": true },
+          "userName": { "type": "string", "nullable": true }
         }
       },
       "AuditLogQuery": {
         "type": "object",
         "description": "Query parameters for listing audit logs",
         "properties": {
-          "action": {
-            "type": "string",
-            "nullable": true
-          },
-          "limit": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "offset": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "userId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          }
+          "action": { "type": "string", "nullable": true },
+          "limit": { "type": "integer", "format": "int64", "nullable": true },
+          "offset": { "type": "integer", "format": "int64", "nullable": true },
+          "userId": { "type": "string", "format": "uuid", "nullable": true }
         }
       },
       "AuthResponse": {
         "type": "object",
         "required": ["accessToken", "refreshToken", "user"],
         "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/UserProfile"
-          }
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/UserProfile" }
         }
       },
       "ControlAction": {
         "type": "object",
         "required": ["action_type", "timestamp"],
         "properties": {
-          "action_type": {
-            "$ref": "#/components/schemas/ActionType"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string"
-          }
+          "action_type": { "$ref": "#/components/schemas/ActionType" },
+          "description": { "type": "string", "nullable": true },
+          "timestamp": { "type": "string" }
         }
       },
       "ControlActivityPoint": {
         "type": "object",
         "required": ["label", "count"],
         "properties": {
-          "count": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "label": {
-            "type": "string"
-          }
+          "count": { "type": "integer", "format": "int64" },
+          "label": { "type": "string" }
         }
       },
       "ControlActivityResponse": {
         "type": "object",
         "required": ["range", "series"],
         "properties": {
-          "range": {
-            "$ref": "#/components/schemas/DashboardRange"
-          },
+          "range": { "$ref": "#/components/schemas/DashboardRange" },
           "series": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ControlActivityPoint"
-            }
+            "items": { "$ref": "#/components/schemas/ControlActivityPoint" }
           }
         }
       },
       "ControlLocation": {
         "type": "object",
         "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          }
+          "address": { "type": "string", "nullable": true },
+          "latitude": { "type": "number", "format": "double", "nullable": true },
+          "longitude": { "type": "number", "format": "double", "nullable": true }
         }
       },
       "ControlResults": {
@@ -2700,21 +1831,11 @@
           "customs_status"
         ],
         "properties": {
-          "customs_status": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "insurance": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "registration": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "technical_inspection": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "wanted_status": {
-            "$ref": "#/components/schemas/Status"
-          }
+          "customs_status": { "$ref": "#/components/schemas/Status" },
+          "insurance": { "$ref": "#/components/schemas/Status" },
+          "registration": { "$ref": "#/components/schemas/Status" },
+          "technical_inspection": { "$ref": "#/components/schemas/Status" },
+          "wanted_status": { "$ref": "#/components/schemas/Status" }
         }
       },
       "CreateControlRequest": {
@@ -2727,75 +1848,33 @@
           "results"
         ],
         "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "identification_mode": {
-            "$ref": "#/components/schemas/IdentificationMode"
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "ocr_confidence": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "organization_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "results": {
-            "$ref": "#/components/schemas/ControlResults"
-          }
+          "address": { "type": "string", "nullable": true },
+          "agent_id": { "type": "string", "format": "uuid" },
+          "identification_mode": { "$ref": "#/components/schemas/IdentificationMode" },
+          "latitude": { "type": "number", "format": "double", "nullable": true },
+          "longitude": { "type": "number", "format": "double", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "ocr_confidence": { "type": "number", "format": "double", "nullable": true },
+          "organization_id": { "type": "string", "format": "uuid" },
+          "plate_number": { "type": "string" },
+          "results": { "$ref": "#/components/schemas/ControlResults" }
         }
       },
       "CreateControlResponse": {
         "type": "object",
         "required": ["id", "message"],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "message": {
-            "type": "string"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "message": { "type": "string" }
         }
       },
       "CreateOrganizationRequest": {
         "type": "object",
         "required": ["name", "orgType"],
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "orgType": {
-            "$ref": "#/components/schemas/OrganizationType"
-          },
-          "region": {
-            "type": "string",
-            "nullable": true
-          }
+          "name": { "type": "string" },
+          "orgType": { "$ref": "#/components/schemas/OrganizationType" },
+          "region": { "type": "string", "nullable": true }
         }
       },
       "CreatePendingSubmissionRequest": {
@@ -2803,63 +1882,27 @@
         "description": "Request payload for creating a new pending submission",
         "required": ["plateNumber", "agentId", "frontImageUrl", "backImageUrl"],
         "properties": {
-          "agentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "backImageUrl": {
-            "type": "string"
-          },
-          "frontImageUrl": {
-            "type": "string"
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "plateNumber": {
-            "type": "string"
-          }
+          "agentId": { "type": "string", "format": "uuid" },
+          "backImageUrl": { "type": "string" },
+          "frontImageUrl": { "type": "string" },
+          "latitude": { "type": "number", "format": "double", "nullable": true },
+          "longitude": { "type": "number", "format": "double", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "plateNumber": { "type": "string" }
         }
       },
       "CustomsStatus": {
         "type": "object",
         "required": ["status", "is_cleared"],
         "properties": {
-          "declaration_number": {
-            "type": "string",
-            "nullable": true
-          },
-          "import_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_cleared": {
-            "type": "boolean"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
+          "declaration_number": { "type": "string", "nullable": true },
+          "import_date": { "type": "string", "nullable": true },
+          "is_cleared": { "type": "boolean" },
+          "notes": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/Status" }
         }
       },
-      "DashboardRange": {
-        "type": "string",
-        "enum": ["24h", "7d", "30d"]
-      },
+      "DashboardRange": { "type": "string", "enum": ["24h", "7d", "30d"] },
       "DashboardStats": {
         "type": "object",
         "required": [
@@ -2873,42 +1916,20 @@
           "liveAgents"
         ],
         "properties": {
-          "activeAlerts": {
-            "type": "integer",
-            "format": "int64"
-          },
+          "activeAlerts": { "type": "integer", "format": "int64" },
           "activity24h": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ActivityData"
-            }
+            "items": { "$ref": "#/components/schemas/ActivityData" }
           },
           "liveAgents": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AgentLocationDto"
-            }
+            "items": { "$ref": "#/components/schemas/AgentLocationDto" }
           },
-          "onlineAgents": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "organizationsCount": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "pendingSubmissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "todayControls": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalVehicles": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "onlineAgents": { "type": "integer", "format": "int64" },
+          "organizationsCount": { "type": "integer", "format": "int64" },
+          "pendingSubmissions": { "type": "integer", "format": "int64" },
+          "todayControls": { "type": "integer", "format": "int64" },
+          "totalVehicles": { "type": "integer", "format": "int64" }
         }
       },
       "DataEntryResponse": {
@@ -2916,17 +1937,9 @@
         "description": "Response after creating a pending submission",
         "required": ["message", "submissionId", "plateNumber"],
         "properties": {
-          "message": {
-            "type": "string"
-          },
-          "plateNumber": {
-            "type": "string",
-            "description": "Plate number that was submitted"
-          },
-          "submissionId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "message": { "type": "string" },
+          "plateNumber": { "type": "string", "description": "Plate number that was submitted" },
+          "submissionId": { "type": "string", "format": "uuid" }
         }
       },
       "DeviceStatus": {
@@ -2954,40 +1967,18 @@
       "ImageUploadRequest": {
         "type": "object",
         "required": ["image"],
-        "properties": {
-          "image": {
-            "type": "string",
-            "format": "binary"
-          }
-        }
+        "properties": { "image": { "type": "string", "format": "binary" } }
       },
       "InsuranceStatus": {
         "type": "object",
         "required": ["status"],
         "properties": {
-          "coverage_type": {
-            "type": "string",
-            "nullable": true
-          },
-          "expiry_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "policy_number": {
-            "type": "string",
-            "nullable": true
-          },
-          "provider": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
+          "coverage_type": { "type": "string", "nullable": true },
+          "expiry_date": { "type": "string", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "policy_number": { "type": "string", "nullable": true },
+          "provider": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/Status" }
         }
       },
       "ListControlResponse": {
@@ -3005,95 +1996,35 @@
           "actions"
         ],
         "properties": {
-          "actions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ControlAction"
-            }
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agent_name": {
-            "type": "string",
-            "nullable": true
-          },
-          "confidence": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "identification_mode": {
-            "$ref": "#/components/schemas/IdentificationMode"
-          },
-          "location": {
-            "$ref": "#/components/schemas/ControlLocation"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "organization_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plate_number": {
-            "type": "string"
-          },
-          "results": {
-            "$ref": "#/components/schemas/ControlResults"
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "timestamp": {
-            "type": "string"
-          },
-          "vehicle": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VehicleInfo"
-              }
-            ],
-            "nullable": true
-          }
+          "actions": { "type": "array", "items": { "$ref": "#/components/schemas/ControlAction" } },
+          "agent_id": { "type": "string", "format": "uuid" },
+          "agent_name": { "type": "string", "nullable": true },
+          "confidence": { "type": "number", "format": "double", "nullable": true },
+          "id": { "type": "string", "format": "uuid" },
+          "identification_mode": { "$ref": "#/components/schemas/IdentificationMode" },
+          "location": { "$ref": "#/components/schemas/ControlLocation" },
+          "notes": { "type": "string", "nullable": true },
+          "organization_id": { "type": "string", "format": "uuid" },
+          "plate_number": { "type": "string" },
+          "results": { "$ref": "#/components/schemas/ControlResults" },
+          "status": { "$ref": "#/components/schemas/Status" },
+          "timestamp": { "type": "string" },
+          "vehicle": { "allOf": [{ "$ref": "#/components/schemas/VehicleInfo" }], "nullable": true }
         }
       },
       "LoginRequest": {
         "type": "object",
         "required": ["email", "password"],
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
+        "properties": { "email": { "type": "string" }, "password": { "type": "string" } }
       },
       "Organization": {
         "type": "object",
         "required": ["id", "name", "orgType"],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "orgType": {
-            "$ref": "#/components/schemas/OrganizationType"
-          },
-          "region": {
-            "type": "string",
-            "nullable": true
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "orgType": { "$ref": "#/components/schemas/OrganizationType" },
+          "region": { "type": "string", "nullable": true }
         }
       },
       "OrganizationDetails": {
@@ -3109,38 +2040,15 @@
           "updatedAt"
         ],
         "properties": {
-          "activeAgents": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "controlCount": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "orgType": {
-            "$ref": "#/components/schemas/OrganizationType"
-          },
-          "region": {
-            "type": "string",
-            "nullable": true
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "userCount": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "activeAgents": { "type": "integer", "format": "int64" },
+          "controlCount": { "type": "integer", "format": "int64" },
+          "createdAt": { "type": "string" },
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "orgType": { "$ref": "#/components/schemas/OrganizationType" },
+          "region": { "type": "string", "nullable": true },
+          "updatedAt": { "type": "string" },
+          "userCount": { "type": "integer", "format": "int64" }
         }
       },
       "OrganizationType": {
@@ -3151,17 +2059,9 @@
         "type": "object",
         "required": ["name"],
         "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
-            "type": "string"
-          },
-          "national_id": {
-            "type": "string",
-            "nullable": true
-          }
+          "address": { "type": "string", "nullable": true },
+          "name": { "type": "string" },
+          "national_id": { "type": "string", "nullable": true }
         }
       },
       "PagedControlsResponse": {
@@ -3170,22 +2070,11 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ListControlResponse"
-            }
+            "items": { "$ref": "#/components/schemas/ListControlResponse" }
           },
-          "page": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "page_size": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "total": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "page": { "type": "integer", "format": "int64" },
+          "page_size": { "type": "integer", "format": "int64" },
+          "total": { "type": "integer", "format": "int64" }
         }
       },
       "PendingSubmissionDetail": {
@@ -3193,14 +2082,8 @@
         "description": "Detailed view of a pending submission (for admin review)",
         "required": ["id", "plateNumber", "agentId", "status", "submittedAt"],
         "properties": {
-          "agentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agentName": {
-            "type": "string",
-            "nullable": true
-          },
+          "agentId": { "type": "string", "format": "uuid" },
+          "agentName": { "type": "string", "nullable": true },
           "backImageUrl": {
             "type": "string",
             "description": "URL or Base64 of back image",
@@ -3211,54 +2094,21 @@
             "description": "URL or Base64 of front image",
             "nullable": true
           },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "id": { "type": "string", "format": "uuid" },
           "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SubmissionLocation"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/SubmissionLocation" }],
             "nullable": true
           },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "plateNumber": {
-            "type": "string"
-          },
-          "rejectionReason": {
-            "type": "string",
-            "nullable": true
-          },
-          "reviewedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "reviewedBy": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "reviewerName": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/SubmissionStatus"
-          },
-          "submittedAt": {
-            "type": "string"
-          },
+          "notes": { "type": "string", "nullable": true },
+          "plateNumber": { "type": "string" },
+          "rejectionReason": { "type": "string", "nullable": true },
+          "reviewedAt": { "type": "string", "nullable": true },
+          "reviewedBy": { "type": "string", "format": "uuid", "nullable": true },
+          "reviewerName": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/SubmissionStatus" },
+          "submittedAt": { "type": "string" },
           "vehicleData": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VehicleDataEntry"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/VehicleDataEntry" }],
             "nullable": true
           }
         }
@@ -3268,50 +2118,23 @@
         "description": "Lightweight list item for admin dashboard",
         "required": ["id", "plateNumber", "status", "submittedAt"],
         "properties": {
-          "agentName": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "plateNumber": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SubmissionStatus"
-          },
-          "submittedAt": {
-            "type": "string"
-          }
+          "agentName": { "type": "string", "nullable": true },
+          "id": { "type": "string", "format": "uuid" },
+          "plateNumber": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/SubmissionStatus" },
+          "submittedAt": { "type": "string" }
         }
       },
       "PoliceStatus": {
         "type": "object",
         "required": ["status", "is_wanted", "is_stolen"],
         "properties": {
-          "is_stolen": {
-            "type": "boolean"
-          },
-          "is_wanted": {
-            "type": "boolean"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "report_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "report_number": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
+          "is_stolen": { "type": "boolean" },
+          "is_wanted": { "type": "boolean" },
+          "notes": { "type": "string", "nullable": true },
+          "report_date": { "type": "string", "nullable": true },
+          "report_number": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/Status" }
         }
       },
       "ProvisionUserRequest": {
@@ -3319,56 +2142,25 @@
         "description": "Request for POST /admin/users (provisioning)",
         "required": ["username", "phoneNumber", "fullName", "role", "organizationId"],
         "properties": {
-          "badgeId": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "fullName": {
-            "type": "string"
-          },
-          "organizationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "phoneNumber": {
-            "type": "string"
-          },
-          "role": {
-            "$ref": "#/components/schemas/UserRole"
-          },
-          "username": {
-            "type": "string"
-          }
+          "badgeId": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true },
+          "fullName": { "type": "string" },
+          "organizationId": { "type": "string", "format": "uuid" },
+          "phoneNumber": { "type": "string" },
+          "role": { "$ref": "#/components/schemas/UserRole" },
+          "username": { "type": "string" }
         }
       },
       "RecentAlertItemDto": {
         "type": "object",
         "required": ["id", "plateNumber", "overallStatus", "createdAt", "agentName"],
         "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "agentName": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "overallStatus": {
-            "type": "string"
-          },
-          "plateNumber": {
-            "type": "string"
-          }
+          "address": { "type": "string", "nullable": true },
+          "agentName": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "id": { "type": "string", "format": "uuid" },
+          "overallStatus": { "type": "string" },
+          "plateNumber": { "type": "string" }
         }
       },
       "RecentAlertsResponse": {
@@ -3377,94 +2169,55 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RecentAlertItemDto"
-            }
+            "items": { "$ref": "#/components/schemas/RecentAlertItemDto" }
           }
         }
       },
       "RefreshChallengeResponse": {
         "type": "object",
         "required": ["nonce"],
-        "properties": {
-          "nonce": {
-            "type": "string"
-          }
-        }
+        "properties": { "nonce": { "type": "string" } }
       },
       "RefreshRequest": {
         "type": "object",
         "required": ["refreshToken"],
         "properties": {
-          "deviceId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "refreshToken": {
-            "type": "string"
-          }
+          "deviceId": { "type": "string", "format": "uuid", "nullable": true },
+          "refreshToken": { "type": "string" }
         }
       },
       "RequestDailyLoginRequest": {
         "type": "object",
         "required": ["badgeId", "deviceId"],
         "properties": {
-          "badgeId": {
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "badgeId": { "type": "string" },
+          "deviceId": { "type": "string", "format": "uuid" }
         }
       },
       "RequestDailyLoginResponse": {
         "type": "object",
         "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
+        "properties": { "message": { "type": "string" } }
       },
       "ResendActivationRequest": {
         "type": "object",
         "required": ["userId"],
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
+        "properties": { "userId": { "type": "string", "format": "uuid" } }
       },
       "ResendActivationResponse": {
         "type": "object",
         "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
+        "properties": { "message": { "type": "string" } }
       },
       "RestartSessionRequest": {
         "type": "object",
         "required": ["userId"],
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
+        "properties": { "userId": { "type": "string", "format": "uuid" } }
       },
       "RestartSessionResponse": {
         "type": "object",
         "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
+        "properties": { "message": { "type": "string" } }
       },
       "ScanErrorData": {
         "type": "object",
@@ -3475,10 +2228,7 @@
             "type": "string",
             "description": "Machine-readable error code, e.g. `INVALID_IMAGE`."
           },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error description."
-          }
+          "message": { "type": "string", "description": "Human-readable error description." }
         }
       },
       "ScanPlateResponse": {
@@ -3487,24 +2237,14 @@
         "required": ["success"],
         "properties": {
           "data": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ScanResultData"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/ScanResultData" }],
             "nullable": true
           },
           "error": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ScanErrorData"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/ScanErrorData" }],
             "nullable": true
           },
-          "success": {
-            "type": "boolean"
-          }
+          "success": { "type": "boolean" }
         }
       },
       "ScanResultData": {
@@ -3540,25 +2280,12 @@
         "type": "object",
         "required": ["overall_status", "insurance", "police", "customs", "technical"],
         "properties": {
-          "customs": {
-            "$ref": "#/components/schemas/CustomsStatus"
-          },
-          "insurance": {
-            "$ref": "#/components/schemas/InsuranceStatus"
-          },
-          "overall_status": {
-            "$ref": "#/components/schemas/Status"
-          },
-          "police": {
-            "$ref": "#/components/schemas/PoliceStatus"
-          },
-          "technical": {
-            "$ref": "#/components/schemas/TechnicalStatus"
-          },
-          "vehicle_image_url": {
-            "type": "string",
-            "nullable": true
-          }
+          "customs": { "$ref": "#/components/schemas/CustomsStatus" },
+          "insurance": { "$ref": "#/components/schemas/InsuranceStatus" },
+          "overall_status": { "$ref": "#/components/schemas/Status" },
+          "police": { "$ref": "#/components/schemas/PoliceStatus" },
+          "technical": { "$ref": "#/components/schemas/TechnicalStatus" },
+          "vehicle_image_url": { "type": "string", "nullable": true }
         }
       },
       "SubmissionAuditLogEntry": {
@@ -3566,571 +2293,242 @@
         "description": "Audit log entry for a submission action",
         "required": ["id", "action", "performedBy", "createdAt"],
         "properties": {
-          "action": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "details": {
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "performedBy": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "performerName": {
-            "type": "string",
-            "nullable": true
-          },
-          "reason": {
-            "type": "string",
-            "nullable": true
-          }
+          "action": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "details": { "nullable": true },
+          "id": { "type": "string", "format": "uuid" },
+          "performedBy": { "type": "string", "format": "uuid" },
+          "performerName": { "type": "string", "nullable": true },
+          "reason": { "type": "string", "nullable": true }
         }
       },
       "SubmissionListQuery": {
         "type": "object",
         "description": "Query parameters for listing submissions with optional status filter",
-        "properties": {
-          "status": {
-            "type": "string",
-            "nullable": true
-          }
-        }
+        "properties": { "status": { "type": "string", "nullable": true } }
       },
       "SubmissionLocation": {
         "type": "object",
         "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          }
+          "address": { "type": "string", "nullable": true },
+          "latitude": { "type": "number", "format": "double", "nullable": true },
+          "longitude": { "type": "number", "format": "double", "nullable": true }
         }
       },
-      "SubmissionStatus": {
-        "type": "string",
-        "enum": ["pending", "approved", "rejected"]
-      },
+      "SubmissionStatus": { "type": "string", "enum": ["pending", "approved", "rejected"] },
       "TechnicalStatus": {
         "type": "object",
         "required": ["status", "defects"],
         "properties": {
-          "defects": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "expiry_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "last_inspection_date": {
-            "type": "string",
-            "nullable": true
-          },
-          "mileage": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/Status"
-          }
+          "defects": { "type": "array", "items": { "type": "string" } },
+          "expiry_date": { "type": "string", "nullable": true },
+          "last_inspection_date": { "type": "string", "nullable": true },
+          "mileage": { "type": "integer", "format": "int64", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "status": { "$ref": "#/components/schemas/Status" }
         }
       },
       "TerminateSessionRequest": {
         "type": "object",
         "required": ["userId"],
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
+        "properties": { "userId": { "type": "string", "format": "uuid" } }
       },
       "TerminateSessionResponse": {
         "type": "object",
         "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
+        "properties": { "message": { "type": "string" } }
       },
       "TopAgentDto": {
         "type": "object",
         "required": ["agentId", "agentName", "organizationName", "controlsCount", "isOnline"],
         "properties": {
-          "agentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agentName": {
-            "type": "string"
-          },
-          "controlsCount": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "isOnline": {
-            "type": "boolean"
-          },
-          "organizationName": {
-            "type": "string"
-          }
+          "agentId": { "type": "string", "format": "uuid" },
+          "agentName": { "type": "string" },
+          "controlsCount": { "type": "integer", "format": "int64" },
+          "isOnline": { "type": "boolean" },
+          "organizationName": { "type": "string" }
         }
       },
       "TopAgentsResponse": {
         "type": "object",
         "required": ["range", "agents"],
         "properties": {
-          "agents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TopAgentDto"
-            }
-          },
-          "range": {
-            "$ref": "#/components/schemas/DashboardRange"
-          }
+          "agents": { "type": "array", "items": { "$ref": "#/components/schemas/TopAgentDto" } },
+          "range": { "$ref": "#/components/schemas/DashboardRange" }
         }
       },
       "UpdateLocationRequest": {
         "type": "object",
         "required": ["latitude", "longitude"],
         "properties": {
-          "latitude": {
-            "type": "number",
-            "format": "double"
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double"
-          }
+          "latitude": { "type": "number", "format": "double" },
+          "longitude": { "type": "number", "format": "double" }
         }
       },
       "UpdateLocationResponse": {
         "type": "object",
         "required": ["message"],
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
+        "properties": { "message": { "type": "string" } }
       },
       "UpdateOrganizationRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
+          "name": { "type": "string", "nullable": true },
           "orgType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/OrganizationType"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/OrganizationType" }],
             "nullable": true
           },
-          "region": {
-            "type": "string",
-            "nullable": true
-          }
+          "region": { "type": "string", "nullable": true }
         }
       },
       "UpdateUserRequest": {
         "type": "object",
         "description": "Request for PATCH /admin/users/:id (update)",
         "properties": {
-          "badgeId": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "fullName": {
-            "type": "string",
-            "nullable": true
-          },
-          "organizationId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "role": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserRole"
-              }
-            ],
-            "nullable": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserStatus"
-              }
-            ],
-            "nullable": true
-          },
-          "username": {
-            "type": "string",
-            "nullable": true
-          }
+          "badgeId": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true },
+          "fullName": { "type": "string", "nullable": true },
+          "organizationId": { "type": "string", "format": "uuid", "nullable": true },
+          "phoneNumber": { "type": "string", "nullable": true },
+          "role": { "allOf": [{ "$ref": "#/components/schemas/UserRole" }], "nullable": true },
+          "status": { "allOf": [{ "$ref": "#/components/schemas/UserStatus" }], "nullable": true },
+          "username": { "type": "string", "nullable": true }
         }
       },
       "UploadResponse": {
         "type": "object",
         "required": ["message", "submission_id"],
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "submission_id": {
-            "type": "string"
-          }
-        }
+        "properties": { "message": { "type": "string" }, "submission_id": { "type": "string" } }
       },
       "UserProfile": {
         "type": "object",
         "description": "Response for GET /users/me",
         "required": ["id", "username", "name", "role", "status", "isActive"],
         "properties": {
-          "avatarInitials": {
-            "type": "string",
-            "nullable": true
-          },
-          "badgeId": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "lastRevokedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "name": {
-            "type": "string"
-          },
-          "organization": {
-            "type": "string",
-            "nullable": true
-          },
-          "organizationId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "role": {
-            "$ref": "#/components/schemas/UserRole"
-          },
+          "avatarInitials": { "type": "string", "nullable": true },
+          "badgeId": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true },
+          "id": { "type": "string", "format": "uuid" },
+          "isActive": { "type": "boolean" },
+          "lastRevokedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "name": { "type": "string" },
+          "organization": { "type": "string", "nullable": true },
+          "organizationId": { "type": "string", "format": "uuid", "nullable": true },
+          "phoneNumber": { "type": "string", "nullable": true },
+          "role": { "$ref": "#/components/schemas/UserRole" },
           "sessionStatus": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DeviceStatus"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/DeviceStatus" }],
             "nullable": true
           },
-          "status": {
-            "$ref": "#/components/schemas/UserStatus"
-          },
-          "username": {
-            "type": "string"
-          }
+          "status": { "$ref": "#/components/schemas/UserStatus" },
+          "username": { "type": "string" }
         }
       },
-      "UserRole": {
-        "type": "string",
-        "enum": ["admin", "agent", "manager"]
-      },
-      "UserStatus": {
-        "type": "string",
-        "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
-      },
+      "UserRole": { "type": "string", "enum": ["admin", "agent", "manager"] },
+      "UserStatus": { "type": "string", "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"] },
       "VehicleDataEntry": {
         "type": "object",
         "description": "Vehicle details entered by the admin during approval",
         "required": ["chassisNumber", "brand", "model", "year", "ownerName"],
         "properties": {
-          "brand": {
-            "type": "string"
-          },
-          "chassisNumber": {
-            "type": "string"
-          },
-          "color": {
-            "type": "string",
-            "nullable": true
-          },
-          "enginePower": {
-            "type": "string",
-            "nullable": true
-          },
-          "fuelType": {
-            "type": "string",
-            "nullable": true
-          },
-          "model": {
-            "type": "string"
-          },
-          "ownerAddress": {
-            "type": "string",
-            "nullable": true
-          },
-          "ownerName": {
-            "type": "string"
-          },
-          "ownerNationalId": {
-            "type": "string",
-            "nullable": true
-          },
-          "year": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "brand": { "type": "string" },
+          "chassisNumber": { "type": "string" },
+          "color": { "type": "string", "nullable": true },
+          "enginePower": { "type": "string", "nullable": true },
+          "fuelType": { "type": "string", "nullable": true },
+          "model": { "type": "string" },
+          "ownerAddress": { "type": "string", "nullable": true },
+          "ownerName": { "type": "string" },
+          "ownerNationalId": { "type": "string", "nullable": true },
+          "year": { "type": "integer", "format": "int32" }
         }
       },
       "VehicleInfo": {
         "type": "object",
         "required": ["brand", "model", "year", "chassis_number", "owner"],
         "properties": {
-          "brand": {
-            "type": "string"
-          },
-          "chassis_number": {
-            "type": "string"
-          },
-          "color": {
-            "type": "string",
-            "nullable": true
-          },
-          "engine_power": {
-            "type": "string",
-            "nullable": true
-          },
-          "fuel_type": {
-            "type": "string",
-            "nullable": true
-          },
-          "model": {
-            "type": "string"
-          },
-          "owner": {
-            "$ref": "#/components/schemas/OwnerInfo"
-          },
-          "year": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "brand": { "type": "string" },
+          "chassis_number": { "type": "string" },
+          "color": { "type": "string", "nullable": true },
+          "engine_power": { "type": "string", "nullable": true },
+          "fuel_type": { "type": "string", "nullable": true },
+          "model": { "type": "string" },
+          "owner": { "$ref": "#/components/schemas/OwnerInfo" },
+          "year": { "type": "integer", "format": "int32" }
         }
       },
       "VehicleSearchRequest": {
         "type": "object",
         "required": ["plate"],
         "properties": {
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "organization_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "plate": {
-            "type": "string"
-          }
+          "address": { "type": "string", "nullable": true },
+          "agent_id": { "type": "string", "format": "uuid", "nullable": true },
+          "latitude": { "type": "number", "format": "double", "nullable": true },
+          "longitude": { "type": "number", "format": "double", "nullable": true },
+          "organization_id": { "type": "string", "format": "uuid", "nullable": true },
+          "plate": { "type": "string" }
         }
       },
       "VehicleSearchResult": {
         "type": "object",
         "required": ["plate_number", "vehicle", "status_results"],
         "properties": {
-          "confidence": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
+          "confidence": { "type": "number", "format": "double", "nullable": true },
           "identification_mode": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IdentificationMode"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/IdentificationMode" }],
             "nullable": true
           },
-          "plate_number": {
-            "type": "string"
-          },
-          "status_results": {
-            "$ref": "#/components/schemas/StatusResults"
-          },
-          "vehicle": {
-            "$ref": "#/components/schemas/VehicleInfo"
-          }
+          "plate_number": { "type": "string" },
+          "status_results": { "$ref": "#/components/schemas/StatusResults" },
+          "vehicle": { "$ref": "#/components/schemas/VehicleInfo" }
         }
       },
       "VerifyDailyLoginRequest": {
         "type": "object",
         "required": ["badgeId", "activationCode", "deviceId"],
         "properties": {
-          "activationCode": {
-            "type": "string"
-          },
-          "badgeId": {
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "activationCode": { "type": "string" },
+          "badgeId": { "type": "string" },
+          "deviceId": { "type": "string", "format": "uuid" }
         }
       },
       "VerifyDailyLoginResponse": {
         "type": "object",
         "required": ["accessToken", "shiftEnd"],
         "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string",
-            "nullable": true
-          },
-          "shiftEnd": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string", "nullable": true },
+          "shiftEnd": { "type": "integer", "format": "int64" }
         }
       },
       "VerifyRefreshRequest": {
         "type": "object",
         "required": ["refreshToken", "deviceId", "signedNonce"],
         "properties": {
-          "deviceId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "refreshToken": {
-            "type": "string"
-          },
-          "signedNonce": {
-            "type": "string"
-          }
+          "deviceId": { "type": "string", "format": "uuid" },
+          "refreshToken": { "type": "string" },
+          "signedNonce": { "type": "string" }
         }
       },
       "VerifyRefreshResponse": {
         "type": "object",
         "required": ["accessToken"],
-        "properties": {
-          "accessToken": {
-            "type": "string"
-          }
-        }
+        "properties": { "accessToken": { "type": "string" } }
       }
     },
     "securitySchemes": {
-      "bearer_auth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
+      "bearer_auth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
     }
   },
   "tags": [
-    {
-      "name": "health",
-      "description": "Service health check"
-    },
-    {
-      "name": "vehicles",
-      "description": "Vehicle lookup and image upload"
-    },
-    {
-      "name": "controls",
-      "description": "Roadside control tracking"
-    },
-    {
-      "name": "scanning",
-      "description": "License plate OCR scanning"
-    },
-    {
-      "name": "photo",
-      "description": "Photo-based plate recognition"
-    },
-    {
-      "name": "stats",
-      "description": "Dashboard statistics"
-    },
-    {
-      "name": "users",
-      "description": "User profile management"
-    },
-    {
-      "name": "auth",
-      "description": "Authentication and registration"
-    },
-    {
-      "name": "admin",
-      "description": "Admin operations"
-    }
+    { "name": "health", "description": "Service health check" },
+    { "name": "vehicles", "description": "Vehicle lookup and image upload" },
+    { "name": "controls", "description": "Roadside control tracking" },
+    { "name": "scanning", "description": "License plate OCR scanning" },
+    { "name": "photo", "description": "Photo-based plate recognition" },
+    { "name": "stats", "description": "Dashboard statistics" },
+    { "name": "users", "description": "User profile management" },
+    { "name": "auth", "description": "Authentication and registration" },
+    { "name": "admin", "description": "Admin operations" }
   ]
 }

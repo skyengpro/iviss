@@ -1,13 +1,13 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { useMutation } from '@tanstack/react-query';
 import { useLocationReporting } from '../useLocationReporting';
 import { useGeolocation } from '../useGeolocation';
 import { useAuth } from '@/hooks/auth/use-auth';
 
-vi.mock('@/openapi-rq/queries/queries', () => ({
-  useUpdateLocation: vi.fn(),
+vi.mock('@tanstack/react-query', () => ({
+  useMutation: vi.fn(),
 }));
-import { useUpdateLocation } from '@/openapi-rq/queries/queries';
 
 vi.mock('../useGeolocation', () => ({
   useGeolocation: vi.fn(),
@@ -30,15 +30,12 @@ describe('useLocationReporting', () => {
     } as any);
 
     mockMutate = vi.fn();
-    vi.mocked(useUpdateLocation).mockImplementation(
-      () =>
-        ({
-          mutate: (args: any, options: any) => {
-            mockMutate(args);
-            if (options?.onSuccess) options.onSuccess();
-          },
-        }) as any
-    );
+    vi.mocked(useMutation).mockReturnValue({
+      mutate: (args: any, options: any) => {
+        mockMutate(args);
+        if (options?.onSuccess) options.onSuccess();
+      },
+    } as any);
 
     vi.mocked(useGeolocation).mockReturnValue({
       lat: 4.0,
@@ -142,9 +139,9 @@ describe('useLocationReporting', () => {
     // Advance time by 5 minutes + 1 ms
     vi.advanceTimersByTime(5 * 60 * 1000 + 1);
 
-    // Same location
+    // Small movement keeps us below the distance threshold while still retriggering the effect
     vi.mocked(useGeolocation).mockReturnValue({
-      lat: 4.0,
+      lat: 4.00001,
       lng: 9.0,
       error: null,
     } as any);

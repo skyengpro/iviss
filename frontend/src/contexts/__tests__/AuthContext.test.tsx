@@ -17,6 +17,7 @@ vi.mock('@/openapi-rq/requests/services.gen', () => ({
   requestDailyLogin: vi.fn(),
   verifyDailyLogin: vi.fn(),
   loginUser: vi.fn(),
+  logoutUser: vi.fn(),
 }));
 
 vi.mock('@/services/auth/tokenManager', () => ({
@@ -37,6 +38,7 @@ import {
   requestDailyLogin,
   verifyDailyLogin,
   loginUser,
+  logoutUser,
 } from '@/openapi-rq/requests/services.gen';
 import * as tokenManager from '@/services/auth/tokenManager';
 import { useAuth } from '@/hooks/auth/use-auth';
@@ -343,5 +345,31 @@ describe('AuthProvider', () => {
     expect(result.current.user).toBeNull();
     expect(localStorage.getItem(SESSION_KEY)).toBeNull();
     expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+  });
+
+  it('logout() — calls backend logout endpoint when an access token is present', async () => {
+    const mockUser = { id: 'u1', role: 'admin', organizationId: 'org1' };
+    const session = { accessToken: makeJwt(FUTURE_EXP), user: mockUser };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    localStorage.setItem(REFRESH_KEY, 'ref');
+
+    vi.mocked(tokenManager.getAccessToken).mockReturnValue(session.accessToken);
+    vi.mocked(logoutUser).mockResolvedValueOnce({
+      data: undefined,
+      error: undefined,
+    } as never);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(logoutUser).toHaveBeenCalledWith({
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+      throwOnError: false,
+    });
+    expect(result.current.isAuthenticated).toBe(false);
   });
 });
