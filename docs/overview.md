@@ -1,43 +1,70 @@
-IVISS Overview
+# IVISS — Project Overview
 
-The IVISS (Integrated Vehicle Inspection and Surveillance System) is a full-stack platform designed for government agencies to perform roadside vehicle inspections, maintain a centralized vehicle registry, manage enforcement actions, and streamline gray-card submissions.
+IVISS (Intelligent Vehicle Identification & Security System) is a platform that helps law enforcement and regulatory agencies check vehicles during roadside inspections.
 
-Architecture
+## What It Does
 
-- Backend: PostgreSQL database with a multi-tenant data model; REST/OpenAPI API layer.
-- Frontend: React/TypeScript SPA for back-office and mobile-oriented interfaces.
-- Documentation and APIs are exposed via an OpenAPI specification located in frontend/openapi-rq.
+Field agents use their mobile devices to scan or type in license plates. The system checks if the vehicle has valid insurance, passed technical inspection, or is reported stolen. Every check is logged with GPS location and timestamp. Back-office administrators manage users, organizations, and review vehicle documents that agents submit from the field.
 
-Core data model (high level)
+## Who Uses It
 
-- Organizations: multi-tenant boundary for different agencies
-- Users: agents, managers, admins; role-based access control
-- Vehicles: master registry with plate_number, VIN, brand, model, year, color, etc.
-- Vehicle Owners: ownership history for vehicles
-- Vehicle Statuses: cached external data (insurance, technical status, stolen flag, last_updated)
-- Control Records: individual vehicle checks performed by agents
-- Control Actions: enforcement actions tied to control records (citation, impound, flag, warning)
-- Pending Submissions: gray-card submissions for vehicles not yet in registry, awaiting back-office processing
+- Field Agents: Use mobile web app with device activation and daily OTP codes
+- Managers: Use back-office web app with email and password
+- Administrators: Use back-office web app with email and password
 
-Workflows
+## System Components
 
-- Vehicle check: agent creates a control record; data stored with timestamp, geolocation, and results
-- Enforcement: control actions linked to control records
-- Gray-card submission: new vehicles enter registry via back-office processing of pending submissions
+- Backend: Rust + Axum (REST API, authentication, business logic)
+- Frontend: React + TypeScript + Vite (mobile and back-office interface)
+- Database: PostgreSQL 15 (all application data)
+- Cache: Redis 7 (OTP codes, session data, rate limits)
+- SMS: Twilio (OTP delivery, mocked in development)
+- Monitoring: Prometheus + Grafana (frontend metrics)
 
-Data considerations
+## How It Works
 
-- Multi-tenant data isolation by organization
-- Audit trails with created_at/updated_at and soft-delete where applicable
-- Retention and archival policies to balance compliance with storage costs
+The frontend (mobile and back-office) talks to the backend API using HTTPS and JWT tokens. The backend handles authentication, queries the PostgreSQL database for vehicle information, and uses Redis for temporary data like OTP codes. All middleware (CORS, auth, rate limiting) runs inside the backend service.
 
-Getting started
+## Multi-Tenant Setup
 
-- Prerequisites: Docker and Docker Compose
-- Run locally: docker-compose up -d (from project root)
-- See docs/docker_setup.md for environment setup, and docs/schema.md for the ERD
+Each organization (police brigade, customs office, border control) has its own isolated data. Agents and managers can only see data from their organization. Administrators have access to all organizations.
 
-References
+## What's Implemented
 
-- docs/schema.md for the data model and relationships
-- frontend/openapi-rq for the API surface
+✅ Device activation and daily OTP login for agents
+✅ Email/password login for admins and managers
+✅ JWT tokens (15-minute access tokens, 30-day refresh tokens)
+✅ Vehicle search by plate number
+✅ Server-side OCR for license plates
+✅ Control record logging with GPS
+✅ User and organization management
+✅ Session management (admin can terminate agent sessions)
+✅ Audit log with CSV export
+✅ Dashboard statistics
+✅ Shift hours enforcement
+✅ Frontend metrics collection
+
+❌ External APIs (insurance, customs) - currently using internal database only
+❌ Native Android app - using responsive web app instead
+⚠️ Gray card approval workflow - backend done, frontend UI incomplete
+⚠️ Organization admin role - database ready, logic not implemented
+
+## Getting Started
+
+```bash
+# Copy environment file
+cp iviss-backend/.env.example iviss-backend/.env
+
+# Edit .env and set: POSTGRES_PASSWORD, JWT keys, ADMIN_BOOTSTRAP_* variables
+
+# Start everything
+docker compose up -d
+```
+
+Access the application:
+- Backend API: http://localhost:3000
+- Frontend: http://localhost:8080
+- API Documentation: http://localhost:3000/docs
+- Database Admin: http://localhost:8081
+
+See [docker_setup.md](docker_setup.md) for detailed setup instructions.
