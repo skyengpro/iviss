@@ -2,6 +2,15 @@
 
 Welcome to the IVISS documentation. Start here to understand the system.
 
+## 🚀 For Deployment/DevOps Team
+
+**New to deployment? Start here:**
+- [Deployment Index](DEPLOYMENT_INDEX.md) - Complete deployment documentation guide
+- [Deployment Overview](DEPLOYMENT_OVERVIEW.md) ⭐ **START HERE** - Current state and gaps
+- [CI/CD Pipelines](CICD_PIPELINES.md) - Automation and workflows
+- [Container Architecture](CONTAINER_ARCHITECTURE.md) - Docker services and configuration
+- [Infrastructure & Hosting](INFRASTRUCTURE_AND_HOSTING.md) - Infrastructure requirements
+
 ## Getting Started
 
 - [Overview](overview.md) - What IVISS does and who uses it
