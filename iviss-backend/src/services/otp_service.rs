@@ -1,6 +1,7 @@
 use crate::db::RedisPool;
 use crate::errors::AppError;
 use crate::services::sms_provider::SmsProvider;
+use crate::app_cache::{AppCache, OtpEntry};
 use deadpool_redis::redis::AsyncCommands;
 use hmac::{Hmac, Mac};
 use rand::Rng;
@@ -17,21 +18,16 @@ const MAX_ATTEMPTS: u8 = 5;
 const RATE_LIMIT_MAX: u64 = 3; // max OTP requests per window
 const RATE_LIMIT_WINDOW_SECS: i64 = 600; // 10 minutes
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct OtpEntry {
-    code_hash: String,
-    attempts: u8,
-}
-
 pub struct OtpService {
     redis: RedisPool,
+    app_cache: Arc<AppCache>,
     sms: Arc<dyn SmsProvider>,
     pepper: String,
 }
 
 impl OtpService {
-    pub fn new(redis: RedisPool, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
-        Self { redis, sms, pepper }
+    pub fn new(redis: RedisPool, app_cache: Arc<AppCache>, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
+        Self { redis, app_cache, sms, pepper }
     }
 
     /// Check rate limit, generate OTP, store in Redis and send via SMS
@@ -45,7 +41,7 @@ impl OtpService {
             code_hash,
             attempts: 0,
         };
-        let value = serde_json::to_string(&entry)
+        let value: String = serde_json::to_string(&entry)
             .map_err(|e| AppError::internal_error(format!("OTP serialization failed: {e}")))?;
 
         let key = Self::otp_key(user_id);
@@ -148,12 +144,11 @@ impl OtpService {
 
     /// Rate limit — max 3 OTP requests per phone number per 10 minutes
     async fn check_rate_limit(&self, phone: &str) -> Result<(), AppError> {
-        let key = format!("rate_limit:otp_request:{}", phone);
+        let key = phone.to_string();
         let mut conn = self
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::internal_error(format!("Redis connection failed: {e}")))?;
+            .app_cache.rate_limit
+            .get(&key)
+            .await;
 
         let count: u64 = conn
             .incr(&key, 1u64)
