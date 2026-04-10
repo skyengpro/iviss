@@ -10,7 +10,7 @@ const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 
 #[derive(Clone, Debug)]
 pub (crate) struct OtpEntry {
-    pub otp_hash: String,
+    pub code_hash: String,
     pub attempts: u8,
 }
 #[derive(Clone)]
