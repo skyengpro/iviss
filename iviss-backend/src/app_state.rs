@@ -4,10 +4,12 @@ use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::SmsProvider;
 use std::sync::Arc;
+use crate::app_cache::AppCache;
 #[derive(Clone)]
 pub struct AppState {
     pub db: DbPool,
     pub redis: RedisPool,
+    pub (crate)app_cache: Arc<AppCache>,
     pub otp_svc: Arc<OtpService>,
     pub jwt_svc: Arc<JwtService>,
     pub jwt_public_key_pem: String,
@@ -33,6 +35,7 @@ impl AppState {
         Self {
             db: db_pool,
             redis: redis_pool,
+            app_cache: Arc::new(AppCache::new()),
             otp_svc: Arc::new(otp_svc),
             jwt_svc: Arc::new(jwt_svc),
             jwt_public_key_pem: config.jwt_public_key_pem.clone(),
