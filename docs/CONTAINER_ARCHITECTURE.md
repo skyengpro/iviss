@@ -646,6 +646,237 @@ Level 3 (Depends on Level 2):
 
 **Risk:** Services can consume all available host resources
 
+### Detailed Container Specifications
+
+#### 1. PostgreSQL Database
+```yaml
+Image: postgres:15-alpine
+Base Image Size: ~80 MB
+Runtime Memory Usage: ~50-200 MB (idle to moderate load)
+Recommended Limits:
+  CPU: 1-2 cores
+  Memory: 512 MB - 2 GB
+  Storage: 10 GB - 100 GB (depends on data volume)
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: Docker volume (grows as needed)
+```
+
+**Capacity Notes:**
+- Handles ~100-500 concurrent connections (default config)
+- Query performance depends on indexes and data volume
+- Shared buffers: 128 MB (default)
+- Work memory: 4 MB per operation (default)
+
+#### 2. Redis Cache
+```yaml
+Image: redis:7-alpine
+Base Image Size: ~30 MB
+Runtime Memory Usage: ~10-50 MB (depends on cached data)
+Current Limits:
+  CPU: 0.25 cores (limit), 0.1 cores (reservation)
+  Memory: 256 MB (limit), 64 MB (reservation)
+  Storage: Docker volume (RDB snapshots)
+Current Configuration:
+  Max Memory: 256 MB (enforced by Docker)
+  Eviction Policy: Not explicitly set (defaults to noeviction)
+  Persistence: RDB snapshots enabled
+```
+
+**Capacity Notes:**
+- Can handle ~10,000-50,000 operations/second (simple operations)
+- Memory usage depends on:
+  - OTP codes: ~1 KB per code
+  - Session data: ~5-10 KB per session
+  - Rate limit counters: ~100 bytes per key
+- Current 256 MB limit can store ~25,000 sessions + OTP codes
+
+#### 3. Backend (Development)
+```yaml
+Image: Custom (rust:1.89-slim-bookworm + dependencies)
+Base Image Size: ~2-3 GB (includes Rust toolchain)
+Runtime Memory Usage: ~200-500 MB (idle to moderate load)
+Build Cache: ~2-5 GB (cargo cache + target artifacts)
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: Source mounts (read-only) + build caches
+```
+
+**Capacity Notes:**
+- Hot-reload compilation: 5-30 seconds per change
+- Handles ~100-1,000 requests/second (depends on endpoint complexity)
+- Database connection pool: 10 connections (default)
+- Not suitable for production (includes dev tools)
+
+#### 4. Backend (Production)
+```yaml
+Image: Custom (debian:bookworm-slim + runtime deps)
+Base Image Size: ~150-200 MB (optimized)
+Runtime Memory Usage: ~100-300 MB (idle to moderate load)
+Binary Size: ~50-80 MB (stripped release build)
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: No volumes (stateless)
+Recommended Limits:
+  CPU: 0.5-2 cores per instance
+  Memory: 512 MB - 1 GB per instance
+```
+
+**Capacity Notes:**
+- Handles ~500-2,000 requests/second per instance
+- Database connection pool: 10 connections (configurable)
+- Startup time: 2-5 seconds
+- Graceful shutdown: Waits for in-flight requests
+- Horizontal scaling: Stateless, can run multiple instances
+
+#### 5. Frontend (Development)
+```yaml
+Image: Custom (node:20-alpine + Vite dev server)
+Base Image Size: ~500 MB (includes node_modules)
+Runtime Memory Usage: ~200-400 MB (Vite dev server)
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: Full source mount + node_modules volume
+```
+
+**Capacity Notes:**
+- Vite HMR: <100ms for most changes
+- Handles ~10-50 concurrent dev connections
+- Not suitable for production (dev server)
+
+#### 6. Frontend (Production)
+```yaml
+Image: Custom (nginx:alpine + static assets)
+Base Image Size: ~50-80 MB (optimized)
+Static Assets: ~10-20 MB (compressed)
+Runtime Memory Usage: ~10-30 MB (Nginx)
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: No volumes (static assets in image)
+Recommended Limits:
+  CPU: 0.25-0.5 cores per instance
+  Memory: 128 MB - 256 MB per instance
+```
+
+**Capacity Notes:**
+- Handles ~1,000-5,000 requests/second per instance
+- Gzip compression enabled (reduces bandwidth by ~70%)
+- Static asset caching: 30 days
+- Horizontal scaling: Stateless, can run many instances
+
+#### 7. Adminer (Development Only)
+```yaml
+Image: adminer:latest
+Base Image Size: ~90 MB
+Runtime Memory Usage: ~20-50 MB
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: No volumes
+```
+
+**Capacity Notes:**
+- Single user tool (not for production)
+- Handles 1-5 concurrent connections
+- Memory usage increases with large query results
+
+#### 8. Metrics Server
+```yaml
+Image: Custom (node:20-alpine + Express)
+Base Image Size: ~100 MB
+Runtime Memory Usage: ~50-100 MB
+Current Configuration:
+  CPU: Unlimited
+  Memory: Unlimited
+  Storage: No volumes (metrics in memory)
+Recommended Limits:
+  CPU: 0.25 cores
+  Memory: 256 MB
+```
+
+**Capacity Notes:**
+- Handles ~100-500 metrics POST requests/second
+- Stores metrics in memory (30-second window)
+- Prometheus scrapes every 10 seconds
+- Memory usage: ~1 MB per 1,000 active sessions
+
+### Total Resource Requirements
+
+**Minimum Development Setup:**
+```
+CPU: 2-4 cores recommended
+Memory: 4-8 GB recommended
+Storage: 20-30 GB (includes build caches)
+Network: Local only
+```
+
+**Minimum Production Setup (Single Instance):**
+```
+CPU: 2-3 cores
+Memory: 2-4 GB
+Storage: 20-50 GB (database + backups)
+Network: Public internet access required
+```
+
+**Recommended Production Setup (High Availability):**
+```
+Backend Instances: 2-3 × (0.5-1 core, 512 MB - 1 GB)
+Frontend Instances: 2-3 × (0.25 core, 128-256 MB)
+Database: 2 cores, 2-4 GB, 50-100 GB storage
+Redis: 0.5 cores, 512 MB - 1 GB
+Load Balancer: 0.5 cores, 512 MB
+Metrics: 0.25 cores, 256 MB
+
+Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
+```
+
+### Scaling Characteristics
+
+**Horizontal Scaling (Add More Instances):**
+- ✅ Backend: Stateless, scales linearly
+- ✅ Frontend: Stateless, scales linearly
+- ✅ Metrics: Can run multiple instances with shared Prometheus
+- ❌ Database: Requires read replicas (complex)
+- ❌ Redis: Requires Redis Cluster (complex)
+
+**Vertical Scaling (Bigger Instances):**
+- ✅ Database: Scales well up to 8-16 cores
+- ✅ Redis: Scales well up to 4-8 cores
+- ⚠️ Backend: Better to scale horizontally
+- ⚠️ Frontend: Better to scale horizontally
+
+**Bottlenecks:**
+1. Database connections (limit: ~100-500)
+2. Redis memory (current limit: 256 MB)
+3. Network bandwidth (depends on hosting)
+4. OCR processing (CPU-intensive, ~1-2 seconds per image)
+
+### Performance Benchmarks (Estimated)
+
+**Backend API:**
+- Simple GET requests: ~5-10ms response time
+- Database queries: ~10-50ms response time
+- OCR processing: ~1,000-2,000ms per image
+- Throughput: ~500-2,000 req/sec per instance
+
+**Frontend:**
+- Static asset serving: ~1-5ms response time
+- Throughput: ~1,000-5,000 req/sec per instance
+
+**Database:**
+- Simple queries: ~1-5ms
+- Complex joins: ~10-100ms
+- Concurrent connections: ~100-500
+
+**Redis:**
+- GET/SET operations: <1ms
+- Throughput: ~10,000-50,000 ops/sec
+
 ### Recommended Production Limits
 
 | Service | CPU Limit | Memory Limit | Notes |
