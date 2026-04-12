@@ -6,13 +6,13 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use testcontainers::runners::AsyncRunner;
+use testcontainers::{
+    runners::AsyncRunner,
+};
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-const TEST_PEPPER: &str = "test_pepper_for_activation_code_hashing_must_be_32_chars_long";
 
 fn generate_test_rsa_keypair_pem() -> (String, String) {
     use rand::rngs::OsRng;
@@ -48,12 +48,11 @@ async fn hash_password(password: &str) -> String {
         .to_string()
 }
 
-/// Setup test infrastructure for admin login tests
+/// Helper: sets up a real Postgres + Moka cache for integration tests.
 async fn setup_admin_login_test() -> (
     axum::Router,
     sqlx::PgPool,
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
 ) {
     let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
@@ -67,19 +66,10 @@ async fn setup_admin_login_test() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-    let redis = Redis::default().start().await.unwrap();
-    let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
-    let redis_pool = redis_cfg
-        .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-        .unwrap();
-
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
     let config = crate::config::Config {
         database_url: db_url,
-        redis_url: redis_url.clone(),
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
@@ -89,25 +79,25 @@ async fn setup_admin_login_test() -> (
         twilio_account_sid: "sid".to_string(),
         twilio_auth_token: "token".to_string(),
         twilio_from_number: "num".to_string(),
-        activation_code_pepper: TEST_PEPPER.to_string(),
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long".to_string(),
         shift_start_hour: 0,
         shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),
-        admin_bootstrap_phone: Some("+237600000000".to_string()),
+        admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
         db.clone(),
-        redis_pool.clone(),
+        Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(crate::services::sms_provider::MockSmsProvider),
         &config,
     );
 
     let app = routes::assembly(state);
 
-    (app, db, pg, redis)
+    (app, db, pg)
 }
 
 /// Helper: create admin user
@@ -176,7 +166,7 @@ async fn create_admin_user(
 
 #[tokio::test]
 async fn test_admin_login_success() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -212,7 +202,7 @@ async fn test_admin_login_success() {
 
 #[tokio::test]
 async fn test_admin_login_invalid_credentials() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let _user_id = create_admin_user(&db, email, "correctpassword", "admin", "ACTIVE").await;
@@ -239,7 +229,7 @@ async fn test_admin_login_invalid_credentials() {
 
 #[tokio::test]
 async fn test_admin_login_inactive_account() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "suspended@test.com";
     let password = "testpassword123";
@@ -267,7 +257,7 @@ async fn test_admin_login_inactive_account() {
 
 #[tokio::test]
 async fn test_admin_login_empty_email() {
-    let (app, _db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, _db, _pg) = setup_admin_login_test().await;
 
     let request_body = json!({
         "email": "",
@@ -291,7 +281,7 @@ async fn test_admin_login_empty_email() {
 
 #[tokio::test]
 async fn test_admin_login_empty_password() {
-    let (app, _db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, _db, _pg) = setup_admin_login_test().await;
 
     let request_body = json!({
         "email": "admin@test.com",
@@ -315,7 +305,7 @@ async fn test_admin_login_empty_password() {
 
 #[tokio::test]
 async fn test_admin_login_nonexistent_user() {
-    let (app, _db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, _db, _pg) = setup_admin_login_test().await;
 
     let request_body = json!({
         "email": "nonexistent@test.com",
@@ -343,7 +333,7 @@ async fn test_admin_login_nonexistent_user() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_success() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -394,7 +384,7 @@ async fn test_admin_refresh_token_success() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_invalid() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -421,7 +411,7 @@ async fn test_admin_refresh_token_invalid() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_inactive_account() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "suspended@test.com";
     let password = "testpassword123";
@@ -465,7 +455,7 @@ async fn test_admin_refresh_token_inactive_account() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_expired() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -509,7 +499,7 @@ async fn test_admin_refresh_token_expired() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_non_admin_role() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "agent@test.com";
     let password = "testpassword123";
@@ -553,7 +543,7 @@ async fn test_admin_refresh_token_non_admin_role() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_empty() {
-    let (app, _db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, _db, _pg) = setup_admin_login_test().await;
 
     let request_body = json!({
         "refreshToken": "",
@@ -576,7 +566,7 @@ async fn test_admin_refresh_token_empty() {
 
 #[tokio::test]
 async fn test_admin_refresh_token_revoked() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -625,7 +615,7 @@ async fn test_admin_refresh_token_revoked() {
 #[tokio::test]
 async fn test_rbac_admin_middleware_allowed() {
     // First login to get a token
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -660,7 +650,7 @@ async fn test_rbac_admin_middleware_allowed() {
 
 #[tokio::test]
 async fn test_rbac_manager_middleware_allowed() {
-    let (app, db, _pg, _redis) = setup_admin_login_test().await;
+    let (app, db, _pg) = setup_admin_login_test().await;
 
     let email = "manager@test.com";
     let password = "testpassword123";

@@ -9,16 +9,16 @@ use crate::dto::create_control::CreateControlRequest;
 use crate::dto::list_control::{ActionType, ControlResults};
 use crate::queries::control_queries;
 use sqlx::postgres::PgPoolOptions;
-use testcontainers::runners::AsyncRunner;
+use testcontainers::{
+    runners::AsyncRunner,
+};
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use uuid::Uuid;
 
-/// Helper: sets up a real Postgres + Redis for integration tests.
+/// Helper: sets up a real Postgres + Moka cache for integration tests.
 async fn setup_test_infrastructure() -> (
     sqlx::PgPool,
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
 ) {
     let pg = Postgres::default()
         .with_host_auth()
@@ -43,13 +43,8 @@ async fn setup_test_infrastructure() -> (
         .await
         .expect("Failed to run migrations");
 
-    // Start Redis (required for migrations even if not used in these tests)
-    let redis_container = Redis::default()
-        .start()
-        .await
-        .expect("Failed to start Redis");
 
-    (db, pg, redis_container)
+    (db, pg)
 }
 
 /// Helper: seed an organization.
@@ -163,7 +158,7 @@ async fn seed_control_action(
 
 #[tokio::test]
 async fn test_create_control_record_critical_status_wanted() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Critical Org").await;
     let agent_id = seed_agent(&db, org_id, "crit_agent").await;
@@ -199,7 +194,7 @@ async fn test_create_control_record_critical_status_wanted() {
 
 #[tokio::test]
 async fn test_create_control_record_critical_status_insurance() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Insurance Crit Org").await;
     let agent_id = seed_agent(&db, org_id, "ins_crit_agent").await;
@@ -234,7 +229,7 @@ async fn test_create_control_record_critical_status_insurance() {
 
 #[tokio::test]
 async fn test_create_control_record_warning_status_technical() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Warning Org").await;
     let agent_id = seed_agent(&db, org_id, "warn_agent").await;
@@ -269,7 +264,7 @@ async fn test_create_control_record_warning_status_technical() {
 
 #[tokio::test]
 async fn test_create_control_record_warning_status_customs() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Customs Warn Org").await;
     let agent_id = seed_agent(&db, org_id, "customs_warn_agent").await;
@@ -304,7 +299,7 @@ async fn test_create_control_record_warning_status_customs() {
 
 #[tokio::test]
 async fn test_create_control_record_valid_status() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Valid Org").await;
     let agent_id = seed_agent(&db, org_id, "valid_agent").await;
@@ -339,7 +334,7 @@ async fn test_create_control_record_valid_status() {
 
 #[tokio::test]
 async fn test_create_control_record_creates_initial_action() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Action Test Org").await;
     let agent_id = seed_agent(&db, org_id, "action_agent").await;
@@ -381,7 +376,7 @@ async fn test_create_control_record_creates_initial_action() {
 
 #[tokio::test]
 async fn test_get_control_records_no_filters() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "List Test Org").await;
     let agent_id = seed_agent(&db, org_id, "list_agent").await;
@@ -401,7 +396,7 @@ async fn test_get_control_records_no_filters() {
 
 #[tokio::test]
 async fn test_get_control_records_filter_by_agent_id() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Agent Filter Org").await;
     let agent1_id = seed_agent(&db, org_id, "agent_filter_1").await;
@@ -427,7 +422,7 @@ async fn test_get_control_records_filter_by_agent_id() {
 
 #[tokio::test]
 async fn test_get_control_records_filter_by_status() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Status Filter Org").await;
     let agent_id = seed_agent(&db, org_id, "status_filter_agent").await;
@@ -450,7 +445,7 @@ async fn test_get_control_records_filter_by_status() {
 
 #[tokio::test]
 async fn test_get_control_records_filter_by_plate() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Plate Filter Org").await;
     let agent_id = seed_agent(&db, org_id, "plate_filter_agent").await;
@@ -474,7 +469,7 @@ async fn test_get_control_records_filter_by_plate() {
 
 #[tokio::test]
 async fn test_get_control_records_multiple_filters() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Multi Filter Org").await;
     let agent_id = seed_agent(&db, org_id, "multi_filter_agent").await;
@@ -504,7 +499,7 @@ async fn test_get_control_records_multiple_filters() {
 
 #[tokio::test]
 async fn test_get_control_records_empty_result() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Empty Result Org").await;
     let agent_id = seed_agent(&db, org_id, "empty_result_agent").await;
@@ -530,7 +525,7 @@ async fn test_get_control_records_empty_result() {
 
 #[tokio::test]
 async fn test_get_control_records_excludes_deleted() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Deleted Filter Org").await;
     let agent_id = seed_agent(&db, org_id, "deleted_filter_agent").await;
@@ -557,7 +552,7 @@ async fn test_get_control_records_excludes_deleted() {
 
 #[tokio::test]
 async fn test_get_control_records_includes_actions() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Actions Test Org").await;
     let agent_id = seed_agent(&db, org_id, "actions_test_agent").await;
@@ -597,7 +592,7 @@ async fn test_get_control_records_includes_actions() {
 
 #[tokio::test]
 async fn test_get_control_records_with_all_identification_modes() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "ID Mode Org").await;
     let agent_id = seed_agent(&db, org_id, "id_mode_agent").await;
@@ -667,7 +662,7 @@ async fn test_get_control_records_with_all_identification_modes() {
 
 #[tokio::test]
 async fn test_get_control_records_results_parsing() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Results Test Org").await;
     let agent_id = seed_agent(&db, org_id, "results_test_agent").await;

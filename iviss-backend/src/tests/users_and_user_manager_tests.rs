@@ -4,7 +4,6 @@ use axum::{
     Router,
 };
 use base64::Engine;
-use deadpool_redis::redis::AsyncCommands;
 use hmac::Mac;
 use serde_json::json;
 use sqlx::PgPool;
@@ -14,15 +13,16 @@ use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
+    app_cache::AppCache,
     config::{Config, Environment, LogLevel},
-    db::redis::RedisPool,
     dto::users::{UserRole, UserStatus},
     routes,
     services::jwt_service::JwtService,
+    services::otp_service::OTP_TTL_SECS,
 };
 
 use testcontainers_modules::{
-    postgres::Postgres, redis::Redis, testcontainers::runners::AsyncRunner,
+    postgres::Postgres, testcontainers::runners::AsyncRunner,
 };
 
 type HmacSha256 = hmac::Hmac<sha2::Sha256>;
@@ -36,23 +36,27 @@ fn hash_otp_code(pepper: &str, code: &str) -> String {
     format!("{:x}", mac.finalize().into_bytes())
 }
 
-/// Helper: store OTP directly in Redis for testing
+/// Helper: store OTP directly in Moka cache for testing
 async fn store_test_otp(
-    redis_pool: &deadpool_redis::Pool,
+    cache: &AppCache,
     user_id: Uuid,
     code: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut conn = redis_pool.get().await?;
-
     let code_hash = hash_otp_code(TEST_PEPPER, code);
-    let entry = serde_json::json!({
+    let _entry = serde_json::json!({
         "code_hash": code_hash,
-        "attempts": 0
+        "attempts": 0,
+        "expires_at": (std::time::SystemTime::now() + std::time::Duration::from_secs(OTP_TTL_SECS))
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
     });
 
-    let key = format!("user_otp:{}", user_id);
-    conn.set_ex::<_, _, ()>(&key, entry.to_string(), 300)
-        .await?;
+    cache.otp_store.insert(user_id, crate::app_cache::OtpEntry {
+        code_hash,
+        attempts: 0,
+        expires_at: std::time::Instant::now() + std::time::Duration::from_secs(OTP_TTL_SECS),
+    }).await;
 
     Ok(())
 }
@@ -81,26 +85,20 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
     (TEST_PRIVATE_KEY.to_string(), TEST_PUBLIC_KEY.to_string())
 }
 
+/// Helper: set up test app with PostgreSQL and Moka cache
 async fn setup_test_app() -> (
     PgPool,
-    RedisPool,
+    std::sync::Arc<crate::app_cache::AppCache>,
     Router,
     String, // jwt_private_key_pem
     String, // jwt_public_key_pem
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
 ) {
     // Start PostgreSQL container
     let postgres = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_host = postgres.get_host().await.unwrap();
     let pg_port = postgres.get_host_port_ipv4(5432).await.unwrap();
     let db_url = format!("postgres://postgres@{pg_host}:{pg_port}/postgres");
-
-    // Start Redis container
-    let redis = Redis::default().start().await.unwrap();
-    let redis_host = redis.get_host().await.unwrap();
-    let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://{redis_host}:{redis_port}");
 
     // Create database pool
     let db = sqlx::postgres::PgPoolOptions::new()
@@ -112,53 +110,42 @@ async fn setup_test_app() -> (
     // Run migrations
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-    // Create Redis pool
-    let redis_pool = crate::db::redis::initialize_redis_pool(&redis_url)
-        .await
-        .unwrap();
-
     // Generate test keys
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
     // Create test config
     let config = Config {
         database_url: db_url,
-        redis_url,
         server_host: "0.0.0.0".to_string(),
         server_port: 8080,
         log_level: LogLevel::Info,
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: Environment::Local,
-        activation_code_pepper: "test_pepper".to_string(),
         twilio_account_sid: "mock".to_string(),
         twilio_auth_token: "mock".to_string(),
         twilio_from_number: "mock".to_string(),
-        admin_bootstrap_email: Some("admin@test.com".to_string()),
-        admin_bootstrap_password: Some("password123".to_string()),
-        admin_bootstrap_phone: Some("+1234567890".to_string()),
-        admin_bootstrap_username: Some("admin".to_string()),
-        shift_start_hour: 8,
+        activation_code_pepper: TEST_PEPPER.to_string(),
+        shift_start_hour: 6,
         shift_end_hour: 18,
+        admin_bootstrap_email: None,
+        admin_bootstrap_password: None,
+        admin_bootstrap_phone: None,
+        admin_bootstrap_username: None,
     };
+
+    // Create Moka cache
+    let cache = std::sync::Arc::new(crate::app_cache::AppCache::new());
 
     // Create app state with mock SMS provider
     let sms_provider: Arc<dyn crate::services::sms_provider::SmsProvider> =
         Arc::new(crate::services::sms_provider::MockSmsProvider);
-    let state = AppState::new(db.clone(), redis_pool.clone(), sms_provider, &config);
+    let state = AppState::new(db.clone(), cache.clone(), sms_provider, &config);
 
-    // Build router
+    // Create router
     let app = routes::assembly(state);
 
-    (
-        db,
-        redis_pool,
-        app,
-        jwt_private_key_pem,
-        jwt_public_key_pem,
-        postgres,
-        redis,
-    )
+    (db, cache.clone(), app, jwt_private_key_pem, jwt_public_key_pem, postgres)
 }
 
 async fn create_test_organization(db: &PgPool) -> Uuid {
@@ -260,7 +247,7 @@ fn issue_admin_token(jwt_private_key_pem: &str, admin_id: Uuid) -> String {
 
 #[tokio::test]
 async fn test_provision_user_creates_new_user() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -309,7 +296,7 @@ async fn test_provision_user_creates_new_user() {
 
 #[tokio::test]
 async fn test_provision_user_requires_admin_role() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -365,7 +352,7 @@ async fn test_provision_user_requires_admin_role() {
 
 #[tokio::test]
 async fn test_list_users_returns_all_users() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -405,7 +392,7 @@ async fn test_list_users_returns_all_users() {
 
 #[tokio::test]
 async fn test_get_user_returns_specific_user() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -441,7 +428,7 @@ async fn test_get_user_returns_specific_user() {
 
 #[tokio::test]
 async fn test_get_user_returns_404_for_nonexistent_user() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -470,7 +457,7 @@ async fn test_get_user_returns_404_for_nonexistent_user() {
 
 #[tokio::test]
 async fn test_update_user_updates_fields() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -512,7 +499,7 @@ async fn test_update_user_updates_fields() {
 
 #[tokio::test]
 async fn test_delete_user_removes_user() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -553,7 +540,7 @@ async fn test_delete_user_removes_user() {
 
 #[tokio::test]
 async fn test_update_user_can_reactivate_suspended_admin() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -614,7 +601,7 @@ async fn test_update_user_can_reactivate_suspended_admin() {
 
 #[tokio::test]
 async fn test_update_user_can_suspend_active_admin() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -661,7 +648,7 @@ async fn test_update_user_can_suspend_active_admin() {
 
 #[tokio::test]
 async fn test_get_current_user_profile() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -729,7 +716,7 @@ async fn test_get_current_user_profile() {
 
 #[tokio::test]
 async fn test_manager_cannot_provision_admin_user() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -787,7 +774,7 @@ async fn test_manager_cannot_provision_admin_user() {
 
 #[tokio::test]
 async fn test_agent_cannot_access_user_management_endpoints() {
-    let (db, _redis, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -839,7 +826,7 @@ async fn test_agent_cannot_access_user_management_endpoints() {
 
 #[tokio::test]
 async fn test_activate_success() {
-    let (db, redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -873,8 +860,8 @@ async fn test_activate_success() {
     let public_key_base64 = generate_test_public_key_base64();
     let test_otp = "123456";
 
-    // Store OTP in Redis using the app's Redis pool
-    store_test_otp(&redis, agent_id, test_otp)
+    // Store OTP in Moka cache using the app's cache
+    store_test_otp(&cache, agent_id, test_otp)
         .await
         .expect("Failed to store test OTP");
 
@@ -935,7 +922,7 @@ async fn test_activate_success() {
 
 #[tokio::test]
 async fn test_activate_missing_badge_id() {
-    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (_db, _cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let device_id = Uuid::new_v4();
@@ -968,7 +955,7 @@ async fn test_activate_missing_badge_id() {
 
 #[tokio::test]
 async fn test_activate_missing_activation_code() {
-    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (_db, _cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let device_id = Uuid::new_v4();
@@ -1001,7 +988,7 @@ async fn test_activate_missing_activation_code() {
 
 #[tokio::test]
 async fn test_activate_invalid_base64_public_key() {
-    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (_db, _cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let device_id = Uuid::new_v4();
@@ -1034,7 +1021,7 @@ async fn test_activate_invalid_base64_public_key() {
 
 #[tokio::test]
 async fn test_activate_user_not_found() {
-    let (_db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (_db, _cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let device_id = Uuid::new_v4();
@@ -1067,7 +1054,7 @@ async fn test_activate_user_not_found() {
 
 #[tokio::test]
 async fn test_activate_non_agent_user() {
-    let (db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -1127,7 +1114,7 @@ async fn test_activate_non_agent_user() {
 
 #[tokio::test]
 async fn test_activate_user_not_pending_activation() {
-    let (db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, _cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -1193,7 +1180,7 @@ async fn test_activate_user_not_pending_activation() {
 
 #[tokio::test]
 async fn test_activate_invalid_otp() {
-    let (db, _redis, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis_container) =
+    let (db, cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _postgres) =
         setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
@@ -1225,8 +1212,8 @@ async fn test_activate_invalid_otp() {
 
     let device_id = Uuid::new_v4();
 
-    // Store correct OTP in Redis using the app's Redis pool
-    store_test_otp(&_redis, agent_id, "123456")
+    // Store correct OTP in cache using the app's cache
+    store_test_otp(&cache, agent_id, "123456")
         .await
         .expect("Failed to store test OTP");
 
