@@ -43,6 +43,4 @@ iviss-backend/lcov.info
 # Environment variables
 .env
 .vscode/settings.json
-iviss-backend/scripts/log_out_test.sh
-iviss-backend/scripts/test_token_invalidation.sh
 iviss-backend/docs/redis-to-moka-migration.md
