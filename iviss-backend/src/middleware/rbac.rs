@@ -25,7 +25,7 @@ impl From<&AccessTokenClaims> for AuthenticatedAdmin {
 }
 /// JWT middleware for web users (admin / manager).
 ///
-/// Validates JWT signature, expiry, and checks Redis blacklist.
+/// Validates JWT signature, expiry, and checks Moka cache blacklist.
 pub async fn require_auth_web(
     State(state): State<Arc<AppState>>,
     mut request: Request,

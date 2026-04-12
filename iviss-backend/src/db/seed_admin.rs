@@ -111,7 +111,6 @@ mod tests {
     ) -> Config {
         Config {
             database_url: db_url.to_string(),
-            redis_url: "redis://localhost:6379".to_string(),
             server_host: "0.0.0.0".to_string(),
             server_port: 8080,
             log_level: crate::config::LogLevel::Info,

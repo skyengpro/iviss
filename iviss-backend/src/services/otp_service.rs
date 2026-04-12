@@ -26,7 +26,7 @@ impl OtpService {
         Self { app_cache, sms, pepper }
     }
 
-    /// Check rate limit, generate OTP, store in Redis and send via SMS
+    /// Check rate limit, generate OTP, store in Moka cache and send via SMS
     pub async fn request_otp(&self, user_id: &Uuid, phone: &str) -> Result<(), AppError> {
         self.check_rate_limit(phone).await?;
 

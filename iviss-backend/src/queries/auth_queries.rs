@@ -183,7 +183,7 @@ pub async fn suspend_device_and_revoke_tokens(
 }
 
 
-/// Blacklist a JTI in the Moka cache (Redis replacement)
+/// Blacklist a JTI in the Moka cache
 pub async fn blacklist_jti_cache(cache: &crate::app_cache::AppCache, jti: &str) -> Result<(), AppError> {
     cache.jti_blacklist.insert(jti.to_string(), ()).await;
     Ok(())

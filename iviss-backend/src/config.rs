@@ -75,7 +75,6 @@ impl LogLevel {
 // jwt and helper methods will be used in future JWT implementation
 pub struct Config {
     pub database_url: String,
-    pub redis_url: String,
     pub server_host: String,
     pub server_port: u16,
     pub log_level: LogLevel,
@@ -107,12 +106,6 @@ impl Config {
 
         if database_url.trim().is_empty() {
             return Err(anyhow!("DATABASE_URL cannot be empty"));
-        }
-        let redis_url =
-            env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-
-        if redis_url.trim().is_empty() {
-            return Err(anyhow!("REDIS_URL cannot be empty"));
         }
 
         // Load and validate JWT_PRIVATE_KEY_PEM (critical)
@@ -198,7 +191,6 @@ impl Config {
 
         Ok(Self {
             database_url,
-            redis_url,
             server_host,
             server_port,
             log_level,
@@ -303,7 +295,6 @@ mod tests {
     fn test_config_helpers() {
         let config = Config {
             database_url: "db".into(),
-            redis_url: "redis".into(),
             server_host: "0.0.0.0".into(),
             server_port: 3000,
             log_level: LogLevel::Info,
