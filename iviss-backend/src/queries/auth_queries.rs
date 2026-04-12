@@ -1,7 +1,5 @@
-use crate::db::RedisPool;
 use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
-use deadpool_redis::redis::AsyncCommands;
 use sqlx::FromRow;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -184,19 +182,6 @@ pub async fn suspend_device_and_revoke_tokens(
     .map_err(AppError::database)
 }
 
-pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Result<(), AppError> {
-    let key = format!("blacklist:jti:{}", jti);
-    let mut conn = redis
-        .get()
-        .await
-        .map_err(|e| AppError::internal_error(format!("Redis connection failed: {e}")))?;
-
-    conn.set_ex::<_, _, ()>(&key, "1", ttl_secs)
-        .await
-        .map_err(|e| AppError::internal_error(format!("Redis SET failed: {e}")))?;
-
-    Ok(())
-}
 
 /// Blacklist a JTI in the Moka cache (Redis replacement)
 pub async fn blacklist_jti_cache(cache: &crate::app_cache::AppCache, jti: &str) -> Result<(), AppError> {
@@ -204,20 +189,6 @@ pub async fn blacklist_jti_cache(cache: &crate::app_cache::AppCache, jti: &str) 
     Ok(())
 }
 
-pub async fn is_jti_blacklisted(redis: &RedisPool, jti: &str) -> Result<bool, AppError> {
-    let key = format!("blacklist:jti:{}", jti);
-    let mut conn = redis
-        .get()
-        .await
-        .map_err(|e| AppError::internal_error(format!("Redis connection failed: {e}")))?;
-
-    let exists: bool = conn
-        .exists(&key)
-        .await
-        .map_err(|e| AppError::internal_error(format!("Redis EXISTS failed: {e}")))?;
-
-    Ok(exists)
-}
 
 pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<bool, AppError> {
     let valid_refresh: bool = sqlx::query_scalar(
