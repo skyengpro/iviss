@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 type HmacSha256 = Hmac<Sha256>;
 
-const OTP_TTL_SECS: u64 = 300; // 5 minutes — absolute, not sliding
+pub const OTP_TTL_SECS: u64 = 300; // 5 minutes — absolute, not sliding
 const MAX_ATTEMPTS: u8 = 5;
 const RATE_LIMIT_MAX: u32 = 3; // max OTP requests per window
 
@@ -104,7 +104,7 @@ impl OtpService {
             .await
             .unwrap_or(0);
 
-        if count > RATE_LIMIT_MAX {
+        if count >= RATE_LIMIT_MAX {
             warn!(target: "otp", phone = %phone, count = count, "Rate limit exceeded");
             return Err(AppError::too_many_requests(
                 "Too many OTP requests — try again later",

@@ -10,16 +10,16 @@
 use crate::dto::stats::DashboardRange;
 use crate::queries::stats_queries;
 use sqlx::postgres::PgPoolOptions;
-use testcontainers::runners::AsyncRunner;
+use testcontainers::{
+    runners::AsyncRunner,
+};
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use uuid::Uuid;
 
-/// Helper: sets up a real Postgres + Redis for integration tests.
+/// Helper: sets up a real Postgres + Moka cache for integration tests.
 async fn setup_test_infrastructure() -> (
     sqlx::PgPool,
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
 ) {
     let pg = Postgres::default()
         .with_host_auth()
@@ -44,13 +44,8 @@ async fn setup_test_infrastructure() -> (
         .await
         .expect("Failed to run migrations");
 
-    // Start Redis (required for migrations even if not used in these tests)
-    let redis_container = Redis::default()
-        .start()
-        .await
-        .expect("Failed to start Redis");
-
-    (db, pg, redis_container)
+    
+    (db, pg)
 }
 
 /// Helper: seed an organization.
@@ -182,7 +177,7 @@ async fn seed_pending_submission(
 
 #[tokio::test]
 async fn test_get_control_activity_series_h24_with_data() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org H24").await;
     let agent_id = seed_agent(&db, org_id, "agent_h24_1").await;
@@ -214,7 +209,7 @@ async fn test_get_control_activity_series_h24_with_data() {
 
 #[tokio::test]
 async fn test_get_control_activity_series_h24_empty() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     // No control records - should still return 24 buckets with 0 counts
     let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::H24).await;
@@ -237,7 +232,7 @@ async fn test_get_control_activity_series_h24_empty() {
 
 #[tokio::test]
 async fn test_get_control_activity_series_d7_with_data() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org D7").await;
     let agent_id = seed_agent(&db, org_id, "agent_d7_1").await;
@@ -265,7 +260,7 @@ async fn test_get_control_activity_series_d7_with_data() {
 
 #[tokio::test]
 async fn test_get_control_activity_series_d30_with_data() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org D30").await;
     let agent_id = seed_agent(&db, org_id, "agent_d30_1").await;
@@ -296,7 +291,7 @@ async fn test_get_control_activity_series_d30_with_data() {
 
 #[tokio::test]
 async fn test_get_top_agents_with_controls() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Agents").await;
     let agent1_id = seed_agent(&db, org_id, "top_agent_1").await;
@@ -326,7 +321,7 @@ async fn test_get_top_agents_with_controls() {
 
 #[tokio::test]
 async fn test_get_top_agents_limit() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Limit").await;
 
@@ -347,7 +342,7 @@ async fn test_get_top_agents_limit() {
 
 #[tokio::test]
 async fn test_get_top_agents_empty() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     // No agents or controls
     let result = stats_queries::get_top_agents_query(&db, DashboardRange::H24, 10).await;
@@ -366,7 +361,7 @@ async fn test_get_top_agents_empty() {
 
 #[tokio::test]
 async fn test_get_top_agents_with_online_status() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Online").await;
     let agent_id = seed_agent(&db, org_id, "online_agent").await;
@@ -394,7 +389,7 @@ async fn test_get_top_agents_with_online_status() {
 
 #[tokio::test]
 async fn test_get_activity_feed_with_records() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Feed").await;
     let agent_id = seed_agent(&db, org_id, "feed_agent").await;
@@ -417,7 +412,7 @@ async fn test_get_activity_feed_with_records() {
 
 #[tokio::test]
 async fn test_get_activity_feed_with_limit() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Feed Limit").await;
     let agent_id = seed_agent(&db, org_id, "feed_limit_agent").await;
@@ -437,7 +432,7 @@ async fn test_get_activity_feed_with_limit() {
 
 #[tokio::test]
 async fn test_get_activity_feed_empty() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     // No control records
     let result = stats_queries::get_activity_feed_query(&db, 10).await;
@@ -456,7 +451,7 @@ async fn test_get_activity_feed_empty() {
 
 #[tokio::test]
 async fn test_get_activity_feed_excludes_deleted() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Feed Deleted").await;
     let agent_id = seed_agent(&db, org_id, "feed_deleted_agent").await;
@@ -487,7 +482,7 @@ async fn test_get_activity_feed_excludes_deleted() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_with_warnings_and_criticals() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Alerts").await;
     let agent_id = seed_agent(&db, org_id, "alert_agent").await;
@@ -523,7 +518,7 @@ async fn test_get_recent_alerts_with_warnings_and_criticals() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_only_ok_records() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org No Alerts").await;
     let agent_id = seed_agent(&db, org_id, "no_alert_agent").await;
@@ -545,7 +540,7 @@ async fn test_get_recent_alerts_only_ok_records() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_with_limit() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Alert Limit").await;
     let agent_id = seed_agent(&db, org_id, "alert_limit_agent").await;
@@ -565,7 +560,7 @@ async fn test_get_recent_alerts_with_limit() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_includes_address() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Test Org Alert Address").await;
     let agent_id = seed_agent(&db, org_id, "alert_address_agent").await;
@@ -590,7 +585,7 @@ async fn test_get_recent_alerts_includes_address() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_complete() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Dashboard Test Org").await;
     let agent_id = seed_agent(&db, org_id, "dashboard_agent").await;
@@ -642,7 +637,7 @@ async fn test_get_dashboard_stats_complete() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_empty_database() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     // No data at all
     let result = stats_queries::get_dashboard_stats_query(&db).await;
@@ -673,7 +668,7 @@ async fn test_get_dashboard_stats_empty_database() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_activity_24h_structure() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Activity Test Org").await;
     let agent_id = seed_agent(&db, org_id, "activity_agent").await;
@@ -703,7 +698,7 @@ async fn test_get_dashboard_stats_activity_24h_structure() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_live_agents_location() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     let org_id = seed_organization(&db, "Live Agent Test Org").await;
     let agent1_id = seed_agent(&db, org_id, "live_agent_1").await;
@@ -726,7 +721,7 @@ async fn test_get_dashboard_stats_live_agents_location() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_multiple_organizations() {
-    let (db, _pg, _redis) = setup_test_infrastructure().await;
+    let (db, _pg) = setup_test_infrastructure().await;
 
     // Create multiple organizations
     let org1_id = seed_organization(&db, "Org Alpha").await;

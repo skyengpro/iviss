@@ -6,9 +6,10 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use testcontainers::runners::AsyncRunner;
+use testcontainers::{
+    runners::AsyncRunner,
+};
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use tower::ServiceExt;
 use uuid::Uuid;
 
@@ -53,7 +54,6 @@ async fn setup_admin_logout_test() -> (
     axum::Router,
     sqlx::PgPool,
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
     String, // jwt_private_key_pem
     String, // jwt_public_key_pem
 ) {
@@ -69,19 +69,10 @@ async fn setup_admin_logout_test() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-    let redis = Redis::default().start().await.unwrap();
-    let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
-    let redis_pool = redis_cfg
-        .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-        .unwrap();
-
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
     let config = crate::config::Config {
         database_url: db_url,
-        redis_url: redis_url.clone(),
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
@@ -102,14 +93,14 @@ async fn setup_admin_logout_test() -> (
 
     let state = AppState::new(
         db.clone(),
-        redis_pool.clone(),
+        Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(crate::services::sms_provider::MockSmsProvider),
         &config,
     );
 
     let app = routes::assembly(state);
 
-    (app, db, pg, redis, jwt_private_key_pem, jwt_public_key_pem)
+    (app, db, pg, jwt_private_key_pem, jwt_public_key_pem)
 }
 
 /// Helper: create admin user
@@ -220,7 +211,7 @@ fn generate_access_token(
 
 #[tokio::test]
 async fn test_admin_logout_success() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     let email = "admin@test.com";
@@ -255,7 +246,7 @@ async fn test_admin_logout_success() {
 
 #[tokio::test]
 async fn test_admin_logout_revokes_refresh_tokens_and_allows_access_token_use() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     let email = "admin@test.com";
@@ -304,7 +295,7 @@ async fn test_admin_logout_revokes_refresh_tokens_and_allows_access_token_use() 
 
 #[tokio::test]
 async fn test_admin_logout_revokes_refresh_tokens() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     let email = "admin@test.com";
@@ -388,7 +379,7 @@ async fn test_admin_logout_revokes_refresh_tokens() {
 
 #[tokio::test]
 async fn test_admin_logout_missing_auth_header() {
-    let (app, _db, _pg, _redis, _jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, _db, _pg, _jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     // Call logout without Authorization header
@@ -408,7 +399,7 @@ async fn test_admin_logout_missing_auth_header() {
 
 #[tokio::test]
 async fn test_admin_logout_invalid_token() {
-    let (app, _db, _pg, _redis, _jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, _db, _pg, _jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     // Call logout with invalid token
@@ -429,7 +420,7 @@ async fn test_admin_logout_invalid_token() {
 
 #[tokio::test]
 async fn test_admin_logout_manager_role_allowed() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     let email = "manager@test.com";
@@ -483,7 +474,7 @@ async fn test_admin_logout_manager_role_allowed() {
 
 #[tokio::test]
 async fn test_admin_logout_idempotent() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     let email = "admin@test.com";
