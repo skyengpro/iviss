@@ -1,4 +1,5 @@
 pub mod admin_login_and_refresh_token_tests;
+pub mod admin_logout_tests;
 #[cfg(test)]
 pub mod auth_queries_tests;
 #[cfg(test)]
