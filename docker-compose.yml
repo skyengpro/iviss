@@ -7,7 +7,6 @@ x-default-logging: &default-logging
 x-backend-environment: &backend-environment
   DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
   EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:?EXTERNAL_POSTGRES_PASSWORD must be set}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
-  REDIS_URL: redis://iviss-redis:6379
   SQLX_OFFLINE: "true"
   JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
   JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
@@ -52,32 +51,7 @@ services:
     networks:
       - iviss-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: iviss-redis
-    restart: unless-stopped
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
-    logging: *default-logging
-    networks:
-      - iviss-network
-
+  
   # Adminer is useful for local development only
   adminer:
     image: adminer
@@ -106,8 +80,6 @@ services:
       - 8.8.8.8
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment: *backend-environment
     ports:
@@ -146,8 +118,6 @@ services:
       - 8.8.8.8
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment: *backend-environment
     ports:
@@ -263,8 +233,6 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
   cargo_cache:
     driver: local

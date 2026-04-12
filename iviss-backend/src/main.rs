@@ -4,7 +4,6 @@ use iviss_backend::app_state::AppState;
 use iviss_backend::app_cache::AppCache;
 use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
-use iviss_backend::db::initialize_redis_pool;
 use iviss_backend::db::seed_admin::run_bootstrap_seed;
 use iviss_backend::routes;
 use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
@@ -48,8 +47,6 @@ async fn main() -> anyhow::Result<()> {
     let db_pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
 
-    let redis_pool = initialize_redis_pool(&config.redis_url).await?;
-    info!("Redis connection initialized");
     let cache = Arc::new(AppCache::new());
     info!("App cache initialized");
 
@@ -60,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Running admin bootstrap seed...");
     run_bootstrap_seed(&db_pool, &config).await;
 
-    let state = AppState::new(db_pool, redis_pool, cache, sms_provider, &config);
+    let state = AppState::new(db_pool, cache, sms_provider, &config);
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
