@@ -56,7 +56,12 @@ pub async fn require_auth_web(
     );
 
     // Check Moka cache blacklist for admin tokens
-    let is_blacklisted = state.app_cache.jti_blacklist.get(&claims.jti.to_string()).await.is_some();
+    let is_blacklisted = state
+        .app_cache
+        .jti_blacklist
+        .get(&claims.jti.to_string())
+        .await
+        .is_some();
 
     if is_blacklisted {
         tracing::warn!(

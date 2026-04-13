@@ -212,11 +212,14 @@ pub async fn logout(
         0
     };
 
-    // Blacklist the JTI in Moka cache (prevents further use of this access token)
+    // Blacklist the JTI in PostgreSQL for persistence (prevents further use of this access token)
     if ttl > 0 {
+        let expires_at = time::OffsetDateTime::now_utc() + time::Duration::seconds(ttl as i64);
+        auth_queries::blacklist_jti_db(&state.db, &claims.jti.to_string(), claims.sub, expires_at)
+            .await?;
+
         auth_queries::blacklist_jti_cache(&state.app_cache, &claims.jti.to_string()).await?;
-    }
-    else {
+    } else {
         tracing::warn!(
             target: "audit",
             event = "logout",
@@ -843,7 +846,11 @@ async fn request_refresh_agent(
     };
 
     // Store nonce in Moka cache with device_id as key, TTL 60s (handled automatically)
-    state.app_cache.refresh_nonce.insert(device_id, nonce.clone()).await;
+    state
+        .app_cache
+        .refresh_nonce
+        .insert(device_id, nonce.clone())
+        .await;
 
     tracing::info!(
         %device_id,
@@ -957,12 +964,16 @@ pub async fn verify_refresh(
     let stored_nonce: Option<String> = {
         // Get the nonce from cache
         let nonce = state.app_cache.refresh_nonce.get(&payload.device_id).await;
-        
+
         // Immediately invalidate to ensure single-use (prevent replay)
         if nonce.is_some() {
-            state.app_cache.refresh_nonce.invalidate(&payload.device_id).await;
+            state
+                .app_cache
+                .refresh_nonce
+                .invalidate(&payload.device_id)
+                .await;
         }
-        
+
         nonce
     };
 

@@ -1,4 +1,5 @@
 pub mod api_doc;
+pub mod app_cache;
 pub mod app_state;
 pub mod config;
 pub mod db;
@@ -13,4 +14,3 @@ pub mod services;
 #[cfg(test)]
 pub mod tests;
 pub mod utils;
-pub mod app_cache;

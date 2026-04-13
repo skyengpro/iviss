@@ -10,13 +10,10 @@ use serde_json::json;
 use sha2::Digest;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use testcontainers::{
-    runners::AsyncRunner,
-};
+use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 use tower::ServiceExt;
 use uuid::Uuid;
-
 
 fn generate_test_rsa_keypair_pem() -> (String, String) {
     use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
@@ -88,7 +85,6 @@ async fn setup_test_infrastructure() -> (
         .unwrap();
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
-
 
     // Create organization
     let org_id = Uuid::new_v4();
@@ -185,7 +181,8 @@ async fn setup_test_infrastructure() -> (
         twilio_account_sid: "sid".to_string(),
         twilio_auth_token: "token".to_string(),
         twilio_from_number: "num".to_string(),
-        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long".to_string(),
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
+            .to_string(),
         shift_start_hour: 0,
         shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),

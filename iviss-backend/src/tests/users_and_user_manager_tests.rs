@@ -12,8 +12,8 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use crate::{
-    app_state::AppState,
     app_cache::AppCache,
+    app_state::AppState,
     config::{Config, Environment, LogLevel},
     dto::users::{UserRole, UserStatus},
     routes,
@@ -21,9 +21,7 @@ use crate::{
     services::otp_service::OTP_TTL_SECS,
 };
 
-use testcontainers_modules::{
-    postgres::Postgres, testcontainers::runners::AsyncRunner,
-};
+use testcontainers_modules::{postgres::Postgres, testcontainers::runners::AsyncRunner};
 
 type HmacSha256 = hmac::Hmac<sha2::Sha256>;
 
@@ -52,11 +50,18 @@ async fn store_test_otp(
             .as_secs(),
     });
 
-    cache.otp_store.insert(user_id, crate::app_cache::OtpEntry {
-        code_hash,
-        attempts: 0,
-        expires_at: std::time::Instant::now() + std::time::Duration::from_secs(OTP_TTL_SECS),
-    }).await;
+    cache
+        .otp_store
+        .insert(
+            user_id,
+            crate::app_cache::OtpEntry {
+                code_hash,
+                attempts: 0,
+                expires_at: std::time::Instant::now()
+                    + std::time::Duration::from_secs(OTP_TTL_SECS),
+            },
+        )
+        .await;
 
     Ok(())
 }
@@ -145,7 +150,14 @@ async fn setup_test_app() -> (
     // Create router
     let app = routes::assembly(state);
 
-    (db, cache.clone(), app, jwt_private_key_pem, jwt_public_key_pem, postgres)
+    (
+        db,
+        cache.clone(),
+        app,
+        jwt_private_key_pem,
+        jwt_public_key_pem,
+        postgres,
+    )
 }
 
 async fn create_test_organization(db: &PgPool) -> Uuid {
@@ -247,8 +259,7 @@ fn issue_admin_token(jwt_private_key_pem: &str, admin_id: Uuid) -> String {
 
 #[tokio::test]
 async fn test_provision_user_creates_new_user() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -296,8 +307,7 @@ async fn test_provision_user_creates_new_user() {
 
 #[tokio::test]
 async fn test_provision_user_requires_admin_role() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let agent_id = create_test_user(&db, org_id, UserRole::Agent, UserStatus::Active).await;
@@ -352,8 +362,7 @@ async fn test_provision_user_requires_admin_role() {
 
 #[tokio::test]
 async fn test_list_users_returns_all_users() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -392,8 +401,7 @@ async fn test_list_users_returns_all_users() {
 
 #[tokio::test]
 async fn test_get_user_returns_specific_user() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -428,8 +436,7 @@ async fn test_get_user_returns_specific_user() {
 
 #[tokio::test]
 async fn test_get_user_returns_404_for_nonexistent_user() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -457,8 +464,7 @@ async fn test_get_user_returns_404_for_nonexistent_user() {
 
 #[tokio::test]
 async fn test_update_user_updates_fields() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -499,8 +505,7 @@ async fn test_update_user_updates_fields() {
 
 #[tokio::test]
 async fn test_delete_user_removes_user() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -540,8 +545,7 @@ async fn test_delete_user_removes_user() {
 
 #[tokio::test]
 async fn test_update_user_can_reactivate_suspended_admin() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -601,8 +605,7 @@ async fn test_update_user_can_reactivate_suspended_admin() {
 
 #[tokio::test]
 async fn test_update_user_can_suspend_active_admin() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
@@ -648,8 +651,7 @@ async fn test_update_user_can_suspend_active_admin() {
 
 #[tokio::test]
 async fn test_get_current_user_profile() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let agent_id = create_test_user(&db, org_id, UserRole::Agent, UserStatus::Active).await;
@@ -716,8 +718,7 @@ async fn test_get_current_user_profile() {
 
 #[tokio::test]
 async fn test_manager_cannot_provision_admin_user() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let manager_id = create_test_user(&db, org_id, UserRole::Manager, UserStatus::Active).await;
@@ -774,8 +775,7 @@ async fn test_manager_cannot_provision_admin_user() {
 
 #[tokio::test]
 async fn test_agent_cannot_access_user_management_endpoints() {
-    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
     let agent_id = create_test_user(&db, org_id, UserRole::Agent, UserStatus::Active).await;
@@ -826,8 +826,7 @@ async fn test_agent_cannot_access_user_management_endpoints() {
 
 #[tokio::test]
 async fn test_activate_success() {
-    let (db, cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, cache, app, _jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let org_id = create_test_organization(&db).await;
 

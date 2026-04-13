@@ -2,6 +2,7 @@ use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
 use sqlx::FromRow;
 use sqlx::PgPool;
+use sqlx::Row;
 use uuid::Uuid;
 
 #[derive(Debug, FromRow)]
@@ -182,13 +183,85 @@ pub async fn suspend_device_and_revoke_tokens(
     .map_err(AppError::database)
 }
 
+/// Blacklist a JTI in PostgreSQL for persistence
+pub async fn blacklist_jti_db(
+    pool: &PgPool,
+    jti: &str,
+    user_id: Uuid,
+    expires_at: time::OffsetDateTime,
+) -> Result<(), AppError> {
+    sqlx::query(
+        r#"
+        INSERT INTO access_token_blacklist (jti, user_id, expires_at)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (jti) DO NOTHING
+        "#,
+    )
+    .bind(jti)
+    .bind(user_id)
+    .bind(expires_at)
+    .execute(pool)
+    .await
+    .map_err(AppError::database)?;
 
-/// Blacklist a JTI in the Moka cache
-pub async fn blacklist_jti_cache(cache: &crate::app_cache::AppCache, jti: &str) -> Result<(), AppError> {
-    cache.jti_blacklist.insert(jti.to_string(), ()).await;
     Ok(())
 }
 
+/// Load active blacklisted JTIs from PostgreSQL into cache (background task, limited to cache capacity)
+pub async fn load_blacklisted_jtis_to_cache(
+    pool: &PgPool,
+    cache: &crate::app_cache::AppCache,
+) -> Result<usize, AppError> {
+    let cache_clone = cache.clone();
+    let pool_clone = pool.clone();
+
+    // Spawn background task to avoid blocking startup
+    // Limit to 10000 (Moka cache max_capacity) to avoid wasting memory
+    tokio::spawn(async move {
+        let rows = sqlx::query(
+            r#"
+            SELECT jti
+            FROM access_token_blacklist
+            WHERE expires_at > NOW()
+            ORDER BY expires_at DESC
+            LIMIT 10000
+            "#,
+        )
+        .fetch_all(&pool_clone)
+        .await;
+
+        match rows {
+            Ok(rows) => {
+                let count = rows.len();
+
+                for row in rows {
+                    let jti: String = row.get("jti");
+                    cache_clone.jti_blacklist.insert(jti, ()).await;
+                }
+
+                tracing::info!(
+                    count,
+                    "Loaded blacklisted JTIs from PostgreSQL to cache (background task completed)"
+                );
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to load blacklisted JTIs from PostgreSQL (background task)");
+            }
+        }
+    });
+
+    tracing::info!("Blacklisted JTIs loading started in background (max 10000, most recent first)");
+    Ok(0)
+}
+
+/// Blacklist a JTI in the Moka cache
+pub async fn blacklist_jti_cache(
+    cache: &crate::app_cache::AppCache,
+    jti: &str,
+) -> Result<(), AppError> {
+    cache.jti_blacklist.insert(jti.to_string(), ()).await;
+    Ok(())
+}
 
 pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<bool, AppError> {
     let valid_refresh: bool = sqlx::query_scalar(

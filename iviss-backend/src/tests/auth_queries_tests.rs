@@ -39,18 +39,11 @@ async fn setup_test_infrastructure() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-
     let cache = crate::app_cache::AppCache::new();
 
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
-    (
-        db,
-        cache,
-        jwt_private_key_pem,
-        jwt_public_key_pem,
-        pg,
-    )
+    (db, cache, jwt_private_key_pem, jwt_public_key_pem, pg)
 }
 
 fn generate_test_rsa_keypair_pem() -> (String, String) {
@@ -605,9 +598,12 @@ async fn test_blacklist_jti_expiration() {
 
     // Verify the key exists immediately
     let exists_before = cache.jti_blacklist.contains_key(&jti);
-    assert!(exists_before, "Blacklisted JTI should exist in cache immediately");
+    assert!(
+        exists_before,
+        "Blacklisted JTI should exist in cache immediately"
+    );
 
-    // Note: Moka cache handles TTL automatically, we can't easily test expiration 
+    // Note: Moka cache handles TTL automatically, we can't easily test expiration
     // without complex timing, so we'll just verify the entry exists
 }
 
@@ -621,8 +617,14 @@ async fn test_blacklist_jti_multiple_calls() {
     // Call the function under test
     let result1 = auth_queries::blacklist_jti_cache(&cache, &jti1).await;
     let result2 = auth_queries::blacklist_jti_cache(&cache, &jti2).await;
-    assert!(result1.is_ok(), "blacklist_jti_cache should succeed for jti1");
-    assert!(result2.is_ok(), "blacklist_jti_cache should succeed for jti2");
+    assert!(
+        result1.is_ok(),
+        "blacklist_jti_cache should succeed for jti1"
+    );
+    assert!(
+        result2.is_ok(),
+        "blacklist_jti_cache should succeed for jti2"
+    );
 
     // Verify both keys exist
     let exists1 = cache.jti_blacklist.contains_key(&jti1);
