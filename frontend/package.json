@@ -20,7 +20,7 @@
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
     "postinstall": "npm run codegen:types",
-    "codegen": "npx openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch && sed -i -E 's/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/use\\1/g' src/openapi-rq/queries/index.ts && npx openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && echo \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\" > src/openapi-rq/requests/services.gen.ts && echo \"export * from './index';\" > src/openapi-rq/queries/queries.ts",
+    "codegen": "rm -rf ./src/openapi-rq && mkdir -p ./src/openapi-rq/requests ./src/openapi-rq/queries && npx openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch && sed -i -E 's/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/use\\1/g' src/openapi-rq/queries/index.ts && node scripts/fix-rq-v5.mjs && npx openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && echo \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\" > src/openapi-rq/requests/services.gen.ts && echo \"export * from './index';\" > src/openapi-rq/queries/queries.ts",
     "codegen:types": "npx openapi-ts --input openapi.json --output ./src/openapi-rq/requests --client @hey-api/client-fetch"
   },
   "dependencies": {
@@ -103,7 +103,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.10.13",
-    "commander": "11.1.0",
+    "commander": "12.1.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
