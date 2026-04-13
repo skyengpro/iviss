@@ -1,8 +1,8 @@
+pub mod audit;
 pub mod auth;
-#[cfg(not(test))]
-pub mod device_management;
 pub mod health;
 pub mod list_control;
+pub mod organization_management;
 pub mod pending_submission;
 pub mod photo;
 pub mod scan;

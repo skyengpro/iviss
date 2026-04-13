@@ -18,15 +18,21 @@ vi.mock('react-i18next', () => ({
 // Mock ImageProcessor
 vi.mock('@/utils/imageProcessor', () => ({
   ImageProcessor: {
-    preprocessForHighRes: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed'),
+    preprocessForHighRes: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_highres'),
+    preprocessForPhotoCapture: vi
+      .fn()
+      .mockResolvedValue('data:image/jpeg;base64,processed_capture'),
   },
 }));
+
+import { ImageProcessor } from '@/utils/imageProcessor';
 
 describe('usePhotoCapture', () => {
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
     originalFetch = global.fetch;
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -48,7 +54,7 @@ describe('usePhotoCapture', () => {
     const mockOnConfirm = vi.fn();
 
     // Mock fetch for blob conversion (data URL -> Blob)
-    global.fetch = vi.fn().mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
 
@@ -84,7 +90,7 @@ describe('usePhotoCapture', () => {
 
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
 
@@ -118,10 +124,129 @@ describe('usePhotoCapture', () => {
     expect(result.current.error).toBe('mobileScan.photoError');
   });
 
+  it('should fallback to preprocessForPhotoCapture if first OCR returns no plate', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    // First call returns empty plate
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: '', confidence: 0, format_valid: false },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    // Second call (fallback) returns actual plate
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'LT390HN', confidence: 0.88, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    expect(ImageProcessor.preprocessForHighRes).toHaveBeenCalledTimes(1);
+    expect(ImageProcessor.preprocessForPhotoCapture).toHaveBeenCalledTimes(1);
+    expect(photoPlate).toHaveBeenCalledTimes(2);
+
+    expect(result.current.state).toBe('result');
+    expect(result.current.detectedPlate).toEqual({
+      plateNumber: 'LT390HN',
+      confidence: 88,
+      status: 'valid',
+    });
+  });
+
+  it('should set error when both OCR calls fail to find a plate', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    // First call returns empty
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: '', confidence: 0, format_valid: false },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    // Second call returns empty too
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: '', confidence: 0, format_valid: false },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    expect(result.current.state).toBe('error');
+    expect(result.current.error).toBe('mobileScan.noPlateDetected');
+  });
+
+  it('should prevent double-capture while processing', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    // Make fetch hang slightly so we can trigger again
+    global.fetch = vi.fn().mockImplementation(() => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })) });
+        }, 50);
+      });
+    });
+
+    vi.mocked(photoPlate).mockResolvedValue({
+      data: {
+        success: true,
+        data: { plate: 'CE128BC', confidence: 0.9, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    let promise1: any;
+    let promise2: any;
+
+    act(() => {
+      promise1 = result.current.captureAndProcess(mockGetScreenshot);
+      // Immediately call again
+      promise2 = result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    await act(async () => {
+      await Promise.all([promise1, promise2]);
+    });
+
+    // Ensure API was only called once
+    expect(photoPlate).toHaveBeenCalledTimes(1);
+  });
+
   it('should reset state on retry', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
 
@@ -152,11 +277,63 @@ describe('usePhotoCapture', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('should handle plate editing and confirmation', async () => {
+  it('should handle plate editing, cancelling edit reverts editedPlate', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'CE128BC', confidence: 0.85, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    act(() => {
+      result.current.toggleEdit();
+    });
+    expect(result.current.isEditing).toBe(true);
+
+    act(() => {
+      result.current.updateEditedPlate('CE129BC');
+    });
+    expect(result.current.editedPlate).toBe('CE129BC');
+
+    // Cancel edit
+    act(() => {
+      result.current.toggleEdit();
+    });
+
+    // Reverted back to original
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.editedPlate).toBe('CE128BC');
+  });
+
+  it('confirmPlate() should be a no-op when detectedPlate is null', () => {
+    const mockOnConfirm = vi.fn();
+    const { result } = renderHook(() => usePhotoCapture({ onConfirm: mockOnConfirm }));
+
+    act(() => {
+      result.current.confirmPlate();
+    });
+
+    expect(mockOnConfirm).not.toHaveBeenCalled();
+  });
+
+  it('should handle confirm with edited plate', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
     const mockOnConfirm = vi.fn();
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
 
@@ -174,19 +351,11 @@ describe('usePhotoCapture', () => {
       await result.current.captureAndProcess(mockGetScreenshot);
     });
 
-    // Toggle edit mode
     act(() => {
       result.current.toggleEdit();
-    });
-    expect(result.current.isEditing).toBe(true);
-
-    // Edit plate
-    act(() => {
       result.current.updateEditedPlate('CE129BC');
     });
-    expect(result.current.editedPlate).toBe('CE129BC');
 
-    // Confirm with edited plate
     act(() => {
       result.current.confirmPlate();
     });
@@ -197,7 +366,7 @@ describe('usePhotoCapture', () => {
   it('should set status to warning for invalid format plates', async () => {
     const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
 

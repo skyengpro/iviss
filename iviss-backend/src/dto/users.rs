@@ -155,7 +155,7 @@ pub struct UserProfile {
     pub avatar_initials: Option<String>,
     pub status: UserStatus,
     pub session_status: Option<DeviceStatus>,
-    pub last_revoked_at: Option<time::PrimitiveDateTime>,
+    pub last_revoked_at: Option<time::OffsetDateTime>,
     pub is_active: bool,
 }
 

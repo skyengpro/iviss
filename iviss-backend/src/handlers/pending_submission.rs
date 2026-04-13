@@ -1,13 +1,19 @@
 use crate::app_state::AppState;
-use crate::dto::pending_submission::DataEntryResponse;
+use crate::dto::{common, pending_submission};
 use crate::errors::AppError;
 use axum::{
-    extract::{Json, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
 };
 use std::sync::Arc;
 use uuid::Uuid;
+
+// ── Submit (agent-facing) ─────────────────────────────────────────────────────
+
+#[allow(unused_imports)]
+use crate::dto::pending_submission::DataEntryResponse;
+use crate::dto::pending_submission::SubmissionListQuery;
 
 #[utoipa::path(
     post,
@@ -17,24 +23,26 @@ use uuid::Uuid;
     request_body = CreatePendingSubmissionRequest,
     responses(
         (status = 202, description = "Submission accepted for review", body = DataEntryResponse),
-        (status = 400, description = "Invalid request",        body = AppErrorResponse, 
+        (status = 400, description = "Invalid request",        body = AppErrorResponse,
              example = json!({ "code": "INVALID_REQUEST", "message": "Missing required field 'plate'" })),
-         (status = 401, description = "Unauthorized",          body = AppErrorResponse, 
+         (status = 401, description = "Unauthorized",          body = AppErrorResponse,
              example = json!({ "code": "UNAUTHORIZED", "message": "Invalid token" })),
-         (status = 500, description = "Internal server error", body = AppErrorResponse ,
+         (status = 500, description = "Internal server error", body = AppErrorResponse,
               example = json!({ "code": "INTERNAL_ERROR", "message": "Internal Server Error" })),
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn submit_vehicle(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<super::super::dto::pending_submission::CreatePendingSubmissionRequest>,
+    Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // In a real app we'd decode base64 images and upload to S3/Cloud storage here
-    // For now we assume the frontend sends URLs or we just store the strings as-is (stub behavior for images)
-
     let agent_id = resolve_agent_id(&state.db, payload.agent_id).await?;
 
+    let location = common::SubmissionLocation {
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        address: None, // address not in DTO yet, pass allowed None
+    };
     let submission_id = crate::queries::submission_queries::create_pending_submission(
         &state.db,
         agent_id,
@@ -42,16 +50,11 @@ pub async fn submit_vehicle(
         payload.front_image_url,
         payload.back_image_url,
         payload.notes,
-        payload.latitude,
-        payload.longitude,
-        None, // address not in DTO yet, pass allowed None
+        location,
     )
     .await?;
 
-    // Location fields are now passed to the query
-    // match (payload.latitude, payload.longitude) { ... }
-
-    let response = DataEntryResponse {
+    let response = pending_submission::DataEntryResponse {
         message: "Submission accepted for review".to_string(),
         submission_id,
         plate_number: payload.plate_number,
@@ -79,7 +82,7 @@ pub async fn submit_vehicle(
 )]
 pub async fn submit_vehicle_v1(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<super::super::dto::pending_submission::CreatePendingSubmissionRequest>,
+    Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     submit_vehicle(State(state), Json(payload)).await
 }
@@ -107,27 +110,38 @@ async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, 
     }
 }
 
-/// List all pending submissions for admin review
+// ── List (admin) ──────────────────────────────────────────────────────────────
+
+/// List submissions for admin review, optionally filtered by status
 #[utoipa::path(
     get,
     path = "/api/v1/admin/submissions",
     tag = "vehicles",
     operation_id = "listPendingSubmissions",
+    params(
+        ("status" = Option<String>, Query, description = "Filter by status: pending, approved, rejected")
+    ),
     responses(
-        (status = 200, description = "List of pending submissions", body = [PendingSubmissionListItem]),
+        (status = 200, description = "List of submissions", body = [PendingSubmissionListItem]),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
+    Query(query): Query<SubmissionListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submissions: Vec<_> =
-        crate::queries::submission_queries::get_pending_submissions(&state.db).await?;
+    let submissions = crate::queries::submission_queries::get_pending_submissions(
+        &state.db,
+        query.status.as_deref(),
+    )
+    .await?;
     Ok((StatusCode::OK, Json(submissions)))
 }
 
-/// Get details of a single pending submission
+// ── Detail (admin) ────────────────────────────────────────────────────────────
+
+/// Get full details of a single submission
 #[utoipa::path(
     get,
     path = "/api/v1/admin/submissions/{id}",
@@ -137,26 +151,53 @@ pub async fn list_pending_submissions(
         ("id" = Uuid, Path, description = "Submission UUID")
     ),
     responses(
-        (status = 200, description = "Submission details", body = PendingSubmissionRequest),
+        (status = 200, description = "Submission details", body = PendingSubmissionDetail),
         (status = 404, description = "Submission not found", body = AppErrorResponse),
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn get_pending_submission(
     State(state): State<Arc<AppState>>,
-    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+    Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submission: crate::dto::pending_submission::PendingSubmissionRequest =
+    let submission: pending_submission::PendingSubmissionDetail =
         crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
     Ok((StatusCode::OK, Json(submission)))
+}
+
+// ── Audit Log (admin) ─────────────────────────────────────────────────────────
+
+/// Get the audit trail for a submission
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/submissions/{id}/audit",
+    tag = "vehicles",
+    operation_id = "getSubmissionAuditLog",
+    params(
+        ("id" = Uuid, Path, description = "Submission UUID")
+    ),
+    responses(
+        (status = 200, description = "Audit log entries", body = [SubmissionAuditLogEntry]),
+        (status = 404, description = "Submission not found", body = AppErrorResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_submission_audit_log(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<impl IntoResponse, AppError> {
+    let entries =
+        crate::queries::submission_queries::get_submission_audit_log(&state.db, id).await?;
+    Ok((StatusCode::OK, Json(entries)))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dto::pending_submission::{CreatePendingSubmissionRequest, SubmissionStatus};
+    use crate::dto::pending_submission::{
+        CreatePendingSubmissionRequest, ReviewSubmissionResponse, SubmissionStatus,
+    };
 
-    // Mock test data
     fn create_test_submission_request() -> CreatePendingSubmissionRequest {
         CreatePendingSubmissionRequest {
             plate_number: "TEST123".to_string(),
@@ -171,12 +212,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_vehicle_success() {
-        // This test would require a test database setup
-        // For now, we'll test the structure and basic functionality
-
         let request = create_test_submission_request();
-
-        // Verify request structure
         assert_eq!(request.plate_number, "TEST123");
         assert!(request.front_image_url.contains("front.jpg"));
         assert!(request.back_image_url.contains("back.jpg"));
@@ -187,14 +223,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_vehicle_request_validation() {
-        // Test with missing required fields
         let mut request = create_test_submission_request();
-
-        // Test empty plate number
         request.plate_number = "".to_string();
         assert!(request.plate_number.is_empty());
 
-        // Test with None values for optional fields
         request.notes = None;
         request.latitude = None;
         request.longitude = None;
@@ -204,31 +236,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_pending_submission_structure() {
-        // Test that the function has the correct signature and return type
-
-        // Verify the function exists and has the expected behavior
-        // In a real test with a test database, you would:
-        // 1. Set up a test database connection
-        // 2. Insert a test submission
-        // 3. Call the function with the submission ID
-        // 4. Verify the response contains the correct submission
-
-        // For now, we verify the function compiles and has correct types
-        let test_uuid = uuid::Uuid::new_v4();
-
-        // Test UUID parsing
-        let path_param = axum::extract::Path(test_uuid);
-        assert_eq!(path_param.0, test_uuid);
-
-        assert!(true); // Placeholder test to verify compilation
-    }
-
-    #[tokio::test]
     async fn test_data_entry_response_structure() {
-        // Test the response structure
         let submission_id = uuid::Uuid::new_v4();
-        let response = DataEntryResponse {
+        let response = pending_submission::DataEntryResponse {
             message: "Submission accepted for review".to_string(),
             submission_id,
             plate_number: "TEST123".to_string(),
@@ -241,7 +251,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_submission_status_enum() {
-        // Test the SubmissionStatus enum
         let pending = SubmissionStatus::Pending;
         let approved = SubmissionStatus::Approved;
         let rejected = SubmissionStatus::Rejected;
@@ -250,21 +259,60 @@ mod tests {
         assert_eq!(approved, SubmissionStatus::Approved);
         assert_eq!(rejected, SubmissionStatus::Rejected);
 
-        // Test inequality
         assert!(pending != approved);
         assert!(approved != rejected);
         assert!(pending != rejected);
     }
 
     #[tokio::test]
-    async fn test_create_pending_submission_request_serialization() {
-        // Test that the request can be serialized/deserialized correctly
-        let request = create_test_submission_request();
+    async fn test_submission_status_from_db_str() {
+        assert_eq!(
+            SubmissionStatus::from_db_str("pending"),
+            SubmissionStatus::Pending
+        );
+        assert_eq!(
+            SubmissionStatus::from_db_str("approved"),
+            SubmissionStatus::Approved
+        );
+        assert_eq!(
+            SubmissionStatus::from_db_str("rejected"),
+            SubmissionStatus::Rejected
+        );
+        assert_eq!(
+            SubmissionStatus::from_db_str("unknown"),
+            SubmissionStatus::Pending
+        );
+    }
 
-        // Test that all fields are accessible
+    #[tokio::test]
+    async fn test_submission_status_as_db_str() {
+        assert_eq!(SubmissionStatus::Pending.as_db_str(), "pending");
+        assert_eq!(SubmissionStatus::Approved.as_db_str(), "approved");
+        assert_eq!(SubmissionStatus::Rejected.as_db_str(), "rejected");
+    }
+
+    #[tokio::test]
+    async fn test_review_response_structure() {
+        let submission_id = uuid::Uuid::new_v4();
+        let vehicle_id = uuid::Uuid::new_v4();
+
+        let response = ReviewSubmissionResponse {
+            message: "Submission approved".to_string(),
+            submission_id,
+            status: SubmissionStatus::Approved,
+            vehicle_id: Some(vehicle_id),
+        };
+
+        assert_eq!(response.status, SubmissionStatus::Approved);
+        assert_eq!(response.vehicle_id, Some(vehicle_id));
+    }
+
+    #[tokio::test]
+    async fn test_create_pending_submission_request_serialization() {
+        let request = create_test_submission_request();
         assert!(!request.plate_number.is_empty());
         assert!(!request.front_image_url.is_empty());
         assert!(!request.back_image_url.is_empty());
-        assert!(!request.agent_id.is_nil()); // UUID should be valid (not nil)
+        assert!(!request.agent_id.is_nil());
     }
 }

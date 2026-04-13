@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 default-run = "iviss-backend"
 
+[profile.release]
+opt-level = "z"     # Optimise pour la taille (ou "s" pour un compromis)
+lto = true          # Link Time Optimization : analyse tout le graphe de dépendances
+codegen-units = 1   # Réduit le parallélisme à la compilation pour mieux optimiser
+strip = true        # Retire les symboles de debug du binaire final
+
 [dependencies]
 axum = { version = "0.7", features = ["macros", "multipart"] }
 tokio = { version = "1.43", features = ["full"] }
@@ -31,7 +37,7 @@ deadpool-redis = { version = "0.18", features = ["rt_tokio_1"] }
 redis = { version = "0.27", features = ["tokio-comp"] }
 
 async-trait = "0.1"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 sha2 = "0.10"
 hmac = "0.12"

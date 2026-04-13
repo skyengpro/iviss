@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
 use crate::errors::AppError;
 use crate::middleware::auth::{decode_access_token_rs256, extract_bearer_token};
+use crate::queries::auth_queries;
 use axum::extract::{Request, State};
 use axum::http::header::AUTHORIZATION;
 use axum::middleware::Next;
@@ -19,8 +20,8 @@ pub struct AuthenticatedAdmin {
 
 /// JWT middleware for web users (admin / manager / org_admin).
 ///
-/// Validates JWT signature and expiry, then looks up the user's
-/// `organization_id` from the database.
+/// Validates JWT signature, expiry, then looks up the user's
+/// `organization_id` from the database, and checks Redis blacklist.
 pub async fn require_auth_web(
     State(state): State<Arc<AppState>>,
     mut request: Request,
@@ -62,8 +63,47 @@ pub async fn require_auth_web(
         user_id = %claims.sub,
         role = %claims.role,
         org_id = ?org_id,
+        jti = %claims.jti,
         "rbac: jwt verified"
     );
+
+    // Check Redis blacklist for admin tokens
+    let is_blacklisted = auth_queries::is_jti_blacklisted(&state.redis, &claims.jti.to_string())
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "rbac: failed to check blacklist");
+            AppError::internal_error("Auth verification failed")
+        })?;
+
+    if is_blacklisted {
+        tracing::warn!(
+            %method,
+            %path,
+            user_id = %claims.sub,
+            jti = %claims.jti,
+            "rbac: rejected (token revoked)"
+        );
+        return Err(AppError::unauthorized("Token has been revoked"));
+    }
+
+    // Check Redis blacklist for admin tokens
+    let is_blacklisted = auth_queries::is_jti_blacklisted(&state.redis, &claims.jti.to_string())
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "rbac: failed to check blacklist");
+            AppError::internal_error("Auth verification failed")
+        })?;
+
+    if is_blacklisted {
+        tracing::warn!(
+            %method,
+            %path,
+            user_id = %claims.sub,
+            jti = %claims.jti,
+            "rbac: rejected (token revoked)"
+        );
+        return Err(AppError::unauthorized("Token has been revoked"));
+    }
 
     request.extensions_mut().insert(AuthenticatedAdmin {
         user_id: claims.sub,
