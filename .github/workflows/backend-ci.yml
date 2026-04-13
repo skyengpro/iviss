@@ -75,7 +75,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-backend
-          path: iviss-backend/target/coverage/html/
+          path: |
+            iviss-backend/target/coverage/html/**/*.html
+            iviss-backend/target/coverage/html/**/*.css
+            iviss-backend/target/coverage/html/**/*.js
+            iviss-backend/target/coverage/html/index.html
+          retention-days: 2
 
   backend_fmt:
     name: Backend Format
@@ -110,6 +115,8 @@ jobs:
     runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang mold pkg-config libssl-dev build-essential libleptonica-dev libtesseract-dev tesseract-ocr
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cache cargo-audit
