@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     curl \
     ca-certificates \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -37,6 +38,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 COPY .sqlx ./.sqlx
 COPY migrations ./migrations
+COPY assets ./assets
 COPY src ./src
 
 EXPOSE 3000
@@ -59,6 +61,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 COPY .sqlx ./.sqlx
 COPY migrations ./migrations
+COPY assets ./assets
 COPY src ./src
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
@@ -76,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr-eng \
     ca-certificates \
     curl \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/* && \
     groupadd --system iviss && \
     useradd --system --gid iviss --home-dir /app --create-home iviss
@@ -83,6 +87,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY --from=builder --chown=iviss:iviss /out/iviss-backend /app/iviss-backend
+COPY --from=builder --chown=iviss:iviss /app/assets /app/assets
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata \
     SERVER_HOST=0.0.0.0 \

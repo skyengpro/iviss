@@ -442,6 +442,7 @@
     "userIdPlaceholder": "Filtrer par UUID Utilisateur...",
     "clearFilters": "Effacer",
     "exportCsv": "Exporter CSV",
+    "exportPdf": "Exporter en PDF",
     "showingLogs": "Affichage de {{count}} journaux",
     "timestamp": "Horodatage",
     "user": "Utilisateur",
@@ -452,6 +453,9 @@
     "hasChanges": "Diff",
     "noLogsFound": "Aucun journal d'audit trouvé correspondant à vos filtres.",
     "errorLoading": "Échec du chargement des journaux d'audit",
+    "exportSuccess": "CSV exporté avec succès",
+    "exportPdfSuccess": "PDF exporté avec succès",
+    "exportError": "Échec de l'exportation. Veuillez réessayer.",
     "pageOf": "Page {{currentPage}} sur {{totalPages}}",
     "previous": "Précédent",
     "next": "Suivant",
@@ -543,5 +547,47 @@
     "notes": {
       "foreignPlates": "Véhicule avec plaques étrangères, le conducteur déclare une importation récente"
     }
+  },
+  "organizationManagement": {
+    "title": "Gestion des organisations",
+    "subtitle": "Gérer les organisations dans le système",
+    "addOrganization": "Ajouter une organisation",
+    "editOrganization": "Modifier l'organisation",
+    "deleteOrganization": "Supprimer l'organisation",
+    "organizationName": "Nom de l'organisation",
+    "organizationType": "Type",
+    "region": "Région",
+    "actions": "Actions",
+    "searchPlaceholder": "Rechercher des organisations...",
+    "allTypes": "Tous les types",
+    "emptyState": "Aucune organisation pour l'instant. Créez votre première organisation.",
+    "noResults": "Aucune organisation trouvée correspondant à votre recherche.",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer {{name}} ? Cette action ne peut pas être annulée.",
+    "organizationCreated": "Organisation créée avec succès",
+    "organizationUpdated": "Organisation mise à jour avec succès",
+    "organizationDeleted": "Organisation supprimée avec succès",
+    "createError": "Échec de la création de l'organisation",
+    "updateError": "Échec de la mise à jour de l'organisation",
+    "deleteError": "Échec de la suppression de l'organisation",
+    "createDescription": "Remplissez les détails pour créer une nouvelle organisation",
+    "editDescription": "Mettre à jour les détails de l'organisation",
+    "namePlaceholder": "Saisir le nom de l'organisation",
+    "regionPlaceholder": "Saisir la région (optionnel)",
+    "types": {
+      "police": "Police",
+      "customs": "Douanes",
+      "border_control": "Contrôle aux frontières",
+      "other": "Autre"
+    }
+  },
+  "common": {
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "saving": "Enregistrement...",
+    "optional": "optionnel"
   }
 }
+

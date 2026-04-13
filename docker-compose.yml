@@ -119,6 +119,7 @@ services:
       - ./iviss-backend/migrations:/app/migrations:ro
       - ./iviss-backend/.sqlx:/app/.sqlx:ro
       - ./iviss-backend/seeds:/app/seeds:ro
+      - ./iviss-backend/assets:/app/assets:ro
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
     healthcheck:
@@ -172,6 +173,9 @@ services:
       target: dev
     container_name: iviss-frontend
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     depends_on:
       backend:
         condition: service_healthy

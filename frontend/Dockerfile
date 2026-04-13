@@ -6,7 +6,8 @@ COPY openapi.json ./
 
 # Dependencies stage
 FROM base AS deps
-RUN npm ci --legacy-peer-deps
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps --fetch-retries 5 --fetch-retry-mintimeout 20000
 
 # Development stage
 FROM base AS dev
