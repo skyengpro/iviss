@@ -11,11 +11,8 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use tower::ServiceExt;
 use uuid::Uuid;
-
-const TEST_PEPPER: &str = "test_pepper_for_activation_code_hashing_must_be_32_chars_long";
 
 fn generate_test_rsa_keypair_pem() -> (String, String) {
     use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
@@ -37,15 +34,13 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
     (private_pem, public_pem)
 }
 
-/// Helper: builds a full AppState + Axum app backed by real Postgres + Redis.
+/// Helper: builds a full AppState + Axum app backed by real Postgres + Moka cache.
 async fn setup_test_app() -> (
     sqlx::PgPool,
-    deadpool_redis::Pool,
     axum::Router,
     String, // jwt_private_key_pem
     String, // jwt_public_key_pem
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
 ) {
     let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
@@ -59,55 +54,39 @@ async fn setup_test_app() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-    let redis_container = Redis::default().start().await.unwrap();
-    let redis_port = redis_container.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
-    let redis_pool = redis_cfg
-        .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-        .unwrap();
-
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
     let config = crate::config::Config {
         database_url: db_url,
-        redis_url,
         server_host: "127.0.0.1".into(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
-        twilio_account_sid: "mock".into(),
-        twilio_auth_token: "mock".into(),
-        twilio_from_number: "mock".into(),
-        activation_code_pepper: TEST_PEPPER.to_string(),
-        shift_start_hour: 8,
-        shift_end_hour: 20,
+        twilio_account_sid: "sid".to_string(),
+        twilio_auth_token: "token".to_string(),
+        twilio_from_number: "num".to_string(),
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
+            .to_string(),
+        shift_start_hour: 0,
+        shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
-        admin_bootstrap_password: Some("admin123".to_string()),
-        admin_bootstrap_phone: Some("+1234567890".to_string()),
+        admin_bootstrap_password: Some("password".to_string()),
+        admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
         db.clone(),
-        redis_pool.clone(),
+        Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(MockSmsProvider),
         &config,
     );
 
     let app = routes::assembly(state);
 
-    (
-        db,
-        redis_pool,
-        app,
-        jwt_private_key_pem,
-        jwt_public_key_pem,
-        pg,
-        redis_container,
-    )
+    (db, app, jwt_private_key_pem, jwt_public_key_pem, pg)
 }
 
 /// Helper: seed an organization, admin user, and agent user (with device + refresh token).
@@ -243,8 +222,7 @@ async fn seed_users_with_active_session(
 
 #[tokio::test]
 async fn terminate_session_revokes_tokens_and_deactivates_devices() {
-    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (_org_id, _admin_id, agent_id, device_id, admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
@@ -338,8 +316,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
 
 #[tokio::test]
 async fn terminate_session_rejects_non_agent_user() {
-    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (_org_id, admin_id, _agent_id, _device_id, _admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
@@ -369,8 +346,7 @@ async fn terminate_session_rejects_non_agent_user() {
 
 #[tokio::test]
 async fn terminate_session_returns_404_for_unknown_user() {
-    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // Seed some data so the app is initialized properly
     let (_org_id, _admin_id, _agent_id, _device_id, admin_access_token, _agent_access_token) =
@@ -401,8 +377,7 @@ async fn terminate_session_returns_404_for_unknown_user() {
 
 #[tokio::test]
 async fn terminate_session_blocks_otp_on_same_day() {
-    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (_org_id, _admin_id, agent_id, device_id, admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;

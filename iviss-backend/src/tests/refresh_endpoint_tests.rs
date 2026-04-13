@@ -12,11 +12,8 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use tower::ServiceExt;
 use uuid::Uuid;
-
-const TEST_PEPPER: &str = "test_pepper_for_activation_code_hashing_must_be_32_chars_long";
 
 fn generate_test_rsa_keypair_pem() -> (String, String) {
     use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
@@ -76,7 +73,6 @@ async fn setup_test_infrastructure() -> (
     SigningKey,
     // Keep containers alive
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
 ) {
     let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
@@ -89,14 +85,6 @@ async fn setup_test_infrastructure() -> (
         .unwrap();
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
-
-    let redis = Redis::default().start().await.unwrap();
-    let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
-    let redis_pool = redis_cfg
-        .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-        .unwrap();
 
     // Create organization
     let org_id = Uuid::new_v4();
@@ -181,7 +169,6 @@ async fn setup_test_infrastructure() -> (
 
     let config = crate::config::Config {
         database_url: db_url,
-        redis_url: redis_url,
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
@@ -191,18 +178,19 @@ async fn setup_test_infrastructure() -> (
         twilio_account_sid: "sid".to_string(),
         twilio_auth_token: "token".to_string(),
         twilio_from_number: "num".to_string(),
-        activation_code_pepper: TEST_PEPPER.to_string(),
-        shift_start_hour: 8,
-        shift_end_hour: 18,
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
+            .to_string(),
+        shift_start_hour: 0,
+        shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
-        admin_bootstrap_password: Some("admin123".to_string()),
-        admin_bootstrap_phone: Some("+1234567890".to_string()),
+        admin_bootstrap_password: Some("password".to_string()),
+        admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
         db.clone(),
-        redis_pool.clone(),
+        Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(MockSmsProvider),
         &config,
     );
@@ -217,13 +205,12 @@ async fn setup_test_infrastructure() -> (
         refresh_token,
         ec_signing_key,
         pg,
-        redis,
     )
 }
 
 #[tokio::test]
 async fn test_refresh_flow_success() {
-    let (app, _db, _user_id, device_id, refresh_token, ec_signing_key, _pg, _redis) =
+    let (app, _db, _user_id, device_id, refresh_token, ec_signing_key, _pg) =
         setup_test_infrastructure().await;
 
     // Step 1: Request a nonce via /auth/refresh
@@ -287,7 +274,7 @@ async fn test_refresh_flow_success() {
 
 #[tokio::test]
 async fn test_refresh_with_invalid_token() {
-    let (app, _db, _user_id, device_id, _refresh_token, _ec_signing_key, _pg, _redis) =
+    let (app, _db, _user_id, device_id, _refresh_token, _ec_signing_key, _pg) =
         setup_test_infrastructure().await;
 
     let refresh_body = json!({
@@ -312,7 +299,7 @@ async fn test_refresh_with_invalid_token() {
 
 #[tokio::test]
 async fn test_refresh_with_invalid_signature() {
-    let (app, _db, _user_id, device_id, refresh_token, _ec_signing_key, _pg, _redis) =
+    let (app, _db, _user_id, device_id, refresh_token, _ec_signing_key, _pg) =
         setup_test_infrastructure().await;
 
     // Step 1: Get a valid nonce
