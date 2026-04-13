@@ -191,7 +191,7 @@ const FILTER_ACTIONS = [
   'VEHICLE_SEARCHED',
   'VEHICLE_NOT_FOUND',
   'PENDING_SUBMISSION_CREATED',
-  'PENDING_SUBMISSION_REVIEWED'
+  'PENDING_SUBMISSION_REVIEWED',
 ];
 
 function ActionBadge({ action }: { action: string }) {
@@ -348,7 +348,9 @@ export default function AuditLogs() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success(t('backOfficeAuditLogs.exportSuccess', { defaultValue: 'CSV exported successfully' }));
+      toast.success(
+        t('backOfficeAuditLogs.exportSuccess', { defaultValue: 'CSV exported successfully' })
+      );
     } catch (e) {
       toast.error(t('backOfficeAuditLogs.exportError', { defaultValue: 'Export failed' }));
     } finally {
@@ -383,7 +385,9 @@ export default function AuditLogs() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success(t('backOfficeAuditLogs.exportPdfSuccess', { defaultValue: 'PDF exported successfully' }));
+      toast.success(
+        t('backOfficeAuditLogs.exportPdfSuccess', { defaultValue: 'PDF exported successfully' })
+      );
     } catch (e) {
       toast.error(t('backOfficeAuditLogs.exportError', { defaultValue: 'PDF export failed' }));
     } finally {
@@ -544,7 +548,6 @@ export default function AuditLogs() {
                   ))}
                 </SelectContent>
               </Select>
-
 
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />

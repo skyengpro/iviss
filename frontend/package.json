@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-rq/**' --ignore-pattern '**/test-codegen/**'",
+    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-rq/**' --ignore-pattern '**/temp-codegen/**'",
     "prettier:check": "prettier --check .",
     "format": "prettier --write .",
     "ts:check": "tsc --noEmit",
@@ -20,7 +20,7 @@
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
     "postinstall": "npm run codegen:types",
-    "codegen": "rm -rf ./src/openapi-rq && mkdir -p ./src/openapi-rq/requests ./src/openapi-rq/queries && npx openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch && sed -i -E 's/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/use\\1/g' src/openapi-rq/queries/index.ts && node scripts/fix-rq-v5.mjs && npx openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && echo \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\" > src/openapi-rq/requests/services.gen.ts && echo \"export * from './index';\" > src/openapi-rq/queries/queries.ts",
+    "codegen": "rm -rf ./src/openapi-rq && mkdir -p ./src/openapi-rq/requests ./src/openapi-rq/queries && npx --yes @7nohe/openapi-react-query-codegen -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch && sed -i -E 's/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/use\\1/g' src/openapi-rq/queries/index.ts && node scripts/fix-rq-v5.mjs && npx --yes @hey-api/openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && printf \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\\n\" > src/openapi-rq/requests/services.gen.ts && printf \"export * from './index';\\n\" > src/openapi-rq/queries/queries.ts",
     "codegen:types": "npx openapi-ts --input openapi.json --output ./src/openapi-rq/requests --client @hey-api/client-fetch"
   },
   "dependencies": {
