@@ -18,10 +18,7 @@ pub struct InsertAuditLogParams {
 }
 
 /// Insert a new audit log entry.
-pub async fn insert_audit_log(
-    pool: &PgPool,
-    params: InsertAuditLogParams,
-) -> Result<(), AppError> {
+pub async fn insert_audit_log(pool: &PgPool, params: InsertAuditLogParams) -> Result<(), AppError> {
     sqlx::query(
         r#"
         INSERT INTO audit_logs (
@@ -127,8 +124,7 @@ pub async fn export_audit_logs(
     );
 
     // Use a dummy count builder so we can reuse apply_filters signature
-    let dummy_count: sqlx::QueryBuilder<sqlx::Postgres> =
-        sqlx::QueryBuilder::new("SELECT 1");
+    let dummy_count: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT 1");
     apply_export_filters(&mut query_builder, query);
     let _ = dummy_count; // silence unused warning
 

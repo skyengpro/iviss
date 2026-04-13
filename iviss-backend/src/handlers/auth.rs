@@ -8,7 +8,6 @@ use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
 use crate::middleware::auth::decode_access_token_rs256;
 use crate::queries::auth_queries;
-use crate::utils::ip::extract_client_ip_with_peer;
 use axum::extract::{ConnectInfo, State};
 use axum::http::header::AUTHORIZATION;
 use axum::http::HeaderMap;
@@ -51,12 +50,10 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
 )]
 pub async fn login(
     State(state): State<Arc<AppState>>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let client_ip = extract_client_ip_with_peer(&headers, peer.map(|p| p.0));
-
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
         return Err(AppError::bad_request("Email and password are required"));
     }
@@ -163,7 +160,6 @@ pub async fn login(
         role = %user.role.as_str(),
         "login: success"
     );
-
 
     Ok((
         StatusCode::OK,

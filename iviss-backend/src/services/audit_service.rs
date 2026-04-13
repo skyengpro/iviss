@@ -90,10 +90,7 @@ impl AuditService {
 
     /// Most recent N audit events — suitable for a live activity feed or
     /// a dashboard widget.
-    pub async fn get_recent(
-        pool: &PgPool,
-        limit: i64,
-    ) -> Result<Vec<AuditLogEntry>, AppError> {
+    pub async fn get_recent(pool: &PgPool, limit: i64) -> Result<Vec<AuditLogEntry>, AppError> {
         get_recent_audit_logs(pool, limit).await
     }
 
@@ -134,17 +131,11 @@ impl AuditService {
                 "{},{},{},{},{},{},{},{},\"{}\",\"{}\"\n",
                 entry.id,
                 entry.created_at,
-                entry
-                    .user_id
-                    .map(|u| u.to_string())
-                    .unwrap_or_default(),
+                entry.user_id.map(|u| u.to_string()).unwrap_or_default(),
                 entry.user_name.as_deref().unwrap_or(""),
                 entry.action.as_str(),
                 entry.resource_type.as_deref().unwrap_or(""),
-                entry
-                    .resource_id
-                    .map(|u| u.to_string())
-                    .unwrap_or_default(),
+                entry.resource_id.map(|u| u.to_string()).unwrap_or_default(),
                 entry.ip_address.as_deref().unwrap_or(""),
                 before,
                 after,

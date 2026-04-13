@@ -1,20 +1,16 @@
 use crate::dto::audit::AuditLogEntry;
 use crate::errors::AppError;
 use genpdf::elements::{Paragraph, TableLayout};
-use genpdf::style::{Color, Style};
+use genpdf::style::Style;
 use genpdf::{Alignment, Document, Element};
-use std::io::Cursor;
 
 pub async fn generate_audit_logs_pdf(items: Vec<AuditLogEntry>) -> Result<Vec<u8>, AppError> {
     // Try system DejaVu fonts first (installed via fonts-dejavu-core),
     // then fall back to the assets/fonts directory (dev volume mount).
-    let font_family = genpdf::fonts::from_files(
-        "/usr/share/fonts/truetype/dejavu",
-        "DejaVuSans",
-        None,
-    )
-    .or_else(|_| genpdf::fonts::from_files("./assets/fonts", "DejaVuSans", None))
-    .map_err(|e| AppError::internal_error(format!("Failed to load fonts: {e}")))?;
+    let font_family =
+        genpdf::fonts::from_files("/usr/share/fonts/truetype/dejavu", "DejaVuSans", None)
+            .or_else(|_| genpdf::fonts::from_files("./assets/fonts", "DejaVuSans", None))
+            .map_err(|e| AppError::internal_error(format!("Failed to load fonts: {e}")))?;
 
     let mut doc = Document::new(font_family);
     doc.set_title("Audit Logs Report");
@@ -47,7 +43,9 @@ pub async fn generate_audit_logs_pdf(items: Vec<AuditLogEntry>) -> Result<Vec<u8
     // Rows
     for entry in items {
         let _ = table.push_row(vec![
-            Box::new(Paragraph::new(entry.id.to_string().chars().take(8).collect::<String>())),
+            Box::new(Paragraph::new(
+                entry.id.to_string().chars().take(8).collect::<String>(),
+            )),
             Box::new(Paragraph::new(entry.created_at)),
             Box::new(Paragraph::new(entry.user_name.as_deref().unwrap_or(""))),
             Box::new(Paragraph::new(entry.action.as_str())),

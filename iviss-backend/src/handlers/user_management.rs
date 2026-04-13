@@ -11,7 +11,6 @@ use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
     update_user as update_user_query,
 };
-use crate::utils::ip::extract_client_ip_with_peer;
 use axum::{
     extract::{ConnectInfo, Path, State},
     http::{HeaderMap, StatusCode},
@@ -40,9 +39,9 @@ use uuid::Uuid;
 )]
 pub async fn provision_user(
     State(state): State<Arc<AppState>>,
-    Extension(admin): Extension<AuthenticatedAdmin>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    Extension(_admin): Extension<AuthenticatedAdmin>,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Json(payload): Json<ProvisionUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let user = create_user(&state.db, payload).await?;
@@ -130,9 +129,9 @@ pub async fn get_user(
 )]
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
-    Extension(admin): Extension<AuthenticatedAdmin>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    Extension(_admin): Extension<AuthenticatedAdmin>,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -160,9 +159,9 @@ pub async fn update_user(
 )]
 pub async fn delete_user(
     State(state): State<Arc<AppState>>,
-    Extension(admin): Extension<AuthenticatedAdmin>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    Extension(_admin): Extension<AuthenticatedAdmin>,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     hard_delete_user(&state.db, id).await?;
@@ -211,9 +210,9 @@ pub async fn list_organizations(
 )]
 pub async fn terminate_session(
     State(state): State<Arc<AppState>>,
-    Extension(admin): Extension<AuthenticatedAdmin>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    Extension(_admin): Extension<AuthenticatedAdmin>,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Json(payload): Json<TerminateSessionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Verify target user exists and is an agent
@@ -251,9 +250,9 @@ pub async fn terminate_session(
 )]
 pub async fn restart_session(
     State(state): State<Arc<AppState>>,
-    Extension(admin): Extension<AuthenticatedAdmin>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    Extension(_admin): Extension<AuthenticatedAdmin>,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Json(payload): Json<RestartSessionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Verify target user exists and is an agent
@@ -296,9 +295,9 @@ pub async fn restart_session(
 )]
 pub async fn resend_activation_code(
     State(state): State<Arc<AppState>>,
-    Extension(admin): Extension<AuthenticatedAdmin>,
-    peer: Option<ConnectInfo<std::net::SocketAddr>>,
-    headers: HeaderMap,
+    Extension(_admin): Extension<AuthenticatedAdmin>,
+    _peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    _headers: HeaderMap,
     Json(payload): Json<ResendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
