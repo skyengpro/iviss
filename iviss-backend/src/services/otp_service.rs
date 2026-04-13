@@ -1,7 +1,6 @@
-
+use crate::app_cache::{AppCache, OtpEntry};
 use crate::errors::AppError;
 use crate::services::sms_provider::SmsProvider;
-use crate::app_cache::{AppCache, OtpEntry};
 use hmac::{Hmac, Mac};
 use rand::Rng;
 use sha2::Sha256;
@@ -23,7 +22,11 @@ pub struct OtpService {
 
 impl OtpService {
     pub fn new(app_cache: Arc<AppCache>, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
-        Self { app_cache, sms, pepper }
+        Self {
+            app_cache,
+            sms,
+            pepper,
+        }
     }
 
     /// Check rate limit, generate OTP, store in Moka cache and send via SMS
@@ -60,7 +63,10 @@ impl OtpService {
         }
         let otp_cache = &self.app_cache.otp_store;
 
-        let mut entry: OtpEntry = otp_cache.get(user_id).await.ok_or_else(|| AppError::unauthorized("OTP expired or not found"))?;
+        let mut entry: OtpEntry = otp_cache
+            .get(user_id)
+            .await
+            .ok_or_else(|| AppError::unauthorized("OTP expired or not found"))?;
 
         if entry.attempts >= MAX_ATTEMPTS {
             otp_cache.invalidate(user_id).await;
@@ -98,11 +104,7 @@ impl OtpService {
     /// Rate limit — max 3 OTP requests per phone number per 10 minutes
     async fn check_rate_limit(&self, phone: &str) -> Result<(), AppError> {
         let key = phone.to_string();
-        let count = self
-            .app_cache.rate_limit
-            .get(&key)
-            .await
-            .unwrap_or(0);
+        let count = self.app_cache.rate_limit.get(&key).await.unwrap_or(0);
 
         if count >= RATE_LIMIT_MAX {
             warn!(target: "otp", phone = %phone, count = count, "Rate limit exceeded");

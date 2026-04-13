@@ -1,8 +1,8 @@
+use crate::app_cache::AppCache;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::MockSmsProvider;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::app_cache::AppCache;
 
 // ─────────────────────────────────────────
 // Helper Functions
@@ -12,7 +12,11 @@ async fn setup_otp_service() -> OtpService {
     let cache = Arc::new(AppCache::new());
     let sms_provider = Arc::new(MockSmsProvider);
 
-    OtpService::new(cache, sms_provider, "test-pepper-that-is-at-least-32-chars!!".to_string())
+    OtpService::new(
+        cache,
+        sms_provider,
+        "test-pepper-that-is-at-least-32-chars!!".to_string(),
+    )
 }
 
 // ─────────────────────────────────────────
@@ -52,7 +56,6 @@ async fn test_validate_otp_no_key_fails() {
         .to_string()
         .contains("expired or not found"));
 }
-
 
 // ─────────────────────────────────────────
 // Rate limiting

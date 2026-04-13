@@ -10,17 +10,12 @@
 use crate::dto::stats::DashboardRange;
 use crate::queries::stats_queries;
 use sqlx::postgres::PgPoolOptions;
-use testcontainers::{
-    runners::AsyncRunner,
-};
+use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 use uuid::Uuid;
 
 /// Helper: sets up a real Postgres + Moka cache for integration tests.
-async fn setup_test_infrastructure() -> (
-    sqlx::PgPool,
-    testcontainers::ContainerAsync<Postgres>,
-) {
+async fn setup_test_infrastructure() -> (sqlx::PgPool, testcontainers::ContainerAsync<Postgres>) {
     let pg = Postgres::default()
         .with_host_auth()
         .start()
@@ -44,7 +39,6 @@ async fn setup_test_infrastructure() -> (
         .await
         .expect("Failed to run migrations");
 
-    
     (db, pg)
 }
 

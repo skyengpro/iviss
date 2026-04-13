@@ -1,7 +1,7 @@
 use anyhow::Context;
 use iviss_backend::api_doc::ApiDoc;
-use iviss_backend::app_state::AppState;
 use iviss_backend::app_cache::AppCache;
+use iviss_backend::app_state::AppState;
 use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::seed_admin::run_bootstrap_seed;
@@ -56,6 +56,12 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Running admin bootstrap seed...");
     run_bootstrap_seed(&db_pool, &config).await;
+
+    info!("Loading blacklisted tokens into cache...");
+    let loaded_count =
+        iviss_backend::queries::auth_queries::load_blacklisted_jtis_to_cache(&db_pool, &cache)
+            .await?;
+    info!("Loaded {} blacklisted tokens into cache", loaded_count);
 
     let state = AppState::new(db_pool, cache, sms_provider, &config);
     let app = routes::assembly(state)

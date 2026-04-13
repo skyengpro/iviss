@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::routes;
-use crate::services::sms_provider::MockSmsProvider;
 use crate::services::otp_service::OTP_TTL_SECS;
+use crate::services::sms_provider::MockSmsProvider;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use hmac::Mac;
@@ -56,11 +56,18 @@ async fn store_test_otp(
         "code_hash": code_hash,
         "attempts": 0
     });
-    cache.otp_store.insert(user_id, crate::app_cache::OtpEntry {
-        code_hash,
-        attempts: 0,
-        expires_at: std::time::Instant::now() + std::time::Duration::from_secs(OTP_TTL_SECS),
-    }).await;
+    cache
+        .otp_store
+        .insert(
+            user_id,
+            crate::app_cache::OtpEntry {
+                code_hash,
+                attempts: 0,
+                expires_at: std::time::Instant::now()
+                    + std::time::Duration::from_secs(OTP_TTL_SECS),
+            },
+        )
+        .await;
 
     Ok(())
 }

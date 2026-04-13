@@ -17,9 +17,7 @@ use rand::rngs::OsRng;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
-use testcontainers_modules::{
-    postgres::Postgres,
-};
+use testcontainers_modules::postgres::Postgres;
 use tower::ServiceExt;
 use uuid::Uuid;
 
@@ -57,7 +55,8 @@ async fn setup_test_app() -> (
         twilio_account_sid: "sid".to_string(),
         twilio_auth_token: "token".to_string(),
         twilio_from_number: "num".to_string(),
-        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long".to_string(),
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
+            .to_string(),
         shift_start_hour: 0,
         shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
@@ -287,8 +286,7 @@ async fn seed_control_records(db: &sqlx::PgPool, agent_id: Uuid, org_id: Uuid) {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_success() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // Seed admin user (required for /admin/stats)
     let (_admin_id, admin_access_token) = seed_admin_user(&db, &jwt_private_key_pem).await;
@@ -359,8 +357,7 @@ async fn test_get_dashboard_stats_success() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_empty_database() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // Seed admin user (required for /admin/stats)
     let (_admin_id, admin_access_token) = seed_admin_user(&db, &jwt_private_key_pem).await;
@@ -402,8 +399,7 @@ async fn test_get_dashboard_stats_empty_database() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_unauthorized() {
-    let (app, _db, _cache, _jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, _db, _cache, _jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let response = app
         .oneshot(
@@ -425,8 +421,7 @@ async fn test_get_dashboard_stats_unauthorized() {
 
 #[tokio::test]
 async fn test_get_dashboard_stats_forbidden_for_agent() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // Seed agent user (not admin)
     let (_org_id, _agent_id, _device_id, agent_access_token) =
@@ -458,8 +453,7 @@ async fn test_get_dashboard_stats_forbidden_for_agent() {
 
 #[tokio::test]
 async fn test_get_control_activity_default_range() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -517,8 +511,7 @@ async fn test_get_control_activity_default_range() {
 
 #[tokio::test]
 async fn test_get_control_activity_7d_range() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -555,8 +548,7 @@ async fn test_get_control_activity_7d_range() {
 
 #[tokio::test]
 async fn test_get_control_activity_30d_range() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -601,8 +593,7 @@ async fn test_get_control_activity_30d_range() {
 
 #[tokio::test]
 async fn test_get_top_agents_default() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -670,8 +661,7 @@ async fn test_get_top_agents_default() {
 
 #[tokio::test]
 async fn test_get_top_agents_with_limit() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -715,8 +705,7 @@ async fn test_get_top_agents_with_limit() {
 
 #[tokio::test]
 async fn test_get_activity_feed_default() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -770,8 +759,7 @@ async fn test_get_activity_feed_default() {
 
 #[tokio::test]
 async fn test_get_activity_feed_with_limit() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -807,8 +795,7 @@ async fn test_get_activity_feed_with_limit() {
 
 #[tokio::test]
 async fn test_get_activity_feed_empty() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // Seed only basic user data (no control records)
     let (_org_id, _agent_id, _device_id, access_token) =
@@ -848,8 +835,7 @@ async fn test_get_activity_feed_empty() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_default() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -912,8 +898,7 @@ async fn test_get_recent_alerts_default() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_with_limit() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;
@@ -949,8 +934,7 @@ async fn test_get_recent_alerts_with_limit() {
 
 #[tokio::test]
 async fn test_get_recent_alerts_no_alerts() {
-    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (org_id, agent_id, _device_id, access_token) =
         seed_test_data(&db, &jwt_private_key_pem).await;

@@ -9,13 +9,10 @@ use serde_json::json;
 use sha2::Digest;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use testcontainers::{
-    runners::AsyncRunner,
-};
+use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 use tower::ServiceExt;
 use uuid::Uuid;
-
 
 fn generate_test_rsa_keypair_pem() -> (String, String) {
     use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
@@ -57,7 +54,6 @@ async fn setup_test_app() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
     let config = crate::config::Config {
@@ -71,7 +67,8 @@ async fn setup_test_app() -> (
         twilio_account_sid: "sid".to_string(),
         twilio_auth_token: "token".to_string(),
         twilio_from_number: "num".to_string(),
-        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long".to_string(),
+        activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
+            .to_string(),
         shift_start_hour: 0,
         shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
@@ -89,13 +86,7 @@ async fn setup_test_app() -> (
 
     let app = routes::assembly(state);
 
-    (
-        db,
-        app,
-        jwt_private_key_pem,
-        jwt_public_key_pem,
-        pg,
-    )
+    (db, app, jwt_private_key_pem, jwt_public_key_pem, pg)
 }
 
 /// Helper: seed an organization, admin user, and agent user (with device + refresh token).
@@ -233,8 +224,7 @@ async fn seed_users_with_active_session(
 
 #[tokio::test]
 async fn terminate_session_revokes_tokens_and_deactivates_devices() {
-    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (_org_id, _admin_id, agent_id, device_id, admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
@@ -328,8 +318,7 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
 
 #[tokio::test]
 async fn terminate_session_rejects_non_agent_user() {
-    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (_org_id, admin_id, _agent_id, _device_id, _admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
@@ -359,8 +348,7 @@ async fn terminate_session_rejects_non_agent_user() {
 
 #[tokio::test]
 async fn terminate_session_returns_404_for_unknown_user() {
-    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // Seed some data so the app is initialized properly
     let (_org_id, _admin_id, _agent_id, _device_id, admin_access_token, _agent_access_token) =
@@ -391,8 +379,7 @@ async fn terminate_session_returns_404_for_unknown_user() {
 
 #[tokio::test]
 async fn terminate_session_blocks_otp_on_same_day() {
-    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) =
-        setup_test_app().await;
+    let (db, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     let (_org_id, _admin_id, agent_id, device_id, admin_access_token, _agent_access_token) =
         seed_users_with_active_session(&db, &jwt_private_key_pem).await;
