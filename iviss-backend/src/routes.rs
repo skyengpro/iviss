@@ -102,6 +102,12 @@ pub fn assembly(state: AppState) -> Router {
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
+    // Auth routes accessible to all authenticated users (admin + manager)
+    // No role restriction, just require authentication
+    let auth_routes = Router::new()
+        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
+        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
+
     let protected_routes = Router::new()
         .route(
             "/api/v1/scan/plate",
@@ -147,11 +153,11 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/users/location",
             post(crate::handlers::users::update_location),
         )
-        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes
         .merge(admin_routes)
+        .merge(auth_routes)
         .merge(protected_routes)
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))

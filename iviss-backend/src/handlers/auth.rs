@@ -212,9 +212,22 @@ pub async fn logout(
         0
     };
 
-    // Blacklist the JTI in Redis (prevents further use of this access token)
+    // Blacklist the JTI in PostgreSQL for persistence (prevents further use of this access token)
     if ttl > 0 {
-        auth_queries::blacklist_jti(&state.redis, &claims.jti.to_string(), ttl).await?;
+        let expires_at = time::OffsetDateTime::now_utc() + time::Duration::seconds(ttl as i64);
+        auth_queries::blacklist_jti_db(&state.db, &claims.jti.to_string(), claims.sub, expires_at)
+            .await?;
+
+        auth_queries::blacklist_jti_cache(&state.app_cache, &claims.jti.to_string()).await?;
+    } else {
+        tracing::warn!(
+            target: "audit",
+            event = "logout",
+            user_id = %claims.sub,
+            role = %claims.role,
+            jti = %claims.jti,
+            "Attempted to blacklist expired token"
+        );
     }
 
     revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;
@@ -630,7 +643,7 @@ pub async fn verify_daily_login(
             FROM devices
             WHERE id = $1
               AND user_id = $2
-              AND deleted_at IS NULL
+              AND suspended_at IS NULL
         )
         "#,
     )
@@ -730,7 +743,6 @@ pub async fn verify_daily_login(
 // ─────────────────────────────────────────────────────────────
 
 const NONCE_TTL_SECS: u64 = 60;
-const NONCE_KEY_PREFIX: &str = "refresh_nonce";
 
 // RefreshRequest is already defined at line 171
 
@@ -755,7 +767,7 @@ pub struct VerifyRefreshResponse {
 
 /// Step 1 of the challenge-response refresh flow.
 ///
-/// Validates the refresh token, generates a nonce, stores it in Redis,
+/// Validates the refresh token, generates a nonce, stores it in Moka cache,
 /// and returns it to the client for signing.
 #[utoipa::path(
     post,
@@ -827,19 +839,12 @@ async fn request_refresh_agent(
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw)
     };
 
-    // Store nonce in Redis with device_id as key, TTL 60s
-    let nonce_key = format!("{NONCE_KEY_PREFIX}:{device_id}");
-    {
-        use deadpool_redis::redis::AsyncCommands;
-        let mut conn = state
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {e}")))?;
-        conn.set_ex::<_, _, ()>(&nonce_key, &nonce, NONCE_TTL_SECS)
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis SET error: {e}")))?;
-    }
+    // Store nonce in Moka cache with device_id as key, TTL 60s (handled automatically)
+    state
+        .app_cache
+        .refresh_nonce
+        .insert(device_id, nonce.clone())
+        .await;
 
     tracing::info!(
         %device_id,
@@ -949,22 +954,21 @@ pub async fn verify_refresh(
 ) -> Result<impl IntoResponse, AppError> {
     tracing::warn!(device_id = %payload.device_id, "--- [BACKEND] verify_refresh: Processing start ---");
 
-    // 1. Retrieve and consume the nonce from Redis (one-time use)
-    let nonce_key = format!("{NONCE_KEY_PREFIX}:{}", payload.device_id);
+    // Retrieve and consume the nonce from Moka cache (one-time use)
     let stored_nonce: Option<String> = {
-        use deadpool_redis::redis::AsyncCommands;
-        let mut conn = state
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis connection error: {e}")))?;
-        let val: Option<String> = conn
-            .get(&nonce_key)
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis GET error: {e}")))?;
-        // Delete immediately to prevent replay
-        conn.del::<_, ()>(&nonce_key).await.ok();
-        val
+        // Get the nonce from cache
+        let nonce = state.app_cache.refresh_nonce.get(&payload.device_id).await;
+
+        // Immediately invalidate to ensure single-use (prevent replay)
+        if nonce.is_some() {
+            state
+                .app_cache
+                .refresh_nonce
+                .invalidate(&payload.device_id)
+                .await;
+        }
+
+        nonce
     };
 
     let expected_nonce = stored_nonce.ok_or_else(|| {
@@ -972,7 +976,7 @@ pub async fn verify_refresh(
         AppError::Unauthorized("Nonce expired or not found — request a new challenge".into())
     })?;
 
-    tracing::warn!(nonce = %expected_nonce, "Step 1: Nonce retrieved and consumed from Redis");
+    tracing::warn!(nonce = %expected_nonce, "Step 1: Nonce retrieved and consumed from Moka cache");
 
     // 2. Validate the refresh token
     let token_hash = {
