@@ -16,7 +16,6 @@ use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 use time::Duration;
 use time::OffsetDateTime;
-use time::PrimitiveDateTime;
 use uuid::Uuid;
 
 /// Helper: builds a full AppState + Axum app backed by real Postgres + Moka cache.
@@ -101,8 +100,6 @@ async fn seed_refresh_token(db: &sqlx::PgPool, user_id: Uuid, device_id: Uuid, r
     let token = format!("refresh-token-{}", Uuid::new_v4());
     let token_hash = format!("{:x}", sha2::Sha256::digest(token.as_bytes()));
     let refresh_expires = OffsetDateTime::now_utc() + Duration::days(30);
-    let refresh_expires_primitive =
-        PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
 
     sqlx::query(
         r#"
@@ -113,7 +110,7 @@ async fn seed_refresh_token(db: &sqlx::PgPool, user_id: Uuid, device_id: Uuid, r
     .bind(&token_hash)
     .bind(user_id)
     .bind(device_id)
-    .bind(refresh_expires_primitive)
+    .bind(refresh_expires)
     .bind(revoked)
     .execute(db)
     .await
@@ -172,7 +169,7 @@ async fn test_mark_device_inactive_success() {
     assert!(result.is_ok(), "mark_device_inactive should succeed");
 
     // Verify device is now inactive
-    let device_after: (String, Option<time::PrimitiveDateTime>) =
+    let device_after: (String, Option<time::OffsetDateTime>) =
         sqlx::query_as(r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#)
             .bind(device_id)
             .fetch_one(&db)
@@ -422,7 +419,7 @@ async fn test_suspend_device_and_revoke_tokens_success() {
     );
 
     // Verify device is suspended
-    let device: (String, Option<time::PrimitiveDateTime>) =
+    let device: (String, Option<time::OffsetDateTime>) =
         sqlx::query_as(r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#)
             .bind(device_id)
             .fetch_one(&db)

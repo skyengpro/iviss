@@ -45,7 +45,7 @@ impl OtpService {
         // Replaces any existing OTP — TTL is absolute from this point
         self.app_cache.otp_store.insert(*user_id, entry).await;
 
-        let message = format!("Your IVISS login code is: {}. Valid for 5 minutes.", code);
+        let message = format!("Your IVISS login code is: {code}. Valid for 5 minutes.");
         self.sms
             .send_sms(phone, &message)
             .await
@@ -120,13 +120,14 @@ impl OtpService {
 
     fn generate_code(&self) -> String {
         let code: u32 = rand::thread_rng().gen_range(0..=999_999);
-        format!("{:06}", code)
+        format!("{code:06}")
     }
 
     fn hash_code(&self, code: &str) -> String {
         let mut mac =
             HmacSha256::new_from_slice(self.pepper.as_bytes()).expect("HMAC accepts any key size");
         mac.update(code.as_bytes());
-        format!("{:x}", mac.finalize().into_bytes())
+        let finalize = mac.finalize().into_bytes();
+        format!("{finalize:x}")
     }
 }

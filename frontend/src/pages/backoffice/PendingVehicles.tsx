@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { Button } from '@/components/ui/button';
@@ -13,95 +13,170 @@ import {
   Clock,
   Eye,
   AlertCircle,
+  ChevronRight,
+  History,
+  X,
 } from 'lucide-react';
-import { mockVehicleService, PendingVehicle } from '@/services/mock/mockVehicles';
-import { Translatable } from '@/services/mock/mockControls';
 import { toast } from '@/hooks/ui/use-toast';
+import {
+  getSubmissions,
+  getSubmissionById,
+  getSubmissionAuditLog,
+  type PendingSubmissionListItem,
+  type PendingSubmissionDetail,
+  type SubmissionAuditLogEntry,
+  type SubmissionStatus,
+} from '@/services/api/submissionService';
+
+// ── Status filter tabs ──────────────────────────────────────────────────────
+
+type FilterTab = 'all' | SubmissionStatus;
+
+const FILTER_TABS: { key: FilterTab; labelKey: string }[] = [
+  { key: 'all', labelKey: 'pendingValidation.filterAll' },
+  { key: 'pending', labelKey: 'pendingValidation.filterPending' },
+  { key: 'approved', labelKey: 'pendingValidation.filterApproved' },
+  { key: 'rejected', labelKey: 'pendingValidation.filterRejected' },
+];
+
+const statusVariantMap: Record<SubmissionStatus, 'pending' | 'valid' | 'critical'> = {
+  pending: 'pending',
+  approved: 'valid',
+  rejected: 'critical',
+};
+
+// ── Vehicle data entry form defaults ────────────────────────────────────────
+
+// ── Main component ──────────────────────────────────────────────────────────
 
 export default function PendingVehicles() {
   const { t } = useTranslation();
-  const [pendingVehicles, setPendingVehicles] = useState<PendingVehicle[]>([]);
+
+  // List state
+  const [submissions, setSubmissions] = useState<PendingSubmissionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedVehicle, setSelectedVehicle] = useState<PendingVehicle | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('pending');
 
-  useEffect(() => {
-    loadPendingVehicles();
-  }, []);
+  // Detail state
+  const [selectedDetail, setSelectedDetail] = useState<PendingSubmissionDetail | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
-  const loadPendingVehicles = async () => {
+  // Audit log
+  const [auditLog, setAuditLog] = useState<SubmissionAuditLogEntry[]>([]);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+
+  // ── Data Loading ──────────────────────────────────────────────────────
+
+  const loadSubmissions = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const data = await mockVehicleService.getPendingVehicles();
-      setPendingVehicles(data);
+      const filter = activeFilter === 'all' ? undefined : activeFilter;
+      const data = await getSubmissions(filter);
+      setSubmissions(data);
     } catch (error) {
-      console.error('Failed to load pending vehicles:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleReview = async (id: string, decision: 'approved' | 'rejected') => {
-    setIsProcessing(true);
-
-    try {
-      await mockVehicleService.reviewPendingVehicle(id, decision);
-
+      console.error('Failed to load submissions:', error);
       toast({
-        title: t(
-          decision === 'approved'
-            ? 'backOfficePendingVehicles.toastVehicleApproved'
-            : 'backOfficePendingVehicles.toastVehicleRejected'
-        ),
-        description: t('backOfficePendingVehicles.toastVehicleProcessed', {
-          decision: t(`backOfficePendingVehicles.${decision}`),
-        }),
-      });
-
-      // Remove from list
-      setPendingVehicles((prev) => prev.filter((v) => v.id !== id));
-      setSelectedVehicle(null);
-    } catch (error) {
-      toast({
-        title: t('backOfficePendingVehicles.toastError'),
-        description: t('backOfficePendingVehicles.toastErrorMessage'),
+        title: t('pendingValidation.toastError'),
+        description: t('pendingValidation.loadError'),
         variant: 'destructive',
       });
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
+    }
+  }, [activeFilter, t]);
+
+  useEffect(() => {
+    loadSubmissions();
+  }, [loadSubmissions]);
+
+  const loadDetail = async (id: string) => {
+    setIsLoadingDetail(true);
+    setShowAuditLog(false);
+    try {
+      const detail = await getSubmissionById(id);
+      setSelectedDetail(detail);
+    } catch (error) {
+      console.error('Failed to load submission detail:', error);
+      toast({
+        title: t('pendingValidation.toastError'),
+        description: t('pendingValidation.detailLoadError'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingDetail(false);
     }
   };
 
-  const formatDate = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
-    if (diffHours < 1) return t('backOfficePendingVehicles.lessThanHourAgo');
-    if (diffHours < 24) return t('backOfficePendingVehicles.hoursAgo', { count: diffHours });
-    return date.toLocaleDateString();
-  };
-
-  const renderNotes = (notes: Translatable) => {
-    if (!notes) return '';
-    if (typeof notes === 'string') {
-      return notes;
+  const loadAuditLog = async (id: string) => {
+    try {
+      const log = await getSubmissionAuditLog(id);
+      setAuditLog(log);
+      setShowAuditLog(true);
+    } catch (error) {
+      console.error('Failed to load audit log:', error);
     }
-    return t(notes.key, notes.params);
   };
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+
+  const formatDate = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      if (diffHours < 1) return t('pendingValidation.lessThanHourAgo');
+      if (diffHours < 24) return t('pendingValidation.hoursAgo', { count: diffHours });
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return isoString;
+    }
+  };
+
+  const pendingCount = submissions.filter((s) => s.status === 'pending').length;
+
+  // ── Render ────────────────────────────────────────────────────────────
 
   return (
     <BackOfficeLayout
-      title={t('backOfficePendingVehicles.title')}
-      subtitle={t('backOfficePendingVehicles.subtitle', { count: pendingVehicles.length })}
+      title={t('pendingValidation.title')}
+      subtitle={t('pendingValidation.subtitle', { count: pendingCount })}
     >
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* List */}
+        {/* ── Left column: List + Filters ─────────────────────────── */}
         <div className="lg:col-span-1 space-y-4">
+          {/* Filter tabs */}
+          <div className="flex rounded-lg border border-border bg-muted/30 p-1">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveFilter(tab.key)}
+                className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-all ${
+                  activeFilter === tab.key
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t(tab.labelKey)}
+              </button>
+            ))}
+          </div>
+
+          {/* Submissions list */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <AlertCircle className="h-5 w-5 text-status-warning" />
-                {t('backOfficePendingVehicles.pendingSubmissions')}
+                {t('pendingValidation.submissions')}
+                <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                  {submissions.length}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -109,40 +184,43 @@ export default function PendingVehicles() {
                 <div className="flex items-center justify-center py-8">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
-              ) : pendingVehicles.length === 0 ? (
+              ) : submissions.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="mx-auto h-12 w-12 text-status-valid" />
                   <p className="mt-4 text-muted-foreground">
-                    {t('backOfficePendingVehicles.noPendingValidations')}
+                    {t('pendingValidation.noSubmissions')}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {pendingVehicles.map((vehicle) => (
+                <div className="space-y-2 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                  {submissions.map((sub) => (
                     <button
-                      key={vehicle.id}
-                      onClick={() => setSelectedVehicle(vehicle)}
+                      key={sub.id}
+                      onClick={() => loadDetail(sub.id)}
                       className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                        selectedVehicle?.id === vehicle.id
+                        selectedDetail?.id === sub.id
                           ? 'border-accent bg-accent/5'
                           : 'border-border hover:bg-muted'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold tracking-wider">
-                          {vehicle.plateNumber}
+                        <span className="font-mono font-bold tracking-wider text-sm">
+                          {sub.plateNumber}
                         </span>
-                        <StatusBadge variant="pending" size="sm">
-                          {t('backOfficePendingVehicles.pending')}
+                        <StatusBadge variant={statusVariantMap[sub.status]} size="sm">
+                          {t(`pendingValidation.status_${sub.status}`)}
                         </StatusBadge>
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                         <User className="h-3 w-3" />
-                        <span>{vehicle.submittedBy}</span>
+                        <span>{sub.agentName ?? t('pendingValidation.unknownAgent')}</span>
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatDate(vehicle.submittedAt)}</span>
+                      <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(sub.submittedAt)}
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5" />
                       </div>
                     </button>
                   ))}
@@ -152,137 +230,222 @@ export default function PendingVehicles() {
           </Card>
         </div>
 
-        {/* Detail View */}
-        <div className="lg:col-span-2">
-          {selectedVehicle ? (
+        {/* ── Right column: Detail / Forms ────────────────────────── */}
+        <div className="lg:col-span-2 space-y-4">
+          {isLoadingDetail ? (
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-accent" />
-                    {t('backOfficePendingVehicles.reviewSubmission')}
-                  </CardTitle>
-                  <StatusBadge variant="pending" size="lg">
-                    {t('backOfficePendingVehicles.pending').toUpperCase()}
-                  </StatusBadge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Vehicle Info */}
-                <div className="rounded-lg bg-muted p-4">
-                  <p className="text-3xl font-bold font-mono tracking-widest">
-                    {selectedVehicle.plateNumber}
-                  </p>
-                </div>
-
-                {/* Submission Details */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('backOfficePendingVehicles.submittedBy')}
-                      </p>
-                      <p className="font-medium">{selectedVehicle.submittedBy}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('backOfficePendingVehicles.submittedAt')}
-                      </p>
-                      <p className="font-medium">{selectedVehicle.submittedAt.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 sm:col-span-2">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('backOfficePendingVehicles.location')}
-                      </p>
-                      <p className="font-medium">{selectedVehicle.location}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Documents */}
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">
-                    {t('backOfficePendingVehicles.capturedDocuments')}
-                  </h4>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <div className="bg-muted px-3 py-2 text-sm font-medium">
-                        {t('backOfficePendingVehicles.frontOfCarteGrise')}
-                      </div>
-                      <div className="aspect-[4/3] bg-muted/50 flex items-center justify-center">
-                        <FileText className="h-12 w-12 text-muted-foreground/50" />
-                      </div>
-                      <div className="p-2">
-                        <Button variant="ghost" size="sm" className="w-full gap-2">
-                          <Eye className="h-4 w-4" />
-                          {t('backOfficePendingVehicles.viewFullSize')}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <div className="bg-muted px-3 py-2 text-sm font-medium">
-                        {t('backOfficePendingVehicles.backOfCarteGrise')}
-                      </div>
-                      <div className="aspect-[4/3] bg-muted/50 flex items-center justify-center">
-                        <FileText className="h-12 w-12 text-muted-foreground/50" />
-                      </div>
-                      <div className="p-2">
-                        <Button variant="ghost" size="sm" className="w-full gap-2">
-                          <Eye className="h-4 w-4" />
-                          {t('backOfficePendingVehicles.viewFullSize')}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {selectedVehicle.notes && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">
-                      {t('backOfficePendingVehicles.agentNotes')}
-                    </h4>
-                    <p className="text-muted-foreground rounded-lg bg-muted/50 p-3">
-                      {renderNotes(selectedVehicle.notes)}
-                    </p>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-4 border-t border-border">
-                  <Button
-                    className="flex-1 gap-2 bg-status-valid text-status-valid-foreground hover:bg-status-valid/90"
-                    onClick={() => handleReview(selectedVehicle.id, 'approved')}
-                    disabled={isProcessing}
-                  >
-                    <CheckCircle className="h-5 w-5" />
-                    {t('backOfficePendingVehicles.approveAndAddToDatabase')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 gap-2 text-status-critical hover:text-status-critical hover:bg-status-critical/10"
-                    onClick={() => handleReview(selectedVehicle.id, 'rejected')}
-                    disabled={isProcessing}
-                  >
-                    <XCircle className="h-5 w-5" />
-                    {t('backOfficePendingVehicles.reject')}
-                  </Button>
-                </div>
+              <CardContent className="flex items-center justify-center py-16">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </CardContent>
             </Card>
+          ) : selectedDetail ? (
+            <>
+              {/* ── Detail card ─────────────────────────────────── */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-accent" />
+                      {t('pendingValidation.reviewSubmission')}
+                    </CardTitle>
+                    <StatusBadge variant={statusVariantMap[selectedDetail.status]} size="lg">
+                      {t(`pendingValidation.status_${selectedDetail.status}`).toUpperCase()}
+                    </StatusBadge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Plate number */}
+                  <div className="rounded-lg bg-muted p-4">
+                    <p className="text-3xl font-bold font-mono tracking-widest">
+                      {selectedDetail.plateNumber}
+                    </p>
+                  </div>
+
+                  {/* Submission metadata */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          {t('pendingValidation.submittedBy')}
+                        </p>
+                        <p className="font-medium">
+                          {selectedDetail.agentName ?? t('pendingValidation.unknownAgent')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          {t('pendingValidation.submittedAt')}
+                        </p>
+                        <p className="font-medium">{formatDate(selectedDetail.submittedAt)}</p>
+                      </div>
+                    </div>
+                    {selectedDetail.location && (
+                      <div className="flex items-center gap-3 sm:col-span-2">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            {t('pendingValidation.location')}
+                          </p>
+                          <p className="font-medium">
+                            {selectedDetail.location.address ??
+                              `${selectedDetail.location.latitude ?? '—'}, ${selectedDetail.location.longitude ?? '—'}`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Images */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">
+                      {t('pendingValidation.capturedDocuments')}
+                    </h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <ImageCard
+                        label={t('pendingValidation.frontOfCarteGrise')}
+                        url={selectedDetail.frontImageUrl}
+                        viewLabel={t('pendingValidation.viewFullSize')}
+                      />
+                      <ImageCard
+                        label={t('pendingValidation.backOfCarteGrise')}
+                        url={selectedDetail.backImageUrl}
+                        viewLabel={t('pendingValidation.viewFullSize')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  {selectedDetail.notes && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">
+                        {t('pendingValidation.agentNotes')}
+                      </h4>
+                      <p className="text-muted-foreground rounded-lg bg-muted/50 p-3">
+                        {selectedDetail.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Rejection reason (if rejected) */}
+                  {selectedDetail.status === 'rejected' && selectedDetail.rejectionReason && (
+                    <div className="rounded-lg border border-status-critical/30 bg-status-critical/5 p-4">
+                      <h4 className="text-sm font-semibold text-status-critical mb-1">
+                        {t('pendingValidation.rejectionReason')}
+                      </h4>
+                      <p className="text-sm">{selectedDetail.rejectionReason}</p>
+                      {selectedDetail.reviewerName && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {t('pendingValidation.rejectedBy', {
+                            name: selectedDetail.reviewerName,
+                            date: selectedDetail.reviewedAt
+                              ? formatDate(selectedDetail.reviewedAt)
+                              : '',
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Approved info (if approved) */}
+                  {selectedDetail.status === 'approved' && selectedDetail.reviewerName && (
+                    <div className="rounded-lg border border-status-valid/30 bg-status-valid/5 p-4">
+                      <h4 className="text-sm font-semibold text-status-valid mb-1">
+                        {t('pendingValidation.approvedLabel')}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {t('pendingValidation.approvedBy', {
+                          name: selectedDetail.reviewerName,
+                          date: selectedDetail.reviewedAt
+                            ? formatDate(selectedDetail.reviewedAt)
+                            : '',
+                        })}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Audit log button */}
+                  {selectedDetail.status !== 'pending' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => loadAuditLog(selectedDetail.id)}
+                    >
+                      <History className="h-4 w-4" />
+                      {t('pendingValidation.viewAuditLog')}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ── Audit Log ──────────────────────────────────── */}
+              {showAuditLog && auditLog.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <History className="h-5 w-5 text-accent" />
+                        {t('pendingValidation.auditLog')}
+                      </CardTitle>
+                      <button
+                        onClick={() => setShowAuditLog(false)}
+                        className="rounded-lg p-1 hover:bg-muted"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {auditLog.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-start gap-3 rounded-lg border border-border p-3"
+                        >
+                          <div
+                            className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                              entry.action === 'approved'
+                                ? 'bg-status-valid/10 text-status-valid'
+                                : 'bg-status-critical/10 text-status-critical'
+                            }`}
+                          >
+                            {entry.action === 'approved' ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">
+                              {t(`pendingValidation.auditAction_${entry.action}`)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {entry.performerName ?? entry.performedBy} •{' '}
+                              {formatDate(entry.createdAt)}
+                            </p>
+                            {entry.reason && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                "{entry.reason}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <FileText className="h-16 w-16 text-muted-foreground/30" />
                 <p className="mt-4 text-muted-foreground">
-                  {t('backOfficePendingVehicles.selectSubmissionToReview')}
+                  {t('pendingValidation.selectToReview')}
                 </p>
               </CardContent>
             </Card>
@@ -290,5 +453,74 @@ export default function PendingVehicles() {
         </div>
       </div>
     </BackOfficeLayout>
+  );
+}
+
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+function ImageCard({
+  label,
+  url,
+  viewLabel,
+}: {
+  label: string;
+  url: string | null;
+  viewLabel: string;
+}) {
+  const [showFull, setShowFull] = useState(false);
+
+  return (
+    <>
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="bg-muted px-3 py-2 text-sm font-medium">{label}</div>
+        <div className="aspect-[4/3] bg-muted/50 flex items-center justify-center overflow-hidden">
+          {url ? (
+            <img
+              src={url}
+              alt={label}
+              className="h-full w-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).parentElement!.innerHTML =
+                  '<div class="flex items-center justify-center h-full"><svg class="h-12 w-12 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>';
+              }}
+            />
+          ) : (
+            <FileText className="h-12 w-12 text-muted-foreground/50" />
+          )}
+        </div>
+        {url && (
+          <div className="p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => setShowFull(true)}
+            >
+              <Eye className="h-4 w-4" />
+              {viewLabel}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Full-size image overlay */}
+      {showFull && url && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-8"
+          onClick={() => setShowFull(false)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              className="absolute -top-10 right-0 text-white hover:text-white/80"
+              onClick={() => setShowFull(false)}
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img src={url} alt={label} className="max-h-[80vh] rounded-lg shadow-2xl" />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

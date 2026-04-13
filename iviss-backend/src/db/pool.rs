@@ -29,11 +29,11 @@ async fn ensure_database_exists(database_url: &str) -> Result<()> {
             .context("Failed to query pg_database")?;
 
     if !exists {
-        tracing::info!("Database '{}' does not exist. Creating it...", db_name);
-        let query = format!("CREATE DATABASE \"{}\"", db_name);
+        tracing::info!("Database '{db_name}' does not exist. Creating it...");
+        let query = format!("CREATE DATABASE \"{db_name}\"");
         conn.execute(query.as_str())
             .await
-            .context(format!("Failed to create database '{}'", db_name))?;
+            .context(format!("Failed to create database '{db_name}'"))?;
     }
 
     Ok(())
@@ -71,9 +71,7 @@ pub async fn initialize_pool(database_url: &str) -> Result<DbPool> {
                 retry_count += 1;
                 if retry_count >= max_retries {
                     return Err(anyhow::anyhow!(
-                        "Failed to connect to database after {} attempts: {}",
-                        max_retries,
-                        e
+                        "Failed to connect to database after {max_retries} attempts: {e}"
                     ));
                 }
                 tracing::warn!(
