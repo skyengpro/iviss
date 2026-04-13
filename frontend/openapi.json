@@ -1492,13 +1492,26 @@
         ],
         "summary": "Logout and invalidate session",
         "operationId": "logoutUser",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": {
-            "description": "Logout successful",
+          "204": {
+            "description": "Logout successful"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
             "content": {
-              "text/plain": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/AppErrorResponse"
                 }
               }
             }
@@ -2733,6 +2746,23 @@
         "type": "string",
         "description": "The action types for audit logging, matching the PostgreSQL `audit_action` enum.",
         "enum": [
+          "LOGIN_SUCCESS",
+          "LOGIN_FAILED",
+          "LOGOUT",
+          "TOKEN_REFRESHED",
+          "OTP_REQUESTED",
+          "OTP_VERIFIED",
+          "OTP_FAILED",
+          "DEVICE_REGISTERED",
+          "DEVICE_REVOKED",
+          "USER_CREATED",
+          "USER_UPDATED",
+          "USER_SUSPENDED",
+          "USER_ACTIVATED",
+          "USER_DELETED",
+          "SESSION_TERMINATED",
+          "SESSION_RESTARTED",
+          "ACTIVATION_CODE_RESENT",
           "VEHICLE_SEARCHED",
           "VEHICLE_NOT_FOUND",
           "PENDING_SUBMISSION_CREATED",

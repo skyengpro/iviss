@@ -1,27 +1,19 @@
 use crate::app_state::AppState;
-
-use crate::queries::auth_queries;
 use crate::dto::auth::{
     ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, LogoutRequestHeaders,
     RefreshRequest, RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
     VerifyDailyLoginResponse,
 };
-use crate::middleware::auth::decode_access_token_rs256;
-use axum::extract::State;
-use axum::http::header::AUTHORIZATION;
-use axum::{http::StatusCode, response::IntoResponse, Json};
-use base64::Engine;
-
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
-use crate::dto::audit::AuditAction;
-use crate::queries::audit_log_queries::InsertAuditLogParams;
-use crate::services::audit_service::AuditService;
+use crate::middleware::auth::decode_access_token_rs256;
 use crate::queries::auth_queries;
 use crate::utils::ip::extract_client_ip_with_peer;
 use axum::extract::{ConnectInfo, State};
+use axum::http::header::AUTHORIZATION;
 use axum::http::HeaderMap;
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use base64::Engine;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -172,23 +164,6 @@ pub async fn login(
         "login: success"
     );
 
-    // Audit log - login success
-    AuditService::record(
-        state.db.clone(),
-        InsertAuditLogParams {
-            user_id: Some(user.id),
-            action: AuditAction::LoginSuccess,
-            ip_address: client_ip,
-            resource_type: None,
-            resource_id: None,
-            metadata: Some(serde_json::json!({
-                "email": user.email,
-                "role": user.role.as_str()
-            })),
-            before_snapshot: None,
-            after_snapshot: None,
-        },
-    );
 
     Ok((
         StatusCode::OK,
@@ -251,24 +226,6 @@ pub async fn logout(
     }
 
     revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;
-
-    // Audit log - logout
-    AuditService::record(
-        state.db.clone(),
-        InsertAuditLogParams {
-            user_id: Some(claims.sub),
-            action: AuditAction::Logout,
-            ip_address: None, // We don't have peer in logout currently without changing signature
-            resource_type: None,
-            resource_id: None,
-            metadata: Some(serde_json::json!({
-                "role": claims.role,
-                "jti": claims.jti
-            })),
-            before_snapshot: None,
-            after_snapshot: None,
-        },
-    );
 
     // Return 204 No Content (idempotent - success even if token was already blacklisted)
     Ok(StatusCode::NO_CONTENT)

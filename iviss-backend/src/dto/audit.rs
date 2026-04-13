@@ -8,6 +8,29 @@ use uuid::Uuid;
 #[sqlx(type_name = "audit_action", rename_all = "SCREAMING_SNAKE_CASE")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AuditAction {
+    // Auth
+    LoginSuccess,
+    LoginFailed,
+    Logout,
+    TokenRefreshed,
+    OtpRequested,
+    OtpVerified,
+    OtpFailed,
+
+    // Device
+    DeviceRegistered,
+    DeviceRevoked,
+
+    // User management
+    UserCreated,
+    UserUpdated,
+    UserSuspended,
+    UserActivated,
+    UserDeleted,
+    SessionTerminated,
+    SessionRestarted,
+    ActivationCodeResent,
+
     // Vehicle control
     VehicleSearched,
     VehicleNotFound,
@@ -20,6 +43,23 @@ impl FromStr for AuditAction {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "LOGIN_SUCCESS" => Ok(Self::LoginSuccess),
+            "LOGIN_FAILED" => Ok(Self::LoginFailed),
+            "LOGOUT" => Ok(Self::Logout),
+            "TOKEN_REFRESHED" => Ok(Self::TokenRefreshed),
+            "OTP_REQUESTED" => Ok(Self::OtpRequested),
+            "OTP_VERIFIED" => Ok(Self::OtpVerified),
+            "OTP_FAILED" => Ok(Self::OtpFailed),
+            "DEVICE_REGISTERED" => Ok(Self::DeviceRegistered),
+            "DEVICE_REVOKED" => Ok(Self::DeviceRevoked),
+            "USER_CREATED" => Ok(Self::UserCreated),
+            "USER_UPDATED" => Ok(Self::UserUpdated),
+            "USER_SUSPENDED" => Ok(Self::UserSuspended),
+            "USER_ACTIVATED" => Ok(Self::UserActivated),
+            "USER_DELETED" => Ok(Self::UserDeleted),
+            "SESSION_TERMINATED" => Ok(Self::SessionTerminated),
+            "SESSION_RESTARTED" => Ok(Self::SessionRestarted),
+            "ACTIVATION_CODE_RESENT" => Ok(Self::ActivationCodeResent),
             "VEHICLE_SEARCHED" => Ok(Self::VehicleSearched),
             "VEHICLE_NOT_FOUND" => Ok(Self::VehicleNotFound),
             "PENDING_SUBMISSION_CREATED" => Ok(Self::PendingSubmissionCreated),
@@ -32,6 +72,23 @@ impl FromStr for AuditAction {
 impl AuditAction {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::LoginSuccess => "LOGIN_SUCCESS",
+            Self::LoginFailed => "LOGIN_FAILED",
+            Self::Logout => "LOGOUT",
+            Self::TokenRefreshed => "TOKEN_REFRESHED",
+            Self::OtpRequested => "OTP_REQUESTED",
+            Self::OtpVerified => "OTP_VERIFIED",
+            Self::OtpFailed => "OTP_FAILED",
+            Self::DeviceRegistered => "DEVICE_REGISTERED",
+            Self::DeviceRevoked => "DEVICE_REVOKED",
+            Self::UserCreated => "USER_CREATED",
+            Self::UserUpdated => "USER_UPDATED",
+            Self::UserSuspended => "USER_SUSPENDED",
+            Self::UserActivated => "USER_ACTIVATED",
+            Self::UserDeleted => "USER_DELETED",
+            Self::SessionTerminated => "SESSION_TERMINATED",
+            Self::SessionRestarted => "SESSION_RESTARTED",
+            Self::ActivationCodeResent => "ACTIVATION_CODE_RESENT",
             Self::VehicleSearched => "VEHICLE_SEARCHED",
             Self::VehicleNotFound => "VEHICLE_NOT_FOUND",
             Self::PendingSubmissionCreated => "PENDING_SUBMISSION_CREATED",
