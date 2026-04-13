@@ -46,9 +46,7 @@ export default function BackOfficeDashboard() {
 
   const recentAlertsQuery = useGetRecentAlerts(
     {
-      query: {
-        limit: 5,
-      },
+      limit: 5,
     },
     undefined,
     {
@@ -65,9 +63,7 @@ export default function BackOfficeDashboard() {
 
   const controlActivityQuery = useGetControlActivity(
     {
-      query: {
-        range: dashboardRange,
-      },
+      range: dashboardRange,
     },
     undefined,
     {
@@ -77,10 +73,8 @@ export default function BackOfficeDashboard() {
 
   const topAgentsQuery = useGetTopAgents(
     {
-      query: {
-        range: dashboardRange,
-        limit: 5,
-      },
+      range: dashboardRange,
+      limit: 5,
     },
     undefined,
     {
@@ -92,9 +86,7 @@ export default function BackOfficeDashboard() {
 
   const activityFeedQuery = useGetActivityFeed(
     {
-      query: {
-        limit: 8,
-      },
+      limit: 8,
     },
     undefined,
     {

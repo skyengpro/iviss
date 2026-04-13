@@ -42,9 +42,12 @@ import {
   RefreshCw,
   KeyRound,
   ArrowRightLeft,
+  FileText,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/services/api/backendFetch';
+
+import { toast } from 'sonner';
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -185,16 +188,10 @@ const ACTION_CONFIG: Record<string, { icon: React.ElementType; color: string; bg
 };
 
 const FILTER_ACTIONS = [
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'USER_CREATED',
-  'USER_UPDATED',
-  'USER_DELETED',
-  'SESSION_TERMINATED',
-  'SESSION_RESTARTED',
-  'ACTIVATION_CODE_RESENT',
-  'DEVICE_REGISTERED',
-  'DEVICE_REVOKED',
+  'VEHICLE_SEARCHED',
+  'VEHICLE_NOT_FOUND',
+  'PENDING_SUBMISSION_CREATED',
+  'PENDING_SUBMISSION_REVIEWED'
 ];
 
 function ActionBadge({ action }: { action: string }) {
@@ -275,6 +272,7 @@ export default function AuditLogs() {
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const pageSize = 15;
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setPage(1);
@@ -324,24 +322,73 @@ export default function AuditLogs() {
   };
 
   const handleExport = async () => {
-    const qs = new URLSearchParams();
-    if (userIdFilter) qs.set('user_id', userIdFilter);
-    if (actionFilter !== 'all') qs.set('action', actionFilter);
-    if (startDate) qs.set('start_date', startDate);
-    if (endDate) qs.set('end_date', endDate);
+    setIsExporting(true);
+    try {
+      const qs = new URLSearchParams();
+      if (userIdFilter) qs.set('user_id', userIdFilter);
+      if (actionFilter !== 'all') qs.set('action', actionFilter);
+      if (startDate) qs.set('start_date', startDate);
+      if (endDate) qs.set('end_date', endDate);
 
-    const res = await fetchWithAuth(`/api/v1/admin/audit-logs/export?${qs.toString()}`);
-    if (!res.ok) return;
+      const res = await fetchWithAuth(`/api/v1/admin/audit-logs/export?${qs.toString()}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        toast.error(t('backOfficeAuditLogs.exportError', { defaultValue: 'Export failed' }), {
+          description: body || `HTTP ${res.status}`,
+        });
+        return;
+      }
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(t('backOfficeAuditLogs.exportSuccess', { defaultValue: 'CSV exported successfully' }));
+    } catch (e) {
+      toast.error(t('backOfficeAuditLogs.exportError', { defaultValue: 'Export failed' }));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const qs = new URLSearchParams();
+      if (userIdFilter) qs.set('user_id', userIdFilter);
+      if (actionFilter !== 'all') qs.set('action', actionFilter);
+      if (startDate) qs.set('start_date', startDate);
+      if (endDate) qs.set('end_date', endDate);
+
+      const res = await fetchWithAuth(`/api/v1/admin/audit-logs/export-pdf?${qs.toString()}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        toast.error(t('backOfficeAuditLogs.exportError', { defaultValue: 'PDF export failed' }), {
+          description: body || `HTTP ${res.status}`,
+        });
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(t('backOfficeAuditLogs.exportPdfSuccess', { defaultValue: 'PDF exported successfully' }));
+    } catch (e) {
+      toast.error(t('backOfficeAuditLogs.exportError', { defaultValue: 'PDF export failed' }));
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const openDetail = (entry: AuditLogEntry) => {
@@ -498,6 +545,7 @@ export default function AuditLogs() {
                 </SelectContent>
               </Select>
 
+
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
@@ -534,17 +582,31 @@ export default function AuditLogs() {
               )}
             </div>
 
-            {/* Export */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="h-10 gap-2 rounded-xl text-sm"
-              id="audit-export-csv"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('backOfficeAuditLogs.exportCsv')}
-            </Button>
+            {/* Export Buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting}
+                className="h-10 gap-2 rounded-xl text-sm"
+                id="audit-export-csv"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {isExporting ? '…' : t('backOfficeAuditLogs.exportCsv')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPdf}
+                disabled={isExporting}
+                className="h-10 gap-2 rounded-xl text-sm border-primary/30 hover:border-primary/60"
+                id="audit-export-pdf"
+              >
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                {isExporting ? '…' : t('backOfficeAuditLogs.exportPdf')}
+              </Button>
+            </div>
           </div>
         </div>
 
