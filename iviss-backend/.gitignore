@@ -16,6 +16,5 @@
 .DS_Store
 *.swp
 
-iviss-backend/scripts/log_out_test.sh
-iviss-backend/scripts/test_token_invalidation.sh
+
 docs/redis-to-moka-migration.md

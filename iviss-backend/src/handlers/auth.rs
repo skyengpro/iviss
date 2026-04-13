@@ -647,7 +647,7 @@ pub async fn verify_daily_login(
             FROM devices
             WHERE id = $1
               AND user_id = $2
-              AND deleted_at IS NULL
+              AND suspended_at IS NULL
         )
         "#,
     )
