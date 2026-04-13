@@ -47,12 +47,9 @@ async fn setup_test_app() -> (
     testcontainers::ContainerAsync<Postgres>,
     testcontainers::ContainerAsync<Redis>,
 ) {
-    let pg = Postgres::default().start().await.unwrap();
+    let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
-    let db_url = format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
-        pg_port
-    );
+    let db_url = format!("postgres://postgres@127.0.0.1:{}/postgres", pg_port);
 
     let db = PgPoolOptions::new()
         .max_connections(5)
@@ -78,7 +75,6 @@ async fn setup_test_app() -> (
         server_host: "127.0.0.1".into(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
-        jwt_secret: "dummy_testing_value_long_enough_to_pass_validation".into(),
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
@@ -197,8 +193,6 @@ async fn seed_users_with_active_session(
     let refresh_token = "test-refresh-token-value";
     let refresh_token_hash = format!("{:x}", sha2::Sha256::digest(refresh_token.as_bytes()));
     let refresh_expires = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-    let refresh_expires_primitive =
-        time::PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
 
     sqlx::query(
         r#"
@@ -209,7 +203,7 @@ async fn seed_users_with_active_session(
     .bind(&refresh_token_hash)
     .bind(agent_id)
     .bind(device_id)
-    .bind(refresh_expires_primitive)
+    .bind(refresh_expires)
     .execute(db)
     .await
     .unwrap();

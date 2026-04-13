@@ -1,6 +1,6 @@
 use crate::dto::users::UserProfile;
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -36,6 +36,14 @@ pub struct VerifyDailyLoginResponse {
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Header)]
+pub struct LogoutRequestHeaders {
+    #[serde(rename = "Authorization")]
+    #[param(required = true)]
+    pub authorization: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

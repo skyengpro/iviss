@@ -1,13 +1,39 @@
+x-default-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-environment: &backend-environment
+  DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
+  EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:?EXTERNAL_POSTGRES_PASSWORD must be set}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
+  REDIS_URL: redis://iviss-redis:6379
+  SQLX_OFFLINE: "true"
+  JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
+  JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
+  ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
+  ENVIRONMENT: ${ENVIRONMENT:-local}
+  TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
+  TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
+  TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
+  SERVER_HOST: 0.0.0.0
+  SERVER_PORT: 3000
+  RUST_LOG: ${RUST_LOG:-info}
+  ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
+  ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
+  ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
+  ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
+
 services:
-  # PostgreSQL 15 Database Service (Alpine variant for smaller image size)
+  # PostgreSQL service shared by dev and prod-style local runs
   db:
     image: postgres:15-alpine
     container_name: iviss-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iviss_password}
-      POSTGRES_DB: ${POSTGRES_DB:-iviss_db}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-iviss_dev}
     ports:
       - "5435:5432"
     volumes:
@@ -16,21 +42,16 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d ${POSTGRES_DB:-iviss_db}",
+          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d iviss_dev",
         ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iviss-network
 
-  # Redis Cache Service
   redis:
     image: redis:7-alpine
     container_name: iviss-redis
@@ -53,27 +74,24 @@ services:
         reservations:
           cpus: "0.1"
           memory: 64M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iviss-network
 
-  # Adminer Database Management
+  # Adminer is useful for local development only
   adminer:
     image: adminer
     container_name: iviss-adminer
-    restart: always
+    restart: unless-stopped
     ports:
       - "8081:8080"
     depends_on:
       - db
+    logging: *default-logging
     networks:
       - iviss-network
 
-  # Rust Backend Service
+  # Development backend with cargo-watch and source mounts
   backend:
     build:
       context: ./iviss-backend
@@ -91,54 +109,62 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:-iviss_password}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
-      EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:-external_password}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
-      REDIS_URL: redis://iviss-redis:6379
-      SQLX_OFFLINE: "true"
-      JWT_SECRET: ${JWT_SECRET:-your_dev_jwt_secret_change_in_production}
-      JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
-      JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
-      ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
-      ENVIRONMENT: ${ENVIRONMENT:-local}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
-      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 3000
-      RUST_LOG: ${RUST_LOG:-info}
-      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
-      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
-      ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
-      ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
+    environment: *backend-environment
     ports:
       - "3000:3000"
     volumes:
-      # Mount source code for live reloading
       - ./iviss-backend/src:/app/src:ro
       - ./iviss-backend/Cargo.toml:/app/Cargo.toml:ro
       - ./iviss-backend/Cargo.lock:/app/Cargo.lock:ro
       - ./iviss-backend/migrations:/app/migrations:ro
       - ./iviss-backend/.sqlx:/app/.sqlx:ro
       - ./iviss-backend/seeds:/app/seeds:ro
-      # Cache dependencies in named volume for faster builds
       - cargo_cache:/usr/local/cargo/registry
       - target_cache:/app/target
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 180s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iviss-network
 
-  # Frontend Service
+  # Production-like backend, opt-in with: docker compose --profile prod up backend-prod
+  backend-prod:
+    profiles: ["prod"]
+    build:
+      context: ./iviss-backend
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    env_file:
+      - ./iviss-backend/.env
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment: *backend-environment
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+    networks:
+      - iviss-network
+
+  # Development frontend with Vite and bind mounts
   frontend:
     build:
       context: ./frontend
@@ -146,12 +172,15 @@ services:
       target: dev
     container_name: iviss-frontend
     restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
-      - NODE_ENV=development
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
-      - BACKEND_OPENAPI_URL=http://iviss-backend:3000/api-doc/openapi.json
+      NODE_ENV: development
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -170,15 +199,40 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iviss-network
 
-  # Metrics Collector Service (Bridges browser metrics to Prometheus)
+  # Production-like frontend, opt-in with: docker compose --profile prod up frontend-prod
+  frontend-prod:
+    profiles: ["prod"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    depends_on:
+      backend-prod:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - iviss-network
+
   metrics:
     build:
       context: ./frontend
@@ -188,8 +242,8 @@ services:
     ports:
       - "9091:9091"
     environment:
-      - NODE_ENV=development
-      - METRICS_PORT=9091
+      NODE_ENV: production
+      METRICS_PORT: 9091
     healthcheck:
       test:
         [
@@ -201,11 +255,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iviss-network
 
@@ -214,13 +264,10 @@ networks:
     driver: bridge
 
 volumes:
-  # Named volume for PostgreSQL data persistence
   postgres_data:
     driver: local
-  # Named volume for Redis data persistence
   redis_data:
     driver: local
-  # Cache volumes for faster Rust builds
   cargo_cache:
     driver: local
   target_cache:

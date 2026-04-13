@@ -29,6 +29,8 @@ const Dashboard = lazy(() => import('../pages/backoffice/Dashboard'));
 const OrgAdminDashboard = lazy(() => import('../pages/backoffice/OrgAdminDashboard'));
 const ChangePassword = lazy(() => import('../pages/auth/ChangePassword'));
 const Settings = lazy(() => import('../pages/backoffice/Settings'));
+const OrganizationManagement = lazy(() => import('../pages/backoffice/OrganizationManagement'));
+const AuditLogPage = lazy(() => import('../pages/backoffice/AuditLogPage'));
 
 export interface AppRoute {
   path: string;

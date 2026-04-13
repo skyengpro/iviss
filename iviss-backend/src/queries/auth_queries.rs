@@ -111,7 +111,7 @@ pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForL
 #[derive(Debug, FromRow)]
 pub struct DeviceForLogin {
     pub status: String,
-    pub revoked_at: Option<time::PrimitiveDateTime>,
+    pub revoked_at: Option<time::OffsetDateTime>,
 }
 
 pub async fn get_device_by_user_optional(
@@ -185,9 +185,8 @@ pub async fn suspend_device_and_revoke_tokens(
     .map_err(AppError::database)
 }
 
-#[allow(dead_code)]
 pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Result<(), AppError> {
-    let key = format!("blacklist:jti:{}", jti);
+    let key = format!("blacklist:jti:{jti}");
     let mut conn = redis
         .get()
         .await
@@ -198,6 +197,21 @@ pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Resul
         .map_err(|e| AppError::internal_error(format!("Redis SET failed: {e}")))?;
 
     Ok(())
+}
+
+pub async fn is_jti_blacklisted(redis: &RedisPool, jti: &str) -> Result<bool, AppError> {
+    let key = format!("blacklist:jti:{}", jti);
+    let mut conn = redis
+        .get()
+        .await
+        .map_err(|e| AppError::internal_error(format!("Redis connection failed: {e}")))?;
+
+    let exists: bool = conn
+        .exists(&key)
+        .await
+        .map_err(|e| AppError::internal_error(format!("Redis EXISTS failed: {e}")))?;
+
+    Ok(exists)
 }
 
 pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<bool, AppError> {

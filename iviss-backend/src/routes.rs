@@ -14,8 +14,6 @@ pub fn assembly(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/api/v1/health", get(crate::handlers::health::health_check))
         .route("/api/v1/auth/login", post(crate::handlers::auth::login))
-        // TODO: Enable once register is fully implemented
-        // .route("/auth/register", post(crate::handlers::auth::register))
         .route(
             "/api/v1/auth/activate",
             post(crate::handlers::auth::activate),
@@ -51,6 +49,10 @@ pub fn assembly(state: AppState) -> Router {
             get(crate::handlers::pending_submission::get_pending_submission),
         )
         .route(
+            "/api/v1/admin/submissions/:id/audit",
+            get(crate::handlers::pending_submission::get_submission_audit_log),
+        )
+        .route(
             "/api/v1/admin/users",
             get(crate::handlers::user_management::list_users)
                 .post(crate::handlers::user_management::provision_user),
@@ -63,7 +65,14 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route(
             "/api/v1/admin/organizations",
-            get(crate::handlers::user_management::list_organizations),
+            get(crate::handlers::user_management::list_organizations)
+                .post(crate::handlers::organization_management::create_organization),
+        )
+        .route(
+            "/api/v1/admin/organizations/:id",
+            get(crate::handlers::organization_management::get_organization)
+                .put(crate::handlers::organization_management::update_organization)
+                .delete(crate::handlers::organization_management::delete_organization),
         )
         .route(
             "/api/v1/admin/terminate-session",
@@ -73,19 +82,19 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/admin/restart-session",
             post(crate::handlers::user_management::restart_session),
         )
-        // .route(
-        //     "/admin/devices/{id}/suspend",
-        //     post(crate::handlers::device_management::suspend_device),
-        // )
-        // .route(
-        //     "/admin/devices/{id}/unsuspend",
-        //     post(crate::handlers::device_management::unsuspend_device),
-        // )
         .route(
             "/api/v1/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
         .route("/api/v1/admin/controls/paged", get(get_list_control_paged))
+        .route(
+            "/api/v1/admin/audit",
+            get(crate::handlers::audit::list_audit_logs),
+        )
+        .route(
+            "/api/v1/admin/audit/export",
+            get(crate::handlers::audit::export_audit_logs),
+        )
         .route(
             "/api/v1/admin/stats",
             get(crate::handlers::stats::get_dashboard_stats),
@@ -176,8 +185,7 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/users/location",
             post(crate::handlers::users::update_location),
         )
-        // TODO: Enable once logout is fully implemented
-        // .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes

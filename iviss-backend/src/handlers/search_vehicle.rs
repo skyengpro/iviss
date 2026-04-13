@@ -51,7 +51,7 @@ pub async fn search_vehicle(
         get_vehicle_with_owner_by_plate(&state.db, &plate)
             .await?
             .ok_or_else(|| {
-                AppError::not_found(format!("No vehicle found with plate number: {}", plate))
+                AppError::not_found(format!("No vehicle found with plate number: {plate}"))
             })?;
 
     // Query vehicle status data

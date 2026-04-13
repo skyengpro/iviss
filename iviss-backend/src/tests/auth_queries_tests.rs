@@ -17,7 +17,6 @@ use testcontainers_modules::postgres::Postgres;
 use testcontainers_modules::redis::Redis;
 use time::Duration;
 use time::OffsetDateTime;
-use time::PrimitiveDateTime;
 use uuid::Uuid;
 
 /// Helper: builds a full AppState + Axum app backed by real Postgres + Redis.
@@ -29,12 +28,9 @@ async fn setup_test_infrastructure() -> (
     testcontainers::ContainerAsync<Postgres>,
     testcontainers::ContainerAsync<Redis>,
 ) {
-    let pg = Postgres::default().start().await.unwrap();
+    let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
-    let db_url = format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
-        pg_port
-    );
+    let db_url = format!("postgres://postgres@127.0.0.1:{}/postgres", pg_port);
 
     let db = PgPoolOptions::new()
         .max_connections(5)
@@ -119,8 +115,6 @@ async fn seed_refresh_token(db: &sqlx::PgPool, user_id: Uuid, device_id: Uuid, r
     let token = format!("refresh-token-{}", Uuid::new_v4());
     let token_hash = format!("{:x}", sha2::Sha256::digest(token.as_bytes()));
     let refresh_expires = OffsetDateTime::now_utc() + Duration::days(30);
-    let refresh_expires_primitive =
-        PrimitiveDateTime::new(refresh_expires.date(), refresh_expires.time());
 
     sqlx::query(
         r#"
@@ -131,7 +125,7 @@ async fn seed_refresh_token(db: &sqlx::PgPool, user_id: Uuid, device_id: Uuid, r
     .bind(&token_hash)
     .bind(user_id)
     .bind(device_id)
-    .bind(refresh_expires_primitive)
+    .bind(refresh_expires)
     .bind(revoked)
     .execute(db)
     .await
@@ -190,7 +184,7 @@ async fn test_mark_device_inactive_success() {
     assert!(result.is_ok(), "mark_device_inactive should succeed");
 
     // Verify device is now inactive
-    let device_after: (String, Option<time::PrimitiveDateTime>) =
+    let device_after: (String, Option<time::OffsetDateTime>) =
         sqlx::query_as(r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#)
             .bind(device_id)
             .fetch_one(&db)
@@ -440,7 +434,7 @@ async fn test_suspend_device_and_revoke_tokens_success() {
     );
 
     // Verify device is suspended
-    let device: (String, Option<time::PrimitiveDateTime>) =
+    let device: (String, Option<time::OffsetDateTime>) =
         sqlx::query_as(r#"SELECT status::text, revoked_at FROM devices WHERE id = $1"#)
             .bind(device_id)
             .fetch_one(&db)
