@@ -130,7 +130,7 @@ export const backOfficeRoutes: AppRoute[] = [
   { path: '/backoffice/vehicles', component: Dashboard, allowedRoles: ['admin', 'org_admin'] },
   {
     path: '/backoffice/organizations',
-    component: Dashboard,
+    component: OrganizationManagement,
     allowedRoles: ['admin'],
   },
   { path: '/backoffice/audit', component: Dashboard, allowedRoles: ['admin'] },
