@@ -1,13 +1,21 @@
 use crate::app_state::AppState;
 use crate::{
     dto::{
+        audit::AuditAction,
         common::IdentificationMode,
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    queries::vehicle_queries::{get_vehicle_status_by_plate, get_vehicle_with_owner_by_plate},
+    queries::{
+        audit_log_queries::InsertAuditLogParams,
+        vehicle_queries::{get_vehicle_status_by_plate, get_vehicle_with_owner_by_plate},
+    },
+    services::audit_service::AuditService,
     services::vehicle_service::VehicleService,
+    utils::ip::extract_client_ip_with_peer,
 };
+use axum::extract::ConnectInfo;
+use axum::http::HeaderMap;
 use axum::{
     extract::{Json, State},
     http::StatusCode,
@@ -41,8 +49,11 @@ use uuid::Uuid;
 )]
 pub async fn search_vehicle(
     State(state): State<Arc<AppState>>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    headers: HeaderMap,
     Json(payload): Json<VehicleSearchRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let client_ip = extract_client_ip_with_peer(&headers, peer.map(|p| p.0));
     // Validate plate format
     let plate = validate_plate_format(&payload.plate)?;
 
@@ -51,6 +62,24 @@ pub async fn search_vehicle(
         get_vehicle_with_owner_by_plate(&state.db, &plate)
             .await?
             .ok_or_else(|| {
+                // Audit log — vehicle not found (fire-and-forget)
+                let plate_clone = plate.clone();
+                let db = state.db.clone();
+                let agent_id = payload.agent_id;
+                let ip = client_ip.clone();
+                AuditService::record(
+                    db,
+                    InsertAuditLogParams {
+                        user_id: agent_id,
+                        action: AuditAction::VehicleNotFound,
+                        ip_address: ip,
+                        resource_type: Some("vehicle".to_string()),
+                        resource_id: None,
+                        metadata: Some(serde_json::json!({ "plate": plate_clone })),
+                        before_snapshot: None,
+                        after_snapshot: None,
+                    },
+                );
                 AppError::not_found(format!("No vehicle found with plate number: {plate}"))
             })?;
 
@@ -139,6 +168,21 @@ pub async fn search_vehicle(
         status_results,
     };
 
+    // Audit log — successful search (fire-and-forget)
+    AuditService::record(
+        state.db.clone(),
+        InsertAuditLogParams {
+            user_id: payload.agent_id,
+            action: AuditAction::VehicleSearched,
+            ip_address: client_ip,
+            resource_type: Some("vehicle".to_string()),
+            resource_id: None,
+            metadata: Some(serde_json::json!({ "plate": plate })),
+            before_snapshot: None,
+            after_snapshot: None,
+        },
+    );
+
     Ok((StatusCode::OK, Json(response)))
 }
 
@@ -163,9 +207,11 @@ pub async fn search_vehicle(
 )]
 pub async fn search_vehicle_v1(
     State(state): State<Arc<AppState>>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    headers: HeaderMap,
     Json(payload): Json<VehicleSearchRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    search_vehicle(State(state), Json(payload)).await
+    search_vehicle(State(state), peer, headers, Json(payload)).await
 }
 
 pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {

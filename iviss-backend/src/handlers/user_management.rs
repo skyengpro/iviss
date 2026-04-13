@@ -1,5 +1,4 @@
 use crate::app_state::AppState;
-use crate::dto::audit::AuditAction;
 use crate::dto::users::{
     ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse, RestartSessionRequest,
     RestartSessionResponse, TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest,
@@ -7,7 +6,6 @@ use crate::dto::users::{
 use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
 use crate::middleware::rbac::AuthenticatedAdmin;
-use crate::queries::audit_log_queries::insert_audit_log;
 use crate::queries::organization_queries::list_organizations as list_organizations_query;
 use crate::queries::user_queries::{
     create_user, get_user_by_id, hard_delete_user, list_users as list_users_query,
@@ -62,21 +60,6 @@ pub async fn provision_user(
             });
         }
     }
-
-    // Audit log
-    let after_snapshot = serde_json::to_value(&user).ok();
-    let _ = insert_audit_log(
-        &state.db,
-        Some(admin.user_id),
-        AuditAction::UserCreated,
-        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
-        Some("user"),
-        Some(user.id),
-        None,
-        None,
-        after_snapshot,
-    )
-    .await;
 
     tracing::info!("User created successfully: {}", user.id);
 
@@ -153,26 +136,7 @@ pub async fn update_user(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Capture before state
-    let before_user = get_user_by_id(&state.db, id).await?;
-    let before_snapshot = serde_json::to_value(&before_user).ok();
-
     let user = update_user_query(&state.db, id, payload).await?;
-
-    // Audit log with before/after
-    let after_snapshot = serde_json::to_value(&user).ok();
-    let _ = insert_audit_log(
-        &state.db,
-        Some(admin.user_id),
-        AuditAction::UserUpdated,
-        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
-        Some("user"),
-        Some(id),
-        None,
-        before_snapshot,
-        after_snapshot,
-    )
-    .await;
 
     Ok((StatusCode::OK, Json(user)))
 }
@@ -201,25 +165,7 @@ pub async fn delete_user(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Capture before state
-    let before_user = get_user_by_id(&state.db, id).await?;
-    let before_snapshot = serde_json::to_value(&before_user).ok();
-
     hard_delete_user(&state.db, id).await?;
-
-    // Audit log
-    let _ = insert_audit_log(
-        &state.db,
-        Some(admin.user_id),
-        AuditAction::UserDeleted,
-        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
-        Some("user"),
-        Some(id),
-        None,
-        before_snapshot,
-        None,
-    )
-    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -279,27 +225,7 @@ pub async fn terminate_session(
         ));
     }
 
-    let before_snapshot = serde_json::to_value(&user).ok();
-
     crate::queries::session_queries::terminate_user_sessions(&state.db, payload.user_id).await?;
-
-    // Capture after state
-    let after_user = get_user_by_id(&state.db, payload.user_id).await.ok();
-    let after_snapshot = after_user.and_then(|u| serde_json::to_value(&u).ok());
-
-    // Audit log
-    let _ = insert_audit_log(
-        &state.db,
-        Some(admin.user_id),
-        AuditAction::SessionTerminated,
-        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
-        Some("user"),
-        Some(payload.user_id),
-        None,
-        before_snapshot,
-        after_snapshot,
-    )
-    .await;
 
     Ok((
         StatusCode::OK,
@@ -339,8 +265,6 @@ pub async fn restart_session(
         ));
     }
 
-    let before_snapshot = serde_json::to_value(&user).ok();
-
     // Refresh the device status and shift_end (default to 8 hours for restart)
     crate::queries::session_queries::restart_user_session(
         &state.db,
@@ -348,24 +272,6 @@ pub async fn restart_session(
         std::time::Duration::from_secs(8 * 3600),
     )
     .await?;
-
-    // Capture after state
-    let after_user = get_user_by_id(&state.db, payload.user_id).await.ok();
-    let after_snapshot = after_user.and_then(|u| serde_json::to_value(&u).ok());
-
-    // Audit log
-    let _ = insert_audit_log(
-        &state.db,
-        Some(admin.user_id),
-        AuditAction::SessionRestarted,
-        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
-        Some("user"),
-        Some(payload.user_id),
-        None,
-        before_snapshot,
-        after_snapshot,
-    )
-    .await;
 
     Ok((
         StatusCode::OK,
@@ -438,20 +344,6 @@ pub async fn resend_activation_code(
 
     // Generate, store and send the activation code via SMS
     otp_svc.request_otp(&user_id, &phone_number).await?;
-
-    // Audit log
-    let _ = insert_audit_log(
-        &state.db,
-        Some(admin.user_id),
-        AuditAction::ActivationCodeResent,
-        extract_client_ip_with_peer(&headers, peer.map(|p| p.0)).as_deref(),
-        Some("user"),
-        Some(user_id),
-        Some(serde_json::json!({ "phone_number": phone_number })),
-        None,
-        None,
-    )
-    .await;
 
     Ok((
         StatusCode::CREATED,

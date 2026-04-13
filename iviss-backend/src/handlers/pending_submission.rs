@@ -1,6 +1,15 @@
 use crate::app_state::AppState;
-use crate::dto::{common, pending_submission};
+use crate::dto::{
+    audit::AuditAction,
+    common,
+    pending_submission::{self, CreatePendingSubmissionRequest, DataEntryResponse, SubmissionListQuery},
+};
 use crate::errors::AppError;
+use crate::queries::audit_log_queries::InsertAuditLogParams;
+use crate::services::audit_service::AuditService;
+use crate::utils::ip::extract_client_ip_with_peer;
+use axum::extract::ConnectInfo;
+use axum::http::HeaderMap;
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
@@ -10,10 +19,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 // ── Submit (agent-facing) ─────────────────────────────────────────────────────
-
-#[allow(unused_imports)]
-use crate::dto::pending_submission::DataEntryResponse;
-use crate::dto::pending_submission::SubmissionListQuery;
 
 #[utoipa::path(
     post,
@@ -34,8 +39,11 @@ use crate::dto::pending_submission::SubmissionListQuery;
 )]
 pub async fn submit_vehicle(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    headers: HeaderMap,
+    Json(payload): Json<CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let client_ip = extract_client_ip_with_peer(&headers, peer.map(|p| p.0));
     let agent_id = resolve_agent_id(&state.db, payload.agent_id).await?;
 
     let location = common::SubmissionLocation {
@@ -54,11 +62,26 @@ pub async fn submit_vehicle(
     )
     .await?;
 
-    let response = pending_submission::DataEntryResponse {
+    let response = DataEntryResponse {
         message: "Submission accepted for review".to_string(),
         submission_id,
         plate_number: payload.plate_number,
     };
+
+    // Audit log — pending submission created (fire-and-forget)
+    AuditService::record(
+        state.db.clone(),
+        InsertAuditLogParams {
+            user_id: Some(payload.agent_id),
+            action: AuditAction::PendingSubmissionCreated,
+            ip_address: client_ip,
+            resource_type: Some("pending_submission".to_string()),
+            resource_id: Some(submission_id),
+            metadata: None,
+            before_snapshot: None,
+            after_snapshot: None,
+        },
+    );
 
     Ok((StatusCode::ACCEPTED, Json(response)))
 }
@@ -82,9 +105,11 @@ pub async fn submit_vehicle(
 )]
 pub async fn submit_vehicle_v1(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
+    peer: Option<ConnectInfo<std::net::SocketAddr>>,
+    headers: HeaderMap,
+    Json(payload): Json<CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    submit_vehicle(State(state), Json(payload)).await
+    submit_vehicle(State(state), peer, headers, Json(payload)).await
 }
 
 async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, AppError> {

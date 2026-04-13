@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::dto::audit::{AuditLogListResponse, AuditLogQuery};
 use crate::errors::AppError;
-use crate::queries::audit_log_queries;
+use crate::services::audit_service::AuditService;
 use axum::{
     extract::{Query, State},
     http::{header, StatusCode},
@@ -17,8 +17,8 @@ use std::sync::Arc;
     params(AuditLogQuery),
     responses(
         (status = 200, description = "Audit logs retrieved successfully", body = AuditLogListResponse),
-        (status = 401, description = "Unauthorized", body = AppErrorResponse),
-        (status = 403, description = "Forbidden", body = AppErrorResponse)
+        (status = 401, description = "Unauthorized",  body = AppErrorResponse),
+        (status = 403, description = "Forbidden",     body = AppErrorResponse)
     ),
     tag = "admin",
     operation_id = "listAuditLogs",
@@ -28,7 +28,7 @@ pub async fn list_audit_logs(
     State(state): State<Arc<AppState>>,
     Query(query): Query<AuditLogQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let (items, total) = audit_log_queries::list_audit_logs(&state.db, &query).await?;
+    let (items, total) = AuditService::list(&state.db, &query).await?;
 
     Ok((
         StatusCode::OK,
@@ -49,7 +49,7 @@ pub async fn list_audit_logs(
     responses(
         (status = 200, description = "CSV file", content_type = "text/csv"),
         (status = 401, description = "Unauthorized", body = AppErrorResponse),
-        (status = 403, description = "Forbidden", body = AppErrorResponse)
+        (status = 403, description = "Forbidden",    body = AppErrorResponse)
     ),
     tag = "admin",
     operation_id = "exportAuditLogs",
@@ -59,45 +59,8 @@ pub async fn export_audit_logs(
     State(state): State<Arc<AppState>>,
     Query(query): Query<AuditLogQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let items = audit_log_queries::export_audit_logs(&state.db, &query).await?;
-
-    // Build CSV
-    let mut csv = String::from("ID,Timestamp,User ID,User Name,Action,Resource Type,Resource ID,IP Address,Before Snapshot,After Snapshot\n");
-
-    for entry in &items {
-        let before = entry
-            .before_snapshot
-            .as_ref()
-            .map(|v: &serde_json::Value| v.to_string())
-            .unwrap_or_default()
-            .replace('"', "\"\"");
-        let after = entry
-            .after_snapshot
-            .as_ref()
-            .map(|v: &serde_json::Value| v.to_string())
-            .unwrap_or_default()
-            .replace('"', "\"\"");
-
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{},{},\"{}\",\"{}\"\n",
-            entry.id,
-            entry.created_at,
-            entry
-                .user_id
-                .map(|u: uuid::Uuid| u.to_string())
-                .unwrap_or_default(),
-            entry.user_name.as_deref().unwrap_or(""),
-            entry.action.as_str(),
-            entry.resource_type.as_deref().unwrap_or(""),
-            entry
-                .resource_id
-                .map(|u: uuid::Uuid| u.to_string())
-                .unwrap_or_default(),
-            entry.ip_address.as_deref().unwrap_or(""),
-            before,
-            after,
-        ));
-    }
+    let items = AuditService::export(&state.db, &query).await?;
+    let csv = AuditService::build_csv(&items);
 
     let headers = [
         (header::CONTENT_TYPE, "text/csv; charset=utf-8"),
@@ -108,4 +71,36 @@ pub async fn export_audit_logs(
     ];
 
     Ok((StatusCode::OK, headers, csv))
+}
+
+/// Export audit logs as PDF (admin only)
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/audit-logs/export-pdf",
+    params(AuditLogQuery),
+    responses(
+        (status = 200, description = "PDF file", content_type = "application/pdf"),
+        (status = 401, description = "Unauthorized", body = AppErrorResponse),
+        (status = 403, description = "Forbidden",    body = AppErrorResponse)
+    ),
+    tag = "admin",
+    operation_id = "exportAuditLogsPdf",
+    security(("bearer_auth" = []))
+)]
+pub async fn export_audit_logs_pdf(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<AuditLogQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let items = AuditService::export(&state.db, &query).await?;
+    let pdf_bytes = AuditService::build_pdf(items).await?;
+
+    let headers = [
+        (header::CONTENT_TYPE, "application/pdf"),
+        (
+            header::CONTENT_DISPOSITION,
+            "attachment; filename=\"audit_logs.pdf\"",
+        ),
+    ];
+
+    Ok((StatusCode::OK, headers, pdf_bytes))
 }

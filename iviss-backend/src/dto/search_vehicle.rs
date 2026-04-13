@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 // Request
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Clone)]
 pub struct VehicleSearchRequest {
     pub plate: String,
     pub latitude: Option<f64>,
