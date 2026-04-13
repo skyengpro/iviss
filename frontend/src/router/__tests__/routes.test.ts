@@ -59,7 +59,7 @@ describe('route configuration', () => {
       backOfficeRoutes.forEach((route) => {
         expect(route.allowedRoles).toBeDefined();
         route.allowedRoles!.forEach((role) => {
-          expect(['admin', 'manager']).toContain(role);
+          expect(['admin', 'manager', 'org_admin']).toContain(role);
         });
       });
     });
