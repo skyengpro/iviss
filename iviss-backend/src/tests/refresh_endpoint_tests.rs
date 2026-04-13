@@ -149,10 +149,7 @@ async fn setup_test_infrastructure() -> (
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw)
     };
     let refresh_token_hash = format!("{:x}", sha2::Sha256::digest(refresh_token.as_bytes()));
-    let refresh_expires_at = {
-        let dt = time::OffsetDateTime::now_utc() + time::Duration::days(30);
-        time::PrimitiveDateTime::new(dt.date(), dt.time())
-    };
+    let refresh_expires_at = time::OffsetDateTime::now_utc() + time::Duration::days(30);
 
     sqlx::query(
         r#"

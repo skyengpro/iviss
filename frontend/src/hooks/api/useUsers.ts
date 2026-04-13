@@ -6,7 +6,7 @@ import {
   useDeleteUser,
   useGetUser,
 } from '../../openapi-rq/queries/queries';
-import { ProvisionUserRequest, UpdateUserRequest } from '../../openapi-rq/requests/types.gen';
+import { ProvisionUserRequest, UpdateUserRequest } from '../../openapi-rq/types.gen';
 import { useQueryClient } from '@tanstack/react-query';
 
 export function useUsers() {

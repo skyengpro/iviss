@@ -109,7 +109,7 @@ pub async fn get_user_by_badge(pool: &PgPool, badge_id: &str) -> Result<UserForL
 #[derive(Debug, FromRow)]
 pub struct DeviceForLogin {
     pub status: String,
-    pub revoked_at: Option<time::PrimitiveDateTime>,
+    pub revoked_at: Option<time::OffsetDateTime>,
 }
 
 pub async fn get_device_by_user_optional(

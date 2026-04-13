@@ -21,8 +21,7 @@ impl FromStr for Environment {
             "staging" => Ok(Environment::Staging),
             "production" => Ok(Environment::Production),
             _ => Err(anyhow!(
-                "Invalid ENVIRONMENT value: '{}'. Must be one of: local, staging, production",
-                s
+                "Invalid ENVIRONMENT value: '{s}'. Must be one of: local, staging, production"
             )),
         }
     }
@@ -50,8 +49,7 @@ impl FromStr for LogLevel {
             "warn" => Ok(LogLevel::Warn),
             "error" => Ok(LogLevel::Error),
             _ => Err(anyhow!(
-                "Invalid LOG_LEVEL value: '{}'. Must be one of: trace, debug, info, warn, error",
-                s
+                "Invalid LOG_LEVEL value: '{s}'. Must be one of: trace, debug, info, warn, error"
             )),
         }
     }
@@ -177,9 +175,7 @@ impl Config {
         }
         if shift_start_hour >= shift_end_hour {
             return Err(anyhow!(
-                "SHIFT_START_HOUR ({}) must be less than SHIFT_END_HOUR ({})",
-                shift_start_hour,
-                shift_end_hour
+                "SHIFT_START_HOUR ({shift_start_hour}) must be less than SHIFT_END_HOUR ({shift_end_hour})"
             ));
         }
 
