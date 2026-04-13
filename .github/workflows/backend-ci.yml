@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -40,7 +40,7 @@ jobs:
 
   backend_coverage:
     name: Backend Test and Coverage
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -81,10 +81,10 @@ jobs:
             iviss-backend/target/coverage/html/**/*.js
             iviss-backend/target/coverage/html/index.html
           retention-days: 2
-
+  
   backend_fmt:
     name: Backend Format
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -97,7 +97,7 @@ jobs:
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -112,11 +112,9 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y clang mold pkg-config libssl-dev build-essential libleptonica-dev libtesseract-dev tesseract-ocr
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cache cargo-audit
@@ -138,7 +136,7 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies

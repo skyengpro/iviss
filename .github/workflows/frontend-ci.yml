@@ -15,7 +15,7 @@ on:
 jobs:
   frontend_install:
     name: Frontend Install
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -31,14 +31,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-v3-
+            ${{ runner.os }}-node-v2-
 
   openapi_codegen:
     name: OpenAPI Codegen
     needs: [frontend_install]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Generate OpenAPI client
         run: npm run codegen
         working-directory: frontend
@@ -62,7 +62,7 @@ jobs:
   frontend_build:
     name: Frontend Build
     needs: [frontend_install, openapi_codegen]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -73,7 +73,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -86,7 +86,7 @@ jobs:
   frontend_lint:
     name: Frontend Lint
     needs: [frontend_install, openapi_codegen]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -97,7 +97,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -110,7 +110,7 @@ jobs:
   frontend_prettier:
     name: Frontend Prettier
     needs: [frontend_install, openapi_codegen]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -121,7 +121,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -134,7 +134,7 @@ jobs:
   frontend_typescript:
     name: Frontend TypeScript
     needs: [frontend_install, openapi_codegen]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -145,7 +145,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -158,7 +158,7 @@ jobs:
   frontend_unit_tests:
     name: Frontend Unit Tests
     needs: [frontend_install, openapi_codegen]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -169,7 +169,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-v3-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
       - name: Restore api generated files
         uses: actions/cache@v4
         with:
@@ -187,7 +187,7 @@ jobs:
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
     needs: [frontend_build, frontend_unit_tests]
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
