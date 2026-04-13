@@ -380,7 +380,7 @@ pub fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
 
     let r = radius as usize;
     let mut out = GrayImage::new(img.width(), img.height());
-    let out_pixels = out.as_mut();
+    let out_pixels: &mut [u8] = out.as_mut();
 
     for y in 0..h {
         let y1 = y.saturating_sub(r);
