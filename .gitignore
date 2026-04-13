@@ -49,3 +49,7 @@ frontend/src/openapi-rq/
 
 # Temporary codegen scratch directories
 frontend/temp-codegen/
+
+iviss-backend/scripts/log_out_test.sh
+iviss-backend/scripts/test_token_invalidation.sh
+iviss-backend/docs/redis-to-moka-migration.md

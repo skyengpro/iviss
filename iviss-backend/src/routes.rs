@@ -151,8 +151,7 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/users/location",
             post(crate::handlers::users::update_location),
         )
-        // TODO: Enable once logout is fully implemented
-        // .route("/auth/logout", post(crate::handlers::auth::logout))
+        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes

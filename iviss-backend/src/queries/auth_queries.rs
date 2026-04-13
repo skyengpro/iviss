@@ -198,6 +198,21 @@ pub async fn blacklist_jti(redis: &RedisPool, jti: &str, ttl_secs: u64) -> Resul
     Ok(())
 }
 
+pub async fn is_jti_blacklisted(redis: &RedisPool, jti: &str) -> Result<bool, AppError> {
+    let key = format!("blacklist:jti:{}", jti);
+    let mut conn = redis
+        .get()
+        .await
+        .map_err(|e| AppError::internal_error(format!("Redis connection failed: {e}")))?;
+
+    let exists: bool = conn
+        .exists(&key)
+        .await
+        .map_err(|e| AppError::internal_error(format!("Redis EXISTS failed: {e}")))?;
+
+    Ok(exists)
+}
+
 pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<bool, AppError> {
     let valid_refresh: bool = sqlx::query_scalar(
         r#"

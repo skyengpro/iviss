@@ -2,14 +2,22 @@ use crate::app_state::AppState;
 
 use crate::queries::auth_queries;
 use crate::dto::auth::{
-    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, RefreshRequest,
-    RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
+    ActivateRequest, ActivateResponse, AuthResponse, LoginRequest, LogoutRequestHeaders,
+    RefreshRequest, RequestDailyLoginRequest, RequestDailyLoginResponse, VerifyDailyLoginRequest,
     VerifyDailyLoginResponse,
 };
+use crate::middleware::auth::decode_access_token_rs256;
+use axum::extract::State;
+use axum::http::header::AUTHORIZATION;
+use axum::{http::StatusCode, response::IntoResponse, Json};
 use base64::Engine;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
+use crate::dto::audit::AuditAction;
+use crate::queries::audit_log_queries::InsertAuditLogParams;
+use crate::services::audit_service::AuditService;
+use crate::queries::auth_queries;
 use crate::utils::ip::extract_client_ip_with_peer;
 use axum::extract::{ConnectInfo, State};
 use axum::http::HeaderMap;
@@ -164,6 +172,24 @@ pub async fn login(
         "login: success"
     );
 
+    // Audit log - login success
+    AuditService::record(
+        state.db.clone(),
+        InsertAuditLogParams {
+            user_id: Some(user.id),
+            action: AuditAction::LoginSuccess,
+            ip_address: client_ip,
+            resource_type: None,
+            resource_id: None,
+            metadata: Some(serde_json::json!({
+                "email": user.email,
+                "role": user.role.as_str()
+            })),
+            before_snapshot: None,
+            after_snapshot: None,
+        },
+    );
+
     Ok((
         StatusCode::OK,
         Json(AuthResponse {
@@ -178,15 +204,95 @@ pub async fn login(
 #[utoipa::path(
     post,
     path = "/api/v1/auth/logout",
+    params(LogoutRequestHeaders),
     responses(
-        (status = 200, description = "Logout successful", body = String)
+        (status = 204, description = "Logout successful"),
+        (status = 401, description = "Unauthorized - invalid or missing token", body = AppErrorResponse)
     ),
     tag = "auth",
     operation_id = "logoutUser",
     security(("bearer_auth" = []))
 )]
-pub async fn logout() -> Result<impl IntoResponse, AppError> {
-    Ok((StatusCode::OK, Json("Logout successful".to_string())))
+pub async fn logout(
+    State(state): State<Arc<AppState>>,
+    req: axum::http::Request<axum::body::Body>,
+) -> Result<impl IntoResponse, AppError> {
+    // Extract the authorization header
+    let auth_header = req
+        .headers()
+        .get(AUTHORIZATION)
+        .ok_or_else(|| AppError::unauthorized("Missing Authorization header"))?
+        .to_str()
+        .map_err(|_| AppError::unauthorized("Invalid Authorization header encoding"))?;
+
+    // Parse Bearer token
+    let token = auth_header
+        .strip_prefix("Bearer ")
+        .ok_or_else(|| AppError::unauthorized("Authorization header must start with Bearer "))?;
+
+    // Decode the token to get claims (JTI, user_id, exp)
+    let claims = decode_access_token_rs256(token, &state.jwt_public_key_pem)?;
+
+    // Calculate remaining TTL for the token
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::internal_error("System time error"))?
+        .as_secs() as usize;
+
+    let ttl = if claims.exp > now {
+        (claims.exp - now) as u64
+    } else {
+        0
+    };
+
+    // Blacklist the JTI in Redis (prevents further use of this access token)
+    if ttl > 0 {
+        auth_queries::blacklist_jti(&state.redis, &claims.jti.to_string(), ttl).await?;
+    }
+
+    revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;
+
+    // Audit log - logout
+    AuditService::record(
+        state.db.clone(),
+        InsertAuditLogParams {
+            user_id: Some(claims.sub),
+            action: AuditAction::Logout,
+            ip_address: None, // We don't have peer in logout currently without changing signature
+            resource_type: None,
+            resource_id: None,
+            metadata: Some(serde_json::json!({
+                "role": claims.role,
+                "jti": claims.jti
+            })),
+            before_snapshot: None,
+            after_snapshot: None,
+        },
+    );
+
+    // Return 204 No Content (idempotent - success even if token was already blacklisted)
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Revoke all refresh tokens for a user
+async fn revoke_all_user_refresh_tokens(
+    pool: &sqlx::PgPool,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    sqlx::query(
+        r#"
+        UPDATE refresh_tokens
+        SET revoked = TRUE, revoked_at = NOW()
+        WHERE user_id = $1
+          AND revoked = FALSE
+          AND expires_at > NOW()
+        "#,
+    )
+    .bind(user_id)
+    .execute(pool)
+    .await
+    .map(|_| ())
+    .map_err(AppError::database)
 }
 
 /// Activate an agent account by validating OTP and registering device public key
