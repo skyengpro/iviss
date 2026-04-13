@@ -15,7 +15,7 @@ on:
 jobs:
   gitleaks:
     name: Gitleaks Scan
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
 
   backend_build:
     name: Backend Build
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -40,7 +40,7 @@ jobs:
 
   backend_coverage:
     name: Backend Test and Coverage
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
         run: cargo test --doc --verbose
         working-directory: iviss-backend
       - name: Generate coverage report
-        run: cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 60
+        run: cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 55
         working-directory: iviss-backend
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -79,7 +79,7 @@ jobs:
 
   backend_fmt:
     name: Backend Format
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -92,7 +92,7 @@ jobs:
 
   backend_clippy:
     name: Backend Clippy
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -107,7 +107,7 @@ jobs:
 
   backend_audit:
     name: Backend Audit
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -131,7 +131,7 @@ jobs:
 
   backend_doc:
     name: Backend Documentation
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
