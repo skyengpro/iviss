@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import {
   useListUsers,
+  useListOrgUsers,
   useProvisionUser,
+  useProvisionOrgUser,
   useUpdateUser,
   useDeleteUser,
   useGetUser,
@@ -24,6 +26,16 @@ export function useUsers() {
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
     },
   });
+
+  const { mutateAsync: provisionOrgMutate, isPending: isProvisioningOrg } = useProvisionOrgUser(
+    undefined,
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+        queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
+      },
+    }
+  );
 
   const {
     mutateAsync: updateMutate,
@@ -49,12 +61,16 @@ export function useUsers() {
 
   const provision = useCallback(
     async (request: ProvisionUserRequest) => {
-      return provisionMutate({
-        body: request,
-        throwOnError: true,
-      });
+      return provisionMutate({ body: request, throwOnError: true });
     },
     [provisionMutate]
+  );
+
+  const provisionOrg = useCallback(
+    async (request: ProvisionUserRequest) => {
+      return provisionOrgMutate({ body: request, throwOnError: true });
+    },
+    [provisionOrgMutate]
   );
 
   const update = useCallback(
@@ -87,6 +103,9 @@ export function useUsers() {
     isProvisioning,
     provisionError,
 
+    provisionOrg,
+    isProvisioningOrg,
+
     update,
     isUpdating,
     updateError,
@@ -101,4 +120,8 @@ export function useUser(id: string) {
   return useGetUser({
     path: { id },
   });
+}
+
+export function useOrgUsers() {
+  return useListOrgUsers();
 }

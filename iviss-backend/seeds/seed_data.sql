@@ -44,10 +44,10 @@ DELETE FROM vehicles WHERE id IN (
 );
 
 -- Delete user-dependent data
-DELETE FROM pending_submissions WHERE agent_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2'));
-DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2'));
-DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2'));
-DELETE FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2');
+DELETE FROM pending_submissions WHERE agent_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2', 'orgadmin'));
+DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2', 'orgadmin'));
+DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2', 'orgadmin'));
+DELETE FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2', 'orgadmin');
 
 -- 1. Insert Organization
 INSERT INTO organizations (id, name, type, region)
@@ -108,6 +108,18 @@ VALUES
     'Michael Johnson',
     '+237671210292',
     'PENDING_ACTIVATION'
+),
+(
+    'e690f1ee-6c54-4b01-90e6-d701748f0856',
+    'd290f1ee-6c54-4b01-90e6-d701748f0851',
+    'orgadmin',
+    'orgadmin@iviss.local',
+    '$argon2id$v=19$m=19456,t=2,p=1$owHhGNruIX1moa5B1514cA$7Cz1awNhXhvwzYsaGOiooLs+zWNUqk9NXL8SxuvvLpQ',
+    'org_admin',
+    NULL,
+    'Organization Admin',
+    '+254700123459',
+    'ACTIVE'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 3. Insert Vehicles (5 diverse plates in format: AD 345 CE)
