@@ -28,16 +28,16 @@ IVISS uses Docker containers orchestrated by Docker Compose for local developmen
 
 ### Service Overview
 
-| # | Service | Image | Purpose | Exposed Ports | Status |
-|---|---------|-------|---------|---------------|--------|
-| 1 | db | postgres:15-alpine | Primary database | 5435→5432 | Production-ready |
-| 2 | redis | redis:7-alpine | Cache & session store | 6380→6379 | Production-ready |
-| 3 | backend | Custom (dev) | API server (hot-reload) | 3000→3000 | Development only |
-| 4 | backend-prod | Custom (prod) | API server (optimized) | 3000→3000 | Production-ready |
-| 5 | frontend | Custom (dev) | React app (Vite dev server) | 8080→8080 | Development only |
-| 6 | frontend-prod | Custom (prod) | React app (Nginx) | 8080→80 | Production-ready |
-| 7 | adminer | adminer:latest | Database admin UI | 8081→8080 | Development only |
-| 8 | metrics | Custom | Prometheus metrics collector | 9091→9091 | Production-ready |
+| #   | Service       | Image              | Purpose                      | Exposed Ports | Status           |
+| --- | ------------- | ------------------ | ---------------------------- | ------------- | ---------------- |
+| 1   | db            | postgres:15-alpine | Primary database             | 5435→5432     | Production-ready |
+| 2   | redis         | redis:7-alpine     | Cache & session store        | 6380→6379     | Production-ready |
+| 3   | backend       | Custom (dev)       | API server (hot-reload)      | 3000→3000     | Development only |
+| 4   | backend-prod  | Custom (prod)      | API server (optimized)       | 3000→3000     | Production-ready |
+| 5   | frontend      | Custom (dev)       | React app (Vite dev server)  | 8080→8080     | Development only |
+| 6   | frontend-prod | Custom (prod)      | React app (Nginx)            | 8080→80       | Production-ready |
+| 7   | adminer       | adminer:latest     | Database admin UI            | 8081→8080     | Development only |
+| 8   | metrics       | Custom             | Prometheus metrics collector | 9091→9091     | Production-ready |
 
 **Total Services:** 8 (6 run by default, 2 opt-in with `--profile prod`)
 
@@ -63,8 +63,7 @@ Ports:
   Host: 5435
   Container: 5432
 
-Volumes:
-  postgres_data:/var/lib/postgresql/data (persistent)
+Volumes: postgres_data:/var/lib/postgresql/data (persistent)
 
 Health Check:
   Command: pg_isready -U iviss_user -d iviss_dev
@@ -100,13 +99,13 @@ Logging:
 **Purpose:** Cache, OTP storage, rate limiting, session data
 
 **Configuration:**
+
 ```yaml
 Ports:
   Host: 6380
   Container: 6379
 
-Volumes:
-  redis_data:/data (persistent)
+Volumes: redis_data:/data (persistent)
 
 Health Check:
   Command: redis-cli ping
@@ -134,6 +133,7 @@ Logging:
 **Production Readiness:** ✅ Ready
 
 **Notes:**
+
 - Only service with resource limits configured
 - Persistence enabled (RDB snapshots)
 - No Redis password configured (⚠️ security gap)
@@ -149,6 +149,7 @@ Logging:
 **Base Image:** `rust:1.89-slim-bookworm`
 
 **Build Configuration:**
+
 ```dockerfile
 Target: development
 Base: rust:1.89-slim-bookworm
@@ -165,6 +166,7 @@ Additional Tools:
 ```
 
 **Runtime Configuration:**
+
 ```yaml
 Ports:
   Host: 3000
@@ -219,6 +221,7 @@ Command: cargo watch -w src -w migrations -x run
 ```
 
 **Dependencies:**
+
 - db (must be healthy)
 - redis (must be healthy)
 
@@ -239,6 +242,7 @@ Command: cargo watch -w src -w migrations -x run
 **Base Image:** `debian:bookworm-slim`
 
 **Build Strategy:**
+
 ```dockerfile
 Stage 1 (base): Install system dependencies
 Stage 2 (development): Warm cache (not used in prod)
@@ -254,13 +258,13 @@ Stage 4 (production): Minimal runtime
 ```
 
 **Runtime Configuration:**
+
 ```yaml
 Ports:
   Host: 3000
   Container: 3000
 
-Environment Variables:
-  (Same as development backend)
+Environment Variables: (Same as development backend)
 
 Health Check:
   Command: curl --fail --silent http://127.0.0.1:3000/health || exit 1
@@ -277,6 +281,7 @@ Command: /app/iviss-backend
 ```
 
 **Dependencies:**
+
 - db (must be healthy)
 - redis (must be healthy)
 
@@ -285,6 +290,7 @@ Command: /app/iviss-backend
 **Image Size:** ~150-200 MB (optimized)
 
 **Security:**
+
 - ✅ Non-root user
 - ✅ Minimal base image
 - ✅ No build tools in final image
@@ -303,6 +309,7 @@ Command: /app/iviss-backend
 **Base Image:** `node:20-alpine`
 
 **Build Configuration:**
+
 ```dockerfile
 Stage 1 (base): Copy package files
 Stage 2 (deps): npm ci --legacy-peer-deps
@@ -310,6 +317,7 @@ Stage 3 (dev): Copy source + node_modules
 ```
 
 **Runtime Configuration:**
+
 ```yaml
 Ports:
   Host: 8080
@@ -337,6 +345,7 @@ Command: npm run dev -- --host
 ```
 
 **Dependencies:**
+
 - backend (must be healthy)
 
 **Hot Reload:** ✅ Enabled (Vite HMR)
@@ -356,6 +365,7 @@ Command: npm run dev -- --host
 **Base Image:** `nginx:alpine`
 
 **Build Strategy:**
+
 ```dockerfile
 Stage 1 (base): Copy package files
 Stage 2 (deps): Install dependencies
@@ -369,6 +379,7 @@ Stage 4 (prod): Nginx runtime
 ```
 
 **Runtime Configuration:**
+
 ```yaml
 Ports:
   Host: 8080
@@ -392,6 +403,7 @@ Command: nginx -g "daemon off;"
 ```
 
 **Dependencies:**
+
 - backend-prod (must be healthy)
 
 **Production Readiness:** ✅ Ready
@@ -399,6 +411,7 @@ Command: nginx -g "daemon off;"
 **Image Size:** ~50-80 MB (static assets + Nginx)
 
 **Security:**
+
 - ✅ Minimal base image (alpine)
 - ✅ No build tools in final image
 - ❌ Nginx runs as root (default)
@@ -415,6 +428,7 @@ Command: nginx -g "daemon off;"
 **Purpose:** Web-based database management UI
 
 **Runtime Configuration:**
+
 ```yaml
 Ports:
   Host: 8081
@@ -429,6 +443,7 @@ Logging:
 ```
 
 **Dependencies:**
+
 - db
 
 **Production Readiness:** ❌ Development/debugging only
@@ -446,6 +461,7 @@ Logging:
 **Base Image:** `node:20-alpine`
 
 **Build Configuration:**
+
 ```dockerfile
 - Install production dependencies only
 - Copy metrics-server.js
@@ -453,6 +469,7 @@ Logging:
 ```
 
 **Runtime Configuration:**
+
 ```yaml
 Ports:
   Host: 9091
@@ -483,6 +500,7 @@ Logging:
 **Image Size:** ~100 MB
 
 **Endpoints:**
+
 - POST /api/metrics - Receive metrics from browser
 - GET /metrics - Prometheus scrape endpoint
 - GET /health - Health check
@@ -522,6 +540,7 @@ Internal (Container Network)
 ### DNS Resolution
 
 All services can resolve each other by container name:
+
 - `iviss-db` → PostgreSQL
 - `iviss-redis` → Redis
 - `iviss-backend` → Backend API
@@ -532,6 +551,7 @@ All services can resolve each other by container name:
 ### External DNS
 
 Backend container configured with external DNS servers:
+
 - 1.1.1.1 (Cloudflare)
 - 8.8.8.8 (Google)
 
@@ -543,12 +563,12 @@ Purpose: Resolve external APIs (Twilio, future integrations)
 
 ### Persistent Volumes
 
-| Volume Name | Purpose | Size (Approx) | Backup Required |
-|-------------|---------|---------------|-----------------|
-| postgres_data | Database files | 500 MB - 10 GB | ✅ Yes |
-| redis_data | Redis persistence | 10-100 MB | ⚠️ Optional |
-| cargo_cache | Rust dependencies | 1-2 GB | ❌ No |
-| target_cache | Rust build artifacts | 2-5 GB | ❌ No |
+| Volume Name   | Purpose              | Size (Approx)  | Backup Required |
+| ------------- | -------------------- | -------------- | --------------- |
+| postgres_data | Database files       | 500 MB - 10 GB | ✅ Yes          |
+| redis_data    | Redis persistence    | 10-100 MB      | ⚠️ Optional     |
+| cargo_cache   | Rust dependencies    | 1-2 GB         | ❌ No           |
+| target_cache  | Rust build artifacts | 2-5 GB         | ❌ No           |
 
 ### Volume Lifecycle
 
@@ -561,6 +581,7 @@ Purpose: Resolve external APIs (Twilio, future integrations)
 **Critical Gap:** No automated backup for postgres_data volume
 
 **Recommended Backup Strategy:**
+
 1. Daily automated backups using pg_dump
 2. Backup retention: 30 days
 3. Off-site backup storage
@@ -572,15 +593,15 @@ Purpose: Resolve external APIs (Twilio, future integrations)
 
 ### Health Check Summary
 
-| Service | Endpoint | Interval | Timeout | Retries | Start Period |
-|---------|----------|----------|---------|---------|--------------|
-| db | pg_isready | 10s | 5s | 5 | 30s |
-| redis | redis-cli ping | 10s | 5s | 5 | 10s |
-| backend (dev) | GET /api/v1/health | 10s | 5s | 5 | 180s |
-| backend-prod | GET /health | 30s | 5s | 3 | 20s |
-| frontend (dev) | GET / | 10s | 5s | 3 | - |
-| frontend-prod | GET / | 10s | 5s | 3 | - |
-| metrics | GET /health | 30s | 10s | 3 | - |
+| Service        | Endpoint           | Interval | Timeout | Retries | Start Period |
+| -------------- | ------------------ | -------- | ------- | ------- | ------------ |
+| db             | pg_isready         | 10s      | 5s      | 5       | 30s          |
+| redis          | redis-cli ping     | 10s      | 5s      | 5       | 10s          |
+| backend (dev)  | GET /api/v1/health | 10s      | 5s      | 5       | 180s         |
+| backend-prod   | GET /health        | 30s      | 5s      | 3       | 20s          |
+| frontend (dev) | GET /              | 10s      | 5s      | 3       | -            |
+| frontend-prod  | GET /              | 10s      | 5s      | 3       | -            |
+| metrics        | GET /health        | 30s      | 10s     | 3       | -            |
 
 ### Health Check Behavior
 
@@ -589,6 +610,7 @@ Purpose: Resolve external APIs (Twilio, future integrations)
 **Starting:** Within start period, failures don't count as unhealthy
 
 **Docker Compose Behavior:**
+
 - `depends_on` with `condition: service_healthy` waits for health check
 - Unhealthy containers are NOT automatically restarted
 - Health status visible in `docker compose ps`
@@ -625,6 +647,7 @@ Level 3 (Depends on Level 2):
 6. Starts metrics (independent)
 
 **Total Startup Time:**
+
 - Development: ~3-5 minutes (backend compilation)
 - Production: ~30-60 seconds
 
@@ -635,9 +658,11 @@ Level 3 (Depends on Level 2):
 ### Current Resource Allocation
 
 **Configured Limits:**
+
 - Redis: 0.25 CPU, 256 MB RAM
 
 **No Limits Configured:**
+
 - PostgreSQL
 - Backend
 - Frontend
@@ -649,6 +674,7 @@ Level 3 (Depends on Level 2):
 ### Detailed Container Specifications
 
 #### 1. PostgreSQL Database
+
 ```yaml
 Image: postgres:15-alpine
 Base Image Size: ~80 MB
@@ -664,12 +690,14 @@ Current Configuration:
 ```
 
 **Capacity Notes:**
+
 - Handles ~100-500 concurrent connections (default config)
 - Query performance depends on indexes and data volume
 - Shared buffers: 128 MB (default)
 - Work memory: 4 MB per operation (default)
 
 #### 2. Redis Cache
+
 ```yaml
 Image: redis:7-alpine
 Base Image Size: ~30 MB
@@ -685,6 +713,7 @@ Current Configuration:
 ```
 
 **Capacity Notes:**
+
 - Can handle ~10,000-50,000 operations/second (simple operations)
 - Memory usage depends on:
   - OTP codes: ~1 KB per code
@@ -693,6 +722,7 @@ Current Configuration:
 - Current 256 MB limit can store ~25,000 sessions + OTP codes
 
 #### 3. Backend (Development)
+
 ```yaml
 Image: Custom (rust:1.89-slim-bookworm + dependencies)
 Base Image Size: ~2-3 GB (includes Rust toolchain)
@@ -705,12 +735,14 @@ Current Configuration:
 ```
 
 **Capacity Notes:**
+
 - Hot-reload compilation: 5-30 seconds per change
 - Handles ~100-1,000 requests/second (depends on endpoint complexity)
 - Database connection pool: 10 connections (default)
 - Not suitable for production (includes dev tools)
 
 #### 4. Backend (Production)
+
 ```yaml
 Image: Custom (debian:bookworm-slim + runtime deps)
 Base Image Size: ~150-200 MB (optimized)
@@ -726,6 +758,7 @@ Recommended Limits:
 ```
 
 **Capacity Notes:**
+
 - Handles ~500-2,000 requests/second per instance
 - Database connection pool: 10 connections (configurable)
 - Startup time: 2-5 seconds
@@ -733,6 +766,7 @@ Recommended Limits:
 - Horizontal scaling: Stateless, can run multiple instances
 
 #### 5. Frontend (Development)
+
 ```yaml
 Image: Custom (node:20-alpine + Vite dev server)
 Base Image Size: ~500 MB (includes node_modules)
@@ -744,11 +778,13 @@ Current Configuration:
 ```
 
 **Capacity Notes:**
+
 - Vite HMR: <100ms for most changes
 - Handles ~10-50 concurrent dev connections
 - Not suitable for production (dev server)
 
 #### 6. Frontend (Production)
+
 ```yaml
 Image: Custom (nginx:alpine + static assets)
 Base Image Size: ~50-80 MB (optimized)
@@ -764,12 +800,14 @@ Recommended Limits:
 ```
 
 **Capacity Notes:**
+
 - Handles ~1,000-5,000 requests/second per instance
 - Gzip compression enabled (reduces bandwidth by ~70%)
 - Static asset caching: 30 days
 - Horizontal scaling: Stateless, can run many instances
 
 #### 7. Adminer (Development Only)
+
 ```yaml
 Image: adminer:latest
 Base Image Size: ~90 MB
@@ -781,11 +819,13 @@ Current Configuration:
 ```
 
 **Capacity Notes:**
+
 - Single user tool (not for production)
 - Handles 1-5 concurrent connections
 - Memory usage increases with large query results
 
 #### 8. Metrics Server
+
 ```yaml
 Image: Custom (node:20-alpine + Express)
 Base Image Size: ~100 MB
@@ -800,6 +840,7 @@ Recommended Limits:
 ```
 
 **Capacity Notes:**
+
 - Handles ~100-500 metrics POST requests/second
 - Stores metrics in memory (30-second window)
 - Prometheus scrapes every 10 seconds
@@ -808,6 +849,7 @@ Recommended Limits:
 ### Total Resource Requirements
 
 **Minimum Development Setup:**
+
 ```
 CPU: 2-4 cores recommended
 Memory: 4-8 GB recommended
@@ -816,6 +858,7 @@ Network: Local only
 ```
 
 **Minimum Production Setup (Single Instance):**
+
 ```
 CPU: 2-3 cores
 Memory: 2-4 GB
@@ -824,6 +867,7 @@ Network: Public internet access required
 ```
 
 **Recommended Production Setup (High Availability):**
+
 ```
 Backend Instances: 2-3 × (0.5-1 core, 512 MB - 1 GB)
 Frontend Instances: 2-3 × (0.25 core, 128-256 MB)
@@ -838,6 +882,7 @@ Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
 ### Scaling Characteristics
 
 **Horizontal Scaling (Add More Instances):**
+
 - ✅ Backend: Stateless, scales linearly
 - ✅ Frontend: Stateless, scales linearly
 - ✅ Metrics: Can run multiple instances with shared Prometheus
@@ -845,12 +890,14 @@ Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
 - ❌ Redis: Requires Redis Cluster (complex)
 
 **Vertical Scaling (Bigger Instances):**
+
 - ✅ Database: Scales well up to 8-16 cores
 - ✅ Redis: Scales well up to 4-8 cores
 - ⚠️ Backend: Better to scale horizontally
 - ⚠️ Frontend: Better to scale horizontally
 
 **Bottlenecks:**
+
 1. Database connections (limit: ~100-500)
 2. Redis memory (current limit: 256 MB)
 3. Network bandwidth (depends on hosting)
@@ -859,45 +906,51 @@ Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
 ### Performance Benchmarks (Estimated)
 
 **Backend API:**
+
 - Simple GET requests: ~5-10ms response time
 - Database queries: ~10-50ms response time
 - OCR processing: ~1,000-2,000ms per image
 - Throughput: ~500-2,000 req/sec per instance
 
 **Frontend:**
+
 - Static asset serving: ~1-5ms response time
 - Throughput: ~1,000-5,000 req/sec per instance
 
 **Database:**
+
 - Simple queries: ~1-5ms
 - Complex joins: ~10-100ms
 - Concurrent connections: ~100-500
 
 **Redis:**
+
 - GET/SET operations: <1ms
 - Throughput: ~10,000-50,000 ops/sec
 
 ### Recommended Production Limits
 
-| Service | CPU Limit | Memory Limit | Notes |
-|---------|-----------|--------------|-------|
-| db | 2 cores | 2 GB | Adjust based on load |
-| redis | 0.5 cores | 512 MB | Current limit too low |
-| backend-prod | 1 core | 1 GB | Per instance |
-| frontend-prod | 0.25 cores | 256 MB | Static assets only |
-| metrics | 0.25 cores | 256 MB | Lightweight |
+| Service       | CPU Limit  | Memory Limit | Notes                 |
+| ------------- | ---------- | ------------ | --------------------- |
+| db            | 2 cores    | 2 GB         | Adjust based on load  |
+| redis         | 0.5 cores  | 512 MB       | Current limit too low |
+| backend-prod  | 1 core     | 1 GB         | Per instance          |
+| frontend-prod | 0.25 cores | 256 MB       | Static assets only    |
+| metrics       | 0.25 cores | 256 MB       | Lightweight           |
 
 ### Scaling Considerations
 
 **Current Architecture:** Single instance per service (no scaling)
 
 **Horizontal Scaling Requirements:**
+
 - Load balancer (not present)
 - Session affinity or shared session storage (Redis already used)
 - Database connection pooling (implemented in backend)
 - Shared file storage (not needed - stateless services)
 
 **Vertical Scaling:**
+
 - Increase container resource limits
 - Upgrade host machine
 - No code changes required
@@ -909,6 +962,7 @@ Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
 ### Current Security Posture
 
 ✅ **Implemented:**
+
 - Non-root user in backend-prod container
 - Minimal base images (alpine, slim)
 - Read-only source mounts in development
@@ -916,6 +970,7 @@ Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
 - Logging configured
 
 ❌ **Missing:**
+
 - Container image scanning
 - Security context constraints
 - AppArmor/SELinux profiles
@@ -954,6 +1009,7 @@ Total: 6-8 cores, 8-16 GB RAM, 50-100 GB storage
 ### Logging Configuration
 
 **All Services:**
+
 ```yaml
 Logging:
   Driver: json-file
@@ -973,6 +1029,7 @@ Logging:
 **Current State:** Logs only accessible via `docker compose logs`
 
 **Recommended Solution:**
+
 - ELK Stack (Elasticsearch, Logstash, Kibana)
 - Loki + Grafana
 - Cloud-native solutions (CloudWatch, Stackdriver)
@@ -980,10 +1037,12 @@ Logging:
 ### Monitoring (Partial Implementation)
 
 **Implemented:**
+
 - Frontend metrics (Prometheus + Grafana)
 - Health checks
 
 **Missing:**
+
 - Backend application metrics
 - Database performance metrics
 - Redis metrics
@@ -999,6 +1058,7 @@ Logging:
 **Command:** `docker compose up -d`
 
 **Services Started:**
+
 - db
 - redis
 - backend (dev mode with hot-reload)
@@ -1007,6 +1067,7 @@ Logging:
 - metrics
 
 **Features:**
+
 - Hot-reload enabled
 - Source code mounted
 - Debug logging
@@ -1021,6 +1082,7 @@ Logging:
 **Command:** `docker compose --profile prod up -d db redis backend-prod frontend-prod metrics`
 
 **Services Started:**
+
 - db
 - redis
 - backend-prod (optimized binary)
@@ -1028,6 +1090,7 @@ Logging:
 - metrics
 
 **Features:**
+
 - Optimized builds
 - No source mounts
 - Production logging
@@ -1046,24 +1109,28 @@ Logging:
 **Dockerfile:** `iviss-backend/Dockerfile`
 
 **Build Stages:**
+
 1. **base:** Install system dependencies
 2. **development:** Add cargo-watch, warm cache
 3. **builder:** Multi-stage build with caching
 4. **production:** Minimal runtime image
 
 **Build Command:**
+
 ```bash
 docker build -t iviss-backend:dev --target development ./iviss-backend
 docker build -t iviss-backend:prod --target production ./iviss-backend
 ```
 
 **Build Time:**
+
 - Development: ~10-15 minutes (first build)
 - Development: ~30 seconds (cached)
 - Production: ~15-20 minutes (first build)
 - Production: ~2-3 minutes (cached)
 
 **Build Optimizations:**
+
 - Dependency caching (separate layer)
 - Multi-stage builds
 - Layer caching in CI/CD
@@ -1075,6 +1142,7 @@ docker build -t iviss-backend:prod --target production ./iviss-backend
 **Dockerfile:** `frontend/Dockerfile`
 
 **Build Stages:**
+
 1. **base:** Copy package files
 2. **deps:** Install dependencies
 3. **dev:** Development server
@@ -1082,12 +1150,14 @@ docker build -t iviss-backend:prod --target production ./iviss-backend
 5. **prod:** Nginx runtime
 
 **Build Command:**
+
 ```bash
 docker build -t iviss-frontend:dev --target dev ./frontend
 docker build -t iviss-frontend:prod --target prod ./frontend
 ```
 
 **Build Time:**
+
 - Development: ~5-10 minutes (first build)
 - Development: ~10 seconds (cached)
 - Production: ~5-10 minutes (first build)
@@ -1100,22 +1170,27 @@ docker build -t iviss-frontend:prod --target prod ./frontend
 ### Common Issues
 
 **Issue:** Backend container exits immediately
+
 - **Cause:** Database not ready
 - **Fix:** Check db health with `docker compose ps`
 
 **Issue:** Frontend can't connect to backend
+
 - **Cause:** VITE_API_URL misconfigured
 - **Fix:** Check frontend/.env file
 
 **Issue:** Database data lost after restart
+
 - **Cause:** Volume deleted with `docker compose down -v`
 - **Fix:** Use `docker compose down` without `-v` flag
 
 **Issue:** Port already in use
+
 - **Cause:** Another service using the port
 - **Fix:** Stop conflicting service or change port in docker-compose.yml
 
 **Issue:** Backend compilation fails in dev mode
+
 - **Cause:** Rust dependencies changed
 - **Fix:** Rebuild with `docker compose up --build backend`
 
@@ -1155,6 +1230,7 @@ docker volume inspect iviss_postgres_data
 ### Current State: Docker Compose
 
 **Limitations:**
+
 - Single host only
 - No automatic scaling
 - No rolling updates
@@ -1165,6 +1241,7 @@ docker volume inspect iviss_postgres_data
 ### Recommended Migration Path
 
 **Option 1: Kubernetes**
+
 - Convert docker-compose.yml to Kubernetes manifests
 - Use Helm charts for templating
 - Implement Ingress for routing
@@ -1172,6 +1249,7 @@ docker volume inspect iviss_postgres_data
 - Implement HorizontalPodAutoscaler
 
 **Option 2: Docker Swarm**
+
 - Minimal changes from Docker Compose
 - Built-in load balancing
 - Rolling updates
@@ -1179,6 +1257,7 @@ docker volume inspect iviss_postgres_data
 - Limited ecosystem
 
 **Option 3: Managed Container Services**
+
 - AWS ECS/Fargate
 - Azure Container Instances
 - Google Cloud Run
@@ -1221,18 +1300,21 @@ docker volume inspect iviss_postgres_data
 ## Future Enhancements
 
 ### Short Term
+
 - Add resource limits to all services
 - Implement container image scanning
 - Add backend application metrics
 - Configure security contexts
 
 ### Medium Term
+
 - Migrate to Kubernetes or similar
 - Implement horizontal pod autoscaling
 - Add service mesh (Istio, Linkerd)
 - Implement GitOps (ArgoCD, Flux)
 
 ### Long Term
+
 - Multi-region deployment
 - Advanced observability
 - Chaos engineering
@@ -1251,6 +1333,6 @@ docker volume inspect iviss_postgres_data
 
 ## Document Revision History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | April 2026 | DevOps Analysis | Initial container architecture documentation |
+| Version | Date       | Author          | Changes                                      |
+| ------- | ---------- | --------------- | -------------------------------------------- |
+| 1.0     | April 2026 | DevOps Analysis | Initial container architecture documentation |

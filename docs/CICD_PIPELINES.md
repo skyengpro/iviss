@@ -12,17 +12,17 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 
 ### Pipeline Maturity Assessment
 
-| Stage | Status | Notes |
-|-------|--------|-------|
-| Source Control | ✅ Implemented | GitHub repository |
-| Code Quality | ✅ Implemented | Linting, formatting, type checking |
-| Testing | ✅ Implemented | Unit tests, integration tests |
-| Security Scanning | ✅ Implemented | Gitleaks, cargo audit |
-| Build | ✅ Implemented | Docker multi-stage builds |
-| Artifact Publishing | ✅ Implemented | GHCR (GitHub Container Registry) |
-| Deployment | ❌ Not Implemented | No automated deployment |
-| Smoke Tests | ❌ Not Implemented | No post-deployment validation |
-| Rollback | ❌ Not Implemented | No automated rollback |
+| Stage               | Status             | Notes                              |
+| ------------------- | ------------------ | ---------------------------------- |
+| Source Control      | ✅ Implemented     | GitHub repository                  |
+| Code Quality        | ✅ Implemented     | Linting, formatting, type checking |
+| Testing             | ✅ Implemented     | Unit tests, integration tests      |
+| Security Scanning   | ✅ Implemented     | Gitleaks, cargo audit              |
+| Build               | ✅ Implemented     | Docker multi-stage builds          |
+| Artifact Publishing | ✅ Implemented     | GHCR (GitHub Container Registry)   |
+| Deployment          | ❌ Not Implemented | No automated deployment            |
+| Smoke Tests         | ❌ Not Implemented | No post-deployment validation      |
+| Rollback            | ❌ Not Implemented | No automated rollback              |
 
 ---
 
@@ -82,6 +82,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 **File:** `.github/workflows/backend-ci.yml`
 
 **Triggers:**
+
 - Push to `main` or `dev` branches (when backend files change)
 - Pull requests to `main` or `dev` (when backend files change)
 - Path filters: `iviss-backend/**`, `.github/workflows/backend-ci.yml`
@@ -89,6 +90,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 **Jobs:**
 
 #### Job 1: Gitleaks Scan
+
 - **Purpose:** Detect secrets in code
 - **Tool:** Gitleaks Docker image
 - **Config:** `.gitleaks.toml`
@@ -96,6 +98,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 - **Execution:** On every trigger
 
 #### Job 2: Backend Build
+
 - **Purpose:** Verify code compiles
 - **Dependencies:** System packages (clang, mold, tesseract, leptonica)
 - **Rust Toolchain:** Stable (via actions-rust-lang/setup-rust-toolchain)
@@ -103,6 +106,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 - **Working Directory:** `iviss-backend/`
 
 #### Job 3: Backend Test & Coverage
+
 - **Purpose:** Run tests with coverage reporting
 - **Dependencies:** backend_build job
 - **Tools:**
@@ -123,18 +127,21 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 **Coverage Threshold:** 60% line coverage (enforced)
 
 #### Job 4: Backend Format
+
 - **Purpose:** Enforce code formatting
 - **Tool:** rustfmt
 - **Command:** `cargo fmt --all -- --check`
 - **Failure:** Pipeline fails if code is not formatted
 
 #### Job 5: Backend Clippy
+
 - **Purpose:** Lint code for common mistakes
 - **Tool:** clippy
 - **Command:** `cargo clippy -- -D warnings`
 - **Failure:** Pipeline fails on any warnings
 
 #### Job 6: Backend Audit
+
 - **Purpose:** Check for security vulnerabilities in dependencies
 - **Tool:** cargo-audit
 - **Ignored Advisories:**
@@ -143,6 +150,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 - **Failure:** Pipeline fails on unignored vulnerabilities
 
 #### Job 7: Backend Documentation
+
 - **Purpose:** Verify documentation builds
 - **Command:** `cargo doc --no-deps --verbose`
 - **Failure:** Pipeline fails if docs don't build
@@ -158,6 +166,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 **File:** `.github/workflows/frontend-ci.yml`
 
 **Triggers:**
+
 - Push to `main` or `dev` branches (when frontend files change)
 - Pull requests to `main` or `dev` (when frontend files change)
 - Path filters: `frontend/**`, `.github/workflows/frontend-ci.yml`
@@ -165,6 +174,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 **Jobs:**
 
 #### Job 1: Frontend Install
+
 - **Purpose:** Install npm dependencies and cache
 - **Node Version:** 20
 - **Command:** `npm ci --legacy-peer-deps`
@@ -172,6 +182,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 - **Working Directory:** `frontend/`
 
 #### Job 2: OpenAPI Codegen
+
 - **Purpose:** Generate TypeScript API client from OpenAPI spec
 - **Dependencies:** frontend_install job
 - **Command:** `npm run codegen`
@@ -179,30 +190,35 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 - **Cache:** Generated files (key: commit SHA)
 
 #### Job 3: Frontend Build
+
 - **Purpose:** Verify production build succeeds
 - **Dependencies:** frontend_install, openapi_codegen
 - **Command:** `npm run build`
 - **Output:** `frontend/dist/`
 
 #### Job 4: Frontend Lint
+
 - **Purpose:** ESLint code quality checks
 - **Dependencies:** frontend_install, openapi_codegen
 - **Command:** `npm run lint:check`
 - **Failure:** Pipeline fails on lint errors
 
 #### Job 5: Frontend Prettier
+
 - **Purpose:** Enforce code formatting
 - **Dependencies:** frontend_install, openapi_codegen
 - **Command:** `npm run prettier:check`
 - **Failure:** Pipeline fails if code is not formatted
 
 #### Job 6: Frontend TypeScript
+
 - **Purpose:** Type checking
 - **Dependencies:** frontend_install, openapi_codegen
 - **Command:** `npm run ts:check`
 - **Failure:** Pipeline fails on type errors
 
 #### Job 7: Frontend Unit Tests
+
 - **Purpose:** Run tests with coverage
 - **Dependencies:** frontend_install, openapi_codegen
 - **Command:** `npm run coverage -- --reporter=verbose`
@@ -210,6 +226,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 - **Cache:** Coverage report (key: commit SHA)
 
 #### Job 8: Frontend SonarQube Analysis
+
 - **Purpose:** Code quality and security analysis
 - **Dependencies:** frontend_build, frontend_unit_tests
 - **Tool:** SonarQube
@@ -233,30 +250,34 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
 **File:** `.github/workflows/docker-publish.yml`
 
 **Triggers:**
+
 - Push to `main` or `dev` branches
 - Pull requests to `main` or `dev`
 - Manual workflow dispatch (requires confirmation)
 
 **Manual Trigger:**
+
 - Input: `confirm` (must type "yes")
 - Purpose: Allow manual image builds
 
 **Strategy:**
+
 - **Matrix Build:** Builds frontend and backend in parallel
 - **Services:** `[frontend, backend]`
 
 **Matrix Configuration:**
 
-| Service | Context | Dockerfile Target |
-|---------|---------|-------------------|
-| frontend | `./frontend` | `prod` |
-| backend | `./iviss-backend` | `production` |
+| Service  | Context           | Dockerfile Target |
+| -------- | ----------------- | ----------------- |
+| frontend | `./frontend`      | `prod`            |
+| backend  | `./iviss-backend` | `production`      |
 
 **Jobs:**
 
 #### Job: Build and Push
 
 **Permissions:**
+
 - `contents: read` - Read repository
 - `packages: write` - Push to GHCR
 
@@ -297,6 +318,7 @@ IVISS uses **GitHub Actions** for continuous integration and container image pub
      - Mode: max (cache all layers)
 
 **Image Naming Convention:**
+
 ```
 ghcr.io/<owner>/<repo>/frontend:latest
 ghcr.io/<owner>/<repo>/frontend:main
@@ -336,6 +358,7 @@ feature/* (feature branches)
 ### Branch Protection (Recommended - Not Configured)
 
 The deployment team should configure:
+
 - [ ] Require PR reviews before merge
 - [ ] Require status checks to pass
 - [ ] Require branches to be up to date
@@ -348,15 +371,16 @@ The deployment team should configure:
 
 ### Currently Used Secrets
 
-| Secret | Used In | Purpose | Rotation |
-|--------|---------|---------|----------|
-| `GITHUB_TOKEN` | docker-publish.yml | Push to GHCR | Auto-managed |
-| `SONAR_TOKEN` | frontend-ci.yml | SonarQube auth | Manual |
-| `SONAR_HOST_URL` | frontend-ci.yml | SonarQube server | Manual |
+| Secret           | Used In            | Purpose          | Rotation     |
+| ---------------- | ------------------ | ---------------- | ------------ |
+| `GITHUB_TOKEN`   | docker-publish.yml | Push to GHCR     | Auto-managed |
+| `SONAR_TOKEN`    | frontend-ci.yml    | SonarQube auth   | Manual       |
+| `SONAR_HOST_URL` | frontend-ci.yml    | SonarQube server | Manual       |
 
 ### Missing Secrets (Required for Deployment)
 
 When deployment is implemented, these will be needed:
+
 - [ ] Production database credentials
 - [ ] Production Redis credentials
 - [ ] JWT private/public keys (production)
@@ -379,16 +403,19 @@ When deployment is implemented, these will be needed:
 **Retention:** No automatic cleanup configured
 
 **Image Sizes (Approximate):**
+
 - Backend (production): ~150-200 MB
 - Frontend (production): ~50-80 MB
 
 **Image Layers:**
+
 - Backend: Debian slim + Tesseract + compiled Rust binary
 - Frontend: Nginx alpine + static assets
 
 ### Build Artifacts
 
 **Coverage Reports:**
+
 - Backend: HTML report (3-day retention)
 - Frontend: lcov.info (used by SonarQube)
 
@@ -401,31 +428,37 @@ When deployment is implemented, these will be needed:
 ### Backend Testing
 
 **Test Types:**
+
 - Unit tests (via cargo test)
 - Integration tests (via cargo nextest)
 - Doc tests (via cargo test --doc)
 
 **Test Execution:**
+
 - Tool: cargo-nextest (faster than cargo test)
 - Coverage: cargo-llvm-cov
 - Threshold: 60% line coverage
 
 **Test Environment:**
+
 - Database: Not used (tests use mocks or testcontainers)
 - Redis: Not used (tests use mocks)
 
 ### Frontend Testing
 
 **Test Types:**
+
 - Unit tests (Vitest)
 - Component tests (React Testing Library)
 
 **Test Execution:**
+
 - Tool: Vitest
 - Coverage: Istanbul (via Vitest)
 - Reporter: Verbose + lcov
 
 **Test Environment:**
+
 - Browser: jsdom (simulated)
 - API: Mocked
 
@@ -513,15 +546,18 @@ When deployment is implemented, these will be needed:
 ### Current Behavior
 
 **On CI Failure:**
+
 - Pipeline stops
 - GitHub shows red X on commit/PR
 - No notifications configured
 
 **On Build Failure:**
+
 - Image is not pushed to GHCR
 - Previous images remain available
 
 **On Test Failure:**
+
 - Pipeline fails
 - Coverage report still uploaded (if tests ran)
 
@@ -540,6 +576,7 @@ When deployment is implemented, these will be needed:
 ### Current Optimizations
 
 ✅ **Implemented:**
+
 - Docker layer caching (GitHub Actions cache)
 - Cargo dependency caching
 - npm dependency caching
@@ -582,6 +619,7 @@ When deployment is implemented, these will be needed:
 ### Current Security Measures
 
 ✅ **Implemented:**
+
 - Gitleaks secret scanning
 - Cargo audit (dependency vulnerabilities)
 - SonarQube code analysis
@@ -605,6 +643,7 @@ When deployment is implemented, these will be needed:
 **No rollback mechanism exists.**
 
 If a bad deployment occurs:
+
 1. Manual intervention required
 2. Revert code changes
 3. Re-run CI/CD pipeline
@@ -634,16 +673,19 @@ If a bad deployment occurs:
 ### Current Costs
 
 **GitHub Actions:**
+
 - Free tier: 2,000 minutes/month (public repos)
 - Current usage: ~50-100 minutes per push
 - Estimated monthly usage: ~2,000-4,000 minutes
 
 **GitHub Container Registry:**
+
 - Free tier: 500 MB storage (public repos)
 - Current usage: ~500 MB - 1 GB
 - Bandwidth: Free for public repos
 
 **Potential Costs:**
+
 - If private repo: $0.008/minute after free tier
 - If exceeding storage: $0.25/GB/month
 
@@ -700,22 +742,27 @@ If a bad deployment occurs:
 ### Common Issues
 
 **Issue:** Backend build fails with "tesseract not found"
+
 - **Cause:** System dependencies not installed
 - **Fix:** Ensure `libtesseract-dev` is in apt-get install step
 
 **Issue:** Frontend build fails with "openapi-rq not found"
+
 - **Cause:** Codegen step didn't run
 - **Fix:** Ensure openapi_codegen job completed successfully
 
 **Issue:** Docker push fails with "authentication required"
+
 - **Cause:** GITHUB_TOKEN expired or insufficient permissions
 - **Fix:** Check workflow permissions in repository settings
 
 **Issue:** Coverage job fails with "coverage below threshold"
+
 - **Cause:** Test coverage dropped below 60%
 - **Fix:** Add more tests or adjust threshold
 
 **Issue:** SonarQube job fails with "quality gate failed"
+
 - **Cause:** Code quality issues detected
 - **Fix:** Review SonarQube report and fix issues
 
@@ -760,6 +807,6 @@ If a bad deployment occurs:
 
 ## Document Revision History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | April 2026 | DevOps Analysis | Initial CI/CD documentation |
+| Version | Date       | Author          | Changes                     |
+| ------- | ---------- | --------------- | --------------------------- |
+| 1.0     | April 2026 | DevOps Analysis | Initial CI/CD documentation |

@@ -62,6 +62,7 @@ docker compose up -d
 ```
 
 Access the application:
+
 - Backend API: http://localhost:3000
 - Frontend: http://localhost:8080
 - API Documentation: http://localhost:3000/docs

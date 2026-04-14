@@ -29,6 +29,7 @@
 ### What Exists
 
 **Developer Workstations:**
+
 - Docker Desktop or Docker Engine
 - Docker Compose
 - Local containers running on localhost
@@ -44,6 +45,7 @@
 ### Current State: **NONE**
 
 **No IaC tools are used:**
+
 - ❌ No Terraform
 - ❌ No Ansible
 - ❌ No Pulumi
@@ -54,6 +56,7 @@
 - ❌ No deployment scripts
 
 **Manual Process:**
+
 1. Developer installs Docker
 2. Developer clones repository
 3. Developer runs `docker compose up`
@@ -68,6 +71,7 @@
 ### Current Platform: **None**
 
 **No hosting platform selected or configured:**
+
 - ❌ No cloud provider account (AWS, Azure, GCP)
 - ❌ No VPS provider (DigitalOcean, Linode, Vultr)
 - ❌ No on-premises servers
@@ -81,6 +85,7 @@ The deployment team must choose a hosting strategy. Options:
 #### Option 1: Cloud Provider (Recommended)
 
 **AWS:**
+
 - ECS/Fargate for containers
 - RDS for PostgreSQL
 - ElastiCache for Redis
@@ -91,17 +96,20 @@ The deployment team must choose a hosting strategy. Options:
 - CloudWatch for monitoring
 
 **Pros:**
+
 - Mature ecosystem
 - Managed services reduce operational burden
 - Good documentation
 - Scalable
 
 **Cons:**
+
 - Higher cost
 - Vendor lock-in
 - Complexity
 
 **Azure:**
+
 - Azure Container Instances or AKS
 - Azure Database for PostgreSQL
 - Azure Cache for Redis
@@ -110,13 +118,16 @@ The deployment team must choose a hosting strategy. Options:
 - Key Vault for secrets
 
 **Pros:**
+
 - Similar to AWS
 - Good integration with Microsoft ecosystem
 
 **Cons:**
+
 - Similar to AWS
 
 **Google Cloud:**
+
 - Cloud Run or GKE
 - Cloud SQL for PostgreSQL
 - Memorystore for Redis
@@ -124,10 +135,12 @@ The deployment team must choose a hosting strategy. Options:
 - Cloud DNS
 
 **Pros:**
+
 - Simpler than AWS/Azure
 - Good Kubernetes support
 
 **Cons:**
+
 - Smaller ecosystem than AWS
 
 #### Option 2: VPS (Budget-Friendly)
@@ -135,17 +148,20 @@ The deployment team must choose a hosting strategy. Options:
 **Providers:** DigitalOcean, Linode, Vultr, Hetzner
 
 **Setup:**
+
 - Single or multiple VMs
 - Docker Compose or Docker Swarm
 - Manual or scripted setup
 - Self-managed databases
 
 **Pros:**
+
 - Lower cost
 - Simple setup
 - Full control
 
 **Cons:**
+
 - Manual management
 - No managed services
 - Limited scalability
@@ -154,23 +170,27 @@ The deployment team must choose a hosting strategy. Options:
 #### Option 3: Kubernetes (Enterprise-Grade)
 
 **Managed Kubernetes:**
+
 - AWS EKS
 - Azure AKS
 - Google GKE
 - DigitalOcean Kubernetes
 
 **Self-Managed:**
+
 - kubeadm on VMs
 - k3s (lightweight)
 - Rancher
 
 **Pros:**
+
 - Highly scalable
 - Industry standard
 - Rich ecosystem
 - Declarative configuration
 
 **Cons:**
+
 - Steep learning curve
 - Higher complexity
 - Overkill for small deployments
@@ -180,12 +200,14 @@ The deployment team must choose a hosting strategy. Options:
 **Providers:** Heroku, Render, Railway, Fly.io
 
 **Pros:**
+
 - Minimal DevOps required
 - Fast deployment
 - Built-in CI/CD
 - Managed databases
 
 **Cons:**
+
 - Higher cost per resource
 - Less control
 - Vendor lock-in
@@ -198,6 +220,7 @@ The deployment team must choose a hosting strategy. Options:
 ### Current State
 
 **Local Development:**
+
 ```
 Developer Laptop
     │
@@ -213,6 +236,7 @@ Developer Laptop
 ### Required Production Architecture
 
 **Recommended Setup:**
+
 ```
 Internet
     │
@@ -266,6 +290,7 @@ Internet
 ```
 
 **Components Needed:**
+
 - [ ] Domain name registration
 - [ ] DNS service
 - [ ] SSL/TLS certificates
@@ -284,6 +309,7 @@ Internet
 ### Current State: **NONE**
 
 **No domain configured:**
+
 - ❌ No domain name registered
 - ❌ No DNS provider
 - ❌ No DNS records
@@ -292,10 +318,12 @@ Internet
 ### Required Setup
 
 **Domain Registration:**
+
 - Register domain (e.g., iviss.cm for Cameroon)
 - Choose registrar (Namecheap, GoDaddy, AWS Route 53)
 
 **DNS Records Needed:**
+
 ```
 A     iviss.cm                → Load Balancer IP
 A     www.iviss.cm            → Load Balancer IP
@@ -305,6 +333,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ```
 
 **Subdomain Strategy:**
+
 - `iviss.cm` → Frontend (public)
 - `api.iviss.cm` → Backend API
 - `admin.iviss.cm` → Back-office (optional separate domain)
@@ -318,6 +347,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: **NONE**
 
 **No SSL/TLS configured:**
+
 - ❌ No certificates
 - ❌ No HTTPS
 - ❌ All traffic unencrypted
@@ -356,6 +386,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: **NONE**
 
 **No load balancer:**
+
 - Single instance per service
 - No traffic distribution
 - No health checks
@@ -365,6 +396,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Required Setup
 
 **External Load Balancer (Public-Facing):**
+
 - Terminates SSL/TLS
 - Routes traffic to frontend instances
 - Health checks on frontend
@@ -372,12 +404,14 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - DDoS protection
 
 **Internal Load Balancer (Backend):**
+
 - Routes frontend → backend traffic
 - Health checks on backend
 - Connection pooling
 - Rate limiting
 
 **Options:**
+
 - AWS ALB (Application Load Balancer)
 - Nginx (self-managed)
 - HAProxy (self-managed)
@@ -391,6 +425,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: Local Container
 
 **PostgreSQL:**
+
 - Running in Docker container
 - Single instance
 - No replication
@@ -403,12 +438,14 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Required Production Setup
 
 **Managed Database (Recommended):**
+
 - AWS RDS for PostgreSQL
 - Azure Database for PostgreSQL
 - Google Cloud SQL
 - DigitalOcean Managed Databases
 
 **Features Needed:**
+
 - Automated backups (daily minimum)
 - Point-in-time recovery
 - Multi-AZ deployment (high availability)
@@ -419,6 +456,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - Encryption in transit
 
 **Self-Managed Alternative:**
+
 - PostgreSQL on VMs
 - Streaming replication
 - pgBackRest for backups
@@ -432,6 +470,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: Local Container
 
 **Redis:**
+
 - Running in Docker container
 - Single instance
 - No replication
@@ -443,12 +482,14 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Required Production Setup
 
 **Managed Redis (Recommended):**
+
 - AWS ElastiCache for Redis
 - Azure Cache for Redis
 - Google Cloud Memorystore
 - Redis Enterprise Cloud
 
 **Features Needed:**
+
 - Replication (master-replica)
 - Automatic failover
 - Persistence (AOF + RDB)
@@ -457,6 +498,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - Backup and restore
 
 **Self-Managed Alternative:**
+
 - Redis Sentinel for high availability
 - Redis Cluster for sharding
 - Manual backup management
@@ -468,6 +510,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: Docker Volumes
 
 **Storage:**
+
 - Docker volumes on local disk
 - No redundancy
 - No backups
@@ -476,11 +519,13 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Required Production Setup
 
 **Database Storage:**
+
 - Managed by database service (RDS, etc.)
 - Automated backups
 - Snapshot management
 
 **Application Storage (if needed):**
+
 - Object storage (S3, Azure Blob, GCS)
 - For uploaded files, images, documents
 - Versioning enabled
@@ -488,6 +533,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - CDN integration
 
 **Backup Storage:**
+
 - Separate from primary storage
 - Off-site or different region
 - Encrypted
@@ -500,11 +546,13 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: Minimal
 
 **Implemented:**
+
 - Frontend metrics (Prometheus + Grafana) - local only
 - Container health checks
 - Application logs (stdout)
 
 **Missing:**
+
 - Centralized logging
 - APM (Application Performance Monitoring)
 - Infrastructure monitoring
@@ -516,6 +564,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 **Monitoring Stack:**
 
 **Option 1: Cloud-Native**
+
 - AWS CloudWatch
 - Azure Monitor
 - Google Cloud Monitoring
@@ -523,18 +572,21 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - Automatic metric collection
 
 **Option 2: Self-Hosted**
+
 - Prometheus + Grafana
 - ELK Stack (Elasticsearch, Logstash, Kibana)
 - Loki for logs
 - Jaeger for tracing
 
 **Option 3: SaaS**
+
 - Datadog
 - New Relic
 - Dynatrace
 - Splunk
 
 **Metrics to Monitor:**
+
 - Application metrics (requests, errors, latency)
 - Infrastructure metrics (CPU, memory, disk, network)
 - Database metrics (connections, queries, replication lag)
@@ -542,6 +594,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - Business metrics (user signups, control records created)
 
 **Alerting:**
+
 - PagerDuty, Opsgenie, or similar
 - On-call rotation
 - Escalation policies
@@ -554,6 +607,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: **NONE**
 
 **No backup strategy:**
+
 - ❌ No database backups
 - ❌ No disaster recovery plan
 - ❌ No tested restore procedures
@@ -566,6 +620,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 **Backup Strategy:**
 
 **Database Backups:**
+
 - Automated daily backups
 - Retention: 30 days minimum
 - Point-in-time recovery
@@ -573,16 +628,19 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - Encrypted backups
 
 **Application Backups:**
+
 - Configuration files
 - Secrets (encrypted)
 - Infrastructure as Code
 
 **Backup Testing:**
+
 - Monthly restore tests
 - Documented restore procedures
 - Measured restore time
 
 **Disaster Recovery:**
+
 - RTO (Recovery Time Objective): Define acceptable downtime
 - RPO (Recovery Point Objective): Define acceptable data loss
 - DR site in different region (for critical systems)
@@ -596,11 +654,13 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Current State: Minimal
 
 **Implemented:**
+
 - Application-level authentication
 - Password hashing
 - JWT tokens
 
 **Missing:**
+
 - Network security
 - Firewall rules
 - Intrusion detection
@@ -612,6 +672,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 ### Required Production Setup
 
 **Network Security:**
+
 - VPC/Virtual Network with private subnets
 - Security groups/NSGs
 - Network ACLs
@@ -619,18 +680,21 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - VPN for internal access
 
 **Application Security:**
+
 - WAF (AWS WAF, Cloudflare, etc.)
 - DDoS protection (CloudFlare, AWS Shield)
 - Rate limiting
 - IP whitelisting (for admin endpoints)
 
 **Secrets Management:**
+
 - HashiCorp Vault
 - AWS Secrets Manager
 - Azure Key Vault
 - Google Secret Manager
 
 **Security Monitoring:**
+
 - SIEM (Security Information and Event Management)
 - Intrusion detection (IDS/IPS)
 - Log analysis for security events
@@ -638,6 +702,7 @@ TXT   iviss.cm                → SPF, DKIM (for email)
 - Penetration testing
 
 **Compliance:**
+
 - Data encryption at rest
 - Data encryption in transit
 - Audit logging
@@ -656,47 +721,47 @@ Running on developer workstations only.
 
 **Small Deployment (Single Region, Low Traffic):**
 
-| Component | Service | Cost (USD) |
-|-----------|---------|------------|
-| Compute (Backend) | 2× t3.small | $30 |
-| Compute (Frontend) | 2× t3.micro | $15 |
-| Database | db.t3.small RDS | $50 |
-| Redis | cache.t3.micro | $15 |
-| Load Balancer | ALB | $20 |
-| Storage | 100 GB | $10 |
-| Bandwidth | 500 GB | $45 |
-| Backups | 100 GB | $5 |
-| Monitoring | CloudWatch | $10 |
-| **Total** | | **~$200/month** |
+| Component          | Service         | Cost (USD)      |
+| ------------------ | --------------- | --------------- |
+| Compute (Backend)  | 2× t3.small     | $30             |
+| Compute (Frontend) | 2× t3.micro     | $15             |
+| Database           | db.t3.small RDS | $50             |
+| Redis              | cache.t3.micro  | $15             |
+| Load Balancer      | ALB             | $20             |
+| Storage            | 100 GB          | $10             |
+| Bandwidth          | 500 GB          | $45             |
+| Backups            | 100 GB          | $5              |
+| Monitoring         | CloudWatch      | $10             |
+| **Total**          |                 | **~$200/month** |
 
 **Medium Deployment (Multi-AZ, Moderate Traffic):**
 
-| Component | Service | Cost (USD) |
-|-----------|---------|------------|
-| Compute (Backend) | 4× t3.medium | $120 |
-| Compute (Frontend) | 4× t3.small | $60 |
-| Database | db.t3.medium Multi-AZ | $150 |
-| Redis | cache.t3.small Multi-AZ | $50 |
-| Load Balancer | ALB | $20 |
-| Storage | 500 GB | $50 |
-| Bandwidth | 2 TB | $180 |
-| Backups | 500 GB | $25 |
-| Monitoring | CloudWatch + Datadog | $100 |
-| **Total** | | **~$755/month** |
+| Component          | Service                 | Cost (USD)      |
+| ------------------ | ----------------------- | --------------- |
+| Compute (Backend)  | 4× t3.medium            | $120            |
+| Compute (Frontend) | 4× t3.small             | $60             |
+| Database           | db.t3.medium Multi-AZ   | $150            |
+| Redis              | cache.t3.small Multi-AZ | $50             |
+| Load Balancer      | ALB                     | $20             |
+| Storage            | 500 GB                  | $50             |
+| Bandwidth          | 2 TB                    | $180            |
+| Backups            | 500 GB                  | $25             |
+| Monitoring         | CloudWatch + Datadog    | $100            |
+| **Total**          |                         | **~$755/month** |
 
 **Large Deployment (Multi-Region, High Traffic):**
 
-| Component | Service | Cost (USD) |
-|-----------|---------|------------|
-| Compute | Auto-scaling (10-50 instances) | $500-2000 |
-| Database | db.r5.large Multi-AZ + Replicas | $500 |
-| Redis | cache.r5.large Multi-AZ | $200 |
-| Load Balancer | ALB + CloudFront CDN | $100 |
-| Storage | 2 TB | $200 |
-| Bandwidth | 10 TB | $900 |
-| Backups | 2 TB | $100 |
-| Monitoring | Full observability stack | $300 |
-| **Total** | | **~$2,800-4,300/month** |
+| Component     | Service                         | Cost (USD)              |
+| ------------- | ------------------------------- | ----------------------- |
+| Compute       | Auto-scaling (10-50 instances)  | $500-2000               |
+| Database      | db.r5.large Multi-AZ + Replicas | $500                    |
+| Redis         | cache.r5.large Multi-AZ         | $200                    |
+| Load Balancer | ALB + CloudFront CDN            | $100                    |
+| Storage       | 2 TB                            | $200                    |
+| Bandwidth     | 10 TB                           | $900                    |
+| Backups       | 2 TB                            | $100                    |
+| Monitoring    | Full observability stack        | $300                    |
+| **Total**     |                                 | **~$2,800-4,300/month** |
 
 **Note:** Costs vary significantly by region, traffic, and provider. These are rough estimates for AWS.
 
@@ -711,6 +776,7 @@ Only local development environment exists.
 ### Required Environments
 
 **1. Development (Dev)**
+
 - Purpose: Active development and testing
 - Deployment: Automatic on push to `dev` branch
 - Data: Test data, can be reset
@@ -718,6 +784,7 @@ Only local development environment exists.
 - Uptime: Best effort
 
 **2. Staging (Stage)**
+
 - Purpose: Pre-production testing
 - Deployment: Automatic on push to `main` branch
 - Data: Production-like data (anonymized)
@@ -725,6 +792,7 @@ Only local development environment exists.
 - Uptime: High (mirrors production)
 
 **3. Production (Prod)**
+
 - Purpose: Live system for end users
 - Deployment: Manual approval required
 - Data: Real production data
@@ -732,6 +800,7 @@ Only local development environment exists.
 - Uptime: Critical (99.9%+ SLA)
 
 **Environment Isolation:**
+
 - Separate cloud accounts/subscriptions
 - Separate databases
 - Separate secrets
@@ -774,6 +843,7 @@ Only local development environment exists.
 ### Implementation Steps
 
 **Phase 1: Foundation (Week 1-2)**
+
 1. [ ] Select and set up cloud provider account
 2. [ ] Register domain name
 3. [ ] Set up DNS
@@ -782,6 +852,7 @@ Only local development environment exists.
 6. [ ] Set up IAM/access controls
 
 **Phase 2: Infrastructure (Week 3-4)**
+
 1. [ ] Provision managed database
 2. [ ] Provision managed Redis
 3. [ ] Set up load balancers
@@ -790,6 +861,7 @@ Only local development environment exists.
 6. [ ] Implement backup strategy
 
 **Phase 3: Deployment (Week 5-6)**
+
 1. [ ] Create IaC (Terraform/CloudFormation)
 2. [ ] Set up CI/CD deployment pipeline
 3. [ ] Deploy to staging environment
@@ -797,6 +869,7 @@ Only local development environment exists.
 5. [ ] Document deployment procedures
 
 **Phase 4: Production (Week 7-8)**
+
 1. [ ] Deploy to production
 2. [ ] Configure monitoring and alerting
 3. [ ] Set up on-call rotation
@@ -808,28 +881,33 @@ Only local development environment exists.
 ## Recommended Tools and Services
 
 ### Infrastructure as Code
+
 - **Terraform** (recommended) - Cloud-agnostic
 - **Pulumi** - Modern alternative with real programming languages
 - **CloudFormation** - AWS-specific
 
 ### Container Orchestration
+
 - **Kubernetes** - Industry standard
 - **AWS ECS/Fargate** - Simpler, AWS-specific
 - **Docker Swarm** - Simplest, limited features
 
 ### CI/CD
+
 - **GitHub Actions** (already in use)
 - **GitLab CI/CD**
 - **Jenkins**
 - **ArgoCD** (for GitOps)
 
 ### Monitoring
+
 - **Datadog** - Comprehensive SaaS
 - **Prometheus + Grafana** - Open source
 - **New Relic** - APM focused
 - **CloudWatch** - AWS native
 
 ### Secrets Management
+
 - **HashiCorp Vault** - Industry standard
 - **AWS Secrets Manager** - AWS native
 - **Azure Key Vault** - Azure native
@@ -848,6 +926,6 @@ Only local development environment exists.
 
 ## Document Revision History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | April 2026 | DevOps Analysis | Initial infrastructure assessment |
+| Version | Date       | Author          | Changes                           |
+| ------- | ---------- | --------------- | --------------------------------- |
+| 1.0     | April 2026 | DevOps Analysis | Initial infrastructure assessment |

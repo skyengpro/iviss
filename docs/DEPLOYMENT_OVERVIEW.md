@@ -28,6 +28,7 @@ IVISS is currently in **early-stage development** with a **Docker-based local de
 ## What Exists Today
 
 ### 1. Local Development Environment
+
 - Docker Compose orchestration with 7 services
 - Hot-reload enabled for backend (Rust) and frontend (React)
 - PostgreSQL 15 + Redis 7 for data storage
@@ -35,6 +36,7 @@ IVISS is currently in **early-stage development** with a **Docker-based local de
 - Prometheus + Grafana for frontend metrics (optional)
 
 ### 2. CI/CD Automation
+
 - GitHub Actions workflows for:
   - Backend testing, linting, security audits
   - Frontend testing, linting, type checking
@@ -43,11 +45,13 @@ IVISS is currently in **early-stage development** with a **Docker-based local de
 - Pull request validation
 
 ### 3. Container Images
+
 - Production-ready Docker images built via multi-stage builds
 - Published to GitHub Container Registry (ghcr.io)
 - Tagged with branch name, commit SHA, and `latest`
 
 ### 4. Configuration Management
+
 - Environment variables via `.env` files
 - Separate configs for development and production builds
 - No secrets management solution (secrets in plain text `.env` files)
@@ -129,6 +133,7 @@ GitHub Container Registry (GHCR)
 ## Technology Stack
 
 ### Application Services
+
 - **Backend:** Rust 1.89 + Axum web framework
 - **Frontend:** React 18 + TypeScript + Vite
 - **Database:** PostgreSQL 15
@@ -136,6 +141,7 @@ GitHub Container Registry (GHCR)
 - **Web Server:** Nginx (for production frontend)
 
 ### Development Tools
+
 - **Container Runtime:** Docker + Docker Compose
 - **CI/CD:** GitHub Actions
 - **Container Registry:** GitHub Container Registry (GHCR)
@@ -143,6 +149,7 @@ GitHub Container Registry (GHCR)
 - **Database Admin:** Adminer
 
 ### Missing Production Tools
+
 - Load Balancer: None
 - Reverse Proxy: None (beyond Nginx in frontend container)
 - Secrets Manager: None
@@ -156,16 +163,16 @@ GitHub Container Registry (GHCR)
 
 ### Container Services (7 total)
 
-| Service | Image | Purpose | Ports | Status |
-|---------|-------|---------|-------|--------|
-| `db` | postgres:15-alpine | Primary database | 5435→5432 | ✅ Running |
-| `redis` | redis:7-alpine | Cache & OTP storage | 6380→6379 | ✅ Running |
-| `backend` | Custom (dev target) | API server (dev mode) | 3000→3000 | ✅ Running |
-| `backend-prod` | Custom (prod target) | API server (prod mode) | 3000→3000 | ⚠️ Opt-in profile |
-| `frontend` | Custom (dev target) | React app (dev mode) | 8080→8080 | ✅ Running |
-| `frontend-prod` | Custom (prod target) | React app (prod mode) | 8080→80 | ⚠️ Opt-in profile |
-| `adminer` | adminer:latest | DB admin UI | 8081→8080 | ✅ Running |
-| `metrics` | Custom | Metrics collector | 9091→9091 | ✅ Running |
+| Service         | Image                | Purpose                | Ports     | Status            |
+| --------------- | -------------------- | ---------------------- | --------- | ----------------- |
+| `db`            | postgres:15-alpine   | Primary database       | 5435→5432 | ✅ Running        |
+| `redis`         | redis:7-alpine       | Cache & OTP storage    | 6380→6379 | ✅ Running        |
+| `backend`       | Custom (dev target)  | API server (dev mode)  | 3000→3000 | ✅ Running        |
+| `backend-prod`  | Custom (prod target) | API server (prod mode) | 3000→3000 | ⚠️ Opt-in profile |
+| `frontend`      | Custom (dev target)  | React app (dev mode)   | 8080→8080 | ✅ Running        |
+| `frontend-prod` | Custom (prod target) | React app (prod mode)  | 8080→80   | ⚠️ Opt-in profile |
+| `adminer`       | adminer:latest       | DB admin UI            | 8081→8080 | ✅ Running        |
+| `metrics`       | Custom               | Metrics collector      | 9091→9091 | ✅ Running        |
 
 **Note:** `backend-prod` and `frontend-prod` are only started with `--profile prod` flag.
 
@@ -180,6 +187,7 @@ adminer → db
 ```
 
 ### Network Architecture
+
 - All services on single Docker bridge network: `iviss-network`
 - No external network access configured
 - No TLS/SSL termination
@@ -191,20 +199,21 @@ adminer → db
 
 ### Current Resource Profile (Local Development)
 
-| Service | CPU Limit | Memory Limit | Storage |
-|---------|-----------|--------------|---------|
-| PostgreSQL | None | None | ~500MB (volume) |
-| Redis | 0.25 cores | 256MB | ~10MB (volume) |
-| Backend | None | None | ~2GB (build cache) |
-| Frontend | None | None | ~500MB (node_modules) |
-| Adminer | None | None | Minimal |
-| Metrics | None | None | Minimal |
+| Service    | CPU Limit  | Memory Limit | Storage               |
+| ---------- | ---------- | ------------ | --------------------- |
+| PostgreSQL | None       | None         | ~500MB (volume)       |
+| Redis      | 0.25 cores | 256MB        | ~10MB (volume)        |
+| Backend    | None       | None         | ~2GB (build cache)    |
+| Frontend   | None       | None         | ~500MB (node_modules) |
+| Adminer    | None       | None         | Minimal               |
+| Metrics    | None       | None         | Minimal               |
 
 **Total Estimated:** ~2-4GB RAM, 2-4 CPU cores for comfortable local development
 
 ### Production Resource Estimates (Not Yet Defined)
 
 The deployment team will need to determine:
+
 - Expected concurrent users
 - Database size projections
 - API request volume
@@ -216,12 +225,12 @@ The deployment team will need to determine:
 
 ### Persistent Volumes
 
-| Volume | Purpose | Backup Strategy |
-|--------|---------|-----------------|
-| `postgres_data` | Database files | ❌ None |
-| `redis_data` | Redis persistence | ❌ None |
-| `cargo_cache` | Rust build cache | Not needed |
-| `target_cache` | Rust compilation artifacts | Not needed |
+| Volume          | Purpose                    | Backup Strategy |
+| --------------- | -------------------------- | --------------- |
+| `postgres_data` | Database files             | ❌ None         |
+| `redis_data`    | Redis persistence          | ❌ None         |
+| `cargo_cache`   | Rust build cache           | Not needed      |
+| `target_cache`  | Rust compilation artifacts | Not needed      |
 
 **Critical Gap:** No backup strategy exists for production data.
 
@@ -234,6 +243,7 @@ The deployment team will need to determine:
 Configuration is managed through `.env` files:
 
 **Root `.env`** (Docker Compose level):
+
 - Database credentials
 - JWT keys (RSA private/public key pair)
 - Twilio SMS credentials
@@ -241,6 +251,7 @@ Configuration is managed through `.env` files:
 - Shift hours configuration
 
 **Backend `.env`** (iviss-backend/.env):
+
 - Database URLs (internal + external)
 - Redis URL
 - JWT configuration
@@ -249,12 +260,14 @@ Configuration is managed through `.env` files:
 - SMS provider settings
 
 **Frontend `.env`** (frontend/.env):
+
 - API URL
 - Metrics configuration
 
 ### Secrets Handling (Current State)
 
 ⚠️ **CRITICAL SECURITY GAP:**
+
 - All secrets stored in plain text `.env` files
 - `.env.example` files committed to git (with placeholder values)
 - Actual `.env` files in `.gitignore` but no secure distribution method
@@ -263,6 +276,7 @@ Configuration is managed through `.env` files:
 - No secret rotation mechanism
 
 **Required for Production:**
+
 - Implement proper secrets management (Vault, AWS Secrets Manager, etc.)
 - Rotate all development secrets before production
 - Generate production-specific JWT keys
@@ -288,6 +302,7 @@ Configuration is managed through `.env` files:
 4. Application starts
 
 **Gaps:**
+
 - No rollback mechanism for failed migrations
 - No migration testing in staging environment
 - No database backup before migrations
@@ -306,6 +321,7 @@ Configuration is managed through `.env` files:
 ### What Exists (Local Development Only)
 
 **Frontend Metrics:**
+
 - Prometheus scraping metrics server (port 9091)
 - Grafana dashboards (port 3001)
 - Metrics collected:
@@ -316,6 +332,7 @@ Configuration is managed through `.env` files:
   - Route navigations
 
 **Health Checks:**
+
 - Backend: `GET /api/v1/health`
 - Frontend: HTTP 200 on root path
 - Database: `pg_isready` check
@@ -339,6 +356,7 @@ Configuration is managed through `.env` files:
 ### Current Security Measures
 
 ✅ **Implemented:**
+
 - Gitleaks scanning in CI/CD (secret detection)
 - Cargo audit for Rust dependency vulnerabilities
 - JWT RS256 token authentication
@@ -347,6 +365,7 @@ Configuration is managed through `.env` files:
 - Rate limiting (in application code)
 
 ❌ **Missing:**
+
 - TLS/SSL certificates
 - Network segmentation
 - Firewall rules
@@ -427,24 +446,28 @@ Configuration is managed through `.env` files:
 ## Next Steps
 
 ### Phase 1: Foundation (Weeks 1-2)
+
 - Select hosting platform
 - Set up development/staging/production environments
 - Implement secrets management
 - Create basic IaC for infrastructure provisioning
 
 ### Phase 2: Deployment Pipeline (Weeks 3-4)
+
 - Extend CI/CD to include deployment stages
 - Implement automated deployment to staging
 - Add manual approval for production deployment
 - Test rollback procedures
 
 ### Phase 3: Production Readiness (Weeks 5-6)
+
 - Set up production monitoring and alerting
 - Implement backup and disaster recovery
 - Security hardening and audit
 - Load testing and performance tuning
 
 ### Phase 4: Go-Live (Week 7+)
+
 - Production deployment
 - Post-deployment monitoring
 - Incident response readiness
@@ -462,6 +485,6 @@ Configuration is managed through `.env` files:
 
 ## Document Revision History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | April 2026 | DevOps Analysis | Initial deployment assessment |
+| Version | Date       | Author          | Changes                       |
+| ------- | ---------- | --------------- | ----------------------------- |
+| 1.0     | April 2026 | DevOps Analysis | Initial deployment assessment |
