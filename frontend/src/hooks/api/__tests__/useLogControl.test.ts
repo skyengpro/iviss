@@ -59,7 +59,7 @@ describe('useLogControl', () => {
     });
 
     expect(mockMutateAsync).toHaveBeenCalledWith({
-      body: {
+      requestBody: {
         plate_number: 'CE123AB',
         agent_id: 'agent-1',
         organization_id: 'org-1',

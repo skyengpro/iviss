@@ -61,14 +61,14 @@ export function useUsers() {
 
   const provision = useCallback(
     async (request: ProvisionUserRequest) => {
-      return provisionMutate({ body: request, throwOnError: true });
+      return provisionMutate({ requestBody: request, throwOnError: true });
     },
     [provisionMutate]
   );
 
   const provisionOrg = useCallback(
     async (request: ProvisionUserRequest) => {
-      return provisionOrgMutate({ body: request, throwOnError: true });
+      return provisionOrgMutate({ requestBody: request, throwOnError: true });
     },
     [provisionOrgMutate]
   );
@@ -76,8 +76,8 @@ export function useUsers() {
   const update = useCallback(
     async (id: string, request: UpdateUserRequest) => {
       return updateMutate({
-        path: { id },
-        body: request,
+        id,
+        requestBody: request,
         throwOnError: true,
       });
     },
@@ -87,7 +87,7 @@ export function useUsers() {
   const remove = useCallback(
     async (id: string) => {
       return deleteMutate({
-        path: { id },
+        id,
         throwOnError: true,
       });
     },
@@ -118,7 +118,7 @@ export function useUsers() {
 
 export function useUser(id: string) {
   return useGetUser({
-    path: { id },
+    id,
   });
 }
 

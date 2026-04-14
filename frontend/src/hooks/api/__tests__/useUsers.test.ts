@@ -139,7 +139,7 @@ describe('useUsers', () => {
     });
 
     expect(mockProvisionMutate).toHaveBeenCalledWith({
-      body: {
+      requestBody: {
         email: 'new@admin.com',
         role: 'admin',
         fullName: 'Bob',
@@ -163,8 +163,8 @@ describe('useUsers', () => {
     });
 
     expect(mockUpdateMutate).toHaveBeenCalledWith({
-      path: { id: 'u-123' },
-      body: { role: 'agent' },
+      id: 'u-123',
+      requestBody: { role: 'agent' },
       throwOnError: true,
     });
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['ListUsers'] });
@@ -181,7 +181,7 @@ describe('useUsers', () => {
     });
 
     expect(mockDeleteMutate).toHaveBeenCalledWith({
-      path: { id: 'u-456' },
+      id: 'u-456',
       throwOnError: true,
     });
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['ListUsers'] });
@@ -205,7 +205,7 @@ describe('useUser', () => {
 
     expect(useGetUser).toHaveBeenCalledWith(
       expect.objectContaining({
-        path: { id: 'u-789' },
+        id: 'u-789',
       })
     );
     expect(result.current.data).toEqual({ data: { id: 'u-789', email: 'bob@example.com' } });

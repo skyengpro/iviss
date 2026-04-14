@@ -90,7 +90,7 @@ describe('useVehicles', () => {
     });
 
     expect(mockSearchMutate).toHaveBeenCalledWith({
-      body: {
+      requestBody: {
         plate_number: 'CE123AB',
         agent_id: 'agent-1',
         organization_id: 'org-1',
@@ -115,7 +115,7 @@ describe('useVehicles', () => {
     });
 
     expect(mockSearchMutate).toHaveBeenCalledWith({
-      body: {
+      requestBody: {
         plate_number: 'LT999HN',
         agent_id: 'agent-1',
         organization_id: 'org-1',
@@ -141,7 +141,7 @@ describe('useVehicles', () => {
 
     expect(mockGeolocation.getCurrentPosition).not.toHaveBeenCalled();
     expect(mockSearchMutate).toHaveBeenCalledWith({
-      body: {
+      requestBody: {
         plate_number: 'OU123',
         agent_id: 'agent-1',
         organization_id: 'org-1',
@@ -162,7 +162,7 @@ describe('useVehicles', () => {
     });
 
     expect(mockSubmitMutate).toHaveBeenCalledWith({
-      body: { status: 'valid', plate_number: 'X1' },
+      requestBody: { status: 'valid', plate_number: 'X1' },
       throwOnError: true,
     });
   });

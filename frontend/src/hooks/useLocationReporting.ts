@@ -42,7 +42,7 @@ export function useLocationReporting(intervalMs = 30000) {
     if (shouldReport()) {
       updateLocation(
         {
-          body: {
+          requestBody: {
             latitude: lat,
             longitude: lng,
           },

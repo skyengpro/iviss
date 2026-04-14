@@ -1,13 +1,8 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useMutation } from '@tanstack/react-query';
 import { useLocationReporting } from '../useLocationReporting';
 import { useGeolocation } from '../useGeolocation';
 import { useAuth } from '@/hooks/auth/use-auth';
-
-vi.mock('@tanstack/react-query', () => ({
-  useMutation: vi.fn(),
-}));
 
 vi.mock('../useGeolocation', () => ({
   useGeolocation: vi.fn(),
@@ -16,6 +11,12 @@ vi.mock('../useGeolocation', () => ({
 vi.mock('@/hooks/auth/use-auth', () => ({
   useAuth: vi.fn(),
 }));
+
+vi.mock('../../openapi-rq/queries/queries', () => ({
+  useUpdateLocation: vi.fn(),
+}));
+
+import { useUpdateLocation } from '../../openapi-rq/queries/queries';
 
 describe('useLocationReporting', () => {
   let mockMutate: any;
@@ -30,7 +31,7 @@ describe('useLocationReporting', () => {
     } as any);
 
     mockMutate = vi.fn();
-    vi.mocked(useMutation).mockReturnValue({
+    vi.mocked(useUpdateLocation).mockReturnValue({
       mutate: (args: any, options: any) => {
         mockMutate(args);
         if (options?.onSuccess) options.onSuccess();
@@ -87,7 +88,7 @@ describe('useLocationReporting', () => {
 
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(mockMutate).toHaveBeenCalledWith({
-      body: { latitude: 4.0, longitude: 9.0 },
+      requestBody: { latitude: 4.0, longitude: 9.0 },
     });
   });
 
@@ -126,7 +127,7 @@ describe('useLocationReporting', () => {
 
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(mockMutate).toHaveBeenCalledWith({
-      body: { latitude: 4.0002, longitude: 9.0 },
+      requestBody: { latitude: 4.0002, longitude: 9.0 },
     });
   });
 

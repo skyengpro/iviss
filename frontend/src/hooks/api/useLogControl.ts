@@ -46,7 +46,7 @@ export function useLogControl() {
         notes: 'Logged via mobile app',
       };
 
-      await createControlMutation.mutateAsync({ body: payload });
+      await createControlMutation.mutateAsync({ requestBody: payload });
 
       setControlLogged(true);
       toast({

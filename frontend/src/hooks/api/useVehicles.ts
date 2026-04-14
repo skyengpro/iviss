@@ -122,7 +122,7 @@ export function useVehicles() {
         address,
       };
       return searchMutate({
-        body: enrichedRequest,
+        requestBody: enrichedRequest,
         throwOnError: true,
       });
     },
@@ -132,7 +132,7 @@ export function useVehicles() {
   const submit = useCallback(
     async (request: CreatePendingSubmissionRequest) => {
       return submitMutate({
-        body: request,
+        requestBody: request,
         throwOnError: true,
       });
     },

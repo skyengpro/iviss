@@ -33,10 +33,10 @@ export function useOrganizations() {
     error,
     refetch,
     createOrganization: (data: CreateOrganizationRequest) =>
-      createMutation.mutateAsync({ body: data }),
+      createMutation.mutateAsync({ requestBody: data }),
     updateOrganization: (id: string, data: UpdateOrganizationRequest) =>
-      updateMutation.mutateAsync({ path: { id }, body: data }),
-    deleteOrganization: (id: string) => deleteMutation.mutateAsync({ path: { id } }),
+      updateMutation.mutateAsync({ id, requestBody: data }),
+    deleteOrganization: (id: string) => deleteMutation.mutateAsync({ id }),
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
