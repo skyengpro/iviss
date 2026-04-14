@@ -1,4 +1,5 @@
 pub mod api_doc;
+pub mod app_cache;
 pub mod app_state;
 pub mod config;
 pub mod db;
