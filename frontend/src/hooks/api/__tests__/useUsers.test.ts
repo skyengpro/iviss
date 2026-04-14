@@ -6,7 +6,9 @@ import { createQueryWrapper } from '@/test/queryWrapper';
 // Mock dependencies
 vi.mock('@/openapi-rq/queries/queries', () => ({
   useListUsers: vi.fn(),
+  useListOrgUsers: vi.fn(),
   useProvisionUser: vi.fn(),
+  useProvisionOrgUser: vi.fn(),
   useUpdateUser: vi.fn(),
   useDeleteUser: vi.fn(),
   useGetUser: vi.fn(),
@@ -15,6 +17,7 @@ vi.mock('@/openapi-rq/queries/queries', () => ({
 import {
   useListUsers,
   useProvisionUser,
+  useProvisionOrgUser,
   useUpdateUser,
   useDeleteUser,
   useGetUser,
@@ -50,6 +53,18 @@ describe('useUsers', () => {
           mutateAsync: (...args: any[]) => {
             if (options?.onSuccess) options.onSuccess();
             return mockProvisionMutate(...args);
+          },
+          isPending: false,
+          error: null,
+        }) as any
+    );
+
+    vi.mocked(useProvisionOrgUser).mockImplementation(
+      (_q, options: any) =>
+        ({
+          mutateAsync: (...args: any[]) => {
+            if (options?.onSuccess) options.onSuccess();
+            return vi.fn()(...args);
           },
           isPending: false,
           error: null,

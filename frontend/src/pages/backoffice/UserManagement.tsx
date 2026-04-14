@@ -63,9 +63,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
-import { useUsers } from '@/hooks/api/useUsers';
+import { useUsers, useOrgUsers } from '@/hooks/api/useUsers';
 import { useOrganizations } from '@/hooks/api/useOrganizations';
 import { UserForm } from '@/components/shared/Admin/UserForm';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/services/api/backendFetch';
 import { resendActivationCode } from '@/openapi-rq/requests/services.gen';
@@ -85,9 +86,13 @@ const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destruct
 export default function UserManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role === 'admin';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [orgFilter, setOrgFilter] = useState('all');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -95,17 +100,35 @@ export default function UserManagement() {
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [resendLoadingUserId, setResendLoadingUserId] = useState<string | null>(null);
+  const [tempPasswordInfo, setTempPasswordInfo] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
 
+  // Superadmin sees all users; org admin sees only their org's users
   const {
-    users = [],
-    isLoadingUsers,
+    users: allUsers = [],
+    isLoadingUsers: isLoadingAll,
     provision,
     isProvisioning,
+    provisionOrg,
+    isProvisioningOrg,
     update,
     isUpdating,
     remove,
     isDeleting,
   } = useUsers();
+
+  const { data: orgUsers = [], isLoading: isLoadingOrg } = useOrgUsers();
+
+  const users: UserProfile[] = isSuperAdmin
+    ? (allUsers as UserProfile[])
+    : (orgUsers as UserProfile[]);
+  const isLoadingUsers = isSuperAdmin ? isLoadingAll : isLoadingOrg;
+
+  // Org admin's own organization id (from their JWT profile)
+  const orgAdminOrgId = currentUser?.organizationId ?? undefined;
+
   const { organizations = [] } = useOrganizations();
 
   // Calculate dynamic stats
@@ -116,9 +139,13 @@ export default function UserManagement() {
 
   const handleAddUser = async (data: ProvisionUserRequest) => {
     try {
-      await provision(data);
-      toast.success(t('backOfficeUserManagement.toastSuccess'));
+      const result = isSuperAdmin ? await provision(data) : await provisionOrg(data);
       setIsAddUserOpen(false);
+      if (result?.tempPassword && data.email) {
+        setTempPasswordInfo({ email: data.email, password: result.tempPassword });
+      } else {
+        toast.success(t('backOfficeUserManagement.toastSuccess'));
+      }
     } catch (error) {
       toast.error(t('backOfficeUserManagement.toastError'));
     }
@@ -253,8 +280,9 @@ export default function UserManagement() {
       (statusFilter === 'active' && user.status === 'ACTIVE') ||
       (statusFilter === 'pending' && user.status === 'PENDING_ACTIVATION') ||
       (statusFilter === 'suspended' && user.status === 'SUSPENDED');
+    const matchesOrg = !isSuperAdmin || orgFilter === 'all' || user.organizationId === orgFilter;
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus && matchesOrg;
   });
 
   return (
@@ -280,7 +308,9 @@ export default function UserManagement() {
               <UserForm
                 onSubmit={handleAddUser}
                 onCancel={() => setIsAddUserOpen(false)}
-                isLoading={isProvisioning}
+                isLoading={isSuperAdmin ? isProvisioning : isProvisioningOrg}
+                mode={isSuperAdmin ? 'superadmin' : 'org_admin'}
+                lockedOrgId={!isSuperAdmin ? orgAdminOrgId : undefined}
               />
             </DialogContent>
           </Dialog>
@@ -384,6 +414,46 @@ export default function UserManagement() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Temp password dialog — shown after org admin creation */}
+          <AlertDialog
+            open={!!tempPasswordInfo}
+            onOpenChange={(open) => {
+              if (!open) setTempPasswordInfo(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Organization Admin Created</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3">
+                    <p>
+                      The account has been created. Share these credentials securely with the user —
+                      this password will not be shown again.
+                    </p>
+                    <div className="rounded-md border bg-muted p-3 space-y-1 text-sm font-mono">
+                      <div>
+                        <span className="text-muted-foreground">Email:</span>{' '}
+                        {tempPasswordInfo?.email}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Temp password:</span>{' '}
+                        {tempPasswordInfo?.password}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      The user will be required to change this password on first login.
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setTempPasswordInfo(null)}>
+                  Done
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </>
       }
     >
@@ -430,6 +500,24 @@ export default function UserManagement() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              {isSuperAdmin && (
+                <Select value={orgFilter} onValueChange={setOrgFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder={t('backOfficeUserManagement.organization')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      {t('backOfficeUserManagement.allOrganizations', 'All Organizations')}
+                    </SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </CardHeader>

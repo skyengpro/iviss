@@ -40,7 +40,7 @@ export function RequireAuth({
         }
       } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
         // Prevent infinite redirect loop if we are already at the target
-        if (user.role === 'admin' || user.role === 'manager') {
+        if (user.role === 'admin' || user.role === 'manager' || user.role === 'org_admin') {
           if (location.pathname !== '/backoffice') {
             navigate('/backoffice');
           }
