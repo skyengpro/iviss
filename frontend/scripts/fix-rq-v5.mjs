@@ -33,6 +33,10 @@ content = content.replace(
   'useMutation({ mutationFn: ({ $1 }) => $2, ...options })'
 );
 
+// 4. Transform useUsersServiceUpdateLocation -> useUpdateLocation
+// Removes the intermediate Service tag from the generated hook names
+content = content.replace(/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/g, 'use$1');
+
 fs.writeFileSync(filePath, content);
 console.log('✅ Successfully patched src/openapi-rq/queries/index.ts');
 
