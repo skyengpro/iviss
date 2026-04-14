@@ -1445,7 +1445,7 @@
       "post": {
         "tags": ["auth"],
         "summary": "Step 1 of the challenge-response refresh flow.",
-        "description": "Validates the refresh token, generates a nonce, stores it in Redis,\nand returns it to the client for signing.",
+        "description": "Validates the refresh token, generates a nonce, stores it in Moka cache,\nand returns it to the client for signing.",
         "operationId": "requestRefresh",
         "requestBody": {
           "content": {

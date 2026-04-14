@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
 use crate::routes;
+use crate::services::otp_service::OTP_TTL_SECS;
 use crate::services::sms_provider::MockSmsProvider;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -10,7 +11,6 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use tower::ServiceExt;
 use uuid::Uuid;
 
@@ -45,32 +45,34 @@ fn hash_otp_code(pepper: &str, code: &str) -> String {
     format!("{:x}", mac.finalize().into_bytes())
 }
 
-/// Helper: store OTP directly in Redis for testing
+/// Helper: store OTP directly in Moka cache for testing
 async fn store_test_otp(
-    redis_url: &str,
+    cache: &crate::app_cache::AppCache,
     user_id: Uuid,
     code: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use deadpool_redis::redis::AsyncCommands;
-
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.to_string());
-    let pool = redis_cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))?;
-    let mut conn = pool.get().await?;
-
     let code_hash = hash_otp_code(TEST_PEPPER, code);
-    let entry = serde_json::json!({
+    let _entry = serde_json::json!({
         "code_hash": code_hash,
         "attempts": 0
     });
-
-    let key = format!("user_otp:{}", user_id);
-    conn.set_ex::<_, _, ()>(&key, entry.to_string(), 300)
-        .await?;
+    cache
+        .otp_store
+        .insert(
+            user_id,
+            crate::app_cache::OtpEntry {
+                code_hash,
+                attempts: 0,
+                expires_at: std::time::Instant::now()
+                    + std::time::Duration::from_secs(OTP_TTL_SECS),
+            },
+        )
+        .await;
 
     Ok(())
 }
 
-/// Setup test infrastructure and returns (app, db, user_id, device_id, badge_id, phone, redis_url, pg, redis)
+/// Setup test infrastructure and returns (app, db, user_id, device_id, badge_id, phone, pg, cache)
 async fn setup_test_infrastructure() -> (
     axum::Router,
     sqlx::PgPool,
@@ -78,9 +80,8 @@ async fn setup_test_infrastructure() -> (
     Uuid,
     String,
     String,
-    String,
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
+    std::sync::Arc<crate::app_cache::AppCache>,
 ) {
     let pg = Postgres::default().with_host_auth().start().await.unwrap();
     let pg_port = pg.get_host_port_ipv4(5432).await.unwrap();
@@ -94,13 +95,7 @@ async fn setup_test_infrastructure() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-    let redis = Redis::default().start().await.unwrap();
-    let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
-    let redis_pool = redis_cfg
-        .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-        .unwrap();
+    let cache = std::sync::Arc::new(crate::app_cache::AppCache::new());
 
     // Create organization
     let org_id = Uuid::new_v4();
@@ -161,7 +156,6 @@ async fn setup_test_infrastructure() -> (
 
     let config = crate::config::Config {
         database_url: db_url,
-        redis_url: redis_url.clone(),
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
@@ -177,13 +171,13 @@ async fn setup_test_infrastructure() -> (
         shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),
-        admin_bootstrap_phone: Some("+237600000000".to_string()),
+        admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
     };
 
     let state = AppState::new(
         db.clone(),
-        redis_pool.clone(),
+        cache.clone(),
         Arc::new(MockSmsProvider),
         &config,
     );
@@ -197,9 +191,8 @@ async fn setup_test_infrastructure() -> (
         device_id,
         badge_id,
         phone_number,
-        redis_url,
         pg,
-        redis,
+        cache,
     )
 }
 
@@ -209,7 +202,7 @@ async fn setup_test_infrastructure() -> (
 
 #[tokio::test]
 async fn test_request_daily_login_success() {
-    let (app, _db, _user_id, device_id, badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, _db, _user_id, device_id, badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     let request_body = json!({
@@ -240,7 +233,7 @@ async fn test_request_daily_login_success() {
 
 #[tokio::test]
 async fn test_request_daily_login_missing_badge_id() {
-    let (app, _db, _user_id, device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, _db, _user_id, device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     let request_body = json!({
@@ -265,7 +258,7 @@ async fn test_request_daily_login_missing_badge_id() {
 
 #[tokio::test]
 async fn test_request_daily_login_non_agent_user() {
-    let (app, db, _user_id, _device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, db, _user_id, _device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     // Create an admin user with email (required by constraint)
@@ -309,7 +302,7 @@ async fn test_request_daily_login_non_agent_user() {
 
 #[tokio::test]
 async fn test_request_daily_login_suspended_user() {
-    let (app, db, _user_id, device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, db, _user_id, device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     // Update user to SUSPENDED status
@@ -342,7 +335,7 @@ async fn test_request_daily_login_suspended_user() {
 
 #[tokio::test]
 async fn test_request_daily_login_suspended_device() {
-    let (app, db, _user_id, device_id, badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, db, _user_id, device_id, badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     // Update device to SUSPENDED status
@@ -390,7 +383,7 @@ async fn test_request_daily_login_suspended_device() {
 #[tokio::test]
 async fn test_request_daily_login_invalid_badge_format() {
     // Test with a badge ID that doesn't exist
-    let (app, _db, _user_id, device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, _db, _user_id, device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     let request_body = json!({
@@ -416,7 +409,7 @@ async fn test_request_daily_login_invalid_badge_format() {
 
 #[tokio::test]
 async fn test_verify_daily_login_missing_badge_id() {
-    let (app, _db, _user_id, device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, _db, _user_id, device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     let request_body = json!({
@@ -442,7 +435,7 @@ async fn test_verify_daily_login_missing_badge_id() {
 
 #[tokio::test]
 async fn test_verify_daily_login_missing_activation_code() {
-    let (app, _db, _user_id, device_id, badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, _db, _user_id, device_id, badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     let request_body = json!({
@@ -468,12 +461,12 @@ async fn test_verify_daily_login_missing_activation_code() {
 
 #[tokio::test]
 async fn test_verify_daily_login_invalid_otp() {
-    let (app, _db, user_id, device_id, badge_id, _phone, redis_url, _pg, _redis) =
+    let (app, _db, user_id, device_id, badge_id, _phone, _pg, cache) =
         setup_test_infrastructure().await;
 
     // Store OTP in Redis
     let test_code = "123456";
-    store_test_otp(&redis_url, user_id, test_code)
+    store_test_otp(&cache, user_id, test_code)
         .await
         .expect("Failed to store test OTP");
 
@@ -501,7 +494,7 @@ async fn test_verify_daily_login_invalid_otp() {
 
 #[tokio::test]
 async fn test_verify_daily_login_non_agent_user() {
-    let (app, db, _user_id, device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, db, _user_id, device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     // Create an admin user with email (required by constraint)
@@ -546,7 +539,7 @@ async fn test_verify_daily_login_non_agent_user() {
 
 #[tokio::test]
 async fn test_verify_daily_login_inactive_user() {
-    let (app, db, _user_id, device_id, badge_id, _phone, redis_url, _pg, _redis) =
+    let (app, db, user_id, device_id, badge_id, _phone, _pg, cache) =
         setup_test_infrastructure().await;
 
     // Update user to PENDING_ACTIVATION status
@@ -559,15 +552,8 @@ async fn test_verify_daily_login_inactive_user() {
     .unwrap();
 
     // Store OTP in Redis
-    let user_id_result: (Uuid,) = sqlx::query_as("SELECT id FROM users WHERE badge_id = $1")
-        .bind(&badge_id)
-        .fetch_one(&db)
-        .await
-        .unwrap();
-    let user_id = user_id_result.0;
-
     let test_code = "123456";
-    store_test_otp(&redis_url, user_id, test_code)
+    store_test_otp(&cache, user_id, test_code)
         .await
         .expect("Failed to store test OTP");
 
@@ -594,7 +580,7 @@ async fn test_verify_daily_login_inactive_user() {
 
 #[tokio::test]
 async fn test_verify_daily_login_suspended_device() {
-    let (app, db, user_id, device_id, badge_id, _phone, redis_url, _pg, _redis) =
+    let (app, db, user_id, device_id, badge_id, _phone, _pg, cache) =
         setup_test_infrastructure().await;
 
     // Update device to SUSPENDED status
@@ -606,7 +592,7 @@ async fn test_verify_daily_login_suspended_device() {
 
     // Store OTP in Redis
     let test_code = "123456";
-    store_test_otp(&redis_url, user_id, test_code)
+    store_test_otp(&cache, user_id, test_code)
         .await
         .expect("Failed to store test OTP");
 
@@ -633,7 +619,7 @@ async fn test_verify_daily_login_suspended_device() {
 
 #[tokio::test]
 async fn test_verify_daily_login_user_not_found() {
-    let (app, _db, _user_id, device_id, _badge_id, _phone, _redis_url, _pg, _redis) =
+    let (app, _db, _user_id, device_id, _badge_id, _phone, _pg, _cache) =
         setup_test_infrastructure().await;
 
     let request_body = json!({
