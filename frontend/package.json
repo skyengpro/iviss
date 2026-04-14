@@ -20,7 +20,7 @@
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
     "postinstall": "npm run codegen:types",
-    "codegen": "rm -rf ./src/openapi-rq && mkdir -p ./src/openapi-rq/requests ./src/openapi-rq/queries && npx --yes @7nohe/openapi-react-query-codegen -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch && sed -i -E 's/use[A-Z][a-zA-Z]+Service([A-Z][a-zA-Z]+)/use\\1/g' src/openapi-rq/queries/index.ts && node scripts/fix-rq-v5.mjs && npx --yes @hey-api/openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && printf \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\\n\" > src/openapi-rq/requests/services.gen.ts && printf \"export * from './index';\\n\" > src/openapi-rq/queries/queries.ts",
+    "codegen": "rm -rf ./src/openapi-rq && mkdir -p ./src/openapi-rq/requests ./src/openapi-rq/queries && npx --yes @7nohe/openapi-react-query-codegen -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch && node scripts/fix-rq-v5.mjs && npx --yes @hey-api/openapi-ts --input openapi.json --output ./src/openapi-rq/modern --client @hey-api/client-fetch && printf \"export * from '../modern/client.gen';\\nexport * from '../modern/sdk.gen';\\n\" > src/openapi-rq/requests/services.gen.ts && printf \"export * from './index';\\n\" > src/openapi-rq/queries/queries.ts",
     "codegen:types": "npx openapi-ts --input openapi.json --output ./src/openapi-rq/requests --client @hey-api/client-fetch"
   },
   "dependencies": {
@@ -111,6 +111,7 @@
     "install": "^0.13.0",
     "jsdom": "^29.0.1",
     "openapi-typescript-codegen": "^0.24.0",
+    
     "postcss": "^8.5.6",
     "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",

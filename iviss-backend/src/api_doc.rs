@@ -20,12 +20,14 @@ use crate::dto::{
     stats::{
         ActivityData, ActivityFeedItemDto, ActivityFeedResponse, AgentLocationDto,
         ControlActivityPoint, ControlActivityResponse, DashboardRange, DashboardStats,
-        RecentAlertItemDto, RecentAlertsResponse, TopAgentDto, TopAgentsResponse,
+        OrgDashboardStats, RecentAlertItemDto, RecentAlertsResponse, TopAgentDto,
+        TopAgentsResponse,
     },
     users::{
-        DeviceStatus, ProvisionUserRequest, ResendActivationRequest, ResendActivationResponse,
-        RestartSessionRequest, RestartSessionResponse, TerminateSessionRequest,
-        TerminateSessionResponse, UpdateUserRequest, UserProfile, UserRole, UserStatus,
+        DeviceStatus, ProvisionUserRequest, ProvisionUserResponse, ResendActivationRequest,
+        ResendActivationResponse, RestartSessionRequest, RestartSessionResponse,
+        TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest, UserProfile,
+        UserRole, UserStatus,
     },
 };
 use crate::errors::{AppErrorResponse, ErrorCode};
@@ -88,6 +90,11 @@ impl Modify for SecurityAddon {
         crate::handlers::stats::get_top_agents,
         crate::handlers::stats::get_activity_feed,
         crate::handlers::stats::get_recent_alerts,
+        crate::handlers::stats::get_org_dashboard_stats,
+        crate::handlers::stats::get_org_activity_feed,
+        crate::handlers::stats::get_org_recent_alerts,
+        crate::handlers::stats::get_org_top_agents,
+        crate::handlers::stats::get_org_control_activity,
         crate::handlers::users::get_user_profile,
         crate::handlers::users::update_location,
         crate::handlers::auth::login,
@@ -112,6 +119,9 @@ impl Modify for SecurityAddon {
         crate::handlers::user_management::restart_session,
         crate::handlers::audit_log::list_audit_logs,
         crate::handlers::audit_log::export_audit_logs,
+        crate::handlers::auth::change_password,
+        crate::handlers::user_management::list_org_users,
+        crate::handlers::user_management::provision_org_user,
     ),
 
     components(
@@ -152,6 +162,7 @@ impl Modify for SecurityAddon {
             AppErrorResponse,
             ErrorCode,
             DashboardStats,
+            OrgDashboardStats,
             ActivityData,
             DashboardRange,
             ControlActivityPoint,
@@ -175,6 +186,8 @@ impl Modify for SecurityAddon {
             // ── auth ──
             LoginRequest,
             AuthResponse,
+            ChangePasswordRequest,
+            ChangePasswordResponse,
             ResendActivationRequest,
             ResendActivationResponse,
             RequestDailyLoginRequest,
@@ -189,6 +202,7 @@ impl Modify for SecurityAddon {
             crate::handlers::auth::VerifyRefreshRequest,
             crate::handlers::auth::VerifyRefreshResponse,
             ProvisionUserRequest,
+            ProvisionUserResponse,
             UpdateUserRequest,
             TerminateSessionRequest,
             TerminateSessionResponse,

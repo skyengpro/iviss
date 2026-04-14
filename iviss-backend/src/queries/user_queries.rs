@@ -99,6 +99,55 @@ pub async fn create_user(
     get_user_by_id(pool, user_id).await
 }
 
+pub async fn create_org_admin_user_with_temp_password(
+    pool: &PgPool,
+    req: crate::dto::users::ProvisionUserRequest,
+    password_hash: String,
+) -> Result<UserProfile, AppError> {
+    let user_id = Uuid::new_v4();
+
+    let email = req
+        .email
+        .ok_or_else(|| AppError::bad_request("email is required for org admin"))?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO users (
+            id,
+            organization_id,
+            username,
+            email,
+            password_hash,
+            must_change_password,
+            role,
+            badge_id,
+            full_name,
+            phone_number,
+            status
+        )
+        VALUES (
+            $1, $2, $3, $4, $5, TRUE,
+            'org_admin'::user_role,
+            $6, $7, $8,
+            'ACTIVE'::user_status
+        )
+        "#,
+    )
+    .bind(user_id)
+    .bind(req.organization_id)
+    .bind(req.username)
+    .bind(email)
+    .bind(password_hash)
+    .bind(req.badge_id)
+    .bind(req.full_name)
+    .bind(req.phone_number)
+    .execute(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    get_user_by_id(pool, user_id).await
+}
+
 pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
     let rows = sqlx::query(
         r#"
@@ -139,6 +188,68 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserProfile>, AppError> {
 
             let session_status: Option<DeviceStatus> = row.get("session_status");
 
+            UserProfile {
+                id: row.get("id"),
+                username: row.get("username"),
+                name: row.get("full_name"),
+                email: row.get("email"),
+                role,
+                organization_id: row.get("organization_id"),
+                organization: row.get("organization_name"),
+                badge_id: row.get("badge_id"),
+                phone_number: row.get("phone_number"),
+                avatar_initials: None,
+                is_active: status == UserStatus::Active,
+                status,
+                session_status,
+                last_revoked_at: row.get("last_revoked_at"),
+            }
+        })
+        .collect();
+
+    Ok(users)
+}
+
+pub async fn list_users_by_org(pool: &PgPool, org_id: Uuid) -> Result<Vec<UserProfile>, AppError> {
+    let rows = sqlx::query(
+        r#"
+        SELECT 
+            u.id, 
+            u.full_name, 
+            u.email, 
+            u.role AS role,
+            u.organization_id, 
+            o.name AS organization_name,
+            u.badge_id,
+            u.phone_number,
+            u.status,
+            u.username,
+            d.status AS session_status,
+            d.revoked_at AS last_revoked_at
+        FROM users u
+        LEFT JOIN organizations o ON u.organization_id = o.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status, revoked_at
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
+        WHERE u.deleted_at IS NULL
+          AND u.organization_id = $1
+        ORDER BY u.created_at DESC
+        "#,
+    )
+    .bind(org_id)
+    .fetch_all(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    let users = rows
+        .into_iter()
+        .map(|row| {
+            let role: UserRole = row.get("role");
+            let status: UserStatus = row.get("status");
+            let session_status: Option<DeviceStatus> = row.get("session_status");
             UserProfile {
                 id: row.get("id"),
                 username: row.get("username"),
