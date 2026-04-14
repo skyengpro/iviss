@@ -1,5 +1,6 @@
+use crate::app_cache::AppCache;
 use crate::config::Config;
-use crate::db::{redis::RedisPool, DbPool};
+use crate::db::DbPool;
 use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::SmsProvider;
@@ -7,7 +8,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct AppState {
     pub db: DbPool,
-    pub redis: RedisPool,
+    pub app_cache: Arc<AppCache>,
     pub otp_svc: Arc<OtpService>,
     pub jwt_svc: Arc<JwtService>,
     pub jwt_public_key_pem: String,
@@ -18,7 +19,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(
         db_pool: DbPool,
-        redis_pool: RedisPool,
+        app_cache: Arc<AppCache>,
         sms_pvd: Arc<dyn SmsProvider>,
         config: &Config,
     ) -> Self {
@@ -26,13 +27,13 @@ impl AppState {
             .expect("Failed to parse JWT private key PEM at startup");
 
         let otp_svc = OtpService::new(
-            redis_pool.clone(),
+            app_cache.clone(),
             sms_pvd.clone(),
             config.activation_code_pepper.clone(),
         );
         Self {
             db: db_pool,
-            redis: redis_pool,
+            app_cache,
             otp_svc: Arc::new(otp_svc),
             jwt_svc: Arc::new(jwt_svc),
             jwt_public_key_pem: config.jwt_public_key_pem.clone(),

@@ -8,7 +8,6 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
-use testcontainers_modules::redis::Redis;
 use tower::ServiceExt;
 use uuid::Uuid;
 
@@ -53,7 +52,6 @@ async fn setup_admin_logout_test() -> (
     axum::Router,
     sqlx::PgPool,
     testcontainers::ContainerAsync<Postgres>,
-    testcontainers::ContainerAsync<Redis>,
     String, // jwt_private_key_pem
     String, // jwt_public_key_pem
 ) {
@@ -69,19 +67,10 @@ async fn setup_admin_logout_test() -> (
 
     sqlx::migrate!("./migrations").run(&db).await.unwrap();
 
-    let redis = Redis::default().start().await.unwrap();
-    let redis_port = redis.get_host_port_ipv4(6379).await.unwrap();
-    let redis_url = format!("redis://127.0.0.1:{}", redis_port);
-    let redis_cfg = deadpool_redis::Config::from_url(redis_url.clone());
-    let redis_pool = redis_cfg
-        .create_pool(Some(deadpool_redis::Runtime::Tokio1))
-        .unwrap();
-
     let (jwt_private_key_pem, jwt_public_key_pem) = generate_test_rsa_keypair_pem();
 
     let config = crate::config::Config {
         database_url: db_url,
-        redis_url: redis_url.clone(),
         server_host: "0.0.0.0".to_string(),
         server_port: 0,
         log_level: crate::config::LogLevel::Info,
@@ -102,14 +91,14 @@ async fn setup_admin_logout_test() -> (
 
     let state = AppState::new(
         db.clone(),
-        redis_pool.clone(),
+        Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(crate::services::sms_provider::MockSmsProvider),
         &config,
     );
 
     let app = routes::assembly(state);
 
-    (app, db, pg, redis, jwt_private_key_pem, jwt_public_key_pem)
+    (app, db, pg, jwt_private_key_pem, jwt_public_key_pem)
 }
 
 /// Helper: create admin user
@@ -220,8 +209,7 @@ fn generate_access_token(
 
 #[tokio::test]
 async fn test_admin_logout_success() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
-        setup_admin_logout_test().await;
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) = setup_admin_logout_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -255,8 +243,7 @@ async fn test_admin_logout_success() {
 
 #[tokio::test]
 async fn test_admin_logout_revokes_refresh_tokens_and_allows_access_token_use() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
-        setup_admin_logout_test().await;
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) = setup_admin_logout_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -283,9 +270,8 @@ async fn test_admin_logout_revokes_refresh_tokens_and_allows_access_token_use() 
         .await
         .unwrap();
 
-    // Note: Access tokens are NOT blacklisted (no Redis check)
-    // The access token remains valid until it expires naturally
-    // Only refresh tokens are revoked
+    // Note: Access tokens ARE blacklisted in PostgreSQL and cache for security
+    // This ensures the token cannot be used after logout
     let protected_response = app
         .oneshot(
             Request::builder()
@@ -298,14 +284,13 @@ async fn test_admin_logout_revokes_refresh_tokens_and_allows_access_token_use() 
         .await
         .unwrap();
 
-    // Access token still works because only refresh tokens are revoked
-    assert_eq!(protected_response.status(), StatusCode::OK);
+    // Access token is rejected because it has been blacklisted during logout
+    assert_eq!(protected_response.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]
 async fn test_admin_logout_revokes_refresh_tokens() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
-        setup_admin_logout_test().await;
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) = setup_admin_logout_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -388,7 +373,7 @@ async fn test_admin_logout_revokes_refresh_tokens() {
 
 #[tokio::test]
 async fn test_admin_logout_missing_auth_header() {
-    let (app, _db, _pg, _redis, _jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, _db, _pg, _jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     // Call logout without Authorization header
@@ -408,7 +393,7 @@ async fn test_admin_logout_missing_auth_header() {
 
 #[tokio::test]
 async fn test_admin_logout_invalid_token() {
-    let (app, _db, _pg, _redis, _jwt_private_key_pem, _jwt_public_key_pem) =
+    let (app, _db, _pg, _jwt_private_key_pem, _jwt_public_key_pem) =
         setup_admin_logout_test().await;
 
     // Call logout with invalid token
@@ -429,8 +414,7 @@ async fn test_admin_logout_invalid_token() {
 
 #[tokio::test]
 async fn test_admin_logout_manager_role_allowed() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
-        setup_admin_logout_test().await;
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) = setup_admin_logout_test().await;
 
     let email = "manager@test.com";
     let password = "testpassword123";
@@ -462,9 +446,8 @@ async fn test_admin_logout_manager_role_allowed() {
 
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
-    // Note: Access tokens are NOT blacklisted (no Redis check)
-    // The access token remains valid until it expires naturally
-    // Only refresh tokens are revoked during logout
+    // Note: Access tokens ARE blacklisted in PostgreSQL and cache for security
+    // This ensures the token cannot be used after logout
     let protected_response = app
         .oneshot(
             Request::builder()
@@ -477,14 +460,13 @@ async fn test_admin_logout_manager_role_allowed() {
         .await
         .unwrap();
 
-    // Access token still works because only refresh tokens are revoked
-    assert_eq!(protected_response.status(), StatusCode::OK);
+    // Access token is rejected because it has been blacklisted during logout
+    assert_eq!(protected_response.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]
 async fn test_admin_logout_idempotent() {
-    let (app, db, _pg, _redis, jwt_private_key_pem, _jwt_public_key_pem) =
-        setup_admin_logout_test().await;
+    let (app, db, _pg, jwt_private_key_pem, _jwt_public_key_pem) = setup_admin_logout_test().await;
 
     let email = "admin@test.com";
     let password = "testpassword123";
@@ -513,9 +495,9 @@ async fn test_admin_logout_idempotent() {
 
     assert_eq!(response1.status(), StatusCode::NO_CONTENT);
 
-    // Second logout with same token - should also return 204
-    // Note: Without Redis blacklist, access tokens are not invalidated
-    // so the second logout also succeeds (idempotent for refresh token revocation)
+    // Second logout with same token - should return 401
+    // The access token is blacklisted after the first logout for security
+    // so the second logout fails with Unauthorized
     let response2 = app
         .oneshot(
             Request::builder()
@@ -528,7 +510,7 @@ async fn test_admin_logout_idempotent() {
         .await
         .unwrap();
 
-    // Without token blacklisting, the second logout also succeeds
-    // (refresh token revocation is idempotent)
-    assert_eq!(response2.status(), StatusCode::NO_CONTENT);
+    // With token blacklisting, the second logout returns 401
+    // because the token has been revoked after the first logout
+    assert_eq!(response2.status(), StatusCode::UNAUTHORIZED);
 }

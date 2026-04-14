@@ -1,7 +1,6 @@
 use crate::app_state::AppState;
 use crate::errors::AppError;
 use crate::middleware::auth::{decode_access_token_rs256, extract_bearer_token};
-use crate::queries::auth_queries;
 use axum::extract::{Request, State};
 use axum::http::header::AUTHORIZATION;
 use axum::middleware::Next;
@@ -67,32 +66,13 @@ pub async fn require_auth_web(
         "rbac: jwt verified"
     );
 
-    // Check Redis blacklist for admin tokens
-    let is_blacklisted = auth_queries::is_jti_blacklisted(&state.redis, &claims.jti.to_string())
+    // Check Moka cache blacklist for admin tokens
+    let is_blacklisted = state
+        .app_cache
+        .jti_blacklist
+        .get(&claims.jti.to_string())
         .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "rbac: failed to check blacklist");
-            AppError::internal_error("Auth verification failed")
-        })?;
-
-    if is_blacklisted {
-        tracing::warn!(
-            %method,
-            %path,
-            user_id = %claims.sub,
-            jti = %claims.jti,
-            "rbac: rejected (token revoked)"
-        );
-        return Err(AppError::unauthorized("Token has been revoked"));
-    }
-
-    // Check Redis blacklist for admin tokens
-    let is_blacklisted = auth_queries::is_jti_blacklisted(&state.redis, &claims.jti.to_string())
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "rbac: failed to check blacklist");
-            AppError::internal_error("Auth verification failed")
-        })?;
+        .is_some();
 
     if is_blacklisted {
         tracing::warn!(

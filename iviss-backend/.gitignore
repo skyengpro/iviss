@@ -15,3 +15,6 @@
 # Editor / OS
 .DS_Store
 *.swp
+
+
+docs/redis-to-moka-migration.md

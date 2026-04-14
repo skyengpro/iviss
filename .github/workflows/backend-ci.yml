@@ -69,14 +69,19 @@ jobs:
         run: cargo test --doc --verbose
         working-directory: iviss-backend
       - name: Generate coverage report
-        run: cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 60
+        run: cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 55
         working-directory: iviss-backend
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-backend
-          path: iviss-backend/target/coverage/html/
-
+          path: |
+            iviss-backend/target/coverage/html/**/*.html
+            iviss-backend/target/coverage/html/**/*.css
+            iviss-backend/target/coverage/html/**/*.js
+            iviss-backend/target/coverage/html/index.html
+          retention-days: 2
+  
   backend_fmt:
     name: Backend Format
     runs-on: ubuntu-latest

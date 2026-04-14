@@ -102,6 +102,12 @@ pub fn assembly(state: AppState) -> Router {
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
+    // Auth routes accessible to all authenticated users (admin + manager)
+    // No role restriction, just require authentication
+    let auth_routes = Router::new()
+        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
+        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
+
     // Org-admin routes — scoped to org_admin users with a valid organization_id
     let org_admin_routes = Router::new()
         .route(
@@ -185,11 +191,11 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/users/location",
             post(crate::handlers::users::update_location),
         )
-        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
         .layer(from_fn_with_state(state.clone(), auth::require_auth));
 
     public_routes
         .merge(admin_routes)
+        .merge(auth_routes)
         .merge(org_admin_routes)
         .merge(web_auth_routes)
         .merge(protected_routes)
