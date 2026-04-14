@@ -1040,8 +1040,7 @@ async fn test_get_recent_alerts_no_alerts() {
 
 #[tokio::test]
 async fn test_get_org_dashboard_stats_data_isolation() {
-    let (db, _redis_pool, app, jwt_private_key_pem, _jwt_public_key_pem, _pg, _redis) =
-        setup_test_app().await;
+    let (app, db, _cache, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
 
     // 1. Seed Org A and its Admin
     let (_org_a_id, _admin_a_id, access_token_a) =
