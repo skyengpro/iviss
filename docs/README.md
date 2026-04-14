@@ -5,6 +5,7 @@ Welcome to the IVISS documentation. Start here to understand the system.
 ## 🚀 For Deployment/DevOps Team
 
 **New to deployment? Start here:**
+
 - [Deployment Index](DEPLOYMENT_INDEX.md) - Complete deployment documentation guide
 - [Deployment Overview](DEPLOYMENT_OVERVIEW.md) ⭐ **START HERE** - Current state and gaps
 - [CI/CD Pipelines](CICD_PIPELINES.md) - Automation and workflows
@@ -51,19 +52,23 @@ Welcome to the IVISS documentation. Start here to understand the system.
 ## Quick Reference
 
 ### What is IVISS?
+
 A platform for law enforcement to check vehicles during roadside inspections. Agents scan license plates, the system checks compliance (insurance, technical inspection, stolen status), and everything is logged with GPS location.
 
 ### Who uses it?
+
 - Field agents (mobile app with OTP login)
 - Managers (back-office dashboard)
 - Administrators (full system access)
 
 ### Tech stack
+
 - Backend: Rust + Axum + PostgreSQL + Redis
 - Frontend: React + TypeScript + Vite
 - All services run in Docker
 
 ### Key features
+
 - License plate OCR
 - Vehicle compliance checks
 - Multi-tenant with data isolation
