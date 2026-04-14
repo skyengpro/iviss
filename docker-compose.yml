@@ -39,10 +39,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d iviss_dev",
-        ]
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iviss_user} -d iviss_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,7 +48,6 @@ services:
     networks:
       - iviss-network
 
-  
   # Adminer is useful for local development only
   adminer:
     image: adminer

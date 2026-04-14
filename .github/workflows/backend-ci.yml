@@ -81,7 +81,7 @@ jobs:
             iviss-backend/target/coverage/html/**/*.js
             iviss-backend/target/coverage/html/index.html
           retention-days: 2
-  
+
   backend_fmt:
     name: Backend Format
     runs-on: ubuntu-latest
