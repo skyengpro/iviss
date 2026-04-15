@@ -31,9 +31,11 @@ export default function MobileSearch() {
 
   // Fetch recent controls for the agent to show as "recent searches"
   const { controls: recentControls = [] } = useControls({
-    query: {
-      agent_id: user?.id,
-    },
+    agentId: user?.id || null,
+    startDate: null,
+    endDate: null,
+    status: null,
+    plate: null,
   });
 
   // Check if plate was passed from scan
