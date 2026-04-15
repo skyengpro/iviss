@@ -35,6 +35,7 @@ IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-
 - **Control History**: Comprehensive tracking and management of all vehicle control operations, including details of inspections, violations, and resolutions.
 - **Alert System**: Instant notification system for flagged vehicles (e.g., stolen, unregistered, or vehicles with outstanding warrants), enabling immediate action by field agents.
 - **Mobile First**: User interface and experience are optimized for mobile devices, ensuring field agents can efficiently perform tasks on the go.
+- **Progressive Web App (PWA)**: Installable on Android, iOS, and Desktop with offline support and automatic updates. [Learn more →](./PWA_IMPLEMENTATION_SUMMARY.md)
 - **Multi-Tenant**: Supports multiple organizations with isolated data and configurations.
 - **Role-Based Access Control**: Granular access control system with predefined roles (Super Admin, Admin, Supervisor, Agent) to manage permissions and data visibility.
 
