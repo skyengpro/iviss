@@ -52,9 +52,11 @@ export default function MobileDashboard() {
   }, [lat, lng]);
 
   const { controls: recentControls = [], isLoading: controlsLoading } = useControls({
-    query: {
-      agent_id: user?.id,
-    },
+    agentId: user?.id || null,
+    startDate: null,
+    endDate: null,
+    status: null,
+    plate: null,
   });
 
   const startOfDay = new Date();
