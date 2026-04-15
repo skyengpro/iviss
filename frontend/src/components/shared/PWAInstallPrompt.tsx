@@ -18,8 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -44,7 +43,7 @@ export function PWAInstallPrompt() {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
-      
+
       // Show prompt after a short delay to not interrupt initial page load
       setTimeout(() => {
         setShowPrompt(true);
@@ -102,9 +101,7 @@ export function PWAInstallPrompt() {
             Install IVISS App
           </AlertDialogTitle>
           <AlertDialogDescription className="text-left space-y-2">
-            <p>
-              Install IVISS on your device for a better experience:
-            </p>
+            <p>Install IVISS on your device for a better experience:</p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>Quick access from your home screen</li>
               <li>Works offline for basic features</li>

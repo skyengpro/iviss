@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export function usePWA() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   const {
     offlineReady: [offlineReady],
@@ -25,8 +30,8 @@ export function usePWA() {
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
-      
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+
       // Check if user dismissed the prompt in the last 7 days
       const dismissedUntil = localStorage.getItem('pwa-install-dismissed');
       if (dismissedUntil) {
@@ -35,7 +40,7 @@ export function usePWA() {
           return;
         }
       }
-      
+
       // Show prompt after 3 seconds
       setTimeout(() => {
         setShowInstallPrompt(true);
@@ -54,11 +59,11 @@ export function usePWA() {
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    
+
     if (outcome === 'accepted') {
       console.log('User accepted the install prompt');
     }
-    
+
     setDeferredPrompt(null);
     setShowInstallPrompt(false);
   };
