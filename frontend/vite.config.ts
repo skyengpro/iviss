@@ -31,25 +31,25 @@ export default defineConfig(({ mode }) => ({
           {
             src: 'pwa-64x64.png',
             sizes: '64x64',
-            type: 'image/png'
+            type: 'image/png',
           },
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any'
+            purpose: 'any',
           },
           {
             src: 'maskable-icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable'
-          }
+            purpose: 'maskable',
+          },
         ],
         categories: ['business', 'productivity', 'utilities'],
         screenshots: [
@@ -57,15 +57,15 @@ export default defineConfig(({ mode }) => ({
             src: 'screenshot-mobile.png',
             sizes: '540x720',
             type: 'image/png',
-            form_factor: 'narrow'
+            form_factor: 'narrow',
           },
           {
             src: 'screenshot-desktop.png',
             sizes: '1280x720',
             type: 'image/png',
-            form_factor: 'wide'
-          }
-        ]
+            form_factor: 'wide',
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
@@ -77,12 +77,12 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 // 1 hour
+                maxAgeSeconds: 60 * 60, // 1 hour
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+                statuses: [0, 200],
+              },
+            },
           },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -91,21 +91,21 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: true,
         type: 'module',
         navigateFallback: 'index.html',
-      }
-    })
+      },
+    }),
   ],
   resolve: {
     alias: {
