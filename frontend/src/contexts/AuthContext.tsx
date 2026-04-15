@@ -421,7 +421,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession as unknown as AuthResponse);
       setUser(data.user);
 
-      return { success: true };
+      // Return mustChangePassword flag from backend response
+      const mustChangePassword =
+        (data as unknown as { mustChangePassword?: boolean }).mustChangePassword ?? false;
+      return { success: true, mustChangePassword };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Login failed' };
     }

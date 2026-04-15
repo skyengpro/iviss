@@ -1056,7 +1056,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
+                  "$ref": "#/components/schemas/ProvisionUserResponse"
                 }
               }
             }
@@ -1363,11 +1363,53 @@
         }
       }
     },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Change password for admin/org_admin users (used for forced password change on first login)",
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Login with email and password (admin / manager only)",
         "operationId": "loginUser",
         "requestBody": {
@@ -1865,6 +1907,434 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/org-admin/activity": {
+      "get": {
+        "tags": ["org-admin"],
+        "operationId": "getOrgControlActivity",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/DashboardRange"
+                }
+              ],
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Org control activity series retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlActivityResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/org-admin/activity-feed": {
+      "get": {
+        "tags": ["org-admin"],
+        "operationId": "getOrgActivityFeed",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Org activity feed retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityFeedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/org-admin/recent-alerts": {
+      "get": {
+        "tags": ["org-admin"],
+        "operationId": "getOrgRecentAlerts",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Org recent alerts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentAlertsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/org-admin/stats": {
+      "get": {
+        "tags": ["org-admin"],
+        "operationId": "getOrgDashboardStats",
+        "responses": {
+          "200": {
+            "description": "Org dashboard statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgDashboardStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/org-admin/top-agents": {
+      "get": {
+        "tags": ["org-admin"],
+        "operationId": "getOrgTopAgents",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/DashboardRange"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Org top agents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopAgentsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/org-admin/users": {
+      "get": {
+        "tags": ["org-admin"],
+        "summary": "List users scoped to the org admin's organization",
+        "operationId": "listOrgUsers",
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfile"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["org-admin"],
+        "summary": "Create an agent or supervisor within the org admin's organization",
+        "operationId": "provisionOrgUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/api/v1/photo/plate": {
@@ -2756,11 +3226,35 @@
           "accessToken": {
             "type": "string"
           },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
           "refreshToken": {
             "type": "string"
           },
           "user": {
             "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": ["newPassword", "confirmPassword"],
+        "properties": {
+          "confirmPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangePasswordResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
           }
         }
       },
@@ -3018,11 +3512,7 @@
       },
       "DashboardRange": {
         "type": "string",
-        "enum": [
-          "24h",
-          "7d",
-          "30d"
-        ]
+        "enum": ["24h", "7d", "30d"]
       },
       "DashboardStats": {
         "type": "object",
@@ -3131,9 +3621,7 @@
       },
       "ImageUploadRequest": {
         "type": "object",
-        "required": [
-          "image"
-        ],
+        "required": ["image"],
         "properties": {
           "image": {
             "type": "string",
@@ -3248,16 +3736,64 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string"
           },
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "OrgDashboardStats": {
+        "type": "object",
+        "description": "Org-scoped dashboard stats — returned for org_admin users.",
+        "required": [
+          "organizationName",
+          "todayControls",
+          "activeAlerts",
+          "onlineAgents",
+          "pendingSubmissions",
+          "totalUsers",
+          "activity24h",
+          "liveAgents"
+        ],
+        "properties": {
+          "activeAlerts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activity24h": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityData"
+            }
+          },
+          "liveAgents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentLocationDto"
+            }
+          },
+          "onlineAgents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "pendingSubmissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "todayControls": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalUsers": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -3567,6 +4103,19 @@
           }
         }
       },
+      "ProvisionUserResponse": {
+        "type": "object",
+        "required": ["user"],
+        "properties": {
+          "tempPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
       "RecentAlertItemDto": {
         "type": "object",
         "required": [
@@ -3615,9 +4164,7 @@
       },
       "RefreshChallengeResponse": {
         "type": "object",
-        "required": [
-          "nonce"
-        ],
+        "required": ["nonce"],
         "properties": {
           "nonce": {
             "type": "string"
@@ -3658,9 +4205,7 @@
       },
       "RequestDailyLoginResponse": {
         "type": "object",
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "properties": {
           "message": {
             "type": "string"
@@ -3669,9 +4214,7 @@
       },
       "ResendActivationRequest": {
         "type": "object",
-        "required": [
-          "userId"
-        ],
+        "required": ["userId"],
         "properties": {
           "userId": {
             "type": "string",
@@ -3681,9 +4224,7 @@
       },
       "ResendActivationResponse": {
         "type": "object",
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "properties": {
           "message": {
             "type": "string"
@@ -3692,9 +4233,7 @@
       },
       "RestartSessionRequest": {
         "type": "object",
-        "required": [
-          "userId"
-        ],
+        "required": ["userId"],
         "properties": {
           "userId": {
             "type": "string",
@@ -3704,9 +4243,7 @@
       },
       "RestartSessionResponse": {
         "type": "object",
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "properties": {
           "message": {
             "type": "string"
@@ -3897,11 +4434,7 @@
       },
       "SubmissionStatus": {
         "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected"
-        ]
+        "enum": ["pending", "approved", "rejected"]
       },
       "TechnicalStatus": {
         "type": "object",
@@ -3940,9 +4473,7 @@
       },
       "TerminateSessionRequest": {
         "type": "object",
-        "required": [
-          "userId"
-        ],
+        "required": ["userId"],
         "properties": {
           "userId": {
             "type": "string",
@@ -3952,9 +4483,7 @@
       },
       "TerminateSessionResponse": {
         "type": "object",
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "properties": {
           "message": {
             "type": "string"
@@ -4027,9 +4556,7 @@
       },
       "UpdateLocationResponse": {
         "type": "object",
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "properties": {
           "message": {
             "type": "string"
@@ -4106,10 +4633,7 @@
       },
       "UploadResponse": {
         "type": "object",
-        "required": [
-          "message",
-          "submission_id"
-        ],
+        "required": ["message", "submission_id"],
         "properties": {
           "message": {
             "type": "string"
@@ -4192,19 +4716,11 @@
       },
       "UserRole": {
         "type": "string",
-        "enum": [
-          "admin",
-          "agent",
-          "manager"
-        ]
+        "enum": ["admin", "agent", "manager", "org_admin"]
       },
       "UserStatus": {
         "type": "string",
-        "enum": [
-          "PENDING_ACTIVATION",
-          "ACTIVE",
-          "SUSPENDED"
-        ]
+        "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
       },
       "VehicleDataEntry": {
         "type": "object",
@@ -4424,9 +4940,7 @@
       },
       "VerifyRefreshResponse": {
         "type": "object",
-        "required": [
-          "accessToken"
-        ],
+        "required": ["accessToken"],
         "properties": {
           "accessToken": {
             "type": "string"
