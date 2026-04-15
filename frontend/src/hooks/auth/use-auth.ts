@@ -6,7 +6,10 @@ export interface AuthContextType {
   session: AuthResponse | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
   activate: (params: {
     badgeId: string;
     activationCode: string;

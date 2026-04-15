@@ -107,3 +107,17 @@ pub struct DashboardStats {
     pub activity_24h: Vec<ActivityData>,
     pub live_agents: Vec<AgentLocationDto>,
 }
+
+/// Org-scoped dashboard stats — returned for org_admin users.
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct OrgDashboardStats {
+    pub organization_name: String,
+    pub today_controls: i64,
+    pub active_alerts: i64,
+    pub online_agents: i64,
+    pub pending_submissions: i64,
+    pub total_users: i64,
+    pub activity_24h: Vec<ActivityData>,
+    pub live_agents: Vec<AgentLocationDto>,
+}

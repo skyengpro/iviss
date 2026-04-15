@@ -19,6 +19,7 @@ pub struct AdminAuthRow {
     pub password_hash: String,
     pub role: UserRole,
     pub status: UserStatus,
+    pub must_change_password: bool,
     pub organization_id: Option<Uuid>,
     pub full_name: String,
     pub email: String,
@@ -282,10 +283,10 @@ pub async fn has_valid_refresh_token(pool: &PgPool, device_id: Uuid) -> Result<b
     Ok(valid_refresh)
 }
 
-/// Find admin/manager user by email for email/password login.
+/// Find admin/manager/org_admin user by email for login.
 ///
 /// This function explicitly excludes agents - they cannot log in via email/password.
-/// Only returns users with role 'admin' or 'manager'.
+/// Only returns users with role 'admin', 'manager', or 'org_admin'.
 pub async fn find_admin_by_email(
     pool: &PgPool,
     email: &str,
@@ -297,6 +298,7 @@ pub async fn find_admin_by_email(
             password_hash,
             role,
             status,
+            must_change_password,
             organization_id,
             full_name,
             email,
@@ -304,11 +306,43 @@ pub async fn find_admin_by_email(
             phone_number
         FROM users
         WHERE email = $1
-          AND role IN ('admin', 'manager')
+          AND role IN ('admin', 'manager', 'org_admin')
           AND deleted_at IS NULL
         "#,
     )
     .bind(email)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    Ok(result)
+}
+
+/// Find admin/manager/org_admin user by either email or username.
+pub async fn find_admin_by_identity(
+    pool: &PgPool,
+    identity: &str,
+) -> Result<Option<AdminAuthRow>, AppError> {
+    let result = sqlx::query_as::<_, AdminAuthRow>(
+        r#"
+        SELECT 
+            id,
+            password_hash,
+            role,
+            status,
+            must_change_password,
+            organization_id,
+            full_name,
+            email,
+            username,
+            phone_number
+        FROM users
+        WHERE (email = $1 OR username = $1)
+          AND role IN ('admin', 'manager', 'org_admin')
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(identity)
     .fetch_optional(pool)
     .await
     .map_err(AppError::database)?;
