@@ -31,7 +31,9 @@ export function useUsers() {
     undefined,
     {
       onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
         queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+        queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
         queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
       },
     }
@@ -44,7 +46,9 @@ export function useUsers() {
   } = useUpdateUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     },
   });
 
@@ -55,7 +59,9 @@ export function useUsers() {
   } = useDeleteUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     },
   });
 

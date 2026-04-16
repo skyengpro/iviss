@@ -26,10 +26,14 @@ let globalLogout: (() => Promise<void>) | null = null;
 
 function applyAuthTokenToApiClient(token?: string) {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  client.setConfig({
-    baseUrl,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  // Only set baseUrl — Authorization is handled dynamically by the request interceptor
+  // in authInterceptor.ts which reads the latest token from tokenManager on every request.
+  // Setting it here as a static header causes stale tokens to be preserved after refresh.
+  client.setConfig({ baseUrl });
+  // Keep token manager in sync so the interceptor picks up the right token
+  if (token) {
+    setAccessToken(token);
+  }
 }
 
 function humanizeActivationError(payload: unknown): string | undefined {
@@ -63,8 +67,6 @@ function humanizeActivationError(payload: unknown): string | undefined {
 function hasErrorCode(value: unknown): value is { code: unknown } {
   return typeof value === 'object' && value !== null && 'code' in value;
 }
-
-let isInterceptorRegistered = false;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -123,23 +125,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const hasSession = !!localStorage.getItem(SESSION_KEY);
         if (!hasSession) return response;
 
+        // Only logout on explicit SESSION_REVOKED — plain 401s are handled
+        // by authInterceptor which refreshes the token transparently.
         let isSessionRevoked = false;
-
-        if (response.status === 401) {
-          isSessionRevoked = true;
-        } else {
-          try {
-            // Clone the response so we don't consume the body in case it's needed elsewhere
-            const clonedResponse = response.clone();
-            const body = await clonedResponse.json();
-            if (body && typeof body === 'object' && 'code' in body) {
-              if (body.code === 'SESSION_REVOKED') {
-                isSessionRevoked = true;
-              }
+        try {
+          const clonedResponse = response.clone();
+          const body = await clonedResponse.json();
+          if (body && typeof body === 'object' && 'code' in body) {
+            if (body.code === 'SESSION_REVOKED') {
+              isSessionRevoked = true;
             }
-          } catch (e) {
-            // Not a JSON response or unable to parse, ignore
           }
+        } catch {
+          // Not JSON or unreadable — ignore
         }
 
         if (isSessionRevoked && globalLogout) {
@@ -199,10 +197,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (sessionData.accessToken && !getAccessToken()) {
               setAccessToken(sessionData.accessToken);
             }
+            // Always restore refresh token so the interceptor can refresh expired access tokens
+            if (sessionData.refreshToken) {
+              setRefreshToken(sessionData.refreshToken);
+            }
           } else {
-            // Silently clear the stale/expired session
-            localStorage.removeItem(SESSION_KEY);
-            localStorage.removeItem(REFRESH_TOKEN_KEY);
+            // Access token is expired but we may still have a valid refresh token.
+            // Restore the session state so the interceptor can attempt a refresh
+            // on the next API call rather than clearing everything immediately.
+            if (sessionData.refreshToken) {
+              setRefreshToken(sessionData.refreshToken);
+              // Keep the stale access token in the store so the interceptor
+              // knows we were authenticated and should attempt a refresh.
+              if (sessionData.accessToken) {
+                setAccessToken(sessionData.accessToken);
+              }
+              setSession(sessionData);
+              setUser(sessionData.user);
+              applyAuthTokenToApiClient(sessionData.accessToken);
+            } else {
+              // No refresh token either — truly expired, clear everything
+              localStorage.removeItem(SESSION_KEY);
+              localStorage.removeItem(REFRESH_TOKEN_KEY);
+            }
           }
         } catch {
           localStorage.removeItem(SESSION_KEY);
@@ -214,7 +231,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initIdentity();
 
-    if (!isInterceptorRegistered) {
+    if (
+      !(window as { __iviss_shift_interceptor_registered?: boolean })
+        .__iviss_shift_interceptor_registered
+    ) {
+      (
+        window as { __iviss_shift_interceptor_registered?: boolean }
+      ).__iviss_shift_interceptor_registered = true;
       const interceptor = async (response: Response) => {
         if (!response.ok && response.status === 401) {
           try {
@@ -239,7 +262,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return response;
       };
       client.interceptors.response.use(interceptor);
-      isInterceptorRegistered = true;
     }
   }, []);
 
