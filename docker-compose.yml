@@ -12,12 +12,25 @@ x-backend-environment: &backend-environment
   JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
   ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
   ENVIRONMENT: ${ENVIRONMENT:-local}
+  SERVER_HOST: 0.0.0.0
+  SERVER_PORT: 3000
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SHIFT_START_HOUR: ${SHIFT_START_HOUR:-6}
+  SHIFT_END_HOUR: ${SHIFT_END_HOUR:-18}
+  SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+  VONAGE_API_KEY: ${VONAGE_API_KEY:-mock}
+  VONAGE_API_SECRET: ${VONAGE_API_SECRET:-mock}
   TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
   TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
   TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
-  SERVER_HOST: 0.0.0.0
-  SERVER_PORT: 3000
-  RUST_LOG: ${RUST_LOG:-info}
+  EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+  RESEND_API_KEY: ${RESEND_API_KEY:-mock}
+  RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-mock@example.com}
+  SMTP_HOST: ${SMTP_HOST:-localhost}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-user}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-password}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@iviss.local}
   ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
   ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
   ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
@@ -81,7 +94,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment: *backend-environment
+    environment:
+      <<: *backend-environment
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
     ports:
       - "3000:3000"
     volumes:
@@ -120,7 +137,23 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment: *backend-environment
+    environment:
+      <<: *backend-environment
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      SMS_PROVIDER: ${SMS_PROVIDER:?SMS_PROVIDER must be set for backend-prod}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set for backend-prod}
+      VONAGE_API_KEY: ${VONAGE_API_KEY}
+      VONAGE_API_SECRET: ${VONAGE_API_SECRET}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
     ports:
       - "3000:3000"
     healthcheck:
@@ -150,6 +183,8 @@ services:
     environment:
       NODE_ENV: development
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_METRICS_ENABLED: ${VITE_METRICS_ENABLED:-true}
+      VITE_METRICS_URL: ${VITE_METRICS_URL:-http://localhost:9091/api/metrics}
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app
