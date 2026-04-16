@@ -7,6 +7,9 @@
 - name: Obtain SSL certificate
   command: >
     certbot --nginx
+    --server https://acme.zerossl.com/v2/DV90
+    # Use Buypass if ZeroSSL EAB is a hassle:
+    # --server https://acme.buypass.com/acme/directory
     -d {{ domain_name }}
     --non-interactive
     --agree-tos
