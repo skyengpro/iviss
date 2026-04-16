@@ -131,7 +131,9 @@ jobs:
         # and no fixed upgrade is available for this version chain.
         # Ignore RUSTSEC-2025-0111 (tokio-tar) because it is in testcontainers (dev/test tree),
         # and currently no fixed upgrade is available upstream.
-        run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111 --ignore RUSTSEC-2025-0111
+        # Ignore RUSTSEC-2026-0097 (rand unsoundness) — transitive dep, no fix available in this version chain.
+        # Ignore RUSTSEC-2024-0436, RUSTSEC-2024-0370, RUSTSEC-2025-0134 — unmaintained transitive deps with no direct fix.
+        run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111 --ignore RUSTSEC-2026-0097 --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2024-0370 --ignore RUSTSEC-2025-0134
         working-directory: iviss-backend
 
   backend_doc:

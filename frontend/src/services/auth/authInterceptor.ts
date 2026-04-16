@@ -1,18 +1,12 @@
 /**
  * Auth Interceptor
  *
- * Centralizes authentication logic for the @hey-api/client-fetch API client:
- *
- * 1. **Request interceptor**: Attaches `Authorization: Bearer <token>` header.
- * 2. **Response interceptor**: Detects 401 responses and performs the
- *    challenge-response token refresh flow described in User_registration.md §5:
- *      - POST /auth/refresh with refresh_token
- *      - Receive nonce challenge
- *      - Sign nonce with device private key (ES256)
- *      - Receive new access token
- *      - Retry the original request
- *
- * Prevents infinite retry loops via a single-attempt guard.
+ * Rules:
+ * - Silently refresh the access token when it expires (401 on any protected endpoint)
+ * - ONLY log the user out if:
+ *   1. The refresh token itself is rejected (admin revoked the session)
+ *   2. The backend explicitly returns "Shift ended"
+ * - NEVER log out due to: page reload, HMR, network errors, backend restarts
  */
 
 import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken } from './tokenManager';
@@ -20,128 +14,91 @@ import { getDeviceId } from '../device/deviceId';
 import { signNonce } from './signatureService';
 import { requestRefresh, verifyRefresh } from '@/openapi-rq/requests/services.gen';
 
-// Custom header used to mark a request as a retry to prevent infinite loops
 const RETRY_HEADER = 'X-Auth-Retry';
 
 const REFRESH_PATHS = [
-  '/auth/refresh',
-  '/auth/refresh/verify',
-  '/auth/request-daily-login',
-  '/auth/verify-daily-login',
+  '/api/v1/auth/refresh',
+  '/api/v1/auth/refresh/verify',
+  '/api/v1/auth/request-daily-login',
+  '/api/v1/auth/verify-daily-login',
 ];
 
-// Module-level promise to track an ongoing refresh operation
 let refreshPromise: Promise<string | null> | null = null;
+const REFRESH_TIMEOUT_MS = 15_000;
 
-const REFRESH_TIMEOUT_MS = 10_000;
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new Error('Token refresh timed out'));
-    }, timeoutMs);
-
+    const t = window.setTimeout(() => reject(new Error('Refresh timed out')), ms);
     promise
-      .then((value) => resolve(value))
-      .catch((err) => reject(err))
-      .finally(() => window.clearTimeout(timeout));
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(t));
   });
 }
 
-/**
- * Perform the full token refresh with device signature challenge-response.
- * Uses a shared promise to ensure only one refresh happens at a time even
- * if multiple requests fail with 401 simultaneously.
- *
- * @param baseUrl - The API base URL
- * @returns The new access token, or null if refresh failed
- */
-async function performTokenRefresh(baseUrl: string): Promise<string | null> {
-  // If a refresh is already in progress, wait for it instead of starting a new one
-  if (refreshPromise) {
-    return refreshPromise;
-  }
+async function performTokenRefresh(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
 
   const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    return null;
-  }
+  if (!refreshToken) return null;
 
-  // Create the refresh promise
   refreshPromise = withTimeout(
     (async () => {
       try {
+        const isAdminRole = (() => {
+          try {
+            const raw = localStorage.getItem('iviss_session');
+            if (!raw) return false;
+            const session = JSON.parse(raw);
+            const role = session?.user?.role;
+            return role === 'admin' || role === 'manager' || role === 'org_admin';
+          } catch {
+            return false;
+          }
+        })();
+
+        if (isAdminRole) {
+          const res = await requestRefresh({ body: { refreshToken }, throwOnError: false });
+          if (res.error || !res.data) return null;
+          const data = res.data as { accessToken?: string };
+          if (data.accessToken) {
+            setAccessToken(data.accessToken);
+            return data.accessToken;
+          }
+          return null;
+        }
+
+        // Agent: 2-step challenge-response
         const deviceId = await getDeviceId();
-        console.log('--- AuthInterceptor: Starting Token Refresh ---');
-        console.log('Base URL:', baseUrl);
-        console.log('Device ID:', deviceId);
-        console.log('Refresh Token length:', refreshToken.length);
-
-        // Step 1: Send refresh token to get nonce challenge
-        const refreshResponse = await requestRefresh({
-          body: {
-            refreshToken: refreshToken,
-            deviceId: deviceId,
-          },
+        const res1 = await requestRefresh({
+          body: { refreshToken, deviceId },
           throwOnError: false,
         });
+        if (res1.error || !res1.data) return null;
 
-        if (refreshResponse.error || !refreshResponse.data) {
-          console.warn('AuthInterceptor: POST /auth/refresh failed');
-          return null;
-        }
+        const { nonce } = res1.data as { nonce?: string };
+        if (!nonce) return null;
 
-        const { nonce } = refreshResponse.data as { nonce?: string };
-        console.log('Received Nonce:', nonce);
-
-        if (!nonce) {
-          console.warn('AuthInterceptor: No nonce in refresh response');
-          return null;
-        }
-
-        // Step 2: Sign the nonce with the device private key
-        console.log('Signing nonce...');
         const signedNonce = await signNonce(nonce);
-        console.log('Nonce signed successfully');
-
-        // Step 3: Send signed nonce to complete the challenge
-        console.log('Sending signed nonce for verification...');
-        const verifyResponse = await verifyRefresh({
-          body: {
-            refreshToken: refreshToken,
-            deviceId: deviceId,
-            signedNonce: signedNonce,
-          },
+        const res2 = await verifyRefresh({
+          body: { refreshToken, deviceId, signedNonce },
           throwOnError: false,
         });
+        if (res2.error || !res2.data) return null;
 
-        if (verifyResponse.error || !verifyResponse.data) {
-          console.warn('AuthInterceptor: POST /auth/refresh/verify failed');
-          return null;
-        }
-
-        const { accessToken, refreshToken: nextRefreshToken } = verifyResponse.data as {
+        const { accessToken, refreshToken: nextRT } = res2.data as {
           accessToken?: string;
           refreshToken?: string;
         };
-        if (!accessToken) {
-          console.warn('AuthInterceptor: No accessToken in verify response');
-          return null;
-        }
+        if (!accessToken) return null;
 
-        // Store the new access token
         setAccessToken(accessToken);
-
-        // Persist rotated refresh token if backend returns one
-        if (typeof nextRefreshToken === 'string' && nextRefreshToken.length > 0) {
-          setRefreshToken(nextRefreshToken);
-        }
+        if (nextRT) setRefreshToken(nextRT);
         return accessToken;
-      } catch (err) {
-        console.error('AuthInterceptor: Unexpected error during refresh:', err);
+      } catch {
+        // Network error, backend down, etc. — return null but don't logout
         return null;
       } finally {
-        // Clear the promise when done so future 401s can trigger a new refresh if needed
         refreshPromise = null;
       }
     })(),
@@ -151,89 +108,88 @@ async function performTokenRefresh(baseUrl: string): Promise<string | null> {
   return refreshPromise;
 }
 
-/**
- * Register auth interceptors on the provided hey-api client.
- *
- * @param client - The hey-api client instance from services.gen.ts
- * @param options - Configuration options
- * @param options.baseUrl - API base URL for refresh calls
- * @param options.onSessionExpired - Callback when refresh fails (e.g. redirect to login)
- */
 type HeyApiClient = {
   interceptors: {
-    request: { use: (fn: (request: Request) => Promise<Request> | Request) => void };
-    response: {
-      use: (fn: (response: Response, request: Request) => Promise<Response> | Response) => void;
-    };
+    request: { use: (fn: (req: Request) => Promise<Request> | Request) => void };
+    response: { use: (fn: (res: Response, req: Request) => Promise<Response> | Response) => void };
   };
 };
 
 export function setupAuthInterceptors(
   client: HeyApiClient,
-  options: {
-    baseUrl: string;
-    onSessionExpired?: () => void;
-  }
+  options: { baseUrl: string; onSessionExpired?: () => void }
 ): void {
-  // --- Request Interceptor: Attach Bearer token ---
+  // Attach token on every request
   client.interceptors.request.use(async (request: Request) => {
-    // Preserve an explicit Authorization header set by the caller.
-    // This is important for flows that already have a freshly issued token
-    // before the shared token store is updated.
-    const existingAuth = request.headers.get('Authorization');
-    if (existingAuth) {
-      return request;
-    }
-
+    if (request.headers.get('Authorization')) return request;
     const token = getAccessToken();
-    if (token) {
-      // Clone the request to add the Authorization header
-      const headers = new Headers(request.headers);
-      headers.set('Authorization', `Bearer ${token}`);
-      return new Request(request, { headers });
-    }
-    return request;
+    if (!token) return request;
+    const headers = new Headers(request.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+    return new Request(request, { headers });
   });
 
-  // --- Response Interceptor: Handle 401 + refresh ---
+  // Handle 401 responses
   client.interceptors.response.use(async (response: Response, request: Request) => {
-    // Only handle 401 Unauthorized
-    if (response.status !== 401) {
-      return response;
-    }
+    if (response.status !== 401) return response;
 
-    // Never attempt refresh while calling refresh endpoints; avoids recursion.
+    // Unauthenticated request (e.g. login) — not a session issue
+    if (!getAccessToken()) return response;
+
+    // Check if this is a refresh endpoint returning 401
+    // That means the refresh token itself was rejected (session revoked by admin)
     try {
       const url = new URL(request.url);
-      if (REFRESH_PATHS.includes(url.pathname)) {
+      if (REFRESH_PATHS.some((p) => url.pathname.includes(p))) {
+        // Check if it's specifically "invalid/expired refresh token" — that means revoked
+        try {
+          const body = await response.clone().json();
+          const msg = body?.message?.toLowerCase() || '';
+          if (msg.includes('invalid') || msg.includes('expired') || msg.includes('revoked')) {
+            console.warn('AuthInterceptor: refresh token rejected — session revoked by admin');
+            options.onSessionExpired?.();
+          }
+        } catch {
+          /* not JSON */
+        }
         return response;
       }
     } catch {
-      // If request.url isn't parseable, fall through to the normal logic.
+      /* unparseable URL */
     }
 
-    // Prevent infinite retry: if this is already a retry, give up
-    if (request.headers.get(RETRY_HEADER)) {
-      console.warn('AuthInterceptor: 401 loop detected, giving up without clearing tokens');
-      return response;
-    }
+    // Prevent infinite retry loop
+    if (request.headers.get(RETRY_HEADER)) return response;
 
-    // Attempt token refresh with device signature
-    const newToken = await performTokenRefresh(options.baseUrl);
+    // Try to refresh the access token silently
+    const newToken = await performTokenRefresh();
 
     if (!newToken) {
-      // Refresh failed — session is expired
-      console.error('AuthInterceptor: Token refresh failed; session expired');
-      options.onSessionExpired?.();
+      // Refresh failed — could be network error (backend restarting) or auth error.
+      // Check the original 401 response body to decide whether to logout.
+      try {
+        const body = await response.clone().json();
+        const msg = body?.message?.toLowerCase() || '';
+        // Only logout on explicit session termination signals
+        if (
+          msg.includes('shift ended') ||
+          msg.includes('session terminated') ||
+          msg.includes('device is not active')
+        ) {
+          console.warn('AuthInterceptor: explicit session end signal:', body.message);
+          options.onSessionExpired?.();
+        }
+        // For all other failures (network errors, backend down), keep the session
+      } catch {
+        /* not JSON — network error, keep session */
+      }
       return response;
     }
 
-    // Retry the original request with the new token
-    const retryHeaders = new Headers(request.headers);
-    retryHeaders.set('Authorization', `Bearer ${newToken}`);
-    retryHeaders.set(RETRY_HEADER, '1');
-
-    const retryRequest = new Request(request, { headers: retryHeaders });
-    return fetch(retryRequest);
+    // Retry with new token
+    const headers = new Headers(request.headers);
+    headers.set('Authorization', `Bearer ${newToken}`);
+    headers.set(RETRY_HEADER, '1');
+    return fetch(new Request(request, { headers }));
   });
 }
