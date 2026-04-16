@@ -146,8 +146,9 @@ export default function UserManagement() {
       } else {
         toast.success(t('backOfficeUserManagement.toastSuccess'));
       }
-    } catch (error) {
-      toast.error(t('backOfficeUserManagement.toastError'));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : (error as { message?: string })?.message;
+      toast.error(msg || t('backOfficeUserManagement.toastError'));
     }
   };
 
@@ -187,7 +188,7 @@ export default function UserManagement() {
   const handleTerminateSession = async () => {
     if (!selectedUser) return;
     try {
-      const response = await fetchWithAuth('/admin/terminate-session', {
+      const response = await fetchWithAuth('/api/v1/admin/terminate-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,6 +204,9 @@ export default function UserManagement() {
       setIsTerminateConfirmOpen(false);
       setSelectedUser(null);
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     } catch (error) {
       console.error('Termination error:', error);
       toast.error(t('backOfficeUserManagement.terminateError'));
@@ -212,7 +216,7 @@ export default function UserManagement() {
   const handleRestartSession = async () => {
     if (!selectedUser) return;
     try {
-      const response = await fetchWithAuth('/admin/restart-session', {
+      const response = await fetchWithAuth('/api/v1/admin/restart-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,6 +232,9 @@ export default function UserManagement() {
       setIsRestartConfirmOpen(false);
       setSelectedUser(null);
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     } catch (error) {
       console.error('Restart error:', error);
       toast.error(t('backOfficeUserManagement.restartError'));

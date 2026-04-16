@@ -29,6 +29,11 @@ vi.mock('../auth/signatureService', () => ({
   signNonce: vi.fn().mockResolvedValue('signed-nonce-jws'),
 }));
 
+// Simulate agent flow by default: device has a private key in IndexedDB
+vi.mock('../keyManagement/storeKey', () => ({
+  retrieveKeyPair: vi.fn().mockResolvedValue({ privateKey: { kty: 'EC' }, publicKey: null }),
+}));
+
 // Helper: create a mock hey-api client
 function createMockClient() {
   const requestInterceptors: Array<(req: Request) => Promise<Request> | Request> = [];
@@ -63,6 +68,9 @@ describe('authInterceptor', () => {
     vi.clearAllMocks();
     mockClient = createMockClient();
     onSessionExpired = vi.fn();
+
+    // Default: simulate an authenticated user with an access token
+    vi.mocked(tokenManager.getAccessToken).mockReturnValue('existing-access-token');
 
     setupAuthInterceptors(mockClient, {
       baseUrl,
@@ -173,7 +181,8 @@ describe('authInterceptor', () => {
       const interceptor = mockClient._responseInterceptors[0];
       const result = await interceptor(response, request);
       expect(result).toBe(response);
-      expect(onSessionExpired).toHaveBeenCalledTimes(1);
+      // No session expiry — missing refresh token is not an explicit revocation
+      expect(onSessionExpired).not.toHaveBeenCalled();
     });
 
     it('should not attempt refresh when the 401 comes from refresh endpoints', async () => {
@@ -181,13 +190,18 @@ describe('authInterceptor', () => {
 
       const interceptor = mockClient._responseInterceptors[0];
 
-      const reqRefresh = new Request('http://localhost:3000/auth/refresh');
-      const res401 = new Response('Unauthorized', { status: 401 });
+      const reqRefresh = new Request('http://localhost:3000/api/v1/auth/refresh');
+      const res401 = new Response(
+        JSON.stringify({ code: 'UNAUTHORIZED', message: 'Invalid or expired refresh token' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
       const out1 = await interceptor(res401, reqRefresh);
 
       expect(out1).toBe(res401);
       expect(requestRefresh).not.toHaveBeenCalled();
       expect(verifyRefresh).not.toHaveBeenCalled();
+      // Refresh endpoint returning 401 with "invalid" message triggers session expiry
+      expect(onSessionExpired).toHaveBeenCalledTimes(1);
     });
 
     it('should return original 401 response when refresh endpoint fails', async () => {
@@ -204,7 +218,8 @@ describe('authInterceptor', () => {
       const interceptor = mockClient._responseInterceptors[0];
       const result = await interceptor(response, request);
       expect(result).toBe(response);
-      expect(onSessionExpired).toHaveBeenCalledTimes(1);
+      // Refresh failed but no explicit revocation signal — keep session
+      expect(onSessionExpired).not.toHaveBeenCalled();
     });
 
     it('should prevent infinite retry loops on repeated 401', async () => {

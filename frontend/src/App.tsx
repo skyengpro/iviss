@@ -21,24 +21,19 @@ client.setConfig({
   baseUrl: apiBaseUrl,
 });
 
-// Register auth interceptors for automatic token refresh with device signature
-setupAuthInterceptors(client, {
-  baseUrl: apiBaseUrl,
-  onSessionExpired: () => {
-    // Dispatch event to trigger AuthContext's globalLogout which shows a toast
-    window.dispatchEvent(new CustomEvent('iviss:session-revoked'));
-
-    // Fallback in case AuthContext isn't mounted
-    setTimeout(() => {
-      if (window.location.pathname !== '/daily-login' && window.location.pathname !== '/login') {
-        clearTokens();
-        localStorage.removeItem('iviss_session');
-        localStorage.removeItem('iviss_refresh_token');
-        window.location.href = '/daily-login';
-      }
-    }, 100);
-  },
-});
+// Register auth interceptors for automatic token refresh with device signature.
+// Guard against HMR re-registration — the client singleton persists across reloads
+// so calling setupAuthInterceptors multiple times stacks duplicate interceptors.
+if (!(window as { __iviss_interceptors_registered?: boolean }).__iviss_interceptors_registered) {
+  (window as { __iviss_interceptors_registered?: boolean }).__iviss_interceptors_registered = true;
+  setupAuthInterceptors(client, {
+    baseUrl: apiBaseUrl,
+    onSessionExpired: () => {
+      // Dispatch event to trigger AuthContext's globalLogout
+      window.dispatchEvent(new CustomEvent('iviss:session-revoked'));
+    },
+  });
+}
 
 const AppInner = () => {
   useMetrics();

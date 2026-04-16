@@ -36,6 +36,13 @@ export default function Activate() {
       localStorage.removeItem('iviss_forced_logout_reason');
     }
 
+    // Already activated device — skip activation, go straight to daily login
+    const deviceActivated = localStorage.getItem('iviss_device_activated') === 'true';
+    if (deviceActivated) {
+      navigate('/daily-login', { replace: true });
+      return;
+    }
+
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
         navigate('/backoffice');
