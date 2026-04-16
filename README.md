@@ -259,7 +259,7 @@ iviss/
 
 ---
 
-## 🚀 Production Infrastructure (NEW)
+## Production Infrastructure (NEW)
 
 [![Deployment Status](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml/badge.svg)](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml)
 
@@ -274,7 +274,7 @@ The platform is deployed using **Infrastructure-as-Code (Terraform)** and **Auto
 
 ---
 
-## 📖 Operational Documentation
+## Operational Documentation
 - [**Deployment & Infrastructure Guide**](docs/deployment_guide.md): The definitive guide for production.
 
 ---
