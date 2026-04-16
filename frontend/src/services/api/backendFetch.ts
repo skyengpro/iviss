@@ -27,7 +27,8 @@ export async function fetchWithAuth(input: string, init?: RequestInit): Promise<
 
   if (!response.ok) {
     let isSessionRevoked = false;
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
+      // Only treat as session revoked if we had a token — a login failure is not a revocation
       isSessionRevoked = true;
     } else {
       try {
