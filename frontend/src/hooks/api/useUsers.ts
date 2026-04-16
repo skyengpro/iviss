@@ -29,7 +29,9 @@ export function useUsers() {
 
   const { mutateAsync: provisionOrgMutate, isPending: isProvisioningOrg } = useProvisionOrgUser({
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     },
   });
@@ -41,7 +43,9 @@ export function useUsers() {
   } = useUpdateUser({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     },
   });
 
@@ -52,7 +56,9 @@ export function useUsers() {
   } = useDeleteUser({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
     },
   });
 

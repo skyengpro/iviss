@@ -89,6 +89,31 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, code, message) = match &self {
             AppError::Database(err) => {
+                // Check for unique constraint violation (Postgres error code 23505)
+                if let sqlx::Error::Database(db_err) = err {
+                    if db_err.code().as_deref() == Some("23505") {
+                        let constraint = db_err.constraint().unwrap_or("");
+                        let msg = if constraint.contains("badge_id") {
+                            "A user with this badge ID already exists"
+                        } else if constraint.contains("email") {
+                            "A user with this email already exists"
+                        } else if constraint.contains("phone_number") {
+                            "A user with this phone number already exists"
+                        } else if constraint.contains("username") {
+                            "A user with this username already exists"
+                        } else {
+                            "A record with these details already exists"
+                        };
+                        return (
+                            StatusCode::CONFLICT,
+                            Json(AppErrorResponse {
+                                code: ErrorCode::BadRequest,
+                                message: msg.to_string(),
+                            }),
+                        )
+                            .into_response();
+                    }
+                }
                 // Log the detailed error for the server operator
                 tracing::error!("Database error: {:?}", err);
                 // Return a generic error to the client

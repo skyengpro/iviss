@@ -401,8 +401,8 @@ async fn test_list_users_returns_all_users() {
     let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     let users = body.as_array().unwrap();
     assert!(
-        users.len() >= 3,
-        "Should return at least 3 users (admin + agent + manager)"
+        users.len() >= 2,
+        "Should return at least 2 users (agent + manager, excluding the requesting admin)"
     );
 }
 
