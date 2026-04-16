@@ -1,6 +1,9 @@
 name: Deploy to AWS Lightsail
 
 on:
+  push:
+      branches:
+      - dep/iviss-aws-lightsail
   workflow_run:
     workflows: ["Docker"]
     types:
