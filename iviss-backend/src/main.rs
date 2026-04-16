@@ -6,7 +6,7 @@ use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::seed_admin::run_bootstrap_seed;
 use iviss_backend::routes;
-use iviss_backend::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
+use iviss_backend::services::sms_provider::{SmsProvider};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
@@ -33,17 +33,8 @@ async fn main() -> anyhow::Result<()> {
     info!("Environment: {:?}", config.environment);
     info!("Log Level: {:?}", config.log_level);
 
-    let sms_provider: Arc<dyn SmsProvider> = if !config.use_mock_sms() {
-        info!("Using Twilio SMS provider");
-        Arc::new(TwilioSmsProvider::new(
-            config.twilio_account_sid.clone(),
-            config.twilio_auth_token.clone(),
-            config.twilio_from_number.clone(),
-        ))
-    } else {
-        info!("Using Mock SMS provider (logs OTP to console)");
-        Arc::new(MockSmsProvider)
-    };
+    let sms_provider: Arc<dyn SmsProvider> = config.sms_credentials.provider();
+
     let db_pool = initialize_pool(&config.database_url).await?;
     info!("Database connection initialized");
 
@@ -75,3 +66,4 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
