@@ -9,6 +9,12 @@ import {
 } from '@/openapi-rq/requests/types.gen';
 import { useCreateControl } from '@/openapi-rq/queries/queries';
 
+export interface LocationContext {
+  latitude: number | null;
+  longitude: number | null;
+  address: string;
+}
+
 export function useLogControl() {
   const { t } = useTranslation();
   const createControlMutation = useCreateControl();
@@ -19,7 +25,9 @@ export function useLogControl() {
     user: UserProfile,
     plateNumber: string,
     statusResults: StatusResults,
-    vehicle: VehicleInfo | null
+    vehicle: VehicleInfo | null,
+    location?: LocationContext,
+    identificationMode: 'manual' | 'photo' | 'live' = 'manual'
   ) => {
     if (!user || !plateNumber || !statusResults) return;
 
@@ -28,13 +36,12 @@ export function useLogControl() {
     try {
       const payload: CreateControlData['body'] = {
         plate_number: plateNumber,
-        agent_id: user.id || '', // Ensure UUID or handle empty
+        agent_id: user.id || '',
         organization_id: user.organizationId || '',
-        // Hardcoded for now as per previous mock, or get from device location if available
-        latitude: 48.8566,
-        longitude: 2.3522,
-        address: 'Highway A1, KM 42',
-        identification_mode: 'manual', // or pass from caller
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
+        address: location?.address || null,
+        identification_mode: identificationMode,
         ocr_confidence: 1.0,
         results: {
           registration: statusResults.overall_status,
@@ -43,7 +50,7 @@ export function useLogControl() {
           wanted_status: statusResults.police.status,
           customs_status: statusResults.customs.status,
         },
-        notes: 'Logged via mobile app',
+        notes: null,
       };
 
       await createControlMutation.mutateAsync({ body: payload });
