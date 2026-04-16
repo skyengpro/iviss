@@ -7,7 +7,7 @@
 - name: Obtain SSL certificate
   command: >
     certbot --nginx
-    --server https://acme.buypass.com/acme/directory
+    --staging
     -d {{ domain_name }}
     --non-interactive
     --agree-tos
