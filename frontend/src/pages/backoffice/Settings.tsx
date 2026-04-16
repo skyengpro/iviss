@@ -93,7 +93,7 @@ function PasswordSection() {
     setIsLoading(true);
     try {
       const token = getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_URL || '/api';
+      const baseUrl = import.meta.env.VITE_API_URL || '';
       const res = await fetch(`${baseUrl}/api/v1/auth/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
