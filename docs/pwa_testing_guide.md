@@ -66,11 +66,11 @@ Access at: `http://localhost:4173`
 4. **Expected:** Prompt closes and doesn't reappear
 
 5. Refresh the page
-6. **Expected:** Prompt does NOT appear (dismissed for 7 days)
+6. **Expected:** Prompt does NOT appear (dismissed for 2 hours)
 
 ### Verification:
 - Check localStorage: `pwa-install-dismissed` should have a timestamp
-- Prompt should not appear for 7 days
+- Prompt should not appear for 2 hours
 
 ### Reset Dismissal:
 Open browser DevTools → Console:
