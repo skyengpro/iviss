@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
+use std::sync::Arc;
 use tracing::{info, warn};
 
 ///  SMS provider abstraction
@@ -30,10 +30,7 @@ impl SmsProvider for MockSmsProvider {
 #[derive(Clone, Debug)]
 pub enum SmsProviderCredentials {
     /// Vonage Messages API credentials
-    Vonage {
-        api_key: String,
-        api_secret: String,
-    },
+    Vonage { api_key: String, api_secret: String },
     /// Twilio SMS API credentials
     Twilio {
         account_sid: String,
@@ -202,7 +199,10 @@ impl SmsProviderCredentials {
     /// Create the appropriate SMS provider instance
     pub fn provider(&self) -> Arc<dyn SmsProvider> {
         match self {
-            Self::Vonage { api_key, api_secret } => {
+            Self::Vonage {
+                api_key,
+                api_secret,
+            } => {
                 info!("Using Vonage SMS provider");
                 Arc::new(VonageSmsProvider::new(api_key.clone(), api_secret.clone()))
             }
@@ -225,5 +225,3 @@ impl SmsProviderCredentials {
         }
     }
 }
-
-

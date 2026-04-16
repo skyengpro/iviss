@@ -118,6 +118,7 @@ mod tests {
             jwt_public_key_pem: "test_pub".to_string(),
             environment: crate::config::Environment::Local,
             sms_credentials: crate::services::sms_provider::SmsProviderCredentials::Mock,
+            email_credentials: crate::services::email_provider::EmailProviderCredentials::Mock,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".to_string(),
             shift_start_hour: 8,
             shift_end_hour: 18,

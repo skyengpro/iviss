@@ -1,3 +1,4 @@
+use crate::services::email_provider::EmailProviderCredentials;
 use crate::services::sms_provider::SmsProviderCredentials;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
@@ -82,6 +83,8 @@ pub struct Config {
     pub environment: Environment,
     // SMS
     pub sms_credentials: SmsProviderCredentials,
+    // Email
+    pub email_credentials: EmailProviderCredentials,
     pub activation_code_pepper: String,
     pub shift_start_hour: u32,
     pub shift_end_hour: u32,
@@ -145,6 +148,10 @@ impl Config {
         let sms_provider = env::var("SMS_PROVIDER").unwrap_or_else(|_| "mock".to_string());
         let sms_credentials = Self::get_sms_provider_credentials(&sms_provider);
 
+        // Email Provider configuration
+        let email_provider = env::var("EMAIL_PROVIDER").unwrap_or_else(|_| "mock".to_string());
+        let email_credentials = Self::get_email_provider_credentials(&email_provider);
+
         let activation_code_pepper =
             env::var("ACTIVATION_CODE_PEPPER").context("ACTIVATION_CODE_PEPPER must be set")?;
 
@@ -189,6 +196,7 @@ impl Config {
             jwt_public_key_pem,
             environment,
             sms_credentials,
+            email_credentials,
             activation_code_pepper,
             shift_start_hour,
             shift_end_hour,
@@ -205,7 +213,10 @@ impl Config {
                 let api_key = env::var("VONAGE_API_KEY").unwrap_or_else(|_| "mock".to_string());
                 let api_secret =
                     env::var("VONAGE_API_SECRET").unwrap_or_else(|_| "mock".to_string());
-                SmsProviderCredentials::Vonage { api_key, api_secret }
+                SmsProviderCredentials::Vonage {
+                    api_key,
+                    api_secret,
+                }
             }
             "twilio" => {
                 let account_sid =
@@ -221,6 +232,21 @@ impl Config {
                 }
             }
             _ => SmsProviderCredentials::Mock,
+        }
+    }
+
+    fn get_email_provider_credentials(email_provider: &str) -> EmailProviderCredentials {
+        match email_provider.to_lowercase().as_str() {
+            "resend" => {
+                let api_key = env::var("RESEND_API_KEY").unwrap_or_else(|_| "mock".to_string());
+                let from_email = env::var("RESEND_FROM_EMAIL")
+                    .unwrap_or_else(|_| "mock@example.com".to_string());
+                EmailProviderCredentials::Resend {
+                    api_key,
+                    from_email,
+                }
+            }
+            _ => EmailProviderCredentials::Mock,
         }
     }
 
@@ -312,6 +338,7 @@ mod tests {
                 api_key: "key".into(),
                 api_secret: "secret".into(),
             },
+            email_credentials: EmailProviderCredentials::Mock,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
             shift_start_hour: 8,
             shift_end_hour: 18,
