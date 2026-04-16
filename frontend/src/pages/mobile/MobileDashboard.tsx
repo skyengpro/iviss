@@ -83,12 +83,6 @@ export default function MobileDashboard() {
     fetchAddress();
   }, [lat, lng]);
 
-  const { controls: recentControls = [], isLoading: controlsLoading } = useControls({
-    query: {
-      agent_id: user?.id,
-    },
-  });
-
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
