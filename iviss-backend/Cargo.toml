@@ -49,6 +49,7 @@ base64 = "0.22.1"
 p256 = { version = "0.13", features = ["ecdsa", "jwk"] }
 ecdsa = { version = "0.16", features = ["verifying"] }
 moka = { version = "0.12.15", features = ["future"] }
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1-rustls-tls", "builder", "pool"] }
 
 [dev-dependencies]
 testcontainers = "0.23"
