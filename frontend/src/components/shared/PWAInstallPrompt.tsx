@@ -31,10 +31,10 @@ export function PWAInstallPrompt() {
     // Check if user has previously dismissed the prompt
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     const dismissedTime = dismissed ? parseInt(dismissed, 10) : 0;
-    const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
+    const hoursSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60);
 
-    // Show prompt again after 7 days
-    if (dismissed && daysSinceDismissed < 7) {
+    // Show prompt again after 2 hours
+    if (dismissed && hoursSinceDismissed < 2) {
       return;
     }
 

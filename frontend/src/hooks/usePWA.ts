@@ -32,11 +32,11 @@ export function usePWA() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
-      // Check if user dismissed the prompt in the last 7 days
-      const dismissedUntil = localStorage.getItem('pwa-install-dismissed');
-      if (dismissedUntil) {
-        const dismissedDate = new Date(dismissedUntil);
-        if (dismissedDate > new Date()) {
+      // Check if user dismissed the prompt in the last 2 hours
+      const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+      if (dismissedTime) {
+        const hoursSinceDismissed = (Date.now() - parseInt(dismissedTime, 10)) / (1000 * 60 * 60);
+        if (hoursSinceDismissed < 2) {
           return;
         }
       }
@@ -70,10 +70,8 @@ export function usePWA() {
 
   const dismissInstall = () => {
     setShowInstallPrompt(false);
-    // Dismiss for 7 days
-    const dismissUntil = new Date();
-    dismissUntil.setDate(dismissUntil.getDate() + 7);
-    localStorage.setItem('pwa-install-dismissed', dismissUntil.toISOString());
+    // Dismiss for 2 hours
+    localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   };
 
   return {
