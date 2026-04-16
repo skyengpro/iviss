@@ -2,7 +2,7 @@ use crate::errors::AppError;
 use crate::services::email_provider::EmailProvider;
 use anyhow::Result;
 use std::sync::Arc;
-use tracing::{info};
+use tracing::info;
 
 pub struct EmailService {
     email: Arc<dyn EmailProvider>,

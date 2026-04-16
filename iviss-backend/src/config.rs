@@ -1,5 +1,5 @@
-use crate::services::email_provider::EmailProviderCredentials;
-use crate::services::sms_provider::SmsProviderCredentials;
+pub use crate::services::email_provider::EmailProviderCredentials;
+pub use crate::services::sms_provider::SmsProviderCredentials;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;

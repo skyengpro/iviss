@@ -84,7 +84,10 @@ pub async fn provision_user(
     );
 
     // Send the password to the user's email
-    state.email_svc.send_email(user.email.as_deref().unwrap_or(""), &temp_password).await?;
+    state
+        .email_svc
+        .send_email(user.email.as_deref().unwrap_or(""), &temp_password)
+        .await?;
 
     Ok((
         StatusCode::CREATED,

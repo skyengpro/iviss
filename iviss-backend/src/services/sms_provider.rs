@@ -175,12 +175,6 @@ impl SmsProvider for VonageSmsProvider {
     }
 }
 
-impl Default for SmsProviderCredentials {
-    fn default() -> Self {
-        Self::Mock
-    }
-}
-
 impl SmsProviderCredentials {
     /// Check if credentials are mock/empty
     pub fn is_mock(&self) -> bool {
