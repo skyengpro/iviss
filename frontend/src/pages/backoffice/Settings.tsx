@@ -360,6 +360,35 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* System info — superadmin only */}
+            {isSuperAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Globe className="h-4 w-4" />
+                    System Information
+                  </CardTitle>
+                  <CardDescription>Platform and environment details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <SectionTitle>Platform</SectionTitle>
+                  <InfoRow
+                    label="System"
+                    value="IVISS — Intelligent Vehicle Identification & Status System"
+                  />
+                  <Separator />
+                  <InfoRow label="Version" value="v1.0.0" />
+                  <Separator />
+                  <InfoRow label="Environment" value="Production" />
+                  <Separator />
+                  <InfoRow
+                    label="API"
+                    value={import.meta.env.VITE_API_URL || 'http://localhost:3000'}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* ── Security tab ── */}
