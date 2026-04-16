@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-rq/**' --ignore-pattern '**/test-codegen/**' --ignore-pattern '**/temp-codegen/**'",
+    "lint:check": "eslint . --max-warnings 10 --ignore-pattern '**/src/openapi-rq/**' --ignore-pattern '**/test-codegen/**'",
     "prettier:check": "prettier --check .",
     "format": "prettier --write .",
     "ts:check": "tsc --noEmit",
@@ -20,8 +20,7 @@
     "coverage": "vitest run --coverage",
     "metrics-server": "node metrics-server.js",
     "postinstall": "npm run codegen",
-    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch",
-    "generate-pwa-icons": "node scripts/generate-pwa-icons.js"
+    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c @hey-api/client-fetch"
   },
   "dependencies": {
     "@hey-api/client-fetch": "^0.5.1",
