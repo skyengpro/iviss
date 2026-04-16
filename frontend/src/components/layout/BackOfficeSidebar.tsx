@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  Car,
   ClipboardList,
   FileSearch,
   Settings,
@@ -41,7 +40,6 @@ export function BackOfficeSidebar() {
       icon: ClipboardList,
       label: t('backOfficeSidebar.controlHistory'),
     },
-    { href: '/backoffice/vehicles', icon: Car, label: t('backOfficeSidebar.vehicleDatabase') },
     {
       href: '/backoffice/validation',
       icon: FileSearch,
@@ -63,7 +61,6 @@ export function BackOfficeSidebar() {
             icon: Building2,
             label: t('backOfficeSidebar.organizations'),
           },
-          { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
         ]
       : []),
     { href: '/backoffice/settings', icon: Settings, label: t('backOfficeSidebar.settings') },
