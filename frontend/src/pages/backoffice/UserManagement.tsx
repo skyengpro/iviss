@@ -150,7 +150,6 @@ export default function UserManagement() {
       const msg = error instanceof Error ? error.message : (error as { message?: string })?.message;
       toast.error(msg || t('backOfficeUserManagement.toastError'));
     }
-    }
   };
 
   const handleEditUser = async (data: ProvisionUserRequest) => {
