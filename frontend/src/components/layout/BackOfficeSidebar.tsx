@@ -61,6 +61,7 @@ export function BackOfficeSidebar() {
             icon: Building2,
             label: t('backOfficeSidebar.organizations'),
           },
+          { href: '/backoffice/audit', icon: Shield, label: t('backOfficeSidebar.auditLogs') },
         ]
       : []),
     { href: '/backoffice/settings', icon: Settings, label: t('backOfficeSidebar.settings') },

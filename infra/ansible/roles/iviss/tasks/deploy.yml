@@ -1,0 +1,30 @@
+---
+- name: Login to GitHub Container Registry
+  docker_login:
+    registry_url: ghcr.io
+    username: "{{ docker_username }}"
+    password: "{{ docker_password }}"
+
+- name: Copy docker-compose.yml
+  copy:
+    src: "../../../../../docker-compose.yml"
+    dest: "{{ app_dir }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Generate .env file for Docker Compose
+  template:
+    src: dotenv.j2
+    dest: "{{ app_dir }}/.env"
+    mode: '0600'
+
+- name: Pull Docker images
+  command: docker compose pull
+  args:
+    chdir: "{{ app_dir }}"
+  environment:
+    COMPOSE_PROFILES: prod
+
+- name: Start services
+  command: docker compose --profile prod up -d --force-recreate
+  args:
+    chdir: "{{ app_dir }}"
