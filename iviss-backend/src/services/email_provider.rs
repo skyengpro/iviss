@@ -43,12 +43,6 @@ pub enum EmailProviderCredentials {
     Mock,
 }
 
-impl Default for EmailProviderCredentials {
-    fn default() -> Self {
-        Self::Mock
-    }
-}
-
 impl EmailProviderCredentials {
     /// Check if credentials are mock/empty
     pub fn is_mock(&self) -> bool {
@@ -241,8 +235,14 @@ impl EmailProvider for LettreEmailProvider {
         );
 
         let email = Message::builder()
-            .from(self.from_email.parse().map_err(|e| anyhow::anyhow!("Invalid from email: {e}"))?)
-            .to(to.parse().map_err(|e| anyhow::anyhow!("Invalid to email: {e}"))?)
+            .from(
+                self.from_email
+                    .parse()
+                    .map_err(|e| anyhow::anyhow!("Invalid from email: {e}"))?,
+            )
+            .to(to
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Invalid to email: {e}"))?)
             .subject("IVISS AUTHENTICATION")
             .header(lettre::message::header::ContentType::TEXT_HTML)
             .body(email_body)
