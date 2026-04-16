@@ -1,4 +1,4 @@
-# IVISS Master Deployment & Infrastructure Guide (v1.1)
+# IVISS Master Deployment & Infrastructure Guide (v1.5)
 
 This document provides a comprehensive, deep-dive guide for deploying and managing the IVISS platform. It covers **Infrastructure-as-Code (Terraform)**, **Configuration Management (Ansible)**, **Automated CI/CD (GitHub Actions)**, and **Manual Operations**.
 
@@ -9,26 +9,68 @@ This document provides a comprehensive, deep-dive guide for deploying and managi
 IVISS follows a "Lean Hybrid" architecture on AWS Lightsail:
 - **Compute**: Single Ubuntu 22.04 LTS Instance.
 - **Hardware Profile**: **2 GB RAM, 2 vCPUs, 60 GB SSD** (Bundle: `small_3_0`).
-- **Application**: Containerized stack (Backend + Frontend + Postgres + Metrics).
-- **Storage/Cache**: Postgres runs in a persistent Docker container. High-speed caching is handled internally by the Rust backend using **Moka**, utilizing the server's 2GB RAM directly without needing a separate Redis instance.
+- **Application**: Containerized stack (Backend + Frontend + Postgres).
+- **Storage/Cache**: 
+  - **Postgres**: Runs in a persistent Docker container with a 10GB volume.
+  - **Cache**: Handled internally by the Rust backend using **Moka** (In-memory).
 - **Networking**: Lightsail Static IP with a secured Firewall (22, 80, 443).
 - **API Connectivity**: Frontend uses relative paths (`/api`) proxied by Nginx.
 
 ---
 
-## 2. Infrastructure Layer (Terraform & Remote State)
+## 2. Prerequisites
 
-### State Management (Remote Backend):
-We store our Terraform state in an **S3 Bucket** with **DynamoDB Locking**.
-- **Storage**: S3 Bucket (Versioned & Encrypted).
-- **Locking**: DynamoDB Table (`iviss-terraform-lock`).
-- **Initialization**: Run `./infra/scripts/setup-remote-state.sh` **once** to provision this storage.
+Before you begin, ensure you have:
+1.  **AWS CLI** configured with an IAM user having:
+    - `AmazonLightsailFullAccess`
+    - `AmazonS3FullAccess` (for Terraform state)
+    - `AmazonDynamoDBFullAccess` (for state locking)
+2.  **Terraform** installed (v1.5+).
+3.  **Ansible** installed (for manual deployment fallback).
+4.  **GitHub PAT** with `write:packages` and `read:packages` permissions.
+
+---
+
+## 3. Infrastructure Layer (Terraform & Remote State)
+
+### State Management (Remote Backend)
+We store our Terraform state in an **S3 Bucket** with **DynamoDB Locking** to prevent corruption during team deployments.
+
+#### A. Initial Setup (One-time only)
+Run this script to provision the S3 and DynamoDB storage:
+```bash
+chmod +x ./infra/scripts/setup-remote-state.sh
+./infra/scripts/setup-remote-state.sh
+```
+
+#### B. Provisioning the Instance
+To create the Lightsail instance and static IP:
+```bash
+cd infra/terraform
+terraform init
+terraform apply -var="domain_name=yourdomain.com"
+```
+Or use the wrapper script:
+```bash
+./infra/scripts/deploy.sh
+```
+
+---
+
+## 4. SSH & Key Management
+
+Ansible requires an SSH key to configure the instance.
+1.  **Key File**: The deployment script automatically handles a key named `iviss-key.pem`.
+2.  **GitHub Secrets**: For CI/CD, you don't need the PEM file; the `deploy-aws.yml` uses the AWS API to interact with the instance.
 
 ---
 
 ## 5. Automated Deployment (GitHub Actions CI/CD)
 
-### Mandatory Secrets Checklist (13 Total):
+The automated pipeline triggers on every push to `dev` or `main`. It builds the images, pushes them to GitHub Container Registry (GHCR), and triggers the Ansible deployment on the server.
+
+### Mandatory Secrets Checklist (21 Total):
+
 | Secret Name | Category | Description |
 | :--- | :--- | :--- |
 | **AWS_ACCESS_KEY_ID** | AWS | Your IAM Access Key |
@@ -51,39 +93,50 @@ We store our Terraform state in an **S3 Bucket** with **DynamoDB Locking**.
 | **POSTGRES_USER** | Database | e.g. `iviss_user` |
 | **POSTGRES_PASSWORD** | Database | A secure DB password |
 | **POSTGRES_DB** | Database | e.g. `iviss_prod` |
-| **TWILIO_ACCOUNT_SID** | SMS | Twilio Account SID (or `mock`) |
-| **TWILIO_AUTH_TOKEN** | SMS | Twilio Auth Token (or `mock`) |
-| **TWILIO_FROM_NUMBER** | SMS | Twilio Phone Number (or `mock`) |
-
+| **TWILIO_ACCOUNT_SID** | SMS | Twilio (or `mock`) |
 
 ---
 
-## 6. Environment Variable Management (.env)
+## 6. DNS & SSL Setup
 
-#### Local Development Setup
-1. **Copy Example**: `cp .env.example .env`
-2. **Generate Tokens**: 
-   - **JWT Secrets**: `openssl rand -base64 32`
-   - **Peppers**: `openssl rand -base64 48 | cut -c1-64`
-   - **RS256 Keys**:
-     ```bash
-     openssl genrsa -out jwt-private.pem 2048
-     openssl rsa -in jwt-private.pem -outform PEM -pubout -out jwt-public.pem
-     ```
-3. **Internal DB**: You can leave the local Postgres and Redis settings as defaults for your dev machine.
+1.  **Get Static IP**: Find the IP in the Lightsail console or from the Terraform output.
+2.  **Update Records**: Add an `A Record` in your DNS provider pointing to that IP.
+3.  **SSL Generation**: The first deployment will automatically request a certificate from Let's Encrypt using the `CERTBOT_EMAIL`.
 
 ---
 
 ## 7. Operational Manual
 
 ### Logs & Monitoring
+To see live application logs on the server:
 ```bash
 cd /opt/iviss
 docker compose logs -f
 ```
 
-### Portability Reminder
-The frontend is domain-agnostic. It calls `/api`, which Nginx (on the server host) redirects to the backend container. **Never hardcode "localhost:3000" or IPs in the frontend code.**
+### Restarting the Stack
+If you need to force a restart without a full CI/CD run:
+```bash
+cd /opt/iviss
+docker compose down
+docker compose up -d
+```
+
+---
+
+## 8. Troubleshooting
+
+### 1. "Unauthorized" or "401" on Frontend
+- **Cause**: JWT Key mismatch or expired session.
+- **Fix**: Ensure `JWT_PRIVATE_KEY_PEM` matches the version used locally.
+
+### 2. "Conflict: Target already exists" (Terraform)
+- **Cause**: Trying to create an instance that already exists.
+- **Fix**: Use `terraform import` or ensure you are using the correct workspace/remote state.
+
+### 3. File Size Limit (Push Failed)
+- **Cause**: Accidentally committed `.terraform/` binary files.
+- **Fix**: Run `git reset --soft HEAD~1`, then `git rm -r --cached infra/terraform/.terraform/`, update `.gitignore`, and re-commit.
 
 ---
 
