@@ -33,6 +33,10 @@ resource "aws_lightsail_instance" "iviss_app" {
 # Static IP for the Instance
 resource "aws_lightsail_static_ip" "iviss_ip" {
   name = "${var.project_name}-${var.environment}-ip"
+  
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_lightsail_static_ip_attachment" "iviss_ip_attach" {

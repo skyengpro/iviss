@@ -29,7 +29,9 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 
     cd "$TERRAFORM_DIR"
     terraform init -reconfigure
-    terraform destroy -auto-approve
+    # We target the instance; Terraform's dependency tracking will automatically 
+    # destroy ports, attachments, and keys that depend on it, leaving the Static IP.
+    terraform destroy -auto-approve -target=aws_lightsail_instance.iviss_app
     rm -f "$ANSIBLE_DIR/iviss-key.pem" "$ANSIBLE_DIR/inventory.ini"
     echo "💥 Infrastructure destroyed."
 else
