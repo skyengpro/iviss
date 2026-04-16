@@ -63,9 +63,9 @@ describe('useLogControl', () => {
         plate_number: 'CE123AB',
         agent_id: 'agent-1',
         organization_id: 'org-1',
-        latitude: 48.8566,
-        longitude: 2.3522,
-        address: 'Highway A1, KM 42',
+        latitude: null,
+        longitude: null,
+        address: null,
         identification_mode: 'manual',
         ocr_confidence: 1.0,
         results: {
@@ -75,7 +75,7 @@ describe('useLogControl', () => {
           wanted_status: 'valid',
           customs_status: 'valid',
         },
-        notes: 'Logged via mobile app',
+        notes: null,
       },
     });
 
