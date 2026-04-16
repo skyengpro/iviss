@@ -246,6 +246,26 @@ impl Config {
                     from_email,
                 }
             }
+            "lettre" | "smtp" => {
+                let smtp_host = env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string());
+                let smtp_port = env::var("SMTP_PORT")
+                    .unwrap_or_else(|_| "587".to_string())
+                    .parse::<u16>()
+                    .unwrap_or(587);
+                let smtp_username =
+                    env::var("SMTP_USERNAME").unwrap_or_else(|_| "user".to_string());
+                let smtp_password =
+                    env::var("SMTP_PASSWORD").unwrap_or_else(|_| "password".to_string());
+                let from_email = env::var("SMTP_FROM_EMAIL")
+                    .unwrap_or_else(|_| "noreply@iviss.local".to_string());
+                EmailProviderCredentials::Lettre {
+                    smtp_host,
+                    smtp_port,
+                    smtp_username,
+                    smtp_password,
+                    from_email,
+                }
+            }
             _ => EmailProviderCredentials::Mock,
         }
     }
