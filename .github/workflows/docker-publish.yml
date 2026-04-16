@@ -2,6 +2,7 @@ name: Docker
 
 on:
   push:
+    # Build images for main releases, dev, and the dedicated AWS deployment branch
     branches: ["main", "dev", "dep/iviss-aws-lightsail"]
     tags: ["v*.*.*"]
   pull_request:
