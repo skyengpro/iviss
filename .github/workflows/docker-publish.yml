@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: ["main", "dev", "dep/iviss-aws-lightsail"]
     tags: ["v*.*.*"]
   pull_request:
     branches: ["main", "dev"]
