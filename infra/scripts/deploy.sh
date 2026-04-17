@@ -26,8 +26,8 @@ cd "$TERRAFORM_DIR"
 terraform init -reconfigure
 terraform apply -auto-approve \
   -var="auto_deploy=false" \
-  -var="domain_name=$DOMAIN_NAME" \
-  -var="certbot_email=$CERTBOT_EMAIL"
+  -var="domain_name=$DOMAIN" \
+  -var="certbot_email=$EMAIL"
 
 # 2. Extract Infrastructure Details
 INSTANCE_IP=$(terraform output -raw instance_ip)
@@ -42,10 +42,10 @@ chmod 600 "$ANSIBLE_DIR/iviss-key.pem"
 
 # 4. Generate Ansible Inventory
 echo "📝 Generating Ansible inventory..."
-cat <<EOF > "$ANSIBLE_DIR/inventory.ini"
+cat <<INVENTORY > "$ANSIBLE_DIR/inventory.ini"
 [iviss_prod]
 $INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=./iviss-key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'
-EOF
+INVENTORY
 
 # 5. Run Ansible Playbook
 echo "⚙️ Configuring server and deploying application..."
@@ -63,28 +63,37 @@ python3 -c "
 import json, os, base64
 
 def get_pem(env_var, file_path):
-    # Priority: Env Var > File > Empty
     val = os.environ.get(env_var, '')
     if not val and os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            val = f.read()
+        try:
+            with open(file_path, 'r') as f:
+                val = f.read()
+        except:
+            pass
     if not val:
         return ''
-    # Normalize and Base64 encode for safe transport
-    cleaned = val.strip().replace('\\n', '\n')
+    # Normalize and Base64 encode
+    cleaned = val.strip().replace('\\\\n', '\n').replace('\\n', '\n')
     return base64.b64encode(cleaned.encode()).decode()
 
-domain = '${DOMAIN}' or os.environ.get('DOMAIN_NAME', '')
-email = '${2}' or os.environ.get('CERTBOT_EMAIL', 'admin@iviss.local')
+priv_key = get_pem('JWT_PRIVATE_KEY_PEM', '$PROJECT_ROOT/jwt-private.pem')
+pub_key = get_pem('JWT_PUBLIC_KEY_PEM', '$PROJECT_ROOT/jwt-public.pem')
+
+print(f'DEBUG: JWT Private Key detected (length: {len(priv_key)})')
+print(f'DEBUG: JWT Public Key detected (length: {len(pub_key)})')
+
+if not priv_key or len(priv_key) < 20:
+    print('❌ ERROR: JWT_PRIVATE_KEY_PEM is missing or invalid!')
+    exit(1)
 
 vars = {
     'db_password': os.environ.get('POSTGRES_PASSWORD', os.environ.get('DB_PASSWORD', '$DB_PASSWORD')),
     'db_user': os.environ.get('POSTGRES_USER', 'iviss_user'),
     'db_name': os.environ.get('POSTGRES_DB', 'iviss_dev'),
-    'vite_api_url': f'https://{domain}/api' if domain else f'http://{INSTANCE_IP}:3000',
+    'vite_api_url': f'https://${DOMAIN}/api' if '${DOMAIN}' else f'http://${INSTANCE_IP}:3000',
     'jwt_secret': os.environ.get('JWT_SECRET', ''),
-    'jwt_private_key_pem': get_pem('JWT_PRIVATE_KEY_PEM', '$PROJECT_ROOT/jwt-private.pem'),
-    'jwt_public_key_pem': get_pem('JWT_PUBLIC_KEY_PEM', '$PROJECT_ROOT/jwt-public.pem'),
+    'jwt_private_key_pem': priv_key,
+    'jwt_public_key_pem': pub_key,
     'activation_code_pepper': os.environ.get('ACTIVATION_CODE_PEPPER', ''),
     'environment': os.environ.get('ENVIRONMENT', 'production'),
     'log_level': os.environ.get('LOG_LEVEL', 'info'),
@@ -108,13 +117,13 @@ vars = {
     'smtp_username': os.environ.get('SMTP_USERNAME', ''),
     'smtp_password': os.environ.get('SMTP_PASSWORD', ''),
     'smtp_from_email': os.environ.get('SMTP_FROM_EMAIL', ''),
-    'docker_username': os.environ.get('DOCKER_USERNAME', os.environ.get('GITHUB_USERNAME', os.environ.get('GITHUB_ACTOR', ''))),
+    'docker_username': os.environ.get('DOCKER_USERNAME', os.environ.get('GITHUB_ACTOR', '')),
     'docker_password': os.environ.get('DOCKER_PASSWORD', os.environ.get('GITHUB_TOKEN', '')),
 }
 
-if domain:
-    vars['domain_name'] = domain
-    vars['certbot_email'] = email
+if '${DOMAIN}':
+    vars['domain_name'] = '${DOMAIN}'
+    vars['certbot_email'] = '${EMAIL}'
 
 with open('$VARS_FILE', 'w') as f:
     json.dump(vars, f)
@@ -126,5 +135,3 @@ ansible-playbook -i inventory.ini playbook.yml --extra-vars "@$VARS_FILE"
 rm -f "$VARS_FILE"
 
 echo "✅ Deployment complete!"
-echo "📍 Dashboard available at: http://${DOMAIN:-$INSTANCE_IP}"
-echo "🔌 API available at: http://${DOMAIN:-$INSTANCE_IP}/api"
