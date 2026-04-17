@@ -35,16 +35,18 @@ Access at: `http://localhost:4173`
 1. Open Chrome or Edge browser
 2. Navigate to the IVISS application URL
 3. Wait 3 seconds after page load
-4. **Expected:** Install prompt dialog appears with:
-   - "Install IVISS App" title
-   - Benefits list (quick access, offline, faster loading, full-screen)
-   - "Not Now" and "Install" buttons
+4. **Expected:** Install banner appears at the top of the screen with:
+   - X button on the left (to dismiss)
+   - IVISS shield logo
+   - "Get the app" heading
+   - Description: "Fast, secure vehicle inspection and identification"
+   - Blue "Install" button on the right
 
 5. Click **"Install"**
 6. **Expected:** 
    - Browser shows native install confirmation
    - App installs and opens in standalone window
-   - Install prompt disappears
+   - Install banner disappears
 
 ### Verification:
 - Check browser's address bar - should show app icon
@@ -61,21 +63,21 @@ Access at: `http://localhost:4173`
 
 ### Steps:
 1. Open browser and navigate to IVISS
-2. Wait for install prompt (3 seconds)
-3. Click **"Not Now"**
-4. **Expected:** Prompt closes and doesn't reappear
+2. Wait for install banner (3 seconds)
+3. Click **X button** (on the left side)
+4. **Expected:** Banner closes immediately
 
-5. Refresh the page
-6. **Expected:** Prompt does NOT appear (dismissed for 2 hours)
+5. Refresh the page (F5 or Ctrl+R)
+6. **Expected:** Banner appears again after 3 seconds
 
 ### Verification:
-- Check localStorage: `pwa-install-dismissed` should have a timestamp
-- Prompt should not appear for 2 hours
+- Banner reappears on every page refresh
+- No localStorage persistence for dismissal
+- Only permanently hidden after app is installed
 
-### Reset Dismissal:
-Open browser DevTools → Console:
+### Reset Test:
+Simply refresh the page to see the banner again
 ```javascript
-localStorage.removeItem('pwa-install-dismissed');
 location.reload();
 ```
 
@@ -87,7 +89,7 @@ location.reload();
 1. Open Chrome on Android device
 2. Navigate to IVISS application URL
 3. Wait 3 seconds after page load
-4. **Expected:** Install prompt dialog appears
+4. **Expected:** Install banner appears at the top of the screen
 
 5. Click **"Install"**
 6. **Expected:**
@@ -175,13 +177,14 @@ location.reload();
 ### Steps:
 1. Install the PWA
 2. Open the installed app
-3. **Expected:** Install prompt does NOT appear
+3. **Expected:** Install banner does NOT appear
 4. Navigate through the app
-5. **Expected:** No install prompts at any time
+5. **Expected:** No install banner at any time
 
 ### Verification:
 - App detects `(display-mode: standalone)` media query
-- Install prompt component returns `null`
+- Install banner component returns `null`
+- Banner never shows in installed app mode
 
 ---
 
@@ -199,6 +202,6 @@ location.reload();
 
 ### Steps:
 1. Test installation on each browser
-2. Verify install prompt behavior
+2. Verify install banner behavior
 3. Check offline functionality
 4. Test automatic updates
