@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: 'IVISS - Intelligent Vehicle Identification & Security System',
+          name: 'IVISS',
           short_name: 'IVISS',
           description: 'Law enforcement vehicle inspection and identification platform',
           theme_color: '#1e40af',
