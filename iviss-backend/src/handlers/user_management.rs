@@ -83,6 +83,12 @@ pub async fn provision_user(
         "Org admin created successfully"
     );
 
+    // Send the password to the user's email
+    state
+        .email_svc
+        .send_email(user.email.as_deref().unwrap_or(""), &temp_password)
+        .await?;
+
     Ok((
         StatusCode::CREATED,
         Json(ProvisionUserResponse {
@@ -105,9 +111,16 @@ pub async fn provision_user(
     operation_id = "listUsers",
     security(("bearer_auth" = []))
 )]
-pub async fn list_users(State(state): State<Arc<AppState>>) -> Result<impl IntoResponse, AppError> {
+pub async fn list_users(
+    State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
+) -> Result<impl IntoResponse, AppError> {
     let users = list_users_query(&state.db).await?;
-    Ok((StatusCode::OK, Json(users)))
+    let filtered: Vec<_> = users
+        .into_iter()
+        .filter(|u| u.id != requester.user_id)
+        .collect();
+    Ok((StatusCode::OK, Json(filtered)))
 }
 
 /// Get a specific user by ID (admin only)
@@ -383,7 +396,11 @@ pub async fn list_org_users(
         .organization_id
         .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
     let users = list_users_by_org(&state.db, org_id).await?;
-    Ok((StatusCode::OK, Json(users)))
+    let filtered: Vec<_> = users
+        .into_iter()
+        .filter(|u| u.id != requester.user_id)
+        .collect();
+    Ok((StatusCode::OK, Json(filtered)))
 }
 
 /// Create an agent or supervisor within the org admin's organization

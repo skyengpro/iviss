@@ -1,7 +1,8 @@
 import { getAccessToken } from '../auth/tokenManager';
 
 function getBaseUrl(): string {
-  return (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+  return apiBaseUrl.replace(/\/+$/, '');
 }
 
 function isBackendUrl(url: string): boolean {
@@ -27,7 +28,8 @@ export async function fetchWithAuth(input: string, init?: RequestInit): Promise<
 
   if (!response.ok) {
     let isSessionRevoked = false;
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
+      // Only treat as session revoked if we had a token — a login failure is not a revocation
       isSessionRevoked = true;
     } else {
       try {

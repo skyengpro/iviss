@@ -1,0 +1,42 @@
+---
+- name: Uninstall IVISS and Cleanup
+  hosts: all
+  become: yes
+  vars:
+    app_dir: "/opt/iviss"
+
+  tasks:
+    - name: Check if app directory exists
+      stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Stop and remove containers
+      command: docker compose --profile prod down -v
+      args:
+        chdir: "{{ app_dir }}"
+      when: app_dir_stat.stat.exists
+      ignore_errors: yes
+
+    - name: Remove app directory
+      file:
+        path: "{{ app_dir }}"
+        state: absent
+
+    - name: Remove Nginx configuration
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/nginx/sites-available/iviss
+        - /etc/nginx/sites-enabled/iviss
+
+    - name: Reload Nginx
+      service:
+        name: nginx
+        state: reloaded
+      ignore_errors: yes
+
+    - name: Cleanup unused Docker images/volumes
+      command: docker system prune -af --volumes
+      ignore_errors: yes

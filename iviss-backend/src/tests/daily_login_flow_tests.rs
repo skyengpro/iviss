@@ -162,9 +162,8 @@ async fn setup_test_infrastructure() -> (
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
-        twilio_account_sid: "sid".to_string(),
-        twilio_auth_token: "token".to_string(),
-        twilio_from_number: "num".to_string(),
+        sms_credentials: crate::config::SmsProviderCredentials::Mock,
+        email_credentials: crate::config::EmailProviderCredentials::Mock,
         activation_code_pepper: TEST_PEPPER.to_string(),
         // Use 24-hour shift to avoid middleware blocking tests
         shift_start_hour: 0,
@@ -179,6 +178,7 @@ async fn setup_test_infrastructure() -> (
         db.clone(),
         cache.clone(),
         Arc::new(MockSmsProvider),
+        Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
     );
 

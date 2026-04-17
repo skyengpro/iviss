@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { StatCard } from '@/components/ui/stat-card';
@@ -17,7 +17,6 @@ import { Link } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/auth/use-auth';
-import { useDashboard } from '@/hooks/api/useDashboard';
 import { useControls } from '@/hooks/api/useControls';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
@@ -25,23 +24,56 @@ export default function MobileDashboard() {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const { stats, isLoading: statsLoading } = useDashboard();
-  const { lat, lng, error: geoError, loading: geoLoading } = useGeolocation();
+  const { lat, lng, error: geoError, loading: geoLoading, permissionDenied } = useGeolocation();
+
+  const { controls: recentControls = [], isLoading: controlsLoading } = useControls({
+    query: {
+      agent_id: user?.id,
+    },
+  });
+
+  const isLoading = controlsLoading;
   const [address, setAddress] = useState<string>('');
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  const lastKnownLocationRef = useRef<{ lat: number; lng: number; address: string } | null>(null);
 
   useEffect(() => {
     const fetchAddress = async () => {
       if (lat && lng) {
+        const cached = lastKnownLocationRef.current;
+        if (cached) {
+          const dist = Math.sqrt(Math.pow(lat - cached.lat, 2) + Math.pow(lng - cached.lng, 2));
+          if (dist < 0.0005) {
+            setAddress(cached.address);
+            return;
+          }
+        }
+
         setIsReverseGeocoding(true);
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { signal: controller.signal }
           );
+          clearTimeout(timeoutId);
+
+          if (!response.ok) throw new Error('Geocoding failed');
+
           const data = await response.json();
-          setAddress(data.display_name || '');
+          const newAddress = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          setAddress(newAddress);
+          lastKnownLocationRef.current = { lat, lng, address: newAddress };
         } catch (error) {
           console.error('Error fetching address:', error);
+          const cached = lastKnownLocationRef.current;
+          if (cached?.address) {
+            setAddress(cached.address + ' (last known)');
+          } else {
+            setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+          }
         } finally {
           setIsReverseGeocoding(false);
         }
@@ -50,12 +82,6 @@ export default function MobileDashboard() {
 
     fetchAddress();
   }, [lat, lng]);
-
-  const { controls: recentControls = [], isLoading: controlsLoading } = useControls({
-    query: {
-      agent_id: user?.id,
-    },
-  });
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -69,8 +95,6 @@ export default function MobileDashboard() {
       new Date(c.timestamp).getTime() >= startOfDay.getTime() &&
       (c.status === 'critical' || c.status === 'warning')
   ).length;
-
-  const isLoading = statsLoading || controlsLoading;
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -178,7 +202,15 @@ export default function MobileDashboard() {
             {geoLoading ? (
               <p className="text-sm animate-pulse">{t('mobileDashboard.locationRequesting')}</p>
             ) : geoError ? (
-              <p className="text-sm text-destructive font-medium">{geoError}</p>
+              <div className="text-sm text-destructive font-medium">
+                <p>{geoError}</p>
+                {permissionDenied && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Open your browser settings and allow location access for this site, then refresh
+                    the page.
+                  </p>
+                )}
+              </div>
             ) : (
               <>
                 <p className="text-sm font-medium break-words">

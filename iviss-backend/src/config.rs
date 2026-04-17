@@ -1,3 +1,5 @@
+pub use crate::services::email_provider::EmailProviderCredentials;
+pub use crate::services::sms_provider::SmsProviderCredentials;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;
@@ -80,9 +82,9 @@ pub struct Config {
     pub jwt_public_key_pem: String,
     pub environment: Environment,
     // SMS
-    pub twilio_account_sid: String,
-    pub twilio_auth_token: String,
-    pub twilio_from_number: String,
+    pub sms_credentials: SmsProviderCredentials,
+    // Email
+    pub email_credentials: EmailProviderCredentials,
     pub activation_code_pepper: String,
     pub shift_start_hour: u32,
     pub shift_end_hour: u32,
@@ -142,13 +144,13 @@ impl Config {
             .parse::<Environment>()
             .context("Failed to parse ENVIRONMENT")?;
 
-        // Twilio — requis uniquement en production
-        let twilio_account_sid =
-            env::var("TWILIO_ACCOUNT_SID").unwrap_or_else(|_| "mock".to_string());
-        let twilio_auth_token =
-            env::var("TWILIO_AUTH_TOKEN").unwrap_or_else(|_| "mock".to_string());
-        let twilio_from_number =
-            env::var("TWILIO_FROM_NUMBER").unwrap_or_else(|_| "mock".to_string());
+        // SMS Provider configuration
+        let sms_provider = env::var("SMS_PROVIDER").unwrap_or_else(|_| "mock".to_string());
+        let sms_credentials = Self::get_sms_provider_credentials(&sms_provider);
+
+        // Email Provider configuration
+        let email_provider = env::var("EMAIL_PROVIDER").unwrap_or_else(|_| "mock".to_string());
+        let email_credentials = Self::get_email_provider_credentials(&email_provider);
 
         let activation_code_pepper =
             env::var("ACTIVATION_CODE_PEPPER").context("ACTIVATION_CODE_PEPPER must be set")?;
@@ -193,9 +195,8 @@ impl Config {
             jwt_private_key_pem,
             jwt_public_key_pem,
             environment,
-            twilio_account_sid,
-            twilio_auth_token,
-            twilio_from_number,
+            sms_credentials,
+            email_credentials,
             activation_code_pepper,
             shift_start_hour,
             shift_end_hour,
@@ -206,19 +207,80 @@ impl Config {
         })
     }
 
+    fn get_sms_provider_credentials(sms_provider: &str) -> SmsProviderCredentials {
+        match sms_provider.to_lowercase().as_str() {
+            "vonage" => {
+                let api_key = env::var("VONAGE_API_KEY").unwrap_or_else(|_| "mock".to_string());
+                let api_secret =
+                    env::var("VONAGE_API_SECRET").unwrap_or_else(|_| "mock".to_string());
+                SmsProviderCredentials::Vonage {
+                    api_key,
+                    api_secret,
+                }
+            }
+            "twilio" => {
+                let account_sid =
+                    env::var("TWILIO_ACCOUNT_SID").unwrap_or_else(|_| "mock".to_string());
+                let auth_token =
+                    env::var("TWILIO_AUTH_TOKEN").unwrap_or_else(|_| "mock".to_string());
+                let from_number =
+                    env::var("TWILIO_FROM_NUMBER").unwrap_or_else(|_| "mock".to_string());
+                SmsProviderCredentials::Twilio {
+                    account_sid,
+                    auth_token,
+                    from_number,
+                }
+            }
+            _ => SmsProviderCredentials::Mock,
+        }
+    }
+
+    fn get_email_provider_credentials(email_provider: &str) -> EmailProviderCredentials {
+        match email_provider.to_lowercase().as_str() {
+            "resend" => {
+                let api_key = env::var("RESEND_API_KEY").unwrap_or_else(|_| "mock".to_string());
+                let from_email = env::var("RESEND_FROM_EMAIL")
+                    .unwrap_or_else(|_| "mock@example.com".to_string());
+                EmailProviderCredentials::Resend {
+                    api_key,
+                    from_email,
+                }
+            }
+            "lettre" | "smtp" => {
+                let smtp_host = env::var("SMTP_HOST").unwrap_or_else(|_| "localhost".to_string());
+                let smtp_port = env::var("SMTP_PORT")
+                    .unwrap_or_else(|_| "587".to_string())
+                    .parse::<u16>()
+                    .unwrap_or(587);
+                let smtp_username =
+                    env::var("SMTP_USERNAME").unwrap_or_else(|_| "user".to_string());
+                let smtp_password =
+                    env::var("SMTP_PASSWORD").unwrap_or_else(|_| "password".to_string());
+                let from_email = env::var("SMTP_FROM_EMAIL")
+                    .unwrap_or_else(|_| "noreply@iviss.local".to_string());
+                EmailProviderCredentials::Lettre {
+                    smtp_host,
+                    smtp_port,
+                    smtp_username,
+                    smtp_password,
+                    from_email,
+                }
+            }
+            _ => EmailProviderCredentials::Mock,
+        }
+    }
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<()> {
         // Additional validation can be added here
         if self.server_port == 0 {
             // return Err(anyhow!("SERVER_PORT cannot be 0"));
         }
-        // Validate Twilio config
-        if self.environment == Environment::Production
-            && (self.twilio_account_sid == "mock"
-                || self.twilio_auth_token == "mock"
-                || self.twilio_from_number == "mock")
-        {
-            return Err(anyhow!("Twilio credentials must be set in production"));
+        // Validate SMS provider config in production
+        if self.environment == Environment::Production && self.sms_credentials.is_mock() {
+            return Err(anyhow!(
+                "SMS provider credentials must be set in production (SMS_PROVIDER environment variable)"
+            ));
         }
 
         Ok(())
@@ -236,12 +298,7 @@ impl Config {
 
     /// Check if we should use the mock SMS provider
     pub fn use_mock_sms(&self) -> bool {
-        self.twilio_account_sid == "mock"
-            || self.twilio_auth_token == "mock"
-            || self.twilio_from_number == "mock"
-            || self.twilio_account_sid.is_empty()
-            || self.twilio_auth_token.is_empty()
-            || self.twilio_from_number.is_empty()
+        self.sms_credentials.is_mock()
     }
 }
 
@@ -297,9 +354,11 @@ mod tests {
             jwt_private_key_pem: "priv".into(),
             jwt_public_key_pem: "pub".into(),
             environment: Environment::Local,
-            twilio_account_sid: "sid".into(),
-            twilio_auth_token: "token".into(),
-            twilio_from_number: "num".into(),
+            sms_credentials: SmsProviderCredentials::Vonage {
+                api_key: "key".into(),
+                api_secret: "secret".into(),
+            },
+            email_credentials: EmailProviderCredentials::Mock,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
             shift_start_hour: 8,
             shift_end_hour: 18,
@@ -318,8 +377,8 @@ mod tests {
         assert!(prod_config.is_production());
         assert!(!prod_config.is_local());
 
-        // Twilio check in production
-        prod_config.twilio_account_sid = "mock".into();
+        // Mock credentials should fail validation in production
+        prod_config.sms_credentials = SmsProviderCredentials::Mock;
         assert!(prod_config.validate().is_err());
     }
 }

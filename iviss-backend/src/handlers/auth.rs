@@ -868,6 +868,8 @@ async fn request_refresh_admin(
     state: Arc<AppState>,
     refresh_token: String,
 ) -> Result<axum::response::Response, AppError> {
+    tracing::warn!("admin refresh: attempt received");
+
     // Hash the refresh token
     let token_hash = {
         use sha2::Digest;
@@ -894,8 +896,14 @@ async fn request_refresh_admin(
     .bind(&token_hash)
     .fetch_optional(&state.db)
     .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::Unauthorized("Invalid or expired refresh token".into()))?;
+    .map_err(|e| {
+        tracing::warn!(error = %e, "admin refresh: database error during token lookup");
+        AppError::Database(e)
+    })?
+    .ok_or_else(|| {
+        tracing::warn!("admin refresh: FAILED — refresh token not found, revoked, or expired");
+        AppError::Unauthorized("Invalid or expired refresh token".into())
+    })?;
 
     let user_id: Uuid = row.get("user_id");
     let role: UserRole = row.get("role");
@@ -903,10 +911,15 @@ async fn request_refresh_admin(
 
     // Check account still active
     if status != UserStatus::Active {
+        tracing::warn!(%user_id, status = %status.as_str(), "admin refresh: FAILED — account not active");
         return Err(AppError::Unauthorized("Account is not active".into()));
     }
 
-    if !matches!(role, UserRole::Admin | UserRole::Manager) {
+    if !matches!(
+        role,
+        UserRole::Admin | UserRole::Manager | UserRole::OrgAdmin
+    ) {
+        tracing::warn!(%user_id, role = %role.as_str(), "admin refresh: FAILED — role not authorized for web refresh");
         return Err(AppError::forbidden("Not authorized for web refresh"));
     }
 
@@ -923,12 +936,15 @@ async fn request_refresh_admin(
 
     let access_token = jwt_svc
         .issue_access_token_with_shift(user_id, Uuid::nil(), role, shift_start, shift_end)
-        .map_err(AppError::Internal)?;
+        .map_err(|e| {
+            tracing::warn!(%user_id, error = %e, "admin refresh: FAILED — could not issue access token");
+            AppError::Internal(e)
+        })?;
 
-    tracing::info!(
+    tracing::warn!(
         %user_id,
         role = %role.as_str(),
-        "admin refresh: new access token issued"
+        "admin refresh: SUCCESS — new access token issued"
     );
 
     Ok((

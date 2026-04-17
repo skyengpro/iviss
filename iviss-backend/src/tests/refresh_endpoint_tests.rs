@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
 use crate::routes;
+use crate::services::email_provider::MockEmailProvider;
 use crate::services::sms_provider::MockSmsProvider;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -175,9 +176,8 @@ async fn setup_test_infrastructure() -> (
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
-        twilio_account_sid: "sid".to_string(),
-        twilio_auth_token: "token".to_string(),
-        twilio_from_number: "num".to_string(),
+        sms_credentials: crate::config::SmsProviderCredentials::Mock,
+        email_credentials: crate::config::EmailProviderCredentials::Mock,
         activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
             .to_string(),
         shift_start_hour: 0,
@@ -192,6 +192,7 @@ async fn setup_test_infrastructure() -> (
         db.clone(),
         Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(MockSmsProvider),
+        Arc::new(MockEmailProvider),
         &config,
     );
 
