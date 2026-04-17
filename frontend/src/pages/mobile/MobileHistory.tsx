@@ -21,11 +21,11 @@ export default function MobileHistory() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
 
   const { controls = [], isLoading } = useControls({
-    query: {
-      agent_id: user?.id,
-      plate: searchQuery || undefined,
-      status: filterStatus === 'all' ? undefined : (filterStatus as Status),
-    },
+    agentId: user?.id || null,
+    startDate: null,
+    endDate: null,
+    status: filterStatus === 'all' ? null : (filterStatus as Status),
+    plate: searchQuery || null,
   });
 
   const formatTime = (isoString: string) => {
