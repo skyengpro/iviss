@@ -1,0 +1,63 @@
+name: Deploy to AWS Lightsail
+
+on:
+  push:
+      branches:
+      - dep/iviss-aws-lightsail
+  workflow_run:
+    workflows: ["Docker"]
+    types:
+      - completed
+    branches: ["main"]
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Setup Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Deploy Infrastructure and App
+        env:
+          DOCKER_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_PRIVATE_KEY_PEM: ${{ secrets.JWT_PRIVATE_KEY_PEM }}
+          JWT_PUBLIC_KEY_PEM: ${{ secrets.JWT_PUBLIC_KEY_PEM }}
+          ACTIVATION_CODE_PEPPER: ${{ secrets.ACTIVATION_CODE_PEPPER }}
+          SHIFT_START_HOUR: ${{ secrets.SHIFT_START_HOUR }}
+          SHIFT_END_HOUR: ${{ secrets.SHIFT_END_HOUR }}
+          RUST_LOG: ${{ secrets.RUST_LOG }}
+          ADMIN_BOOTSTRAP_EMAIL: ${{ secrets.ADMIN_BOOTSTRAP_EMAIL }}
+          ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
+          ADMIN_BOOTSTRAP_PHONE: ${{ secrets.ADMIN_BOOTSTRAP_PHONE }}
+          ADMIN_BOOTSTRAP_USERNAME: ${{ secrets.ADMIN_BOOTSTRAP_USERNAME }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+        run: |
+          ./infra/scripts/deploy.sh "${{ secrets.DOMAIN_NAME }}" "${{ secrets.CERTBOT_EMAIL }}"
