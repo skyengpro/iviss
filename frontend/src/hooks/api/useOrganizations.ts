@@ -7,21 +7,21 @@ import {
 import type { CreateOrganizationRequest, UpdateOrganizationRequest } from '@/openapi-rq/types.gen';
 
 export function useOrganizations() {
-  const { data: organizations, isLoading, error, refetch } = useListOrganizations([], {});
+  const { data: organizations, isLoading, error, refetch } = useListOrganizations({}, [], {});
 
-  const createMutation = useCreateOrganization({
+  const createMutation = useCreateOrganization([], {
     onSuccess: () => {
       refetch();
     },
   });
 
-  const updateMutation = useUpdateOrganization({
+  const updateMutation = useUpdateOrganization([], {
     onSuccess: () => {
       refetch();
     },
   });
 
-  const deleteMutation = useDeleteOrganization({
+  const deleteMutation = useDeleteOrganization([], {
     onSuccess: () => {
       refetch();
     },

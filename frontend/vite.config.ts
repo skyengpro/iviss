@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   return {
     server: {
+      allowedHosts: ['iviss-prod.vpn.kivoyo.com', '.vpn.kivoyo.com'],
       host: '::',
       port: 8080,
       hmr: {

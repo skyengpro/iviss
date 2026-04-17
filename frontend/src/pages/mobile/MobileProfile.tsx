@@ -25,7 +25,7 @@ export default function MobileProfile() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const { data: me } = useGetUserProfile([], {
+  const { data: me } = useGetUserProfile({}, [], {
     enabled: true,
     staleTime: 0,
     refetchOnMount: 'always',
