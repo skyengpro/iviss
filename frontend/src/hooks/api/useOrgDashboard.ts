@@ -11,7 +11,7 @@ import { DashboardRange } from '../../openapi-rq/requests/types.gen';
 export function useOrgDashboard() {
   const [range, setRange] = useState<DashboardRange>('24h');
 
-  const statsQuery = useGetOrgDashboardStats([], {
+  const statsQuery = useGetOrgDashboardStats({}, [], {
     refetchInterval: 30000,
   });
 

@@ -1,6 +1,9 @@
 use crate::dto::users::UserRole;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use rsa::pkcs1::DecodeRsaPrivateKey;
+use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
+use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -25,10 +28,56 @@ pub struct JwtService {
 
 impl JwtService {
     pub fn new(jwt_private_key_pem: &str) -> Result<Self> {
-        let cleaned_pem = jwt_private_key_pem.replace("\\n", "\n");
-        let encoding_key = EncodingKey::from_rsa_pem(cleaned_pem.as_bytes())
-            .context("Failed to parse JWT RSA private key PEM")?;
-        Ok(Self { encoding_key })
+        // 1. Aggressive cleanup of the input string
+        let mut raw = jwt_private_key_pem.trim().to_string();
+        
+        // Remove outer quotes if they exist (common in shell-passed env vars)
+        if (raw.starts_with('"') && raw.ends_with('"')) || (raw.starts_with('\'') && raw.ends_with('\'')) {
+            raw = raw[1..raw.len()-1].trim().to_string();
+        }
+        
+        // Handle literal \n and \r sequences from environment variables
+        let normalized = raw.replace("\\n", "\n").replace("\\\\n", "\n").replace("\\r", "");
+        
+        // 2. Try standard jsonwebtoken parsing first
+        match EncodingKey::from_rsa_pem(normalized.as_bytes()) {
+            Ok(key) => Ok(Self { encoding_key: key }),
+            Err(e) => {
+                tracing::warn!(error = %e, "Initial JWT PEM parsing failed, attempting aggressive recovery...");
+                
+                // 3. Extract base64 content only (removes headers, footers, and all whitespace)
+                let inner_base64 = normalized
+                    .lines()
+                    .filter(|l| !l.trim().starts_with("---"))
+                    .collect::<String>()
+                    .chars()
+                    .filter(|c| !c.is_whitespace() && c != &'\"' && c != &'\'')
+                    .collect::<String>();
+                
+                if inner_base64.len() < 100 {
+                    return Err(anyhow!("JWT key content is too short or empty. Ensure JWT_PRIVATE_KEY_PEM is set correctly."));
+                }
+
+                // Try to parse using the rsa crate directly from DER (bypasses all PEM formatting issues)
+                let der = base64::Engine::decode(
+                    &base64::prelude::BASE64_STANDARD, 
+                    &inner_base64.replace("-", "+").replace("_", "/")
+                ).map_err(|err| anyhow!("Failed to base64-decode JWT key content: {}", err))?;
+                
+                let rsa_key = RsaPrivateKey::from_pkcs8_der(&der)
+                    .or_else(|_| RsaPrivateKey::from_pkcs1_der(&der))
+                    .map_err(|err| anyhow!("All RSA DER parsing attempts (PKCS#8 and PKCS#1) failed: {}. Ensure your key is a valid RSA private key.", err))?;
+
+                // Export back to a clean PEM for jsonwebtoken compatibility
+                let clean_pem = rsa_key.to_pkcs8_pem(LineEnding::LF)
+                    .map_err(|_| anyhow!("Failed to re-normalize valid RSA key back to PEM"))?;
+                
+                let encoding_key = EncodingKey::from_rsa_pem(clean_pem.as_bytes())
+                    .context("Failed to parse the final re-normalized JWT RSA private key")?;
+                
+                Ok(Self { encoding_key })
+            }
+        }
     }
 
     pub fn issue_access_token(
