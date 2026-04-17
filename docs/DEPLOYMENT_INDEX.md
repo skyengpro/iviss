@@ -8,18 +8,36 @@
 
 **New to the project? Start here:**
 
-1. **[DEPLOYMENT_OVERVIEW.md](DEPLOYMENT_OVERVIEW.md)** ⭐ START HERE
-   - Current deployment maturity assessment
-   - What exists vs. what's missing
-   - Technology stack overview
-   - Handover checklist
+1. **[DEPLOYMENT_CURRENT_STATE.md](DEPLOYMENT_CURRENT_STATE.md)** ⭐ START HERE (Updated April 17, 2026)
+   - Latest deployment status
+   - Complete infrastructure overview
+   - AWS Lightsail + Terraform + Ansible setup
+   - Secrets management flow
+   - Operational procedures
 
-2. **[DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md)** (this document)
+2. **[DEPLOYMENT_OVERVIEW.md](DEPLOYMENT_OVERVIEW.md)** (Initial assessment - now outdated)
+   - Historical context
+   - What was missing initially
+   - Useful for understanding the evolution
+
+3. **[DEPLOYMENT_INDEX.md](DEPLOYMENT_INDEX.md)** (this document)
    - Navigation hub for all deployment documentation
 
 ---
 
 ## Technical Deep Dives
+
+### Deployment Status
+
+**[DEPLOYMENT_CURRENT_STATE.md](DEPLOYMENT_CURRENT_STATE.md)** ⭐ LATEST
+
+- Complete production infrastructure overview
+- AWS Lightsail deployment architecture
+- Terraform + Ansible automation
+- Secrets management flow (GitHub → EC2)
+- Deployment process and update procedures
+- Operational procedures and troubleshooting
+- Cost analysis and security posture
 
 ### CI/CD and Automation
 
@@ -134,26 +152,28 @@
 
 **Must Read:**
 
-1. DEPLOYMENT_OVERVIEW.md
-2. INFRASTRUCTURE_AND_HOSTING.md
+1. DEPLOYMENT_CURRENT_STATE.md ⭐ (Latest)
+2. DEPLOYMENT_OVERVIEW.md (Historical context)
 3. CICD_PIPELINES.md
 
 **Reference:**
 
 - CONTAINER_ARCHITECTURE.md
+- INFRASTRUCTURE_AND_HOSTING.md
 - docker_setup.md
 
 ### For DevOps Engineers
 
 **Must Read:**
 
-1. DEPLOYMENT_OVERVIEW.md
+1. DEPLOYMENT_CURRENT_STATE.md ⭐ (Latest)
 2. CONTAINER_ARCHITECTURE.md
 3. CICD_PIPELINES.md
 4. docker_setup.md
 
 **Reference:**
 
+- DEPLOYMENT_OVERVIEW.md (Historical)
 - INFRASTRUCTURE_AND_HOSTING.md
 - architecture_spec.md
 - monitoring.md
@@ -209,12 +229,12 @@
 
 **Read:**
 
-1. DEPLOYMENT_HANDOVER.md
-2. DEPLOYMENT_OVERVIEW.md
+1. DEPLOYMENT_CURRENT_STATE.md ⭐ (Latest infrastructure)
+2. DEPLOYMENT_OVERVIEW.md (Historical context)
 3. overview.md
 4. architecture_spec.md
 
-**Action:** Make key decisions (hosting platform, etc.)
+**Action:** Review existing AWS deployment and identify improvements
 
 ---
 
@@ -267,10 +287,15 @@
 - ✅ Application code complete and working
 - ✅ Docker containers for all services
 - ✅ CI/CD for testing and image building
-- ❌ NO production infrastructure
-- ❌ NO deployment automation
-- ❌ NO secrets management
+- ✅ **Production infrastructure (AWS Lightsail)**
+- ✅ **Automated deployment (Terraform + Ansible)**
+- ✅ **Secrets management (GitHub Secrets → Ansible)**
+- ✅ **SSL/TLS certificates (Let's Encrypt)**
+- ❌ NO staging environment
+- ❌ NO automated rollback
 - ❌ NO production monitoring
+- ❌ NO database backups
+- ❌ NO high availability
 
 ### Technology Stack
 
@@ -302,11 +327,11 @@
 
 ### Critical Gaps
 
-1. No production infrastructure
-2. No secrets management
-3. No deployment automation
-4. No backup strategy
-5. No production monitoring
+1. No staging environment (only production)
+2. No automated rollback mechanism
+3. No database backup strategy
+4. No production monitoring (Prometheus/Grafana)
+5. No log aggregation
 6. No disaster recovery plan
 7. No high availability
 8. No load balancing
@@ -333,21 +358,22 @@
 
 ## Document Status
 
-| Document                      | Status      | Last Updated | Completeness |
-| ----------------------------- | ----------- | ------------ | ------------ |
-| DEPLOYMENT_OVERVIEW.md        | ✅ Complete | April 2026   | 100%         |
-| CICD_PIPELINES.md             | ✅ Complete | April 2026   | 100%         |
-| CONTAINER_ARCHITECTURE.md     | ✅ Complete | April 2026   | 100%         |
-| INFRASTRUCTURE_AND_HOSTING.md | ✅ Complete | April 2026   | 100%         |
-| overview.md                   | ✅ Complete | April 2026   | 100%         |
-| architecture_spec.md          | ✅ Complete | April 2026   | 100%         |
-| components.md                 | ✅ Complete | April 2026   | 100%         |
-| schema.md                     | ✅ Complete | Earlier      | 100%         |
-| schema_simple.md              | ✅ Complete | April 2026   | 100%         |
-| data.md                       | ✅ Complete | Earlier      | 100%         |
-| docker_setup.md               | ✅ Complete | Earlier      | 100%         |
-| monitoring.md                 | ✅ Complete | Earlier      | 100%         |
-| auth_tokens.md                | ✅ Complete | Earlier      | 100%         |
+| Document                      | Status      | Last Updated   | Completeness |
+| ----------------------------- | ----------- | -------------- | ------------ |
+| DEPLOYMENT_CURRENT_STATE.md   | ✅ Complete | April 17, 2026 | 100%         |
+| DEPLOYMENT_OVERVIEW.md        | ⚠️ Outdated | April 2026     | Historical   |
+| CICD_PIPELINES.md             | ✅ Complete | April 2026     | 100%         |
+| CONTAINER_ARCHITECTURE.md     | ✅ Complete | April 2026     | 100%         |
+| INFRASTRUCTURE_AND_HOSTING.md | ⚠️ Outdated | April 2026     | Historical   |
+| overview.md                   | ✅ Complete | April 2026     | 100%         |
+| architecture_spec.md          | ✅ Complete | April 2026     | 100%         |
+| components.md                 | ✅ Complete | April 2026     | 100%         |
+| schema.md                     | ✅ Complete | Earlier        | 100%         |
+| schema_simple.md              | ✅ Complete | April 2026     | 100%         |
+| data.md                       | ✅ Complete | Earlier        | 100%         |
+| docker_setup.md               | ✅ Complete | Earlier        | 100%         |
+| monitoring.md                 | ✅ Complete | Earlier        | 100%         |
+| auth_tokens.md                | ✅ Complete | Earlier        | 100%         |
 
 ---
 
@@ -415,10 +441,11 @@ This documentation was created through comprehensive analysis of the IVISS codeb
 
 ## Version History
 
-| Version | Date       | Changes                                  |
-| ------- | ---------- | ---------------------------------------- |
-| 1.0     | April 2026 | Initial deployment documentation package |
+| Version | Date           | Changes                                                    |
+| ------- | -------------- | ---------------------------------------------------------- |
+| 1.0     | April 2026     | Initial deployment documentation package                   |
+| 1.1     | April 17, 2026 | Added DEPLOYMENT_CURRENT_STATE.md with infrastructure docs |
 
 ---
 
-**For immediate assistance, start with [DEPLOYMENT_OVERVIEW.md](DEPLOYMENT_OVERVIEW.md)**
+**For immediate assistance, start with [DEPLOYMENT_CURRENT_STATE.md](DEPLOYMENT_CURRENT_STATE.md) (Latest - April 17, 2026)**
