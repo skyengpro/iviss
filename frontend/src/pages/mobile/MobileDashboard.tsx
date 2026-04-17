@@ -136,7 +136,7 @@ export default function MobileDashboard() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             {t('mobileDashboard.newControl')}
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 items-stretch">
             <QuickActionButton
               icon={Keyboard}
               label={t('mobileDashboard.manualEntry')}
@@ -288,16 +288,16 @@ function QuickActionButton({
   primary?: boolean;
 }) {
   return (
-    <Link to={href}>
+    <Link to={href} className="h-full">
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
+        className={`flex h-full flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
           primary
             ? 'bg-accent text-accent-foreground shadow-lg'
             : 'bg-card border border-border hover:bg-muted'
         }`}
       >
-        <Icon className="h-6 w-6" />
-        <span className="text-xs font-medium">{label}</span>
+        <Icon className="h-6 w-6 shrink-0" />
+        <span className="text-xs font-medium text-center leading-tight">{label}</span>
       </div>
     </Link>
   );

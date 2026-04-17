@@ -25,7 +25,7 @@ const REFRESH_TOKEN_KEY = 'iviss_refresh_token';
 let globalLogout: (() => Promise<void>) | null = null;
 
 function applyAuthTokenToApiClient(token?: string) {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const baseUrl = import.meta.env.VITE_API_URL || '';
   // Only set baseUrl — Authorization is handled dynamically by the request interceptor
   // in authInterceptor.ts which reads the latest token from tokenManager on every request.
   // Setting it here as a static header causes stale tokens to be preserved after refresh.

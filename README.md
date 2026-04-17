@@ -35,6 +35,7 @@ IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-
 - **Control History**: Comprehensive tracking and management of all vehicle control operations, including details of inspections, violations, and resolutions.
 - **Alert System**: Instant notification system for flagged vehicles (e.g., stolen, unregistered, or vehicles with outstanding warrants), enabling immediate action by field agents.
 - **Mobile First**: User interface and experience are optimized for mobile devices, ensuring field agents can efficiently perform tasks on the go.
+- **Progressive Web App (PWA)**: Installable on Android, iOS, and Desktop with offline support and automatic updates. [Learn more →](./PWA_IMPLEMENTATION_SUMMARY.md)
 - **Multi-Tenant**: Supports multiple organizations with isolated data and configurations.
 - **Role-Based Access Control**: Granular access control system with predefined roles (Super Admin, Admin, Supervisor, Agent) to manage permissions and data visibility.
 
@@ -253,27 +254,29 @@ iviss/
 ├── .github/                  # GitHub Actions workflows
 ├── docs/                     # Project documentation (architecture, data, schema, diagrams)
 ├── frontend/                 # Frontend application (React, TypeScript)
-│   ├── public/               # Static assets
-│   ├── src/                  # Frontend source code
-│   │   ├── components/       # Reusable UI components
-│   │   ├── contexts/         # React Context API for global state
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── i18n/             # Internationalization files
-│   │   ├── lib/              # Utility functions and libraries
-│   │   ├── pages/            # Application pages (mobile and backoffice)
-│   │   ├── router/           # React Router configuration
-│   │   └── services/         # API service integrations (mocked for now)
-│   └── ...                   # Other frontend configuration files
-└── iviss-backend/            # Backend application (Rust, Axum)
-    ├── .cargo/               # Cargo configuration
-    ├── docs/                 # Backend-specific documentation
-    ├── migrations/           # Database migration scripts
-    ├── scripts/              # Utility scripts (e.g., database initialization)
-    └── src/                  # Backend source code
-        ├── db/               # Database connection and query logic
-        ├── middleware/       # Custom Axum middleware
-        └── ...               # Other backend modules (config, errors, main, routes)
+├── iviss-backend/            # Backend application (Rust, Axum)
+├── infra/                    # Infrastructure-as-Code (Terraform, Ansible)
 ```
+
+---
+
+## Production Infrastructure (NEW)
+
+[![Deployment Status](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml/badge.svg)](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml)
+
+The platform is deployed using **Infrastructure-as-Code (Terraform)** and **Automated CI/CD (GitHub Actions)** on **AWS Lightsail**.
+
+- **Hardware Profile**: **2 vCPUs, 2 GB RAM, 60 GB SSD** (Bundle: `small_3_0`)
+- **Orchestration**: Docker Compose + Ansible
+- **State Management**: Remote S3 Backend with DynamoDB Locking
+
+> [!IMPORTANT]
+> For production setup and secrets management, see the [**Master Deployment Guide**](docs/deployment_guide.md).
+
+---
+
+## Operational Documentation
+- [**Deployment & Infrastructure Guide**](docs/deployment_guide.md): The definitive guide for production.
 
 ---
 

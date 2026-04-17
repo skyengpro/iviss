@@ -25,7 +25,8 @@ pub struct JwtService {
 
 impl JwtService {
     pub fn new(jwt_private_key_pem: &str) -> Result<Self> {
-        let encoding_key = EncodingKey::from_rsa_pem(jwt_private_key_pem.as_bytes())
+        let cleaned_pem = jwt_private_key_pem.replace("\\n", "\n");
+        let encoding_key = EncodingKey::from_rsa_pem(cleaned_pem.as_bytes())
             .context("Failed to parse JWT RSA private key PEM")?;
         Ok(Self { encoding_key })
     }

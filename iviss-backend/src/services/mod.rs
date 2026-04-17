@@ -1,3 +1,5 @@
+pub mod email_provider;
+pub mod email_service;
 pub mod jwt_service;
 pub mod ocr_service;
 pub mod otp_service;

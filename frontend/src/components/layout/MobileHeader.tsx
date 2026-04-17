@@ -1,4 +1,4 @@
-import { Menu, Bell, User, Shield, Globe } from 'lucide-react';
+import { Menu, User, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -64,14 +64,6 @@ export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileH
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="touch-target relative text-primary-foreground hover:bg-white/10"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-status-critical" />
-          </Button>
           <Button
             variant="ghost"
             size="icon"

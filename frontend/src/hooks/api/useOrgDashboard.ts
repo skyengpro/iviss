@@ -16,52 +16,27 @@ export function useOrgDashboard() {
   });
 
   const activityFeedQuery = useGetOrgActivityFeed(
-    {
-      query: {
-        limit: 8,
-      },
-    },
+    { query: { limit: 8 } },
     undefined,
-    {
-      refetchInterval: 30000,
-    }
+    { refetchInterval: 30000 }
   );
 
   const recentAlertsQuery = useGetOrgRecentAlerts(
-    {
-      query: {
-        limit: 5,
-      },
-    },
+    { query: { limit: 5 } },
     undefined,
-    {
-      refetchInterval: 30000,
-    }
+    { refetchInterval: 30000 }
   );
 
   const topAgentsQuery = useGetOrgTopAgents(
-    {
-      query: {
-        range,
-        limit: 5,
-      },
-    },
+    { query: { range, limit: 5 } },
     undefined,
-    {
-      refetchInterval: 30000,
-    }
+    { refetchInterval: 30000 }
   );
 
   const controlActivityQuery = useGetOrgControlActivity(
-    {
-      query: {
-        range,
-      },
-    },
+    { query: { range } },
     undefined,
-    {
-      refetchInterval: 30000,
-    }
+    { refetchInterval: 30000 }
   );
 
   return {

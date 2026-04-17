@@ -191,7 +191,8 @@ pub fn decode_access_token_rs256(
     token: &str,
     jwt_public_key_pem: &str,
 ) -> Result<AccessTokenClaims, AppError> {
-    let decoding_key = DecodingKey::from_rsa_pem(jwt_public_key_pem.as_bytes()).map_err(|e| {
+    let cleaned_pem = jwt_public_key_pem.replace("\\n", "\n");
+    let decoding_key = DecodingKey::from_rsa_pem(cleaned_pem.as_bytes()).map_err(|e| {
         tracing::error!(error = %e, "Failed to parse JWT RSA public key PEM");
         AppError::internal_error("JWT verification is misconfigured")
     })?;

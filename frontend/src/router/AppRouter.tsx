@@ -6,8 +6,11 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { getAccessToken, getRefreshToken } from '@/services/auth/tokenManager';
 
 const PageLoader = () => (
-  <div className="flex h-screen w-full items-center justify-center bg-background">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background">
+    <div className="relative flex items-center justify-center">
+      <div className="h-16 w-16 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      <img src="/pwa-64x64.png" alt="IVISS" className="absolute h-8 w-8 rounded-full" />
+    </div>
   </div>
 );
 
