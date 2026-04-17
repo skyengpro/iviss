@@ -6,8 +6,9 @@ Welcome to the IVISS documentation. Start here to understand the system.
 
 **New to deployment? Start here:**
 
+- [Deployment Current State](DEPLOYMENT_CURRENT_STATE.md) ⭐ **START HERE** - Latest deployment status (April 17, 2026)
 - [Deployment Index](DEPLOYMENT_INDEX.md) - Complete deployment documentation guide
-- [Deployment Overview](DEPLOYMENT_OVERVIEW.md) ⭐ **START HERE** - Current state and gaps
+- [Deployment Overview](DEPLOYMENT_OVERVIEW.md) - Initial assessment (outdated, see Current State)
 - [CI/CD Pipelines](CICD_PIPELINES.md) - Automation and workflows
 - [Container Architecture](CONTAINER_ARCHITECTURE.md) - Docker services and configuration
 - [Infrastructure & Hosting](INFRASTRUCTURE_AND_HOSTING.md) - Infrastructure requirements
