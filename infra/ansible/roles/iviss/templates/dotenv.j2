@@ -4,20 +4,20 @@
 
 # PostgreSQL - Internal Database
 POSTGRES_USER={{ db_user | default('iviss_user') }}
-POSTGRES_PASSWORD={{ db_password }}
-POSTGRES_DB={{ db_name | default('iviss_prod') }}
+POSTGRES_PASSWORD={{ db_password | replace('$', '$$') }}
+POSTGRES_DB={{ db_name | default('iviss_dev') }}
 
 # PostgreSQL - External Database (placeholder)
 EXTERNAL_POSTGRES_USER={{ db_user | default('iviss_user') }}
-EXTERNAL_POSTGRES_PASSWORD={{ db_password }}
-EXTERNAL_POSTGRES_DB={{ db_name | default('iviss_prod') }}
+EXTERNAL_POSTGRES_PASSWORD={{ db_password | replace('$', '$$') }}
+EXTERNAL_POSTGRES_DB={{ db_name | default('iviss_dev') }}
 EXTERNAL_POSTGRES_HOST=iviss-db
 EXTERNAL_POSTGRES_PORT=5432
 
 # JWT Authentication
-JWT_PRIVATE_KEY_PEM="{{ jwt_private_key_pem }}"
-JWT_PUBLIC_KEY_PEM="{{ jwt_public_key_pem }}"
-ACTIVATION_CODE_PEPPER="{{ activation_code_pepper }}"
+JWT_PRIVATE_KEY_PEM="{{ jwt_private_key_pem | replace('$', '$$') }}"
+JWT_PUBLIC_KEY_PEM="{{ jwt_public_key_pem | replace('$', '$$') }}"
+ACTIVATION_CODE_PEPPER="{{ activation_code_pepper | replace('$', '$$') }}"
 
 # Backend Configuration
 ENVIRONMENT={{ app_environment | default('staging') }}
@@ -27,26 +27,26 @@ RUST_LOG=info
 
 # Admin Bootstrap
 ADMIN_BOOTSTRAP_EMAIL={{ admin_bootstrap_email }}
-ADMIN_BOOTSTRAP_PASSWORD={{ admin_bootstrap_password }}
+ADMIN_BOOTSTRAP_PASSWORD={{ admin_bootstrap_password | replace('$', '$$') }}
 ADMIN_BOOTSTRAP_PHONE={{ admin_bootstrap_phone }}
 ADMIN_BOOTSTRAP_USERNAME={{ admin_bootstrap_username }}
 
 # SMS Provider Configuration
 SMS_PROVIDER={{ sms_provider | default('mock') }}
-VONAGE_API_KEY={{ vonage_api_key | default('') }}
-VONAGE_API_SECRET={{ vonage_api_secret | default('') }}
-TWILIO_ACCOUNT_SID={{ twilio_account_sid | default('mock') }}
-TWILIO_AUTH_TOKEN={{ twilio_auth_token | default('mock') }}
-TWILIO_FROM_NUMBER={{ twilio_from_number | default('mock') }}
+VONAGE_API_KEY={{ vonage_api_key | default('') | replace('$', '$$') }}
+VONAGE_API_SECRET={{ vonage_api_secret | default('') | replace('$', '$$') }}
+TWILIO_ACCOUNT_SID={{ twilio_account_sid | default('mock') | replace('$', '$$') }}
+TWILIO_AUTH_TOKEN={{ twilio_auth_token | default('mock') | replace('$', '$$') }}
+TWILIO_FROM_NUMBER={{ twilio_from_number | default('mock') | replace('$', '$$') }}
 
 # Email Provider Configuration
 EMAIL_PROVIDER={{ email_provider | default('mock') }}
-RESEND_API_KEY={{ resend_api_key | default('') }}
+RESEND_API_KEY={{ resend_api_key | default('') | replace('$', '$$') }}
 RESEND_FROM_EMAIL={{ resend_from_email | default('') }}
 SMTP_HOST={{ smtp_host | default('') }}
 SMTP_PORT={{ smtp_port | default('') }}
 SMTP_USERNAME={{ smtp_username | default('') }}
-SMTP_PASSWORD={{ smtp_password | default('') }}
+SMTP_PASSWORD={{ smtp_password | default('') | replace('$', '$$') }}
 SMTP_FROM_EMAIL={{ smtp_from_email | default('') }}
 
 # Shift configuration
