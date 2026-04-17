@@ -39,6 +39,7 @@
       - python3-docker
     state: present
 
+
 - name: Start and enable Docker
   service:
     name: docker
