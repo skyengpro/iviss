@@ -2,7 +2,9 @@ name: Docker
 
 on:
   push:
-    branches: ["main", "dev"]
+    # Build images for main releases, dev, and the dedicated AWS deployment branch
+    branches: ["main", "dev", "dep/iviss-aws-lightsail"]
+    tags: ["v*.*.*"]
   pull_request:
     branches: ["main", "dev"]
   workflow_dispatch:
@@ -57,6 +59,7 @@ jobs:
           tags: |
             type=sha,format=long
             type=ref,event=branch
+            type=semver,pattern={{version}}
             latest
 
       - name: Build and push Docker image
