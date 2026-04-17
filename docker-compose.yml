@@ -170,11 +170,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.75"
-          memory: 1G
+          cpus: "2.0"
+          memory: 4G
         reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "0.5"
+          memory: 1G
     networks:
       - iviss-network
 

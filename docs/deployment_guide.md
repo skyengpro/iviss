@@ -8,7 +8,7 @@ This document provides a comprehensive, deep-dive guide for deploying and managi
 
 IVISS follows a "Lean Hybrid" architecture on AWS Lightsail:
 - **Compute**: Single Ubuntu 22.04 LTS Instance.
-- **Hardware Profile**: **2 GB RAM, 2 vCPUs, 60 GB SSD** (Bundle: `small_3_0`).
+- **Hardware Profile**: **4 GB RAM, 2 vCPUs, 80 GB SSD** (Bundle: `medium_3_0`).
 - **Application**: Containerized stack (Backend + Frontend + Postgres).
 - **Storage/Cache**: 
   - **Postgres**: Runs in a persistent Docker container with a 10GB volume.
@@ -75,7 +75,7 @@ The automated pipeline triggers on every push to `dev` or `main`. It builds the 
 | :--- | :--- | :--- |
 | **AWS_ACCESS_KEY_ID** | AWS | Your IAM Access Key |
 | **AWS_SECRET_ACCESS_KEY** | AWS | Your IAM Secret Key |
-| **DOMAIN_NAME** | Connectivity | e.g. `iviss.vpn.kivoyo.com` |
+| **DOMAIN_NAME** | Connectivity | e.g. `yourdomain.com` |
 | **CERTBOT_EMAIL** | Connectivity | Real email address for SSL alerts |
 | **JWT_SECRET** | Auth | Secure random string |
 | **JWT_PRIVATE_KEY_PEM** | Auth | RS256 Private Key (`cat jwt-private.pem`) |
@@ -107,6 +107,7 @@ The automated pipeline triggers on every push to `dev` or `main`. It builds the 
 | **SMTP_USERNAME** | Email | SMTP Login |
 | **SMTP_PASSWORD** | Email | SMTP Password |
 | **SMTP_FROM_EMAIL** | Email | Valid sender address |
+| **VITE_API_URL** | Web | `https://yourdomain.com` |
 
 ---
 

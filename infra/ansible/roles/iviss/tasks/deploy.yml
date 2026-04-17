@@ -11,10 +11,16 @@
     dest: "{{ app_dir }}/docker-compose.yml"
     mode: '0644'
 
-- name: Generate .env file for Docker Compose
+- name: Generate .env file for Docker Compose (Root)
   template:
     src: dotenv.j2
     dest: "{{ app_dir }}/.env"
+    mode: '0600'
+
+- name: Generate .env file for Backend (Specific)
+  template:
+    src: dotenv.j2
+    dest: "{{ app_dir }}/iviss-backend/.env"
     mode: '0600'
 
 - name: Pull Docker images
