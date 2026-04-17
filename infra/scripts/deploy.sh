@@ -92,8 +92,8 @@ vars = {
     'db_name': os.environ.get('POSTGRES_DB', 'iviss_dev'),
     'vite_api_url': f'https://${DOMAIN}/api' if '${DOMAIN}' else f'http://${INSTANCE_IP}:3000',
     'jwt_secret': os.environ.get('JWT_SECRET', ''),
-    'jwt_private_key_pem': priv_key,
-    'jwt_public_key_pem': pub_key,
+    'iviss_jwt_private_key_base64': priv_key,
+    'iviss_jwt_public_key_base64': pub_key,
     'activation_code_pepper': os.environ.get('ACTIVATION_CODE_PEPPER', ''),
     'environment': os.environ.get('ENVIRONMENT', 'production'),
     'log_level': os.environ.get('LOG_LEVEL', 'info'),
@@ -127,11 +127,17 @@ if '${DOMAIN}':
 
 with open('$VARS_FILE', 'w') as f:
     json.dump(vars, f)
+
+# Self-verification
+with open('$VARS_FILE', 'r') as f:
+    verify = json.load(f)
+    print(f\"CONFIRM: JSON file has Private Key? {'YES' if verify.get('jwt_private_key_pem') else 'NO'}\")
+    print(f\"CONFIRM: JSON Private Key length in file: {len(verify.get('jwt_private_key_pem', ''))}\")
 "
 
 ansible-playbook -i inventory.ini playbook.yml --extra-vars "@$VARS_FILE"
 
-# Clean up sensitive vars file
-rm -f "$VARS_FILE"
+# Clean up sensitive vars file (Disabled for debugging)
+# rm -f "$VARS_FILE"
 
 echo "✅ Deployment complete!"
