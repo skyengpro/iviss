@@ -13,6 +13,15 @@ dist-ssr
 dev-dist
 *.local
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Infrastructure Keys
+*.pem
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

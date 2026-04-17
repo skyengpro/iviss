@@ -127,9 +127,8 @@ async fn setup_test_app() -> (
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: Environment::Local,
-        twilio_account_sid: "mock".to_string(),
-        twilio_auth_token: "mock".to_string(),
-        twilio_from_number: "mock".to_string(),
+        sms_credentials: crate::config::SmsProviderCredentials::Mock,
+        email_credentials: crate::config::EmailProviderCredentials::Mock,
         activation_code_pepper: TEST_PEPPER.to_string(),
         shift_start_hour: 6,
         shift_end_hour: 18,
@@ -145,7 +144,15 @@ async fn setup_test_app() -> (
     // Create app state with mock SMS provider
     let sms_provider: Arc<dyn crate::services::sms_provider::SmsProvider> =
         Arc::new(crate::services::sms_provider::MockSmsProvider);
-    let state = AppState::new(db.clone(), cache.clone(), sms_provider, &config);
+    let email_provider: Arc<dyn crate::services::email_provider::EmailProvider> =
+        Arc::new(crate::services::email_provider::MockEmailProvider);
+    let state = AppState::new(
+        db.clone(),
+        cache.clone(),
+        sms_provider,
+        email_provider,
+        &config,
+    );
 
     // Create router
     let app = routes::assembly(state);
