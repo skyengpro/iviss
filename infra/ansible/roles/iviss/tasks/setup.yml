@@ -66,12 +66,20 @@
     mode: '0755'
     owner: "{{ ansible_user }}"
 
+- name: Check if Nginx config exists
+  stat:
+    path: /etc/nginx/sites-available/iviss
+  register: nginx_conf_stat
+  when: domain_name is defined
+
 - name: Check if Nginx config is managed by Certbot
   command: grep -q "managed by Certbot" /etc/nginx/sites-available/iviss
   register: certbot_check
   ignore_errors: yes
   changed_when: false
-  when: domain_name is defined
+  when: 
+    - domain_name is defined
+    - nginx_conf_stat.stat.exists
 
 - name: Deploy Nginx configuration
   template:
@@ -80,7 +88,7 @@
     mode: '0644'
   when: 
     - domain_name is defined
-    - certbot_check.rc != 0
+    - (nginx_conf_stat.stat.exists == false) or (certbot_check.rc is defined and certbot_check.rc != 0)
 
 - name: Enable Nginx configuration
   file:

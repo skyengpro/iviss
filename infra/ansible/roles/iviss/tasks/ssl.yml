@@ -4,6 +4,15 @@
     path: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
   register: cert_stat
 
+- name: Remove stale Certbot locks
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /var/lib/letsencrypt/.certbot.lock
+    - /tmp/certbot.lock
+  ignore_errors: yes
+
 - name: Obtain SSL certificate
   command: >
     certbot --nginx
@@ -11,6 +20,10 @@
     --non-interactive
     --agree-tos
     --email {{ certbot_email }}
+  register: certbot_obtain
+  until: certbot_obtain is success
+  retries: 3
+  delay: 10
   when: not cert_stat.stat.exists
 
 - name: Re-apply Certbot configuration if missing from Nginx
