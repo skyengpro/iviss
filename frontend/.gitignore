@@ -30,3 +30,4 @@ coverage/
 # OpenAPI generated client
 src/openapi-rq/*
 src/openapi-rq/
+temp-codegen/

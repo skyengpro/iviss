@@ -15,13 +15,19 @@ export default function AuditLogPage() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const { data, isLoading } = useListAuditLogs({
-    query: {
+  const { data, isLoading } = useListAuditLogs(
+    {
+      startDate: null,
+      endDate: null,
+      userId: null,
+      action: null,
+      resourceType: null,
       page,
       pageSize,
-      // userId: searchTerm ? searchTerm : undefined, // simplified for demo
     },
-  });
+    [],
+    {}
+  );
 
   const exportMutation = useExportAuditLogs();
 

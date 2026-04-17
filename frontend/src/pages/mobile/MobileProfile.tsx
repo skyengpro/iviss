@@ -25,7 +25,7 @@ export default function MobileProfile() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const { data: me } = useGetUserProfile(undefined, undefined, {
+  const { data: me } = useGetUserProfile([], {
     enabled: true,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -36,12 +36,13 @@ export default function MobileProfile() {
 
   const { data: todayControls = [] } = useGetControls(
     {
-      query: {
-        agent_id: user?.id,
-        start_date: startOfDay.toISOString(),
-      },
+      agentId: user?.id || null,
+      startDate: startOfDay.toISOString(),
+      endDate: null,
+      status: null,
+      plate: null,
     },
-    undefined,
+    [],
     {
       enabled: !!user?.id,
     }

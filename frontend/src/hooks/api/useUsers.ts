@@ -8,7 +8,7 @@ import {
   useDeleteUser,
   useGetUser,
 } from '../../openapi-rq/queries/queries';
-import { ProvisionUserRequest, UpdateUserRequest } from '../../openapi-rq/types.gen';
+import { ProvisionUserRequest, UpdateUserRequest } from '../../openapi-rq/requests/types.gen';
 import { useQueryClient } from '@tanstack/react-query';
 
 export function useUsers() {
@@ -81,21 +81,14 @@ export function useUsers() {
 
   const update = useCallback(
     async (id: string, request: UpdateUserRequest) => {
-      return updateMutate({
-        path: { id },
-        body: request,
-        throwOnError: true,
-      });
+      return updateMutate({ path: { id }, body: request, throwOnError: true });
     },
     [updateMutate]
   );
 
   const remove = useCallback(
     async (id: string) => {
-      return deleteMutate({
-        path: { id },
-        throwOnError: true,
-      });
+      return deleteMutate({ path: { id }, throwOnError: true });
     },
     [deleteMutate]
   );
@@ -104,18 +97,14 @@ export function useUsers() {
     users,
     isLoadingUsers,
     usersError,
-
     provision,
     isProvisioning,
     provisionError,
-
     provisionOrg,
     isProvisioningOrg,
-
     update,
     isUpdating,
     updateError,
-
     remove,
     isDeleting,
     deleteError,
@@ -123,9 +112,7 @@ export function useUsers() {
 }
 
 export function useUser(id: string) {
-  return useGetUser({
-    path: { id },
-  });
+  return useGetUser({ path: { id } });
 }
 
 export function useOrgUsers() {
