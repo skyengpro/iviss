@@ -104,9 +104,7 @@ export function PWAInstallPrompt() {
 
               {/* Text content */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground text-sm sm:text-base">
-                  Get the app
-                </h3>
+                <h3 className="font-semibold text-foreground text-sm sm:text-base">Get the app</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                   Fast, secure vehicle inspection and identification
                 </p>
