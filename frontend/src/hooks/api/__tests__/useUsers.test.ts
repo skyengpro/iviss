@@ -41,18 +41,21 @@ describe('useUsers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockInvalidateQueries = vi.fn();
+    mockInvalidateQueries = vi.fn().mockResolvedValue(undefined);
     vi.mocked(useQueryClient).mockReturnValue({
       invalidateQueries: mockInvalidateQueries,
     } as any);
 
-    mockProvisionMutate = vi.fn();
+    mockProvisionMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useProvisionUser).mockImplementation(
-      (_q, options: any) =>
+      (options: any) =>
         ({
-          mutateAsync: (...args: any[]) => {
-            if (options?.onSuccess) options.onSuccess();
-            return mockProvisionMutate(...args);
+          mutateAsync: async (...args: any[]) => {
+            const result = await mockProvisionMutate(...args);
+            if (options?.onSuccess) {
+              await options.onSuccess(result);
+            }
+            return result;
           },
           isPending: false,
           error: null,
@@ -60,37 +63,46 @@ describe('useUsers', () => {
     );
 
     vi.mocked(useProvisionOrgUser).mockImplementation(
-      (_q, options: any) =>
+      (options: any) =>
         ({
-          mutateAsync: (...args: any[]) => {
-            if (options?.onSuccess) options.onSuccess();
-            return vi.fn()(...args);
+          mutateAsync: async (...args: any[]) => {
+            const result = await Promise.resolve({});
+            if (options?.onSuccess) {
+              await options.onSuccess(result);
+            }
+            return result;
           },
           isPending: false,
           error: null,
         }) as any
     );
 
-    mockUpdateMutate = vi.fn();
+    mockUpdateMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useUpdateUser).mockImplementation(
-      (_q, options: any) =>
+      (options: any) =>
         ({
-          mutateAsync: (...args: any[]) => {
-            if (options?.onSuccess) options.onSuccess();
-            return mockUpdateMutate(...args);
+          mutateAsync: async (...args: any[]) => {
+            const result = await mockUpdateMutate(...args);
+            if (options?.onSuccess) {
+              await options.onSuccess(result);
+            }
+            return result;
           },
           isPending: false,
           error: null,
         }) as any
     );
 
-    mockDeleteMutate = vi.fn();
+    mockDeleteMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useDeleteUser).mockImplementation(
-      (_q, options: any) =>
+      (options: any) =>
         ({
-          mutateAsync: (...args: any[]) => {
-            if (options?.onSuccess) options.onSuccess();
-            return mockDeleteMutate(...args);
+          mutateAsync: async (...args: any[]) => {
+            const result = await mockDeleteMutate(...args);
+            if (options?.onSuccess) {
+              await options.onSuccess(result);
+            }
+            return result;
           },
           isPending: false,
           error: null,
@@ -125,8 +137,6 @@ describe('useUsers', () => {
     const { Wrapper } = createQueryWrapper();
     const { result } = renderHook(() => useUsers(), { wrapper: Wrapper });
 
-    mockProvisionMutate.mockResolvedValueOnce({});
-
     await act(async () => {
       await result.current.provision({
         email: 'new@admin.com',
@@ -156,8 +166,6 @@ describe('useUsers', () => {
     const { Wrapper } = createQueryWrapper();
     const { result } = renderHook(() => useUsers(), { wrapper: Wrapper });
 
-    mockUpdateMutate.mockResolvedValueOnce({});
-
     await act(async () => {
       await result.current.update('u-123', { role: 'agent' } as any);
     });
@@ -173,8 +181,6 @@ describe('useUsers', () => {
   it('remove() calls mutateAsync with correct path and invalidates queries', async () => {
     const { Wrapper } = createQueryWrapper();
     const { result } = renderHook(() => useUsers(), { wrapper: Wrapper });
-
-    mockDeleteMutate.mockResolvedValueOnce({});
 
     await act(async () => {
       await result.current.remove('u-456');

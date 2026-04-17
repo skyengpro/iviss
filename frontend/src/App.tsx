@@ -11,6 +11,7 @@ import { setupAuthInterceptors } from '@/services/auth/authInterceptor';
 import { clearTokens } from '@/services/auth/tokenManager';
 
 import { AppInitializer } from '@/components/shared/AppInitializer';
+import { PWAInstallPrompt } from '@/components/shared/PWAInstallPrompt';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const AppInner = () => {
   return (
     <AuthProvider>
       <AppRouter />
+      <PWAInstallPrompt />
     </AuthProvider>
   );
 };
