@@ -8,39 +8,42 @@ import {
   useDeleteUser,
   useGetUser,
 } from '../../openapi-rq/queries/queries';
-import { ProvisionUserRequest, UpdateUserRequest } from '../../openapi-rq/types.gen';
+import { ProvisionUserRequest, UpdateUserRequest } from '../../openapi-rq/requests/types.gen';
 import { useQueryClient } from '@tanstack/react-query';
 
 export function useUsers() {
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading: isLoadingUsers, error: usersError } = useListUsers([], {});
+  const { data: users, isLoading: isLoadingUsers, error: usersError } = useListUsers();
 
   const {
     mutateAsync: provisionMutate,
     isPending: isProvisioning,
     error: provisionError,
-  } = useProvisionUser({
+  } = useProvisionUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
     },
   });
 
-  const { mutateAsync: provisionOrgMutate, isPending: isProvisioningOrg } = useProvisionOrgUser({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
-      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
-      queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
-      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
-    },
-  });
+  const { mutateAsync: provisionOrgMutate, isPending: isProvisioningOrg } = useProvisionOrgUser(
+    undefined,
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+        queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+        queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+        queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
+      },
+    }
+  );
 
   const {
     mutateAsync: updateMutate,
     isPending: isUpdating,
     error: updateError,
-  } = useUpdateUser({
+  } = useUpdateUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
@@ -53,7 +56,7 @@ export function useUsers() {
     mutateAsync: deleteMutate,
     isPending: isDeleting,
     error: deleteError,
-  } = useDeleteUser({
+  } = useDeleteUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
@@ -78,21 +81,14 @@ export function useUsers() {
 
   const update = useCallback(
     async (id: string, request: UpdateUserRequest) => {
-      return updateMutate({
-        path: { id },
-        body: request,
-        throwOnError: true,
-      });
+      return updateMutate({ path: { id }, body: request, throwOnError: true });
     },
     [updateMutate]
   );
 
   const remove = useCallback(
     async (id: string) => {
-      return deleteMutate({
-        path: { id },
-        throwOnError: true,
-      });
+      return deleteMutate({ path: { id }, throwOnError: true });
     },
     [deleteMutate]
   );
@@ -101,18 +97,14 @@ export function useUsers() {
     users,
     isLoadingUsers,
     usersError,
-
     provision,
     isProvisioning,
     provisionError,
-
     provisionOrg,
     isProvisioningOrg,
-
     update,
     isUpdating,
     updateError,
-
     remove,
     isDeleting,
     deleteError,
@@ -120,11 +112,9 @@ export function useUsers() {
 }
 
 export function useUser(id: string) {
-  return useGetUser({
-    path: { id },
-  });
+  return useGetUser({ path: { id } });
 }
 
 export function useOrgUsers() {
-  return useListOrgUsers([], {});
+  return useListOrgUsers();
 }

@@ -11,49 +11,32 @@ import { DashboardRange } from '../../openapi-rq/requests/types.gen';
 export function useOrgDashboard() {
   const [range, setRange] = useState<DashboardRange>('24h');
 
-  const statsQuery = useGetOrgDashboardStats([], {
+  const statsQuery = useGetOrgDashboardStats({}, undefined, {
     refetchInterval: 30000,
   });
 
   const activityFeedQuery = useGetOrgActivityFeed(
-    {
-      limit: 8,
-    },
-    [],
-    {
-      refetchInterval: 30000,
-    }
+    { query: { limit: 8 } },
+    undefined,
+    { refetchInterval: 30000 }
   );
 
   const recentAlertsQuery = useGetOrgRecentAlerts(
-    {
-      limit: 5,
-    },
-    [],
-    {
-      refetchInterval: 30000,
-    }
+    { query: { limit: 5 } },
+    undefined,
+    { refetchInterval: 30000 }
   );
 
   const topAgentsQuery = useGetOrgTopAgents(
-    {
-      range,
-      limit: 5,
-    },
-    [],
-    {
-      refetchInterval: 30000,
-    }
+    { query: { range, limit: 5 } },
+    undefined,
+    { refetchInterval: 30000 }
   );
 
   const controlActivityQuery = useGetOrgControlActivity(
-    {
-      range,
-    },
-    [],
-    {
-      refetchInterval: 30000,
-    }
+    { query: { range } },
+    undefined,
+    { refetchInterval: 30000 }
   );
 
   return {

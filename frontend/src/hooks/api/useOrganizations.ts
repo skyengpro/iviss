@@ -4,27 +4,21 @@ import {
   useUpdateOrganization,
   useDeleteOrganization,
 } from '../../openapi-rq/queries/queries';
-import type { CreateOrganizationRequest, UpdateOrganizationRequest } from '@/openapi-rq/types.gen';
+import type { CreateOrganizationRequest, UpdateOrganizationRequest } from '@/openapi-rq/requests/types.gen';
 
 export function useOrganizations() {
-  const { data: organizations, isLoading, error, refetch } = useListOrganizations([], {});
+  const { data: organizations, isLoading, error, refetch } = useListOrganizations({}, undefined, {});
 
-  const createMutation = useCreateOrganization({
-    onSuccess: () => {
-      refetch();
-    },
+  const createMutation = useCreateOrganization(undefined, {
+    onSuccess: () => { refetch(); },
   });
 
-  const updateMutation = useUpdateOrganization({
-    onSuccess: () => {
-      refetch();
-    },
+  const updateMutation = useUpdateOrganization(undefined, {
+    onSuccess: () => { refetch(); },
   });
 
-  const deleteMutation = useDeleteOrganization({
-    onSuccess: () => {
-      refetch();
-    },
+  const deleteMutation = useDeleteOrganization(undefined, {
+    onSuccess: () => { refetch(); },
   });
 
   return {
