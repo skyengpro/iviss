@@ -107,15 +107,32 @@ The automated pipeline triggers on every push to `dev` or `main`. It builds the 
 
 ---
 
-## 6. DNS & SSL Setup
+## 6. Provider Configuration
+
+IVISS supports multiple providers for SMS and Email. These are toggled via the `*_PROVIDER` environment variables.
+
+### A. SMS Providers
+- **`mock`** (Default): Logs OTP codes directly to the backend console (no carrier fees).
+- **`twilio`**: Uses standard Twilio REST API. Requires `TWILIO_*` variables.
+- **`vonage`**: Uses Vonage/Nexmo API. Requires `VONAGE_*` variables.
+
+### B. Email Providers
+- **`mock`**: Logs email content to the backend console.
+- **`resend`**: Uses Resend.com API (High delivery speed). Requires `RESEND_*` variables.
+- **`smtp`**: Uses standard SMTP protocol (for Outlook, Gmail, or custom relays). Requires `SMTP_*` variables.
+
+---
+
+## 7. DNS & SSL Setup
 
 1.  **Get Static IP**: Find the IP in the Lightsail console or from the Terraform output.
 2.  **Update Records**: Add an `A Record` in your DNS provider pointing to that IP.
 3.  **SSL Generation**: The first deployment will automatically request a certificate from Let's Encrypt using the `CERTBOT_EMAIL`.
+4.  **Auto-Healing**: The infrastructure includes an "Auto-Healing" task that will automatically restore your SSL configuration if Nginx is ever reinstalled or overwritten.
 
 ---
 
-## 7. Operational Manual
+## 8. Operational Manual
 
 ### Logs & Monitoring
 
@@ -138,7 +155,34 @@ docker compose up -d
 
 ---
 
-## 8. Troubleshooting
+## 9. Security: Manual Key Generation
+
+If you need to rotate secrets or generate new keys for a fresh environment, use these commands:
+
+### A. JWT HMAC Secret
+```bash
+openssl rand -base64 48
+```
+
+### B. JWT RSA Key Pair (Private & Public)
+```bash
+# 1. Generate Private Key
+openssl genrsa -out jwt-private.pem 2048
+
+# 2. Extract Public Key
+openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
+```
+
+### C. Formatting for .env
+To get the single-line string with `\n` needed for the `.env` file:
+```bash
+awk '{printf "%s\\n", $0}' jwt-private.pem
+```
+
+---
+
+## 10. Troubleshooting
+
 
 ### 1. "Unauthorized" or "401" on Frontend
 
@@ -157,4 +201,4 @@ docker compose up -d
 
 ---
 
-_Last Updated: April 2026_
+
