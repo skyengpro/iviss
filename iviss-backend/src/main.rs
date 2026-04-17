@@ -5,6 +5,7 @@ use iviss_backend::app_state::AppState;
 use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::seed_admin::run_bootstrap_seed;
+use iviss_backend::db::seed_data::run_seed_data;
 use iviss_backend::routes;
 use iviss_backend::services::email_provider::EmailProvider;
 use iviss_backend::services::sms_provider::SmsProvider;
@@ -49,6 +50,9 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Running admin bootstrap seed...");
     run_bootstrap_seed(&db_pool, &config).await;
+
+    info!("Running seed data...");
+    run_seed_data(&db_pool).await;
 
     info!("Loading blacklisted tokens into cache...");
     let loaded_count =
