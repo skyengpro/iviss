@@ -111,6 +111,19 @@ EOF
         -e "twilio_account_sid='${var.twilio_account_sid}'" \
         -e "twilio_auth_token='${var.twilio_auth_token}'" \
         -e "twilio_from_number='${var.twilio_from_number}'" \
+        -e "sms_provider='${var.sms_provider}'" \
+        -e "vonage_api_key='${var.vonage_api_key}'" \
+        -e "vonage_api_secret='${var.vonage_api_secret}'" \
+        -e "email_provider='${var.email_provider}'" \
+        -e "resend_api_key='${var.resend_api_key}'" \
+        -e "resend_from_email='${var.resend_from_email}'" \
+        -e "smtp_host='${var.smtp_host}'" \
+        -e "smtp_port='${var.smtp_port}'" \
+        -e "smtp_username='${var.smtp_username}'" \
+        -e "smtp_password='${var.smtp_password}'" \
+        -e "smtp_from_email='${var.smtp_from_email}'" \
+        -e "shift_start_hour='${var.shift_start_hour}'" \
+        -e "shift_end_hour='${var.shift_end_hour}'" \
         -e "docker_username='${var.github_username}'" \
         -e "docker_password='${var.github_token}'" \
         -e "vite_api_url=http://${var.domain_name != "" ? var.domain_name : aws_lightsail_static_ip.iviss_ip.ip_address}:3000" \

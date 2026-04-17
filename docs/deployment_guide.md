@@ -93,19 +93,49 @@ The automated pipeline triggers on every push to `dev` or `main`. It builds the 
 | **POSTGRES_USER** | Database | e.g. `iviss_user` |
 | **POSTGRES_PASSWORD** | Database | A secure DB password |
 | **POSTGRES_DB** | Database | e.g. `iviss_prod` |
-| **TWILIO_ACCOUNT_SID** | SMS | Twilio (or `mock`) |
+| **SMS_PROVIDER** | Provider | `mock`, `twilio`, or `vonage` |
+| **VONAGE_API_KEY** | SMS | Required if provider is `vonage` |
+| **VONAGE_API_SECRET** | SMS | Required if provider is `vonage` |
+| **TWILIO_ACCOUNT_SID** | SMS | Required if provider is `twilio` |
+| **TWILIO_AUTH_TOKEN** | SMS | Required if provider is `twilio` |
+| **TWILIO_FROM_NUMBER** | SMS | Required if provider is `twilio` |
+| **EMAIL_PROVIDER** | Provider | `mock`, `resend`, or `smtp` |
+| **RESEND_API_KEY** | Email | Required if provider is `resend` |
+| **RESEND_FROM_EMAIL** | Email | e.g. `iviss@iviss.com` |
+| **SMTP_HOST** | Email | Required if provider is `smtp` |
+| **SMTP_PORT** | Email | e.g. `587` |
+| **SMTP_USERNAME** | Email | SMTP Login |
+| **SMTP_PASSWORD** | Email | SMTP Password |
+| **SMTP_FROM_EMAIL** | Email | Valid sender address |
 
 ---
 
-## 6. DNS & SSL Setup
+## 6. Provider Configuration
+
+IVISS supports multiple providers for SMS and Email. These are toggled via the `*_PROVIDER` environment variables.
+
+### A. SMS Providers
+- **`mock`** (Default): Logs OTP codes directly to the backend console (no carrier fees).
+- **`twilio`**: Uses standard Twilio REST API. Requires `TWILIO_*` variables.
+- **`vonage`**: Uses Vonage/Nexmo API. Requires `VONAGE_*` variables.
+
+### B. Email Providers
+- **`mock`**: Logs email content to the backend console.
+- **`resend`**: Uses Resend.com API (High delivery speed). Requires `RESEND_*` variables.
+- **`smtp`**: Uses standard SMTP protocol (for Outlook, Gmail, or custom relays). Requires `SMTP_*` variables.
+
+---
+
+## 7. DNS & SSL Setup
 
 1.  **Get Static IP**: Find the IP in the Lightsail console or from the Terraform output.
 2.  **Update Records**: Add an `A Record` in your DNS provider pointing to that IP.
 3.  **SSL Generation**: The first deployment will automatically request a certificate from Let's Encrypt using the `CERTBOT_EMAIL`.
+4.  **Auto-Healing**: The infrastructure includes an "Auto-Healing" task that will automatically restore your SSL configuration if Nginx is ever reinstalled or overwritten.
 
 ---
 
-## 7. Operational Manual
+## 8. Operational Manual
 
 ### Logs & Monitoring
 To see live application logs on the server:
@@ -124,7 +154,7 @@ docker compose up -d
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 ### 1. "Unauthorized" or "401" on Frontend
 - **Cause**: JWT Key mismatch or expired session.
@@ -140,4 +170,3 @@ docker compose up -d
 
 ---
 
-*Last Updated: April 2026*
