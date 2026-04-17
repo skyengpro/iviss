@@ -110,3 +110,75 @@ variable "certbot_email" {
   type      = string 
   default   = "admin@iviss.local" 
 }
+
+# SMS Provider Configuration
+variable "sms_provider" {
+  type    = string
+  default = "mock"
+}
+
+variable "vonage_api_key" {
+  type    = string
+  default = ""
+}
+
+variable "vonage_api_secret" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+# Email Provider Configuration
+variable "email_provider" {
+  type    = string
+  default = "mock"
+}
+
+variable "resend_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "resend_from_email" {
+  type    = string
+  default = ""
+}
+
+variable "smtp_host" {
+  type    = string
+  default = ""
+}
+
+variable "smtp_port" {
+  type    = string
+  default = "587"
+}
+
+variable "smtp_username" {
+  type    = string
+  default = ""
+}
+
+variable "smtp_password" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "smtp_from_email" {
+  type    = string
+  default = ""
+}
+
+# Shift Configuration
+variable "shift_start_hour" {
+  type    = string
+  default = "6"
+}
+
+variable "shift_end_hour" {
+  type    = string
+  default = "18"
+}
+
