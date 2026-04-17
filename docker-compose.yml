@@ -33,15 +33,23 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-iviss_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:-iviss_dev}
-    ports:
-      - "5435:5432"
+#   ports:
+#     - "5435:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d iviss_dev",
+          "pg_isready -U ${POSTGRES_USER:-iviss_user} -d ${POSTGRES_DB:-iviss_dev}",
         ]
       interval: 10s
       timeout: 5s
@@ -54,6 +62,7 @@ services:
   
   # Adminer is useful for local development only
   adminer:
+    profiles: ["dev"]
     image: adminer
     container_name: iviss-adminer
     restart: unless-stopped
@@ -67,14 +76,13 @@ services:
 
   # Development backend with cargo-watch and source mounts
   backend:
+    profiles: ["dev"]
     build:
       context: ./iviss-backend
       dockerfile: Dockerfile
       target: development
     container_name: iviss-backend
     restart: unless-stopped
-    env_file:
-      - ./iviss-backend/.env
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -107,13 +115,8 @@ services:
   # Production-like backend, opt-in with: docker compose --profile prod up backend-prod
   backend-prod:
     profiles: ["prod"]
-    build:
-      context: ./iviss-backend
-      dockerfile: Dockerfile
-      target: production
+    image: ghcr.io/skyengpro/iviss/backend:latest
     restart: unless-stopped
-    env_file:
-      - ./iviss-backend/.env
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -131,11 +134,20 @@ services:
       retries: 5
       start_period: 20s
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     networks:
       - iviss-network
 
   # Development frontend with Vite and bind mounts
   frontend:
+    profiles: ["dev"]
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -149,7 +161,7 @@ services:
       - "8080:8080"
     environment:
       NODE_ENV: development
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: https://${DOMAIN_NAME:-localhost}/api
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app
@@ -176,11 +188,10 @@ services:
   # Production-like frontend, opt-in with: docker compose --profile prod up frontend-prod
   frontend-prod:
     profiles: ["prod"]
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: prod
+    image: ghcr.io/skyengpro/iviss/frontend:latest
     restart: unless-stopped
+    environment:
+      - VITE_API_URL=https://${DOMAIN_NAME:-localhost}/api
     depends_on:
       backend-prod:
         condition: service_healthy
@@ -194,7 +205,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost",
+          "http://127.0.0.1",
         ]
       interval: 10s
       timeout: 5s
@@ -204,6 +215,7 @@ services:
       - iviss-network
 
   metrics:
+    profiles: ["dev"]
     build:
       context: ./frontend
       dockerfile: Dockerfile.metrics
