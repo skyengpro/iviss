@@ -25,9 +25,19 @@ pub struct JwtService {
 
 impl JwtService {
     pub fn new(jwt_private_key_pem: &str) -> Result<Self> {
-        let cleaned_pem = jwt_private_key_pem
-            .trim_matches('"')
-            .replace("\\n", "\n");
+        let cleaned = jwt_private_key_pem.trim_matches('"').trim();
+        
+        // Try decoding as Base64 first, if it doesn't look like a standard PEM
+        let raw_pem = if !cleaned.starts_with("-----") {
+            match base64::Engine::decode(&base64::prelude::BASE64_STANDARD, cleaned.replace("\\n", "").replace("\n", "").trim()) {
+                Ok(decoded) => String::from_utf8(decoded).unwrap_or_else(|_| cleaned.to_string()),
+                Err(_) => cleaned.to_string(),
+            }
+        } else {
+            cleaned.to_string()
+        };
+
+        let cleaned_pem = raw_pem.replace("\\n", "\n");
         let encoding_key = EncodingKey::from_rsa_pem(cleaned_pem.as_bytes())
             .context("Failed to parse JWT RSA private key PEM")?;
         Ok(Self { encoding_key })
