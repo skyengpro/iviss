@@ -8,20 +8,26 @@
 
 ## Executive Summary
 
-IVISS is currently in **early-stage development** with a **Docker-based local development setup**. The project has basic CI/CD automation for testing and image building, but **no production deployment infrastructure exists yet**. All deployment activities are currently manual and local-only.
+**⚠️ OUTDATED DOCUMENT - See [DEPLOYMENT_CURRENT_STATE.md](DEPLOYMENT_CURRENT_STATE.md) for latest information**
 
-### Current Deployment Maturity: **Level 1 - Local Development**
+IVISS has evolved from early-stage development to having **complete production deployment infrastructure**. The project now has automated deployment to AWS Lightsail using Terraform + Ansible + GitHub Actions.
+
+### Current Deployment Maturity: **Level 3 - Automated Production Deployment**
 
 - ✅ Docker Compose for local development
 - ✅ CI/CD pipelines for testing and image building
 - ✅ Container images published to GitHub Container Registry (GHCR)
-- ❌ No production hosting infrastructure
-- ❌ No Infrastructure as Code (IaC)
-- ❌ No automated deployment to any environment
-- ❌ No staging/production environments configured
-- ❌ No secrets management solution
-- ❌ No rollback mechanisms
+- ✅ **Production hosting infrastructure (AWS Lightsail)**
+- ✅ **Infrastructure as Code (Terraform)**
+- ✅ **Automated deployment pipeline (GitHub Actions → Terraform → Ansible)**
+- ✅ **Secrets management (GitHub Secrets → Ansible templates)**
+- ✅ **SSL/TLS certificates (Let's Encrypt)**
+- ✅ **Reverse proxy (Nginx)**
+- ❌ No staging environment (only production)
+- ❌ No automated rollback mechanisms
 - ❌ No load balancing or high availability
+
+**For current deployment documentation, see:** [DEPLOYMENT_CURRENT_STATE.md](DEPLOYMENT_CURRENT_STATE.md)
 
 ---
 
