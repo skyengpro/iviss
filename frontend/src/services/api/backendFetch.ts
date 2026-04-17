@@ -1,7 +1,8 @@
 import { getAccessToken } from '../auth/tokenManager';
 
 function getBaseUrl(): string {
-  return (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+  return apiBaseUrl.replace(/\/+$/, '');
 }
 
 function isBackendUrl(url: string): boolean {
