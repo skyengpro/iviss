@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
   release:
@@ -24,19 +26,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node_version: "20"
-
-      - name: Install dependencies
-        run: npm install
-
       - name: Release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        run: >
+          npx -y
+          -p semantic-release
+          -p @semantic-release/changelog
+          -p @semantic-release/commit-analyzer
+          -p @semantic-release/release-notes-generator
+          -p @semantic-release/git
+          -p @semantic-release/github
+          semantic-release
 
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
