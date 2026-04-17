@@ -15,8 +15,8 @@ EXTERNAL_POSTGRES_HOST=iviss-db
 EXTERNAL_POSTGRES_PORT=5432
 
 # JWT Authentication
-JWT_PRIVATE_KEY_PEM="{{ jwt_private_key_pem | replace('$', '$$') }}"
-JWT_PUBLIC_KEY_PEM="{{ jwt_public_key_pem | replace('$', '$$') }}"
+JWT_PRIVATE_KEY_PEM="{{ iviss_jwt_private_key_base64 | replace('$', '$$') }}"
+JWT_PUBLIC_KEY_PEM="{{ iviss_jwt_public_key_base64 | replace('$', '$$') }}"
 ACTIVATION_CODE_PEPPER="{{ activation_code_pepper | replace('$', '$$') }}"
 
 # Backend Configuration

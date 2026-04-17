@@ -39,6 +39,14 @@
       - python3-docker
     state: present
 
+- name: Debug JWT variable presence
+  debug:
+    msg: 
+      - "JWT Private Key defined: {{ iviss_jwt_private_key_base64 is defined }}"
+      - "JWT Private Key length: {{ iviss_jwt_private_key_base64 | length if iviss_jwt_private_key_base64 is defined else 'N/A' }}"
+      - "JWT Public Key length: {{ iviss_jwt_public_key_base64 | length if iviss_jwt_public_key_base64 is defined else 'N/A' }}"
+
+
 - name: Start and enable Docker
   service:
     name: docker
