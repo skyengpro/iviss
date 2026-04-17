@@ -46,7 +46,7 @@ RESEND_FROM_EMAIL={{ resend_from_email | default('') }}
 SMTP_HOST={{ smtp_host | default('') }}
 SMTP_PORT={{ smtp_port | default('') }}
 SMTP_USERNAME={{ smtp_username | default('') }}
-SMTP_PASSWORD={{ smtp_password | default('') | replace('$', '$$') }}
+SMTP_PASSWORD="{{ smtp_password | default('') | replace('$', '$$') }}"
 SMTP_FROM_EMAIL={{ smtp_from_email | default('') }}
 
 # Shift configuration
