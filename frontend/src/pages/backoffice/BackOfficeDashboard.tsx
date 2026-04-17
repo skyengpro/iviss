@@ -46,11 +46,9 @@ export default function BackOfficeDashboard() {
 
   const recentAlertsQuery = useGetRecentAlerts(
     {
-      query: {
-        limit: 5,
-      },
+      limit: 5,
     },
-    undefined,
+    [],
     {
       refetchInterval: 30000,
     }
@@ -65,11 +63,9 @@ export default function BackOfficeDashboard() {
 
   const controlActivityQuery = useGetControlActivity(
     {
-      query: {
-        range: dashboardRange,
-      },
+      range: dashboardRange,
     },
-    undefined,
+    [],
     {
       refetchInterval: 30000,
     }
@@ -77,12 +73,10 @@ export default function BackOfficeDashboard() {
 
   const topAgentsQuery = useGetTopAgents(
     {
-      query: {
-        range: dashboardRange,
-        limit: 5,
-      },
+      range: dashboardRange,
+      limit: 5,
     },
-    undefined,
+    [],
     {
       refetchInterval: 30000,
     }
@@ -92,11 +86,9 @@ export default function BackOfficeDashboard() {
 
   const activityFeedQuery = useGetActivityFeed(
     {
-      query: {
-        limit: 8,
-      },
+      limit: 8,
     },
-    undefined,
+    [],
     {
       refetchInterval: 15000,
     }

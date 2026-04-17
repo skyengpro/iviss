@@ -14,36 +14,33 @@ import { useQueryClient } from '@tanstack/react-query';
 export function useUsers() {
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading: isLoadingUsers, error: usersError } = useListUsers();
+  const { data: users, isLoading: isLoadingUsers, error: usersError } = useListUsers([], {});
 
   const {
     mutateAsync: provisionMutate,
     isPending: isProvisioning,
     error: provisionError,
-  } = useProvisionUser(undefined, {
+  } = useProvisionUser({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
     },
   });
 
-  const { mutateAsync: provisionOrgMutate, isPending: isProvisioningOrg } = useProvisionOrgUser(
-    undefined,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
-        queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
-        queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
-        queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
-      },
-    }
-  );
+  const { mutateAsync: provisionOrgMutate, isPending: isProvisioningOrg } = useProvisionOrgUser({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['GetDashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['GetOrgDashboardStats'] });
+    },
+  });
 
   const {
     mutateAsync: updateMutate,
     isPending: isUpdating,
     error: updateError,
-  } = useUpdateUser(undefined, {
+  } = useUpdateUser({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
@@ -56,7 +53,7 @@ export function useUsers() {
     mutateAsync: deleteMutate,
     isPending: isDeleting,
     error: deleteError,
-  } = useDeleteUser(undefined, {
+  } = useDeleteUser({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
       queryClient.invalidateQueries({ queryKey: ['ListOrgUsers'] });
@@ -129,5 +126,5 @@ export function useUser(id: string) {
 }
 
 export function useOrgUsers() {
-  return useListOrgUsers();
+  return useListOrgUsers([], {});
 }
