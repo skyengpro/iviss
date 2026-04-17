@@ -12,3 +12,14 @@
     --agree-tos
     --email {{ certbot_email }}
   when: not cert_stat.stat.exists
+
+- name: Re-apply Certbot configuration if missing from Nginx
+  command: >
+    certbot install --nginx
+    -d {{ domain_name }}
+    --cert-name {{ domain_name }}
+    --non-interactive
+  when: 
+    - cert_stat.stat.exists
+    - certbot_check.rc != 0
+    - domain_name is defined
