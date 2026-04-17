@@ -79,8 +79,8 @@ def get_pem(env_var, file_path):
     except:
         raw = val.strip().replace('\\n', '\n')
     
-    # Convert real newlines into literal \n for single-line .env output
-    return raw.replace('\n', '\\n')
+    # Convert real newlines into literal \\n for single-line .env output
+    return raw.replace('\n', '\\\\n')
 
 priv_key = get_pem('JWT_PRIVATE_KEY_PEM', '$PROJECT_ROOT/jwt-private.pem')
 pub_key = get_pem('JWT_PUBLIC_KEY_PEM', '$PROJECT_ROOT/jwt-public.pem')
