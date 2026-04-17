@@ -37,6 +37,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 COPY .sqlx ./.sqlx
 COPY migrations ./migrations
+COPY seeds ./seeds
 COPY src ./src
 
 EXPOSE 3000
@@ -59,6 +60,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 COPY .sqlx ./.sqlx
 COPY migrations ./migrations
+COPY seeds ./seeds
 COPY src ./src
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
