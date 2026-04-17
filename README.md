@@ -265,23 +265,90 @@ iviss/
 
 ---
 
-## Production Infrastructure (NEW)
+## Production Infrastructure
 
 [![Deployment Status](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml/badge.svg)](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml)
 
+**Production URL:** [https://iviss-prod.vpn.kivoyo.com/](https://iviss-prod.vpn.kivoyo.com/)
+
 The platform is deployed using **Infrastructure-as-Code (Terraform)** and **Automated CI/CD (GitHub Actions)** on **AWS Lightsail**.
 
-- **Hardware Profile**: **2 vCPUs, 2 GB RAM, 60 GB SSD** (Bundle: `small_3_0`)
-- **Orchestration**: Docker Compose + Ansible
-- **State Management**: Remote S3 Backend with DynamoDB Locking
+### Infrastructure Details
 
-> [!IMPORTANT]
-> For production setup and secrets management, see the [**Master Deployment Guide**](docs/deployment_guide.md).
+- **Hosting:** AWS Lightsail (eu-west-1)
+- **Instance:** 2 vCPUs, 2 GB RAM, 60 GB SSD (Bundle: `small_3_0`)
+- **Cost:** ~$15-20/month
+- **Orchestration:** Docker Compose
+- **Configuration:** Ansible
+- **State Management:** S3 + DynamoDB
+- **SSL/TLS:** Let's Encrypt (automatic renewal)
+- **Reverse Proxy:** Nginx
+
+### Deployment Architecture
+
+```
+GitHub Push (main branch)
+         ↓
+GitHub Actions (CI/CD)
+         ↓
+Docker Images → GHCR
+         ↓
+Terraform (Infrastructure)
+         ↓
+Ansible (Configuration)
+         ↓
+AWS Lightsail (Production)
+```
+
+### Deployment Status
+
+- ✅ Automated deployment pipeline
+- ✅ Infrastructure as Code (Terraform)
+- ✅ Configuration management (Ansible)
+- ✅ Secrets management (GitHub Secrets)
+- ✅ SSL/TLS certificates (Let's Encrypt)
+- ✅ Container orchestration (Docker Compose)
+- ✅ Health monitoring
+- ⚠️ Database backups (manual)
+- ⚠️ Production monitoring (planned)
+
+### Quick Links
+
+- **Production App:** [https://iviss-prod.vpn.kivoyo.com/](https://iviss-prod.vpn.kivoyo.com/)
+- **API Health:** [https://iviss-prod.vpn.kivoyo.com/api/v1/health](https://iviss-prod.vpn.kivoyo.com/api/v1/health)
+- **Deployment Docs:** [docs/DEPLOYMENT_CURRENT_STATE.md](docs/DEPLOYMENT_CURRENT_STATE.md)
+- **GitHub Actions:** [View Workflows](https://github.com/skyengpro/iviss/actions)
+
+---
+
+## Documentation
+
+### For Developers
+
+- [Overview](docs/overview.md) - What IVISS does and who uses it
+- [Architecture](docs/architecture_spec.md) - Technical architecture
+- [Components](docs/components.md) - Backend and frontend components
+- [Database Schema](docs/schema.md) - Complete database documentation
+- [Docker Setup](docs/docker_setup.md) - Local development setup
+
+### For DevOps/Deployment
+
+- [**Deployment Current State**](docs/DEPLOYMENT_CURRENT_STATE.md) ⭐ **START HERE** - Complete deployment guide
+- [Deployment Index](docs/DEPLOYMENT_INDEX.md) - Navigation hub for all deployment docs
+- [CI/CD Pipelines](docs/CICD_PIPELINES.md) - GitHub Actions workflows
+- [Container Architecture](docs/CONTAINER_ARCHITECTURE.md) - Docker services and configuration
+- [Infrastructure & Hosting](docs/INFRASTRUCTURE_AND_HOSTING.md) - Infrastructure requirements
+
+### For Operations
+
+- [Monitoring](docs/monitoring.md) - Metrics and dashboards
+- [Auth Tokens](docs/auth_tokens.md) - JWT authentication
+- [Daily Login Flow](docs/daily_opertational_login_flow.md) - Agent authentication
 
 ---
 
 ## Operational Documentation
-- [**Deployment & Infrastructure Guide**](docs/deployment_guide.md): The definitive guide for production.
+- [**Deployment & Infrastructure Guide**](docs/DEPLOYMENT_CURRENT_STATE.md): The definitive guide for production.
 
 ---
 

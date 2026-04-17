@@ -504,3 +504,24 @@ cat /opt/iviss/.env
 ---
 
 **Status:** ✅ Documentation fully updated to reflect current production infrastructure
+
+
+---
+
+## Production URL Update
+
+**Date:** April 17, 2026
+
+**Production Domain:** https://iviss-prod.vpn.kivoyo.com/
+
+**Endpoints:**
+- Frontend: https://iviss-prod.vpn.kivoyo.com/
+- API: https://iviss-prod.vpn.kivoyo.com/api
+- Health Check: https://iviss-prod.vpn.kivoyo.com/api/v1/health
+
+**Files Updated:**
+1. `README.md` - Added production URL to "Production Infrastructure" section
+2. `docs/DEPLOYMENT_CURRENT_STATE.md` - Added production URLs to "Quick Reference" section
+3. `docs/DEPLOYMENT_INDEX.md` - Added production URLs to "Quick Links" section
+
+**Purpose:** Make production URL easily discoverable in all main documentation files.

@@ -759,6 +759,18 @@ image: ghcr.io/skyengpro/iviss/backend:v1.2.3
 
 ## Quick Reference
 
+### Production URLs
+
+**Application:**
+- Frontend: [https://iviss-prod.vpn.kivoyo.com/](https://iviss-prod.vpn.kivoyo.com/)
+- Backend API: [https://iviss-prod.vpn.kivoyo.com/api](https://iviss-prod.vpn.kivoyo.com/api)
+- Health Check: [https://iviss-prod.vpn.kivoyo.com/api/v1/health](https://iviss-prod.vpn.kivoyo.com/api/v1/health)
+
+**Infrastructure:**
+- AWS Region: eu-west-1 (Ireland)
+- Domain: iviss-prod.vpn.kivoyo.com
+- SSL/TLS: Let's Encrypt (automatic renewal)
+
 ### Deployment Commands
 
 **Deploy to Production:**

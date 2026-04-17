@@ -340,6 +340,12 @@
 
 ## Quick Links
 
+### Production
+
+- **Application:** https://iviss-prod.vpn.kivoyo.com/
+- **API:** https://iviss-prod.vpn.kivoyo.com/api
+- **Health Check:** https://iviss-prod.vpn.kivoyo.com/api/v1/health
+
 ### GitHub
 
 - **Repository:** https://github.com/<owner>/iviss
