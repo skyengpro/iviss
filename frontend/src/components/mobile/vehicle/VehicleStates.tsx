@@ -7,9 +7,9 @@ export const VehicleLoadingState: React.FC<{ queryTime?: number }> = ({ queryTim
   const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-      <div className="relative">
+      <div className="relative flex items-center justify-center">
         <div className="h-16 w-16 animate-spin rounded-full border-4 border-muted border-t-accent" />
-        <Shield className="absolute inset-0 m-auto h-6 w-6 text-accent" />
+        <img src="/pwa-64x64.png" alt="IVISS" className="absolute h-8 w-8 rounded-full" />
       </div>
       <p className="mt-6 text-lg font-medium">{t('vehicleResult.searchingDatabases')}</p>
       <p className="mt-2 text-sm text-muted-foreground text-center">
