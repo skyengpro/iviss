@@ -205,7 +205,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost",
+          "http://127.0.0.1",
         ]
       interval: 10s
       timeout: 5s
