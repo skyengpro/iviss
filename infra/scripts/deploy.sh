@@ -60,14 +60,19 @@ done
 # 6. Build JSON vars file (handles multi-line PEM keys safely)
 VARS_FILE="$ANSIBLE_DIR/.deploy-vars.json"
 python3 -c "
-import json, os
+import json, os, base64
 
 def get_pem(env_var, file_path):
     # Priority: Env Var > File > Empty
     val = os.environ.get(env_var, '')
     if not val and os.path.exists(file_path):
-        val = open(file_path).read()
-    return val.strip().replace(chr(10), '\\n')
+        with open(file_path, 'r') as f:
+            val = f.read()
+    if not val:
+        return ''
+    # Normalize and Base64 encode for safe transport
+    cleaned = val.strip().replace('\\n', '\n')
+    return base64.b64encode(cleaned.encode()).decode()
 
 domain = '${DOMAIN}' or os.environ.get('DOMAIN_NAME', '')
 email = '${2}' or os.environ.get('CERTBOT_EMAIL', 'admin@iviss.local')
