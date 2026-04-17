@@ -59,6 +59,24 @@
   ufw:
     state: enabled
 
+- name: Create swap file (4GB)
+  command: "{{ item }}"
+  with_items:
+    - fallocate -l 4G /swapfile
+    - chmod 600 /swapfile
+    - mkswap /swapfile
+    - swapon /swapfile
+  ignore_errors: yes
+  register: swap_provision
+  changed_when: "'already has swap' not in swap_provision.stderr"
+
+- name: Add swap to fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: '^/swapfile'
+    line: '/swapfile none swap sw 0 0'
+    state: present
+
 - name: Create app directory
   file:
     path: "{{ app_dir }}"

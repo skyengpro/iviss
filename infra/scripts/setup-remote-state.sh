@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Disable AWS CLI pager to prevent script suspension
+export AWS_PAGER=""
+
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
