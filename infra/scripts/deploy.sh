@@ -72,14 +72,15 @@ def get_pem(env_var, file_path):
             pass
     if not val:
         return ''
-    # Normalize all possible escapes (e.g. \\n, \\r, etc.)
+    # Normalize and then re-escape to ensure single-line output in .env
     try:
-        # This handles quadruple escapes from CI/CD environments
-        cleaned = val.encode('utf-8').decode('unicode_escape').strip()
+        # Handles CI/CD escapes
+        raw = val.encode('utf-8').decode('unicode_escape').strip()
     except:
-        cleaned = val.strip().replace('\\n', '\n')
+        raw = val.strip().replace('\\n', '\n')
     
-    return base64.b64encode(cleaned.encode('utf-8')).decode('utf-8')
+    # Convert real newlines into literal \n for single-line .env output
+    return raw.replace('\n', '\\n')
 
 priv_key = get_pem('JWT_PRIVATE_KEY_PEM', '$PROJECT_ROOT/jwt-private.pem')
 pub_key = get_pem('JWT_PUBLIC_KEY_PEM', '$PROJECT_ROOT/jwt-public.pem')
@@ -97,8 +98,8 @@ vars = {
     'db_name': os.environ.get('POSTGRES_DB', 'iviss_dev'),
     'vite_api_url': f'https://${DOMAIN}/api' if '${DOMAIN}' else f'http://${INSTANCE_IP}:3000',
     'jwt_secret': os.environ.get('JWT_SECRET', ''),
-    'iviss_jwt_private_key_base64': priv_key,
-    'iviss_jwt_public_key_base64': pub_key,
+    'jwt_private_key_pem': priv_key,
+    'jwt_public_key_pem': pub_key,
     'activation_code_pepper': os.environ.get('ACTIVATION_CODE_PEPPER', ''),
     'environment': os.environ.get('ENVIRONMENT', 'production'),
     'log_level': os.environ.get('LOG_LEVEL', 'info'),
