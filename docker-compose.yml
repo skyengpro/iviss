@@ -198,16 +198,10 @@ services:
     ports:
       - "8080:80"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost",
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "nc -z localhost 80 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
       timeout: 5s
       retries: 3
     logging: *default-logging
