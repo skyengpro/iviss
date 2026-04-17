@@ -154,7 +154,34 @@ docker compose up -d
 
 ---
 
-## 9. Troubleshooting
+## 9. Security: Manual Key Generation
+
+If you need to rotate secrets or generate new keys for a fresh environment, use these commands:
+
+### A. JWT HMAC Secret
+```bash
+openssl rand -base64 48
+```
+
+### B. JWT RSA Key Pair (Private & Public)
+```bash
+# 1. Generate Private Key
+openssl genrsa -out jwt-private.pem 2048
+
+# 2. Extract Public Key
+openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
+```
+
+### C. Formatting for .env
+To get the single-line string with `\n` needed for the `.env` file:
+```bash
+awk '{printf "%s\\n", $0}' jwt-private.pem
+```
+
+---
+
+## 10. Troubleshooting
+
 
 ### 1. "Unauthorized" or "401" on Frontend
 - **Cause**: JWT Key mismatch or expired session.
