@@ -72,9 +72,14 @@ def get_pem(env_var, file_path):
             pass
     if not val:
         return ''
-    # Normalize and Base64 encode
-    cleaned = val.strip().replace('\\\\n', '\n').replace('\\n', '\n')
-    return base64.b64encode(cleaned.encode()).decode()
+    # Normalize all possible escapes (e.g. \\n, \\r, etc.)
+    try:
+        # This handles quadruple escapes from CI/CD environments
+        cleaned = val.encode('utf-8').decode('unicode_escape').strip()
+    except:
+        cleaned = val.strip().replace('\\n', '\n')
+    
+    return base64.b64encode(cleaned.encode('utf-8')).decode('utf-8')
 
 priv_key = get_pem('JWT_PRIVATE_KEY_PEM', '$PROJECT_ROOT/jwt-private.pem')
 pub_key = get_pem('JWT_PUBLIC_KEY_PEM', '$PROJECT_ROOT/jwt-public.pem')
