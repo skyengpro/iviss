@@ -1,0 +1,25 @@
+---
+- name: Check if certificate exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+  register: cert_stat
+
+- name: Obtain SSL certificate
+  command: >
+    certbot --nginx
+    -d {{ domain_name }}
+    --non-interactive
+    --agree-tos
+    --email {{ certbot_email }}
+  when: not cert_stat.stat.exists
+
+- name: Re-apply Certbot configuration if missing from Nginx
+  command: >
+    certbot install --nginx
+    -d {{ domain_name }}
+    --cert-name {{ domain_name }}
+    --non-interactive
+  when: 
+    - cert_stat.stat.exists
+    - certbot_check.rc != 0
+    - domain_name is defined

@@ -15,7 +15,7 @@ import { AppInitializer } from '@/components/shared/AppInitializer';
 const queryClient = new QueryClient();
 
 // Configure the generated API client
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const apiBaseUrl = import.meta.env.VITE_API_URL || '';
 
 client.setConfig({
   baseUrl: apiBaseUrl,
