@@ -13,12 +13,12 @@ provider "aws" {
 
 # SSH Key Pair for Lightsail
 resource "aws_lightsail_key_pair" "iviss_key" {
-  name = "${var.project_name}-${var.environment}-key"
+  name = "${var.project_name}-${var.environment}-key-v2"
 }
 
 # Lightsail Instance
 resource "aws_lightsail_instance" "iviss_app" {
-  name              = "${var.project_name}-${var.environment}-app"
+  name              = "${var.project_name}-${var.environment}-app-v2"
   availability_zone = "${var.aws_region}a"
   blueprint_id      = var.lightsail_blueprint_id
   bundle_id         = var.lightsail_bundle_id
@@ -32,7 +32,7 @@ resource "aws_lightsail_instance" "iviss_app" {
 
 # Static IP for the Instance
 resource "aws_lightsail_static_ip" "iviss_ip" {
-  name = "${var.project_name}-${var.environment}-ip"
+  name = "${var.project_name}-${var.environment}-ip-v2"
   
   lifecycle {
     prevent_destroy = true
