@@ -145,8 +145,9 @@ impl Config {
             .context("Failed to parse ENVIRONMENT")?;
 
         // SMS Provider configuration
-        let sms_provider = env::var("SMS_PROVIDER").unwrap_or_else(|_| "mock".to_string());
-        let sms_credentials = Self::get_sms_provider_credentials(&sms_provider);
+        let sms_provider = env::var("SMS_PROVIDER").context("SMS_PROVIDER must be set")?;
+        let sms_credentials =
+            Self::get_sms_provider_credentials(&sms_provider).context("Failed to configure SMS provider")?;
 
         // Email Provider configuration
         let email_provider = env::var("EMAIL_PROVIDER").unwrap_or_else(|_| "mock".to_string());
@@ -207,31 +208,64 @@ impl Config {
         })
     }
 
-    fn get_sms_provider_credentials(sms_provider: &str) -> SmsProviderCredentials {
+    fn get_sms_provider_credentials(sms_provider: &str) -> Result<SmsProviderCredentials> {
         match sms_provider.to_lowercase().as_str() {
             "vonage" => {
-                let api_key = env::var("VONAGE_API_KEY").unwrap_or_else(|_| "mock".to_string());
-                let api_secret =
-                    env::var("VONAGE_API_SECRET").unwrap_or_else(|_| "mock".to_string());
-                SmsProviderCredentials::Vonage {
+                let api_key = env::var("VONAGE_API_KEY").unwrap_or_default();
+                let api_secret = env::var("VONAGE_API_SECRET").unwrap_or_default();
+
+                if api_key.trim().is_empty() || api_secret.trim().is_empty() {
+                    eprintln!(
+                        "SMS_PROVIDER=vonage but VONAGE_API_KEY/VONAGE_API_SECRET are not set"
+                    );
+                }
+                Ok(SmsProviderCredentials::Vonage {
                     api_key,
                     api_secret,
-                }
+                })
             }
             "twilio" => {
-                let account_sid =
-                    env::var("TWILIO_ACCOUNT_SID").unwrap_or_else(|_| "mock".to_string());
-                let auth_token =
-                    env::var("TWILIO_AUTH_TOKEN").unwrap_or_else(|_| "mock".to_string());
-                let from_number =
-                    env::var("TWILIO_FROM_NUMBER").unwrap_or_else(|_| "mock".to_string());
-                SmsProviderCredentials::Twilio {
+                let account_sid = env::var("TWILIO_ACCOUNT_SID").unwrap_or_default();
+                let auth_token = env::var("TWILIO_AUTH_TOKEN").unwrap_or_default();
+                let from_number = env::var("TWILIO_FROM_NUMBER").unwrap_or_default();
+
+                if account_sid.trim().is_empty()
+                    || auth_token.trim().is_empty()
+                    || from_number.trim().is_empty()
+                {
+                    eprintln!(
+                        "SMS_PROVIDER=twilio but TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN/TWILIO_FROM_NUMBER are not set"
+                    );
+                }
+                Ok(SmsProviderCredentials::Twilio {
                     account_sid,
                     auth_token,
                     from_number,
-                }
+                })
             }
-            _ => SmsProviderCredentials::Mock,
+            "orange" => {
+                let client_id = env::var("ORANGE_CLIENT_ID").unwrap_or_default();
+                let client_secret = env::var("ORANGE_CLIENT_SECRET").unwrap_or_default();
+                let sender_number =
+                    env::var("ORANGE_SENDER_NUMBER").unwrap_or_else(|_| "+237000000000".to_string());
+
+                let orange_creds_invalid =
+                    client_id.trim().is_empty() || client_secret.trim().is_empty();
+
+                if orange_creds_invalid {
+                    eprintln!(
+                        "SMS_PROVIDER=orange but ORANGE_CLIENT_ID/ORANGE_CLIENT_SECRET are not set"
+                    );
+                }
+                Ok(SmsProviderCredentials::Orange {
+                    client_id,
+                    client_secret,
+                    sender_number,
+                })
+            }
+            other => Err(anyhow!(
+                "Invalid SMS_PROVIDER value: '{other}'. Must be one of: vonage, twilio, orange"
+            )),
         }
     }
 
@@ -277,9 +311,57 @@ impl Config {
             // return Err(anyhow!("SERVER_PORT cannot be 0"));
         }
         // Validate SMS provider config in production
-        if self.environment == Environment::Production && self.sms_credentials.is_mock() {
+        if self.environment == Environment::Production {
+            if matches!(
+                &self.sms_credentials,
+                SmsProviderCredentials::Orange {
+                    client_id,
+                    client_secret,
+                    ..
+                } if client_id.trim().is_empty()
+                    || client_secret.trim().is_empty()
+            ) {
+                return Err(anyhow!(
+                    "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
+                ));
+            }
+        }
+
+        if matches!(
+            &self.sms_credentials,
+            SmsProviderCredentials::Vonage { api_key, api_secret }
+                if api_key.trim().is_empty() || api_secret.trim().is_empty()
+        ) {
             return Err(anyhow!(
-                "SMS provider credentials must be set in production (SMS_PROVIDER environment variable)"
+                "VONAGE_API_KEY and VONAGE_API_SECRET must be set when SMS_PROVIDER=vonage"
+            ));
+        }
+
+        if matches!(
+            &self.sms_credentials,
+            SmsProviderCredentials::Twilio {
+                account_sid,
+                auth_token,
+                from_number,
+            } if account_sid.trim().is_empty()
+                || auth_token.trim().is_empty()
+                || from_number.trim().is_empty()
+        ) {
+            return Err(anyhow!(
+                "TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER must be set when SMS_PROVIDER=twilio"
+            ));
+        }
+
+        if matches!(
+            &self.sms_credentials,
+            SmsProviderCredentials::Orange {
+                client_id,
+                client_secret,
+                ..
+            } if client_id.trim().is_empty() || client_secret.trim().is_empty()
+        ) {
+            return Err(anyhow!(
+                "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
             ));
         }
 
