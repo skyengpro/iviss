@@ -206,7 +206,7 @@ services:
       - "8080:8080"
     environment:
       NODE_ENV: development
-      VITE_API_URL: https://${DOMAIN_NAME:-localhost}/api
+      VITE_API_URL: https://${DOMAIN_NAME:-localhost}
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app
@@ -236,7 +236,7 @@ services:
     image: ghcr.io/skyengpro/iviss/frontend:latest
     restart: unless-stopped
     environment:
-      - VITE_API_URL=https://${DOMAIN_NAME:-localhost}/api
+      - VITE_API_URL=https://${DOMAIN_NAME:-localhost}
     depends_on:
       backend-prod:
         condition: service_healthy

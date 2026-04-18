@@ -1,7 +1,7 @@
 import { getAccessToken } from '../auth/tokenManager';
 
 function getBaseUrl(): string {
-  const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+  const apiBaseUrl = import.meta.env.VITE_API_URL || '';
   return apiBaseUrl.replace(/\/+$/, '');
 }
 
