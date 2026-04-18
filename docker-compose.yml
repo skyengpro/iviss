@@ -124,7 +124,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 180s
+      start_period: 600s
     logging: *default-logging
     networks:
       - iviss-network

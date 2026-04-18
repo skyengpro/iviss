@@ -184,17 +184,24 @@ awk '{printf "%s\\n", $0}' jwt-private.pem
 ## 10. Troubleshooting
 
 
-### 1. "Unauthorized" or "401" on Frontend
-- **Cause**: JWT Key mismatch or expired session.
-- **Fix**: Ensure `JWT_PRIVATE_KEY_PEM` matches the version used locally.
+### 4. Terraform State Checksum Mismatch
+- **Cause**: S3 state and DynamoDB lock are out of sync.
+- **Fix**: Clear the DynamoDB lock entry manually.
+  ```bash
+  aws dynamodb delete-item \
+      --table-name "iviss-terraform-lock" \
+      --key '{"LockID": {"S": "YOUR_BUCKET_NAME/production/terraform.tfstate-md5"}}' \
+      --region "eu-central-1"
+  ```
 
-### 2. "Conflict: Target already exists" (Terraform)
-- **Cause**: Trying to create an instance that already exists.
-- **Fix**: Use `terraform import` or ensure you are using the correct workspace/remote state.
-
-### 3. File Size Limit (Push Failed)
-- **Cause**: Accidentally committed `.terraform/` binary files.
-- **Fix**: Run `git reset --soft HEAD~1`, then `git rm -r --cached infra/terraform/.terraform/`, update `.gitignore`, and re-commit.
+### 5. "Resource already exists" (Lightsail)
+- **Cause**: Existing resources found in AWS but missing from your current `.tfstate`.
+- **Fix**: Try to import them. If Terraform reports "resource doesn't support import", manually delete the resource in the AWS Console and rerun the deployment.
+  ```bash
+  cd infra/terraform
+  terraform import aws_lightsail_instance.iviss_app iviss-production-app
+  # For IP/Key - if import fails: Manually delete in Console, then 'terraform apply'
+  ```
 
 ---
 
