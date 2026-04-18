@@ -146,8 +146,8 @@ impl Config {
 
         // SMS Provider configuration
         let sms_provider = env::var("SMS_PROVIDER").context("SMS_PROVIDER must be set")?;
-        let sms_credentials =
-            Self::get_sms_provider_credentials(&sms_provider).context("Failed to configure SMS provider")?;
+        let sms_credentials = Self::get_sms_provider_credentials(&sms_provider)
+            .context("Failed to configure SMS provider")?;
 
         // Email Provider configuration
         let email_provider = env::var("EMAIL_PROVIDER").unwrap_or_else(|_| "mock".to_string());
@@ -246,8 +246,8 @@ impl Config {
             "orange" => {
                 let client_id = env::var("ORANGE_CLIENT_ID").unwrap_or_default();
                 let client_secret = env::var("ORANGE_CLIENT_SECRET").unwrap_or_default();
-                let sender_number =
-                    env::var("ORANGE_SENDER_NUMBER").unwrap_or_else(|_| "+237000000000".to_string());
+                let sender_number = env::var("ORANGE_SENDER_NUMBER")
+                    .unwrap_or_else(|_| "+237000000000".to_string());
 
                 let orange_creds_invalid =
                     client_id.trim().is_empty() || client_secret.trim().is_empty();
