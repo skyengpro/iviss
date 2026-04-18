@@ -22,9 +22,21 @@
     --email {{ certbot_email }}
   register: certbot_obtain
   until: certbot_obtain is success
-  retries: 3
-  delay: 10
+  retries: 2
+  delay: 5
   when: not cert_stat.stat.exists
+  ignore_errors: yes
+
+- name: Obtain SSL certificate (Retry without email if registration failed)
+  command: >
+    certbot --nginx
+    -d {{ domain_name }}
+    --non-interactive
+    --agree-tos
+    --register-unsafely-without-email
+  when: 
+    - not cert_stat.stat.exists
+    - certbot_obtain is failed
 
 - name: Re-apply Certbot configuration if missing from Nginx
   command: >

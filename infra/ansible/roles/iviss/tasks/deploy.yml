@@ -17,10 +17,22 @@
     dest: "{{ app_dir }}/.env"
     mode: '0600'
 
+- name: Create backend directory
+  file:
+    path: "{{ app_dir }}/iviss-backend"
+    state: directory
+    mode: '0755'
+
 - name: Generate .env file for Backend (Specific)
   template:
     src: dotenv.j2
     dest: "{{ app_dir }}/iviss-backend/.env"
+    mode: '0600'
+
+- name: Generate .env file for Frontend (Specific)
+  template:
+    src: dotenv.j2
+    dest: "{{ app_dir }}/frontend/.env"
     mode: '0600'
 
 - name: Pull Docker images

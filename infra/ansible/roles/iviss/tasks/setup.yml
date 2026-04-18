@@ -59,6 +59,11 @@
   ufw:
     state: enabled
 
+- name: Check if swap file exists
+  stat:
+    path: /swapfile
+  register: swap_stat
+
 - name: Create swap file (4GB)
   command: "{{ item }}"
   with_items:
@@ -66,9 +71,8 @@
     - chmod 600 /swapfile
     - mkswap /swapfile
     - swapon /swapfile
+  when: not swap_stat.stat.exists
   ignore_errors: yes
-  register: swap_provision
-  changed_when: "'already has swap' not in swap_provision.stderr"
 
 - name: Add swap to fstab
   lineinfile:
