@@ -3,7 +3,7 @@ terraform {
     bucket         = "iviss-terraform-state-577638362880"
     key            = "production/terraform.tfstate"
     region         = "eu-central-1"
-    dynamodb_table = "iviss-terraform-lock"
+    use_lockfile   = true
     encrypt        = true
   }
 }
