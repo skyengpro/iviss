@@ -39,7 +39,10 @@ impl SmsProvider for MockSmsProvider {
 #[derive(Clone, Debug)]
 pub enum SmsProviderCredentials {
     /// Vonage Messages API credentials
-    Vonage { api_key: String, api_secret: String },
+    Vonage {
+        api_key: String,
+        api_secret: String,
+    },
     /// Twilio SMS API credentials
     Twilio {
         account_sid: String,
@@ -355,11 +358,7 @@ impl SmsProvider for OrangeSmsProvider {
             Ok(())
         } else {
             let body = response.text().await.unwrap_or_default();
-            Err(anyhow::anyhow!(
-                "Orange API error ({}): {}",
-                status,
-                body
-            ))
+            Err(anyhow::anyhow!("Orange API error ({}): {}", status, body))
         }
     }
 }
