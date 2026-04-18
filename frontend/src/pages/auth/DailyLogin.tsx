@@ -9,7 +9,6 @@ import { Building2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getDeviceId } from '@/services/device/deviceId';
-import { clearTokens } from '@/services/auth/tokenManager';
 
 export default function DailyLogin() {
   const navigate = useNavigate();
@@ -37,18 +36,10 @@ export default function DailyLogin() {
 
     // Redirect if already authenticated and shift is active
     if (isAuthenticated && user) {
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'org_admin' || user.role === 'manager') {
         navigate('/backoffice');
       } else {
         navigate('/mobile');
-      }
-    } else {
-      // If we are at the login stage and not authenticated,
-      // ensure any partial or stale tokens are cleared.
-      // Doing this ONLY if not authenticated ensures we don't clear tokens
-      // for a user who just successfully logged in and is waiting for the redirect.
-      if (!isAuthenticated && !isLoading) {
-        clearTokens();
       }
     }
   }, [isAuthenticated, user, navigate, isLoading]);

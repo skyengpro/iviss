@@ -70,7 +70,7 @@ describe('MobileHeader', () => {
       </BrowserRouter>
     );
 
-    const profileButton = screen.getAllByRole('button')[3]; // Menu, Globe, Bell, User
+    const profileButton = screen.getAllByRole('button')[2]; // Menu, Globe, User
     fireEvent.click(profileButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/mobile/profile');

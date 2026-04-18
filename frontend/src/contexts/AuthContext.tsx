@@ -205,18 +205,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Access token is expired but we may still have a valid refresh token.
             // Restore the session state so the interceptor can attempt a refresh
             // on the next API call rather than clearing everything immediately.
-            if (sessionData.refreshToken) {
+            if (sessionData.refreshToken && sessionData.accessToken) {
               setRefreshToken(sessionData.refreshToken);
-              // Keep the stale access token in the store so the interceptor
-              // knows we were authenticated and should attempt a refresh.
-              if (sessionData.accessToken) {
-                setAccessToken(sessionData.accessToken);
-              }
+              setAccessToken(sessionData.accessToken); // Always set, even if expired
               setSession(sessionData);
               setUser(sessionData.user);
-              applyAuthTokenToApiClient(sessionData.accessToken);
             } else {
-              // No refresh token either — truly expired, clear everything
+              // No refresh token or no access token — truly expired, clear everything
               localStorage.removeItem(SESSION_KEY);
               localStorage.removeItem(REFRESH_TOKEN_KEY);
             }

@@ -36,51 +36,59 @@ export default function MobileDashboard() {
   const [address, setAddress] = useState<string>('');
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const lastKnownLocationRef = useRef<{ lat: number; lng: number; address: string } | null>(null);
+  const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const fetchAddress = async () => {
-      if (lat && lng) {
-        const cached = lastKnownLocationRef.current;
-        if (cached) {
-          const dist = Math.sqrt(Math.pow(lat - cached.lat, 2) + Math.pow(lng - cached.lng, 2));
-          if (dist < 0.0005) {
-            setAddress(cached.address);
-            return;
-          }
-        }
+    if (!lat || !lng) return;
 
-        setIsReverseGeocoding(true);
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+    // Debounce — wait 2s after last position update before geocoding
+    if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
 
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-            { signal: controller.signal }
-          );
-          clearTimeout(timeoutId);
-
-          if (!response.ok) throw new Error('Geocoding failed');
-
-          const data = await response.json();
-          const newAddress = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-          setAddress(newAddress);
-          lastKnownLocationRef.current = { lat, lng, address: newAddress };
-        } catch (error) {
-          console.error('Error fetching address:', error);
-          const cached = lastKnownLocationRef.current;
-          if (cached?.address) {
-            setAddress(cached.address + ' (last known)');
-          } else {
-            setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-          }
-        } finally {
-          setIsReverseGeocoding(false);
+    geocodeTimerRef.current = setTimeout(async () => {
+      const cached = lastKnownLocationRef.current;
+      if (cached) {
+        const dist = Math.sqrt(Math.pow(lat - cached.lat, 2) + Math.pow(lng - cached.lng, 2));
+        // ~500m radius — don't re-geocode for small movements
+        if (dist < 0.005) {
+          setAddress(cached.address);
+          return;
         }
       }
-    };
 
-    fetchAddress();
+      setIsReverseGeocoding(true);
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+          { signal: controller.signal, headers: { 'Accept-Language': 'en' } }
+        );
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`Geocoding failed: ${response.status}`);
+
+        const data = await response.json();
+        const addr = data.address;
+        const newAddress =
+          data.display_name ||
+          [addr?.road, addr?.city || addr?.town || addr?.village, addr?.country]
+            .filter(Boolean)
+            .join(', ') ||
+          `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        setAddress(newAddress);
+        lastKnownLocationRef.current = { lat, lng, address: newAddress };
+      } catch {
+        const cached = lastKnownLocationRef.current;
+        setAddress(cached?.address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      } finally {
+        setIsReverseGeocoding(false);
+      }
+    }, 2000);
+
+    return () => {
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+    };
   }, [lat, lng]);
 
   const startOfDay = new Date();
@@ -128,7 +136,7 @@ export default function MobileDashboard() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             {t('mobileDashboard.newControl')}
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 items-stretch">
             <QuickActionButton
               icon={Keyboard}
               label={t('mobileDashboard.manualEntry')}
@@ -280,16 +288,16 @@ function QuickActionButton({
   primary?: boolean;
 }) {
   return (
-    <Link to={href}>
+    <Link to={href} className="h-full">
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
+        className={`flex h-full flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-200 active:scale-95 touch-target ${
           primary
             ? 'bg-accent text-accent-foreground shadow-lg'
             : 'bg-card border border-border hover:bg-muted'
         }`}
       >
-        <Icon className="h-6 w-6" />
-        <span className="text-xs font-medium">{label}</span>
+        <Icon className="h-6 w-6 shrink-0" />
+        <span className="text-xs font-medium text-center leading-tight">{label}</span>
       </div>
     </Link>
   );

@@ -48,7 +48,7 @@ describe('useUsers', () => {
 
     mockProvisionMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useProvisionUser).mockImplementation(
-      (options: any) =>
+      (_key: any, options: any) =>
         ({
           mutateAsync: async (...args: any[]) => {
             const result = await mockProvisionMutate(...args);
@@ -63,7 +63,7 @@ describe('useUsers', () => {
     );
 
     vi.mocked(useProvisionOrgUser).mockImplementation(
-      (options: any) =>
+      (_key: any, options: any) =>
         ({
           mutateAsync: async (...args: any[]) => {
             const result = await Promise.resolve({});
@@ -79,7 +79,7 @@ describe('useUsers', () => {
 
     mockUpdateMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useUpdateUser).mockImplementation(
-      (options: any) =>
+      (_key: any, options: any) =>
         ({
           mutateAsync: async (...args: any[]) => {
             const result = await mockUpdateMutate(...args);
@@ -95,7 +95,7 @@ describe('useUsers', () => {
 
     mockDeleteMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useDeleteUser).mockImplementation(
-      (options: any) =>
+      (_key: any, options: any) =>
         ({
           mutateAsync: async (...args: any[]) => {
             const result = await mockDeleteMutate(...args);
