@@ -9,23 +9,16 @@
 # creating a duplicate. Only the IAM role + policy are new.
 # =============================================================================
 
-# --- Reference the EXISTING OIDC Identity Provider ---
-# There can only be ONE provider per URL per AWS account.
-# If it doesn't exist yet, uncomment the resource block below and comment out the data block.
-data "aws_iam_openid_connect_provider" "github_actions" {
-  url = "https://token.actions.githubusercontent.com"
+# --- Create the OIDC Identity Provider ---
+resource "aws_iam_openid_connect_provider" "github_actions" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8511116c49cc3984e72a44b58532f83a2"] # Current GH thumbprints
+  tags = {
+    Project     = var.project_name
+    Description = "GitHub Actions OIDC for CI/CD deployments"
+  }
 }
-
-# Uncomment this ONLY if the OIDC provider doesn't exist yet in your account:
-# resource "aws_iam_openid_connect_provider" "github_actions" {
-#   url             = "https://token.actions.githubusercontent.com"
-#   client_id_list  = ["sts.amazonaws.com"]
-#   thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]
-#   tags = {
-#     Project     = var.project_name
-#     Description = "GitHub Actions OIDC for CI/CD deployments"
-#   }
-# }
 
 # --- IAM Role assumed by GitHub Actions ---
 resource "aws_iam_role" "github_actions_deploy" {
@@ -37,7 +30,7 @@ resource "aws_iam_role" "github_actions_deploy" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = data.aws_iam_openid_connect_provider.github_actions.arn
+          Federated = aws_iam_openid_connect_provider.github_actions.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
@@ -49,7 +42,6 @@ resource "aws_iam_role" "github_actions_deploy" {
             "token.actions.githubusercontent.com:sub" = [
               "repo:skyengpro/iviss:ref:refs/heads/main",
               "repo:skyengpro/iviss:ref:refs/heads/dev",
-              "repo:skyengpro/iviss:ref:refs/heads/aws-dev-sync",
               "repo:skyengpro/iviss:ref:refs/heads/aws-dev-test"
             ]
           }
