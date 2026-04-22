@@ -1,3 +1,10 @@
+# [1.0.0-rc.4](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.3...v1.0.0-rc.4) (2026-04-22)
+
+
+### Bug Fixes
+
+* implementing dual-key OIDC trust for maximum stability ([3be9836](https://github.com/skyengpro/iviss/commit/3be9836548a08dab653fc9e15b2875a52c6c2bd7))
+
 # [1.0.0-rc.3](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.2...v1.0.0-rc.3) (2026-04-22)
 
 
