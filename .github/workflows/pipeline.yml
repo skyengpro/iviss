@@ -42,8 +42,8 @@ jobs:
   docker:
     name: Build & Push Docker Images
     needs: release
-    # Run if a new release was published OR if triggered manually
-    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch')
+    # Run if a new release was published OR triggered manually OR on our test branch
+    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch') || (github.ref == 'refs/heads/aws-dev-test')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -96,7 +96,7 @@ jobs:
   deploy:
     name: Deploy to AWS
     needs: [release, docker]
-    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch')
+    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch') || (github.ref == 'refs/heads/aws-dev-test')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
