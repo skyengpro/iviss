@@ -94,7 +94,8 @@ resource "aws_iam_role_policy" "deploy_permissions" {
         Effect = "Allow"
         Action = [
           "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:GetResourcePolicy"
         ]
         Resource = "arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/*"
       },
@@ -105,9 +106,13 @@ resource "aws_iam_role_policy" "deploy_permissions" {
           "iam:GetRole",
           "iam:GetRolePolicy",
           "iam:ListAttachedRolePolicies",
-          "iam:ListRolePolicies"
+          "iam:ListRolePolicies",
+          "iam:GetOpenIDConnectProvider"
         ]
-        Resource = "arn:aws:iam::577638362880:role/iviss-*"
+        Resource = [
+          "arn:aws:iam::577638362880:role/iviss-*",
+          "arn:aws:iam::577638362880:oidc-provider/token.actions.githubusercontent.com"
+        ]
       },
       {
         Sid    = "SecretsManagerWrite"
