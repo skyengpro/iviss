@@ -1,0 +1,134 @@
+name: Unified Release & Docker Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Determine Release Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Semantic Release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Run semantic-release and capture output
+          npx -y \
+            -p semantic-release \
+            -p @semantic-release/changelog \
+            -p @semantic-release/commit-analyzer \
+            -p @semantic-release/release-notes-generator \
+            -p @semantic-release/git \
+            -p @semantic-release/github \
+            semantic-release
+
+  docker:
+    name: Build & Push Docker Images
+    needs: release
+    # Run if a new release was published OR if triggered manually
+    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [frontend, backend]
+        include:
+          - service: frontend
+            context: ./frontend
+            target: prod
+          - service: backend
+            context: ./iviss-backend
+            target: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=raw,value=${{ needs.release.outputs.new_release_version }}
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to AWS
+    needs: [release, docker]
+    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          role-session-name: iviss-deploy-${{ github.run_id }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
+
+      - name: Deploy via Script
+        env:
+          USE_SECRETS_MANAGER: "true"
+          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
+          DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
+          CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
+          IMAGE_TAG: ${{ needs.release.outputs.new_release_version }}
+          ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'iviss_user' }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'iviss_dev' }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
+          SMTP_FROM_EMAIL: ${{ vars.SMTP_FROM_EMAIL }}
+          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+          SMS_PROVIDER: ${{ vars.SMS_PROVIDER }}
+          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER }}
+          ADMIN_BOOTSTRAP_EMAIL: ${{ vars.ADMIN_BOOTSTRAP_EMAIL }}
+          ADMIN_BOOTSTRAP_USERNAME: ${{ vars.ADMIN_BOOTSTRAP_USERNAME }}
+          SHIFT_START_HOUR: ${{ vars.SHIFT_START_HOUR }}
+          SHIFT_END_HOUR: ${{ vars.SHIFT_END_HOUR }}
+        run: |
+          chmod +x ./infra/scripts/deploy.sh
+          ./infra/scripts/deploy.sh
