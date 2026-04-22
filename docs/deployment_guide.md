@@ -156,7 +156,7 @@ The CI/CD pipeline uses **GitHub Actions OIDC** to authenticate with AWS — no 
 
 ### IAM Role ARN
 ```
-arn:aws:iam::577638362880:role/iviss-github-actions-deploy
+arn:aws:iam::<YOUR_ACCOUNT_ID>:role/iviss-github-actions-deploy
 ```
 
 ### Permissions Granted
@@ -166,7 +166,7 @@ arn:aws:iam::577638362880:role/iviss-github-actions-deploy
 - **Secrets Manager**: Read secrets for deployment
 
 ### Branch Restrictions
-Only `main` and `dev` branches can assume the role.
+Only `main`, `dev`, `aws-dev-sync`, and `aws-dev-test` branches are authorized to assume the deployment role.
 
 ---
 
@@ -193,9 +193,10 @@ Set these in **GitHub Settings → Variables → Repository Variables**:
 
 | Variable Name | Example Value | Description |
 | :--- | :--- | :--- |
-| `DOMAIN_NAME` | `iviss.vpn.kivoyo.com` | Production domain |
-| `CERTBOT_EMAIL` | `admin@iviss.cloud` | SSL certificate email |
-| `DOCKER_USERNAME` | `donemmanuelo` | GHCR username |
+| `DOMAIN_NAME` | `iviss.example.com` | Production domain |
+| `CERTBOT_EMAIL` | `admin@example.com` | SSL certificate email |
+| `DOCKER_USERNAME` | `yourusername` | GHCR username (Required for image pulls) |
+| `AWS_ROLE_ARN` | `arn:aws:iam::<ID>:role/...` | OIDC Role ARN for AWS Auth |
 | `ENVIRONMENT` | `production` | Deployment environment |
 | `SMS_PROVIDER` | `orange` | `mock`, `twilio`, `vonage`, or `orange` |
 | `EMAIL_PROVIDER` | `lettre` | `mock`, `resend`, or `lettre` |
@@ -207,6 +208,10 @@ Set these in **GitHub Settings → Variables → Repository Variables**:
 | `ADMIN_BOOTSTRAP_USERNAME` | `admin` | Initial admin username |
 | `SMTP_HOST` | `smtp.gmail.com` | SMTP server |
 | `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_FROM_EMAIL` | `noreply@iviss.cloud` | SMTP sender address |
+| `SMTP_USERNAME` | `user@gmail.com` | SMTP username |
+| `RESEND_FROM_EMAIL`| `onboarding@resend.dev`| Resend sender address |
+| `AWS_REGION` | `eu-west-1` | AWS deployment region |
 
 > **Note:** All actual secrets (passwords, API keys, tokens) are stored in AWS Secrets Manager, not GitHub Secrets.
 
