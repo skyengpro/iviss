@@ -1,6 +1,6 @@
 use crate::dto::organizations::{
     CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType,
-    UpdateOrganizationRequest,
+    OrganizationShiftHoursDto, UpdateOrganizationRequest,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
@@ -105,6 +105,71 @@ pub async fn create_organization(
         name: row.get("name"),
         org_type,
         region: row.get("region"),
+    })
+}
+
+pub async fn get_organization_shift_hours(
+    pool: &PgPool,
+    organization_id: Uuid,
+) -> Result<OrganizationShiftHoursDto, AppError> {
+    let row = sqlx::query(
+        r#"
+        SELECT shift_start_hour, shift_end_hour
+        FROM organizations
+        WHERE id = $1
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(organization_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::database)?
+    .ok_or_else(|| AppError::not_found("Organization not found"))?;
+
+    Ok(OrganizationShiftHoursDto {
+        shift_start_hour: row.get::<i32, _>("shift_start_hour") as u32,
+        shift_end_hour: row.get::<i32, _>("shift_end_hour") as u32,
+    })
+}
+
+pub async fn update_organization_shift_hours(
+    pool: &PgPool,
+    organization_id: Uuid,
+    req: OrganizationShiftHoursDto,
+) -> Result<OrganizationShiftHoursDto, AppError> {
+    if req.shift_start_hour > 23 || req.shift_end_hour > 23 {
+        return Err(AppError::bad_request(
+            "shiftStartHour and shiftEndHour must be between 0 and 23",
+        ));
+    }
+    if req.shift_start_hour >= req.shift_end_hour {
+        return Err(AppError::bad_request(
+            "shiftStartHour must be less than shiftEndHour",
+        ));
+    }
+
+    let row = sqlx::query(
+        r#"
+        UPDATE organizations
+        SET shift_start_hour = $1,
+            shift_end_hour   = $2,
+            updated_at       = NOW()
+        WHERE id = $3
+          AND deleted_at IS NULL
+        RETURNING shift_start_hour, shift_end_hour
+        "#,
+    )
+    .bind(req.shift_start_hour as i32)
+    .bind(req.shift_end_hour as i32)
+    .bind(organization_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::database)?
+    .ok_or_else(|| AppError::not_found("Organization not found"))?;
+
+    Ok(OrganizationShiftHoursDto {
+        shift_start_hour: row.get::<i32, _>("shift_start_hour") as u32,
+        shift_end_hour: row.get::<i32, _>("shift_end_hour") as u32,
     })
 }
 

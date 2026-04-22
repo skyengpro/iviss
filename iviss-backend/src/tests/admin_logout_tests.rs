@@ -80,8 +80,6 @@ async fn setup_admin_logout_test() -> (
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
         activation_code_pepper: TEST_PEPPER.to_string(),
-        shift_start_hour: 0,
-        shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),
         admin_bootstrap_phone: Some("+237600000000".to_string()),

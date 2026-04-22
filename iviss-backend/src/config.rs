@@ -86,8 +86,6 @@ pub struct Config {
     // Email
     pub email_credentials: EmailProviderCredentials,
     pub activation_code_pepper: String,
-    pub shift_start_hour: u32,
-    pub shift_end_hour: u32,
     // Bootstrap admin — used only at first startup if no admin exists
     pub admin_bootstrap_email: Option<String>,
     pub admin_bootstrap_password: Option<String>,
@@ -161,26 +159,6 @@ impl Config {
                 "ACTIVATION_CODE_PEPPER must be at least 32 characters"
             ));
         }
-        let shift_start_hour = env::var("SHIFT_START_HOUR")
-            .unwrap_or_else(|_| "6".to_string())
-            .parse::<u32>()
-            .context("SHIFT_START_HOUR must be a valid hour (0-23)")?;
-
-        let shift_end_hour = env::var("SHIFT_END_HOUR")
-            .unwrap_or_else(|_| "18".to_string())
-            .parse::<u32>()
-            .context("SHIFT_END_HOUR must be a valid hour (0-23)")?;
-
-        if shift_start_hour > 23 || shift_end_hour > 23 {
-            return Err(anyhow!(
-                "SHIFT_START_HOUR and SHIFT_END_HOUR must be between 0 and 23"
-            ));
-        }
-        if shift_start_hour >= shift_end_hour {
-            return Err(anyhow!(
-                "SHIFT_START_HOUR ({shift_start_hour}) must be less than SHIFT_END_HOUR ({shift_end_hour})"
-            ));
-        }
 
         // Bootstrap admin — all optional, seed is skipped if any is missing
         let admin_bootstrap_email = env::var("ADMIN_BOOTSTRAP_EMAIL").ok();
@@ -199,8 +177,6 @@ impl Config {
             sms_credentials,
             email_credentials,
             activation_code_pepper,
-            shift_start_hour,
-            shift_end_hour,
             admin_bootstrap_email,
             admin_bootstrap_password,
             admin_bootstrap_phone,
@@ -442,8 +418,6 @@ mod tests {
             },
             email_credentials: EmailProviderCredentials::Mock,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
-            shift_start_hour: 8,
-            shift_end_hour: 18,
             admin_bootstrap_email: Some("admin@iviss.local".into()),
             admin_bootstrap_password: Some("ChangeMe!2025".into()),
             admin_bootstrap_phone: Some("+237600000000".into()),
