@@ -38,7 +38,6 @@ resource "aws_iam_role" "github_actions_deploy" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            # Lock down to specific repo — only main and dev branches can deploy
             "token.actions.githubusercontent.com:sub" = [
               "repo:skyengpro/iviss:ref:refs/heads/main",
               "repo:skyengpro/iviss:ref:refs/heads/dev",
@@ -104,6 +103,17 @@ resource "aws_iam_role_policy" "deploy_permissions" {
           "secretsmanager:DescribeSecret"
         ]
         Resource = "arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/*"
+      },
+      {
+        Sid    = "IAMRead"
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole",
+          "iam:GetRolePolicy",
+          "iam:ListAttachedRolePolicies",
+          "iam:ListRolePolicies"
+        ]
+        Resource = "arn:aws:iam::577638362880:role/iviss-*"
       },
       {
         Sid    = "SecretsManagerWrite"
