@@ -114,7 +114,7 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route(
             "/api/v1/org-admin/organization/shift-hours",
-            post(crate::handlers::organization_management::update_organization_shift_hours),
+            post(crate::handlers::organization_management::update_organization_work_time),
         )
         .route(
             "/api/v1/org-admin/stats",

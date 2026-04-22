@@ -5,8 +5,8 @@ use crate::dto::organizations::{
 use crate::errors::AppError;
 use crate::queries::organization_queries::{
     create_organization as create_org_query, delete_organization as delete_org_query,
-    get_organization_by_id as get_org_query, update_organization as update_org_query,
-    update_organization_shift_hours as update_org_shift_hours_query,
+    get_organization_by_id as get_org_query, update_org_work_time_query,
+    update_organization as update_org_query,
 };
 use axum::{
     extract::{Path, State},
@@ -17,8 +17,8 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use axum::Extension;
 use crate::middleware::rbac::AuthenticatedAdmin;
+use axum::Extension;
 
 /// Create a new organization (admin only)
 #[utoipa::path(
@@ -158,7 +158,7 @@ pub async fn delete_organization(
     operation_id = "updateOrganizationShiftHours",
     security(("bearer_auth" = []))
 )]
-pub async fn update_organization_shift_hours(
+pub async fn update_organization_work_time(
     State(state): State<Arc<AppState>>,
     Extension(requester): Extension<AuthenticatedAdmin>,
     Json(payload): Json<OrganizationShiftHoursDto>,
@@ -167,6 +167,11 @@ pub async fn update_organization_shift_hours(
         .organization_id
         .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
 
-    let updated = update_org_shift_hours_query(&state.db, org_id, payload).await?;
+    let updated = update_org_work_time_query(&state.db, org_id, payload).await?;
+    state
+        .app_cache
+        .org_shift_hours
+        .insert(org_id, (updated.shift_start_hour, updated.shift_end_hour))
+        .await;
     Ok((StatusCode::OK, Json(updated)))
 }
