@@ -181,7 +181,7 @@ export default function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-const handleLogout = async () => {
+  const handleLogout = async () => {
     await logout();
     navigate('/admin-login');
   };
@@ -281,8 +281,6 @@ const handleLogout = async () => {
                 )}
               </CardContent>
             </Card>
-
-
           </TabsContent>
 
           {/* ── Security tab ── */}
@@ -302,7 +300,7 @@ const handleLogout = async () => {
               </CardContent>
             </Card>
 
-<Card className="border-destructive/20">
+            <Card className="border-destructive/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-destructive">
                   <LogOut className="h-4 w-4" />
@@ -324,7 +322,7 @@ const handleLogout = async () => {
 
           {/* ── Preferences tab ── */}
           <TabsContent value="preferences" className="mt-4 space-y-4">
-<Card>
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Monitor className="h-4 w-4" />
