@@ -18,9 +18,9 @@ EXTERNAL_POSTGRES_HOST="iviss-db"
 EXTERNAL_POSTGRES_PORT="5432"
 
 # JWT Authentication
-JWT_PRIVATE_KEY_PEM="{{ jwt_private_key_pem | replace('$', '$$') }}"
-JWT_PUBLIC_KEY_PEM="{{ jwt_public_key_pem | replace('$', '$$') }}"
-ACTIVATION_CODE_PEPPER="{{ activation_code_pepper | replace('$', '$$') }}"
+JWT_PRIVATE_KEY_PEM="{{ jwt_private_key_pem }}"
+JWT_PUBLIC_KEY_PEM="{{ jwt_public_key_pem }}"
+ACTIVATION_CODE_PEPPER="{{ activation_code_pepper }}"
 
 # Backend Configuration
 ENVIRONMENT="{{ iviss_env }}"
@@ -29,10 +29,10 @@ SERVER_PORT="3000"
 RUST_LOG="{{ log_level }}"
 
 # Admin Bootstrap
-ADMIN_BOOTSTRAP_EMAIL="{{ admin_bootstrap_email }}"
-ADMIN_BOOTSTRAP_PASSWORD="{{ admin_bootstrap_password | replace('$', '$$') }}"
-ADMIN_BOOTSTRAP_PHONE="{{ admin_bootstrap_phone }}"
-ADMIN_BOOTSTRAP_USERNAME="{{ admin_bootstrap_username }}"
+ADMIN_BOOTSTRAP_EMAIL={{ admin_bootstrap_email }}
+ADMIN_BOOTSTRAP_PASSWORD={{ admin_bootstrap_password | default('') }}
+ADMIN_BOOTSTRAP_PHONE={{ admin_bootstrap_phone }}
+ADMIN_BOOTSTRAP_USERNAME={{ admin_bootstrap_username }}
 
 # SMS Provider Configuration
 SMS_PROVIDER="{{ sms_provider }}"
