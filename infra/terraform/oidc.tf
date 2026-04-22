@@ -48,7 +48,9 @@ resource "aws_iam_role" "github_actions_deploy" {
             # Lock down to specific repo — only main and dev branches can deploy
             "token.actions.githubusercontent.com:sub" = [
               "repo:skyengpro/iviss:ref:refs/heads/main",
-              "repo:skyengpro/iviss:ref:refs/heads/dev"
+              "repo:skyengpro/iviss:ref:refs/heads/dev",
+              "repo:skyengpro/iviss:ref:refs/heads/aws-dev-sync",
+              "repo:skyengpro/iviss:ref:refs/heads/aws-dev-test"
             ]
           }
         }
