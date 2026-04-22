@@ -50,12 +50,14 @@ DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE username IN ('m
 DELETE FROM users WHERE username IN ('manager1', 'manager2', 'agent1', 'agent2', 'orgadmin');
 
 -- 1. Insert Organization
-INSERT INTO organizations (id, name, type, region)
+INSERT INTO organizations (id, name, type, region, start_work_time, end_work_time)
 VALUES (
     'd290f1ee-6c54-4b01-90e6-d701748f0851',
     'National Police Service',
     'police',
-    'Capital Region'
+    'Capital Region',
+    360,
+    1080
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 2. Insert Users (updated for new schema with phone_number, status, and nullable email/password_hash)
