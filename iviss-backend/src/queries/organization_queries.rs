@@ -28,7 +28,7 @@ fn validate_work_time_range(start_work_time: u32, end_work_time: u32) -> Result<
 pub async fn list_organizations(pool: &PgPool) -> Result<Vec<Organization>, AppError> {
     let rows = sqlx::query(
         r#"
-        SELECT id, name, type, region, shift_start_hour, shift_end_hour
+        SELECT id, name, type, region, start_work_time, end_work_time
         FROM organizations
         WHERE deleted_at IS NULL
         ORDER BY name ASC
@@ -54,8 +54,8 @@ pub async fn list_organizations(pool: &PgPool) -> Result<Vec<Organization>, AppE
                 name: row.get("name"),
                 org_type,
                 region: row.get("region"),
-                start_work_time: row.get::<i32, _>("shift_start_hour") as u32,
-                end_work_time: row.get::<i32, _>("shift_end_hour") as u32,
+                start_work_time: row.get::<i32, _>("start_work_time") as u32,
+                end_work_time: row.get::<i32, _>("end_work_time") as u32,
             }
         })
         .collect();
@@ -107,9 +107,9 @@ pub async fn create_organization(
 
     let row = sqlx::query(
         r#"
-        INSERT INTO organizations (name, type, region, shift_start_hour, shift_end_hour)
+        INSERT INTO organizations (name, type, region, start_work_time, end_work_time)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, type, region, shift_start_hour, shift_end_hour
+        RETURNING id, name, type, region, start_work_time, end_work_time
         "#,
     )
     .bind(&req.name)
@@ -134,8 +134,8 @@ pub async fn create_organization(
         name: row.get("name"),
         org_type,
         region: row.get("region"),
-        start_work_time: row.get::<i32, _>("shift_start_hour") as u32,
-        end_work_time: row.get::<i32, _>("shift_end_hour") as u32,
+        start_work_time: row.get::<i32, _>("start_work_time") as u32,
+        end_work_time: row.get::<i32, _>("end_work_time") as u32,
     })
 }
 
@@ -145,7 +145,7 @@ pub async fn get_organization_work_time(
 ) -> Result<(u32, u32), AppError> {
     let row = sqlx::query(
         r#"
-        SELECT shift_start_hour, shift_end_hour
+        SELECT start_work_time, end_work_time
         FROM organizations
         WHERE id = $1
           AND deleted_at IS NULL
@@ -158,8 +158,8 @@ pub async fn get_organization_work_time(
     .ok_or_else(|| AppError::not_found("Organization not found"))?;
 
     Ok((
-        row.get::<i32, _>("shift_start_hour") as u32,
-        row.get::<i32, _>("shift_end_hour") as u32,
+        row.get::<i32, _>("start_work_time") as u32,
+        row.get::<i32, _>("end_work_time") as u32,
     ))
 }
 
@@ -190,7 +190,7 @@ pub async fn load_organizations_work_time_to_cache(
     tokio::spawn(async move {
         let rows = sqlx::query(
             r#"
-            SELECT id, shift_start_hour, shift_end_hour
+            SELECT id, start_work_time, end_work_time
             FROM organizations
             WHERE deleted_at IS NULL
             LIMIT 100
@@ -205,8 +205,8 @@ pub async fn load_organizations_work_time_to_cache(
 
                 for row in rows {
                     let org_id: Uuid = row.get("id");
-                    let start: u32 = row.get::<i32, _>("shift_start_hour") as u32;
-                    let end: u32 = row.get::<i32, _>("shift_end_hour") as u32;
+                    let start: u32 = row.get::<i32, _>("start_work_time") as u32;
+                    let end: u32 = row.get::<i32, _>("end_work_time") as u32;
                     cache_clone
                         .org_shift_hours
                         .insert(org_id, (start, end))
@@ -241,8 +241,8 @@ pub async fn get_organization_by_id(
             o.region,
             o.created_at,
             o.updated_at,
-            o.shift_start_hour,
-            o.shift_end_hour,
+            o.start_work_time,
+            o.end_work_time,
             COUNT(DISTINCT u.id) FILTER (WHERE u.deleted_at IS NULL) as user_count,
             COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'agent' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL) as active_agents,
             COUNT(DISTINCT c.id) as control_count
@@ -280,8 +280,8 @@ pub async fn get_organization_by_id(
         control_count: row.get("control_count"),
         created_at: created_at.to_string(),
         updated_at: updated_at.to_string(),
-        shift_start_hour: row.get::<i32, _>("shift_start_hour") as u32,
-        shift_end_hour: row.get::<i32, _>("shift_end_hour") as u32,
+        shift_start_hour: row.get::<i32, _>("start_work_time") as u32,
+        shift_end_hour: row.get::<i32, _>("end_work_time") as u32,
     })
 }
 
@@ -292,7 +292,7 @@ pub async fn update_organization(
 ) -> Result<Organization, AppError> {
     let current_row = sqlx::query(
         r#"
-        SELECT shift_start_hour, shift_end_hour
+        SELECT start_work_time, end_work_time
         FROM organizations
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -330,8 +330,8 @@ pub async fn update_organization(
         }
     }
 
-    let current_start_work_time = current_row.get::<i32, _>("shift_start_hour") as u32;
-    let current_end_work_time = current_row.get::<i32, _>("shift_end_hour") as u32;
+    let current_start_work_time = current_row.get::<i32, _>("start_work_time") as u32;
+    let current_end_work_time = current_row.get::<i32, _>("end_work_time") as u32;
     let next_start_work_time = req.start_work_time.unwrap_or(current_start_work_time);
     let next_end_work_time = req.end_work_time.unwrap_or(current_end_work_time);
 
@@ -359,14 +359,14 @@ pub async fn update_organization(
     }
 
     if req.start_work_time.is_some() || req.end_work_time.is_some() {
-        query.push_str(&format!(", shift_start_hour = ${param_count}"));
+        query.push_str(&format!(", start_work_time = ${param_count}"));
         param_count += 1;
-        query.push_str(&format!(", shift_end_hour = ${param_count}"));
+        query.push_str(&format!(", end_work_time = ${param_count}"));
         param_count += 1;
     }
 
     query.push_str(&format!(
-        " WHERE id = ${param_count} RETURNING id, name, type, region, shift_start_hour, shift_end_hour"
+        " WHERE id = ${param_count} RETURNING id, name, type, region, start_work_time, end_work_time"
     ));
 
     let mut query_builder = sqlx::query(&query);
@@ -414,8 +414,8 @@ pub async fn update_organization(
         name: row.get("name"),
         org_type,
         region: row.get("region"),
-        start_work_time: row.get::<i32, _>("shift_start_hour") as u32,
-        end_work_time: row.get::<i32, _>("shift_end_hour") as u32,
+        start_work_time: row.get::<i32, _>("start_work_time") as u32,
+        end_work_time: row.get::<i32, _>("end_work_time") as u32,
     })
 }
 
