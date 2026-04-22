@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - aws-dev-sync
+      - aws-dev-test
   pull_request:
     branches:
       - main
