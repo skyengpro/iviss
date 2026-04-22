@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: false,
       },
+      proxy: {
+        '/api': {
+          target: process.env.BACKEND_URL || 'http://iviss-backend:3000',
+          changeOrigin: true,
+        },
+      },
     },
     plugins: [
       react(),

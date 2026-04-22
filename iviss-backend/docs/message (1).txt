@@ -1,0 +1,708 @@
+use async_trait::async_trait;
+use backend_core::config::OrangeConfig;
+use backend_core::{Error, NotificationJob};
+use base64::Engine;
+use serde::Deserialize;
+use serde_json::json;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{Mutex, RwLock};
+use tokio::time::sleep;
+use tracing::{debug, info};
+
+#[cfg(test)]
+use wiremock::{
+    matchers::{method, path},
+    Mock, MockServer, ResponseTemplate,
+};
+
+const TRANSIENT_RETRY_MAX_ATTEMPTS: usize = 4;
+const TRANSIENT_RETRY_INITIAL_BACKOFF_MILLIS: u64 = 200;
+
+/// SMS provider trait for sending OTP messages
+#[async_trait]
+pub trait SmsProvider: Send + Sync {
+    /// Send an OTP code to the specified phone number
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error>;
+}
+
+// Implement SmsProvider for Arc<T> where T implements SmsProvider
+#[async_trait]
+impl<T: SmsProvider + ?Sized> SmsProvider for Arc<T> {
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        (**self).send_otp(msisdn, otp).await
+    }
+}
+
+/// Console SMS provider for development - logs to console instead of sending
+pub struct ConsoleSmsProvider;
+
+#[async_trait]
+impl SmsProvider for ConsoleSmsProvider {
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        info!("CONSOLE SMS: Sending OTP {} to {}", otp, msisdn);
+        Ok(())
+    }
+}
+
+/// AWS SNS SMS provider for production
+pub struct SnsSmsProvider {
+    client: aws_sdk_sns::Client,
+}
+
+impl SnsSmsProvider {
+    pub fn new(client: aws_sdk_sns::Client) -> Self {
+        Self { client }
+    }
+
+    pub async fn from_config(config: &aws_config::SdkConfig) -> Self {
+        let client = aws_sdk_sns::Client::new(config);
+        Self::new(client)
+    }
+}
+
+#[async_trait]
+impl SmsProvider for SnsSmsProvider {
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        let message = format!("Your verification code is: {}", otp);
+
+        self.client
+            .publish()
+            .phone_number(msisdn)
+            .message(message)
+            .send()
+            .await
+            .map_err(|e| {
+                Error::internal(
+                    "SMS_SEND_FAILED",
+                    format!("Failed to send SMS via SNS: {}", e),
+                )
+            })?;
+
+        Ok(())
+    }
+}
+
+/// Third-party API SMS provider
+pub struct ApiSmsProvider {
+    client: reqwest::Client,
+    base_url: String,
+    auth_token: Option<String>,
+}
+
+impl ApiSmsProvider {
+    pub fn new(client: reqwest::Client, base_url: String, auth_token: Option<String>) -> Self {
+        Self {
+            client,
+            base_url,
+            auth_token,
+        }
+    }
+}
+
+/// Avlytext SMS provider
+pub struct AvlytextSmsProvider {
+    client: reqwest::Client,
+    base_url: String,
+    api_key: String,
+    sender_id: String,
+}
+
+impl AvlytextSmsProvider {
+    pub fn new(
+        client: reqwest::Client,
+        base_url: String,
+        api_key: String,
+        sender_id: String,
+    ) -> Self {
+        Self {
+            client,
+            base_url,
+            api_key,
+            sender_id,
+        }
+    }
+}
+
+#[async_trait]
+impl SmsProvider for AvlytextSmsProvider {
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        let url = format!(
+            "{}/v1/sms?api_key={}",
+            self.base_url.trim_end_matches('/'),
+            self.api_key
+        );
+        let message = format!("Your verification code is: {}", otp);
+
+        let response = self
+            .client
+            .post(&url)
+            .json(&json!({
+                "sender": self.sender_id,
+                "recipient": msisdn,
+                "text": message,
+            }))
+            .send()
+            .await
+            .map_err(|e| {
+                Error::internal(
+                    "SMS_SEND_TRANSIENT",
+                    format!("Failed to contact Avlytext API: {:?}", e),
+                )
+            })?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else if status.is_server_error() {
+            let error_text = response.text().await.unwrap_or_default();
+            Err(Error::internal(
+                "SMS_SEND_TRANSIENT",
+                format!("Avlytext API server error ({}): {}", status, error_text),
+            ))
+        } else {
+            let error_text = response.text().await.unwrap_or_default();
+            Err(Error::internal(
+                "SMS_SEND_PERMANENT",
+                format!("Avlytext API client error ({}): {}", status, error_text),
+            ))
+        }
+    }
+}
+
+#[async_trait]
+impl SmsProvider for ApiSmsProvider {
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        let url = format!("{}/otp", self.base_url.trim_end_matches('/'));
+        let mut request = self.client.post(&url).json(&json!({
+            "phone": msisdn,
+            "msisdn": msisdn,
+            "otp": otp
+        }));
+
+        if let Some(token) = &self.auth_token {
+            request = request.bearer_auth(token);
+        }
+
+        let response = request.send().await.map_err(|e| {
+            Error::internal(
+                "SMS_SEND_TRANSIENT",
+                format!("Failed to contact SMS API: {}", e),
+            )
+        })?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else if status.is_server_error() {
+            let error_text = response.text().await.unwrap_or_default();
+            Err(Error::internal(
+                "SMS_SEND_TRANSIENT",
+                format!("SMS API server error ({}): {}", status, error_text),
+            ))
+        } else {
+            let error_text = response.text().await.unwrap_or_default();
+            Err(Error::internal(
+                "SMS_SEND_PERMANENT",
+                format!("SMS API client error ({}): {}", status, error_text),
+            ))
+        }
+    }
+}
+
+/// Orange SMS provider
+pub struct OrangeSmsProvider {
+    client: reqwest::Client,
+    config: OrangeConfig,
+    token_cache: RwLock<Option<OrangeToken>>,
+    rate_limiter: Mutex<Instant>,
+}
+
+struct OrangeToken {
+    access_token: String,
+    expires_at: Instant,
+}
+
+#[derive(Deserialize)]
+struct OrangeTokenResponse {
+    access_token: String,
+    expires_in: u64,
+}
+
+impl OrangeSmsProvider {
+    pub fn new(client: reqwest::Client, config: OrangeConfig) -> Self {
+        Self {
+            client,
+            config,
+            token_cache: RwLock::new(None),
+            rate_limiter: Mutex::new(Instant::now()),
+        }
+    }
+
+    async fn get_valid_token(&self) -> Result<String, Error> {
+        // 1. Check cache
+        {
+            let cache = self.token_cache.read().await;
+            if let Some(token) = cache.as_ref() {
+                // Refresh 5 minutes before expiry
+                if token.expires_at > Instant::now() + Duration::from_secs(300) {
+                    return Ok(token.access_token.clone());
+                }
+            }
+        }
+
+        // 2. Fetch new token
+        let mut cache = self.token_cache.write().await;
+        // Re-check after acquiring write lock
+        if let Some(token) = cache.as_ref() {
+            if token.expires_at > Instant::now() + Duration::from_secs(300) {
+                return Ok(token.access_token.clone());
+            }
+        }
+
+        debug!("Fetching new Orange OAuth token");
+        let auth_header = format!(
+            "Basic {}",
+            base64::engine::general_purpose::STANDARD
+                .encode(format!("{}:{}", self.config.client_id, self.config.client_secret))
+        );
+
+        let response = self
+            .client
+            .post(&self.config.token_url)
+            .header("Authorization", auth_header)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Accept", "application/json")
+            .body("grant_type=client_credentials")
+            .send()
+            .await
+            .map_err(|e| {
+                Error::internal(
+                    "SMS_AUTH_FAILED",
+                    format!("Failed to fetch Orange token: {}", e),
+                )
+            })?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::internal(
+                "SMS_AUTH_FAILED",
+                format!("Orange token API returned {}: {}", status, body),
+            ));
+        }
+
+        let token_res: OrangeTokenResponse = response.json().await.map_err(|e| {
+            Error::internal(
+                "SMS_AUTH_FAILED",
+                format!("Failed to parse Orange token response: {}", e),
+            )
+        })?;
+
+        let access_token = token_res.access_token;
+        let expires_at = Instant::now() + Duration::from_secs(token_res.expires_in);
+
+        *cache = Some(OrangeToken {
+            access_token: access_token.clone(),
+            expires_at,
+        });
+
+        Ok(access_token)
+    }
+
+    fn normalize_msisdn(&self, msisdn: &str) -> String {
+        let digits: String = msisdn.chars().filter(|c| c.is_ascii_digit()).collect();
+        if digits.starts_with("237") && digits.len() == 12 {
+            format!("tel:+{}", digits)
+        } else if digits.len() == 9 {
+            format!("tel:+237{}", digits)
+        } else {
+            format!("tel:+{}", digits)
+        }
+    }
+
+    async fn send_once(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        let token = self.get_valid_token().await?;
+        let normalized_to = self.normalize_msisdn(msisdn);
+        let normalized_from = self.normalize_msisdn(&self.config.default_sender);
+
+        // Throttle to 5 SMS per second (200ms per request)
+        {
+            let mut last_send = self.rate_limiter.lock().await;
+            let now = Instant::now();
+            let elapsed = now.duration_since(*last_send);
+            let wait_time = Duration::from_millis(200);
+            if elapsed < wait_time {
+                sleep(wait_time - elapsed).await;
+            }
+            *last_send = Instant::now();
+        }
+
+        let url = format!(
+            "{}/outbound/{}/requests",
+            self.config.sms_base_url.trim_end_matches('/'),
+            urlencoding::encode(&normalized_from)
+        );
+
+        let payload = json!({
+            "outboundSMSMessageRequest": {
+                "address": normalized_to,
+                "senderAddress": normalized_from,
+                "outboundSMSTextMessage": {
+                    "message": format!("Your verification code is: {}", otp)
+                }
+            }
+        });
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| {
+                Error::internal(
+                    "SMS_SEND_TRANSIENT",
+                    format!("Failed to contact Orange API: {}", e),
+                )
+            })?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else if status == reqwest::StatusCode::UNAUTHORIZED {
+            // Token might be expired, clear cache
+            let mut cache = self.token_cache.write().await;
+            *cache = None;
+            Err(Error::internal(
+                "SMS_SEND_TRANSIENT",
+                "Orange API returned 401 Unauthorized, token cleared",
+            ))
+        } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            Err(Error::internal(
+                "SMS_SEND_TRANSIENT",
+                "Orange API rate limit exceeded (429)",
+            ))
+        } else if status.is_server_error() {
+            let body = response.text().await.unwrap_or_default();
+            Err(Error::internal(
+                "SMS_SEND_TRANSIENT",
+                format!("Orange API server error ({}): {}", status, body),
+            ))
+        } else {
+            let body = response.text().await.unwrap_or_default();
+            // Handle "Insufficient bundle" or other client errors as permanent
+            if body.contains("EXPIRED_QUOTA") || body.contains("OUT_OF_BALANCE") {
+                 Err(Error::internal(
+                    "SMS_SEND_PERMANENT",
+                    format!("Orange API reported insufficient balance: {}", body),
+                ))
+            } else {
+                Err(Error::internal(
+                    "SMS_SEND_PERMANENT",
+                    format!("Orange API client error ({}): {}", status, body),
+                ))
+            }
+        }
+    }
+}
+
+#[async_trait]
+impl SmsProvider for OrangeSmsProvider {
+    async fn send_otp(&self, msisdn: &str, otp: &str) -> Result<(), Error> {
+        match self.send_once(msisdn, otp).await {
+            Ok(()) => Ok(()),
+            Err(e) if is_transient_error(&e) => {
+                // If it was a 401, send_once already cleared the token, so retry will fetch a new one
+                self.send_once(msisdn, otp).await
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
+/// Process a notification job using the given SMS provider
+pub async fn process_notification_job(
+    provider: Arc<dyn SmsProvider>,
+    job: NotificationJob,
+) -> Result<(), Error> {
+    match job {
+        NotificationJob::Otp {
+            step_id,
+            msisdn,
+            otp,
+        } => {
+            info!("Processing OTP job for step: {}", step_id);
+            send_otp_with_retry(provider, &msisdn, &otp).await
+        }
+        NotificationJob::MagicEmail { .. } => {
+            // Email notifications are not handled by SMS gateway
+            info!("Skipping non-SMS notification job");
+            Ok(())
+        }
+    }
+}
+
+async fn send_otp_with_retry(
+    provider: Arc<dyn SmsProvider>,
+    msisdn: &str,
+    otp: &str,
+) -> Result<(), Error> {
+    let mut attempt = 0usize;
+    loop {
+        match provider.send_otp(msisdn, otp).await {
+            Ok(()) => return Ok(()),
+            Err(error) if is_permanent_error(&error) => return Err(error),
+            Err(error) if is_transient_error(&error) => {
+                attempt += 1;
+                if attempt >= TRANSIENT_RETRY_MAX_ATTEMPTS {
+                    return Err(error);
+                }
+
+                let backoff_millis =
+                    TRANSIENT_RETRY_INITIAL_BACKOFF_MILLIS.saturating_mul(1_u64 << (attempt - 1));
+                sleep(Duration::from_millis(backoff_millis)).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+fn is_transient_error(error: &Error) -> bool {
+    matches!(
+        error,
+        Error::Http { error_key, .. } if *error_key == "SMS_SEND_TRANSIENT"
+    )
+}
+
+pub(crate) fn is_permanent_error(error: &Error) -> bool {
+    matches!(
+        error,
+        Error::Http { error_key, .. } if *error_key == "SMS_SEND_PERMANENT"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[tokio::test]
+    async fn console_sms_provider_logs_to_console() {
+        let provider = ConsoleSmsProvider;
+        let result = provider.send_otp("1234567890", "123456").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn api_sms_provider_sends_sms() {
+        let server = MockServer::start().await;
+        let client = reqwest::Client::new();
+        let provider = ApiSmsProvider::new(client, server.uri(), Some("test_token".to_string()));
+
+        Mock::given(method("POST"))
+            .and(path("/otp"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+
+        let result = provider.send_otp("1234567890", "123456").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn api_sms_provider_handles_transient_error() {
+        let server = MockServer::start().await;
+        let client = reqwest::Client::new();
+        let provider = ApiSmsProvider::new(client, server.uri(), Some("test_token".to_string()));
+
+        Mock::given(method("POST"))
+            .and(path("/otp"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&server)
+            .await;
+
+        let result = provider.send_otp("1234567890", "123456").await;
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(error, Error::Http { .. }));
+        if let Error::Http { error_key, .. } = error {
+            assert_eq!(error_key, "SMS_SEND_TRANSIENT");
+        }
+    }
+
+    #[tokio::test]
+    async fn api_sms_provider_handles_permanent_error() {
+        let server = MockServer::start().await;
+        let client = reqwest::Client::new();
+        let provider = ApiSmsProvider::new(client, server.uri(), Some("test_token".to_string()));
+
+        Mock::given(method("POST"))
+            .and(path("/otp"))
+            .respond_with(ResponseTemplate::new(400))
+            .mount(&server)
+            .await;
+
+        let result = provider.send_otp("1234567890", "123456").await;
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(matches!(error, Error::Http { .. }));
+        if let Error::Http { error_key, .. } = error {
+            assert_eq!(error_key, "SMS_SEND_PERMANENT");
+        }
+    }
+
+    #[tokio::test]
+    async fn process_notification_job_sends_otp() {
+        let provider = std::sync::Arc::new(ConsoleSmsProvider);
+        let job = NotificationJob::Otp {
+            step_id: "test_step".to_string(),
+            msisdn: "1234567890".to_string(),
+            otp: "123456".to_string(),
+        };
+        let result = process_notification_job(provider, job).await;
+        assert!(result.is_ok());
+    }
+
+    struct FlakyTransientProvider {
+        failures_before_success: usize,
+        calls: Arc<AtomicUsize>,
+    }
+
+    #[async_trait]
+    impl SmsProvider for FlakyTransientProvider {
+        async fn send_otp(&self, _msisdn: &str, _otp: &str) -> Result<(), Error> {
+            let call = self.calls.fetch_add(1, Ordering::SeqCst);
+            if call < self.failures_before_success {
+                return Err(Error::internal("SMS_SEND_TRANSIENT", "temporary outage"));
+            }
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn process_notification_job_retries_transient_errors() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let provider = Arc::new(FlakyTransientProvider {
+            failures_before_success: 1,
+            calls: calls.clone(),
+        });
+        let job = NotificationJob::Otp {
+            step_id: "test_step".to_string(),
+            msisdn: "1234567890".to_string(),
+            otp: "123456".to_string(),
+        };
+
+        let result = process_notification_job(provider, job).await;
+        assert!(result.is_ok());
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+    }
+
+    struct PermanentFailureProvider {
+        calls: Arc<AtomicUsize>,
+    }
+
+    #[async_trait]
+    impl SmsProvider for PermanentFailureProvider {
+        async fn send_otp(&self, _msisdn: &str, _otp: &str) -> Result<(), Error> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            Err(Error::internal("SMS_SEND_PERMANENT", "invalid request"))
+        }
+    }
+
+    #[tokio::test]
+    async fn process_notification_job_does_not_retry_permanent_errors() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let provider = Arc::new(PermanentFailureProvider {
+            calls: calls.clone(),
+        });
+        let job = NotificationJob::Otp {
+            step_id: "test_step".to_string(),
+            msisdn: "1234567890".to_string(),
+            otp: "123456".to_string(),
+        };
+
+        let result = process_notification_job(provider, job).await;
+        assert!(result.is_err());
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn process_notification_job_skips_email() {
+        let provider = std::sync::Arc::new(ConsoleSmsProvider);
+        let job = NotificationJob::MagicEmail {
+            step_id: "test_step".to_string(),
+            email: "test@example.com".to_string(),
+            token: "token123".to_string(),
+        };
+        let result = process_notification_job(provider, job).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn avlytext_sms_provider_sends_sms() {
+        let server = MockServer::start().await;
+        let client = reqwest::Client::new();
+        let provider = AvlytextSmsProvider::new(
+            client,
+            server.uri(),
+            "test_api_key".to_string(),
+            "AvlyText".to_string(),
+        );
+
+        Mock::given(method("POST"))
+            .and(path("/v1/sms"))
+            .and(wiremock::matchers::query_param("api_key", "test_api_key"))
+            .and(wiremock::matchers::body_json(json!({
+                "sender": "AvlyText",
+                "recipient": "1234567890",
+                "text": "Your verification code is: 123456",
+            })))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+
+        let result = provider.send_otp("1234567890", "123456").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn orange_sms_provider_sends_sms() {
+        let server = MockServer::start().await;
+        let client = reqwest::Client::new();
+        let config = OrangeConfig {
+            client_id: "test_id".to_string(),
+            client_secret: "test_secret".to_string(),
+            token_url: format!("{}/token", server.uri()),
+            sms_base_url: server.uri(),
+            contract_url: "".to_string(),
+            default_sender: "+237000000000".to_string(),
+        };
+        let provider = OrangeSmsProvider::new(client, config);
+
+        // 1. Mock Token API
+        Mock::given(method("POST"))
+            .and(path("/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "access_token": "test_token",
+                "expires_in": 3600
+            })))
+            .mount(&server)
+            .await;
+
+        // 2. Mock SMS API
+        let sender_path = urlencoding::encode("tel:+237000000000");
+        Mock::given(method("POST"))
+            .and(path(format!("/outbound/{}/requests", sender_path)))
+            .and(wiremock::matchers::header("Authorization", "Bearer test_token"))
+            .respond_with(ResponseTemplate::new(201))
+            .mount(&server)
+            .await;
+
+        let result = provider.send_otp("+237654066316", "123456").await;
+        assert!(result.is_ok());
+    }
+}

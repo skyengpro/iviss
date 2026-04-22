@@ -20,7 +20,6 @@ export function useUsers() {
     mutateAsync: provisionMutate,
     isPending: isProvisioning,
     error: provisionError,
-<<<<<<< HEAD
   } = useProvisionUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
@@ -44,7 +43,6 @@ export function useUsers() {
     mutateAsync: updateMutate,
     isPending: isUpdating,
     error: updateError,
-<<<<<<< HEAD
   } = useUpdateUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });
@@ -58,7 +56,6 @@ export function useUsers() {
     mutateAsync: deleteMutate,
     isPending: isDeleting,
     error: deleteError,
-<<<<<<< HEAD
   } = useDeleteUser(undefined, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ListUsers'] });

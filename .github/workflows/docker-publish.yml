@@ -3,7 +3,7 @@ name: Docker
 on:
   push:
     # Build images for main releases, dev, and the dedicated AWS deployment branch
-    branches: ["main", "dev"]
+    branches: ["main", "dev", "aws-dev-test"]
     tags: ["v*.*.*"]
   pull_request:
     branches: ["main", "dev"]
