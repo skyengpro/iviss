@@ -480,6 +480,42 @@ pub async fn request_daily_login(
         ));
     }
 
+    // Enforce shift hours per organization (Cameroon local time UTC+1)
+    // Agents must belong to an organization
+    let user_org_id: Option<Uuid> = sqlx::query_scalar(
+        r#"
+        SELECT organization_id
+        FROM users
+        WHERE id = $1
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(user.id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::database)?
+    .flatten();
+
+    let org_id = user_org_id.ok_or_else(|| {
+        AppError::forbidden("Agent must belong to an organization to request daily login")
+    })?;
+
+    let shift = crate::queries::organization_queries::get_organization_shift_hours(&state.db, org_id)
+        .await?;
+
+    let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+    let current_hour = time::OffsetDateTime::now_utc()
+        .to_offset(local_offset)
+        .hour() as u32;
+
+    // Shift window: shift_start_hour (inclusive) to shift_end_hour (exclusive)
+    if current_hour < shift.shift_start_hour || current_hour >= shift.shift_end_hour {
+        return Err(AppError::unauthorized(format!(
+            "Outside shift hours — login is available from {:02}:00 to {:02}:00 local time",
+            shift.shift_start_hour, shift.shift_end_hour
+        )));
+    }
+
     let device_opt =
         auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
@@ -614,11 +650,36 @@ pub async fn verify_daily_login(
         .to_offset(localt_time_offset)
         .date();
 
-    let shift_start_time = time::Time::from_hms(state.shift_start_hour as u8, 0, 0)
-        .map_err(|_| AppError::internal_error("Invalid shift_start_hour in config"))?;
+    // Determine shift hours from the user's organization configuration
+    let user_org_id: Option<Uuid> = sqlx::query_scalar(
+        r#"
+        SELECT organization_id
+        FROM users
+        WHERE id = $1
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::database)?
+    .flatten();
 
-    let shift_end_time = time::Time::from_hms(state.shift_end_hour as u8, 0, 0)
-        .map_err(|_| AppError::internal_error("Invalid shift_end_hour in config"))?;
+    let org_id = user_org_id.ok_or_else(|| {
+        AppError::forbidden("Agent must belong to an organization to login")
+    })?;
+
+    let shift_hours = crate::queries::organization_queries::get_organization_shift_hours(
+        &state.db,
+        org_id,
+    )
+    .await?;
+
+    let shift_start_time = time::Time::from_hms(shift_hours.shift_start_hour as u8, 0, 0)
+        .map_err(|_| AppError::internal_error("Invalid shift_start_hour in organization"))?;
+
+    let shift_end_time = time::Time::from_hms(shift_hours.shift_end_hour as u8, 0, 0)
+        .map_err(|_| AppError::internal_error("Invalid shift_end_hour in organization"))?;
 
     let shift_start: i64 =
         time::OffsetDateTime::new_in_offset(today_local, shift_start_time, localt_time_offset)

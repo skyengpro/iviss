@@ -1,9 +1,12 @@
 use crate::app_state::AppState;
-use crate::dto::organizations::{CreateOrganizationRequest, UpdateOrganizationRequest};
+use crate::dto::organizations::{
+    CreateOrganizationRequest, OrganizationShiftHoursDto, UpdateOrganizationRequest,
+};
 use crate::errors::AppError;
 use crate::queries::organization_queries::{
     create_organization as create_org_query, delete_organization as delete_org_query,
     get_organization_by_id as get_org_query, update_organization as update_org_query,
+    update_organization_shift_hours as update_org_shift_hours_query,
 };
 use axum::{
     extract::{Path, State},
@@ -13,6 +16,9 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+
+use axum::Extension;
+use crate::middleware::rbac::AuthenticatedAdmin;
 
 /// Create a new organization (admin only)
 #[utoipa::path(
@@ -134,4 +140,33 @@ pub async fn delete_organization(
     );
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Update shift hours for the org admin's organization
+#[utoipa::path(
+    post,
+    path = "/api/v1/org-admin/organization/shift-hours",
+    request_body = OrganizationShiftHoursDto,
+    responses(
+        (status = 200, description = "Shift hours updated successfully", body = OrganizationShiftHoursDto),
+        (status = 400, description = "Bad request - validation error", body = AppErrorResponse),
+        (status = 401, description = "Unauthorized", body = AppErrorResponse),
+        (status = 403, description = "Forbidden - org_admin only", body = AppErrorResponse),
+        (status = 404, description = "Organization not found", body = AppErrorResponse)
+    ),
+    tag = "org-admin",
+    operation_id = "updateOrganizationShiftHours",
+    security(("bearer_auth" = []))
+)]
+pub async fn update_organization_shift_hours(
+    State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
+    Json(payload): Json<OrganizationShiftHoursDto>,
+) -> Result<impl IntoResponse, AppError> {
+    let org_id = requester
+        .organization_id
+        .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
+
+    let updated = update_org_shift_hours_query(&state.db, org_id, payload).await?;
+    Ok((StatusCode::OK, Json(updated)))
 }

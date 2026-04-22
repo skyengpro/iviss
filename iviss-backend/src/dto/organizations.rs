@@ -49,3 +49,10 @@ pub struct OrganizationDetails {
     pub created_at: String,
     pub updated_at: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationShiftHoursDto {
+    pub shift_start_hour: u32,
+    pub shift_end_hour: u32,
+}

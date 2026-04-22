@@ -12,7 +12,7 @@ use crate::dto::{
     location::{UpdateLocationRequest, UpdateLocationResponse},
     organizations::{
         CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType,
-        UpdateOrganizationRequest,
+        OrganizationShiftHoursDto, UpdateOrganizationRequest,
     },
     pending_submission::*,
     scan::*,
@@ -70,6 +70,7 @@ impl Modify for SecurityAddon {
         (name = "users", description = "User profile management"),
         (name = "auth", description = "Authentication and registration"),
         (name = "admin", description = "Admin operations"),
+        (name = "org-admin", description = "Organization admin operations"),
     ),
     paths(
         crate::handlers::health::health_check,
@@ -115,6 +116,7 @@ impl Modify for SecurityAddon {
         crate::handlers::organization_management::get_organization,
         crate::handlers::organization_management::update_organization,
         crate::handlers::organization_management::delete_organization,
+        crate::handlers::organization_management::update_organization_shift_hours,
         crate::handlers::user_management::terminate_session,
         crate::handlers::user_management::restart_session,
         crate::handlers::audit::list_audit_logs,
@@ -214,6 +216,7 @@ impl Modify for SecurityAddon {
             CreateOrganizationRequest,
             UpdateOrganizationRequest,
             OrganizationDetails,
+            OrganizationShiftHoursDto,
             DeviceStatus,
             AuditLogEntry,
             AuditAction,

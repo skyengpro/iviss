@@ -28,10 +28,7 @@ pub fn assembly(state: AppState) -> Router {
         )
         .route(
             "/api/v1/auth/request-daily-login",
-            post(crate::handlers::auth::request_daily_login).layer(from_fn_with_state(
-                state.clone(),
-                crate::middleware::agent_work_scope::require_shift_hours,
-            )),
+            post(crate::handlers::auth::request_daily_login),
         )
         .route(
             "/api/v1/auth/verify-daily-login",
@@ -114,6 +111,10 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/org-admin/users",
             get(crate::handlers::user_management::list_org_users)
                 .post(crate::handlers::user_management::provision_org_user),
+        )
+        .route(
+            "/api/v1/org-admin/organization/shift-hours",
+            post(crate::handlers::organization_management::update_organization_shift_hours),
         )
         .route(
             "/api/v1/org-admin/stats",
