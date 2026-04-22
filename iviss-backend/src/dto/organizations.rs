@@ -48,6 +48,8 @@ pub struct OrganizationDetails {
     pub control_count: i64,
     pub created_at: String,
     pub updated_at: String,
+    pub shift_start_hour: u32,
+    pub shift_end_hour: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
