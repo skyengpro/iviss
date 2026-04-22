@@ -1,15 +1,34 @@
 use crate::dto::organizations::{
-    CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationShiftHoursDto,
-    OrganizationType, UpdateOrganizationRequest,
+    CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType,
+    UpdateOrganizationRequest,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
+const DEFAULT_START_WORK_TIME_MINUTES: u32 = 6 * 60;
+const DEFAULT_END_WORK_TIME_MINUTES: u32 = 18 * 60;
+
+fn validate_work_time_range(start_work_time: u32, end_work_time: u32) -> Result<(), AppError> {
+    if start_work_time > 1439 || end_work_time > 1439 {
+        return Err(AppError::bad_request(
+            "startWorkTime and endWorkTime must be between 0 and 1439",
+        ));
+    }
+
+    if start_work_time >= end_work_time {
+        return Err(AppError::bad_request(
+            "startWorkTime must be less than endWorkTime",
+        ));
+    }
+
+    Ok(())
+}
+
 pub async fn list_organizations(pool: &PgPool) -> Result<Vec<Organization>, AppError> {
     let rows = sqlx::query(
         r#"
-        SELECT id, name, type, region
+        SELECT id, name, type, region, shift_start_hour, shift_end_hour
         FROM organizations
         WHERE deleted_at IS NULL
         ORDER BY name ASC
@@ -35,6 +54,8 @@ pub async fn list_organizations(pool: &PgPool) -> Result<Vec<Organization>, AppE
                 name: row.get("name"),
                 org_type,
                 region: row.get("region"),
+                start_work_time: row.get::<i32, _>("shift_start_hour") as u32,
+                end_work_time: row.get::<i32, _>("shift_end_hour") as u32,
             }
         })
         .collect();
@@ -70,6 +91,12 @@ pub async fn create_organization(
         return Err(AppError::bad_request("Organization name already exists"));
     }
 
+    let start_work_time = req
+        .start_work_time
+        .unwrap_or(DEFAULT_START_WORK_TIME_MINUTES);
+    let end_work_time = req.end_work_time.unwrap_or(DEFAULT_END_WORK_TIME_MINUTES);
+    validate_work_time_range(start_work_time, end_work_time)?;
+
     // Convert enum to string for database
     let type_str = match req.org_type {
         OrganizationType::Police => "police",
@@ -82,14 +109,14 @@ pub async fn create_organization(
         r#"
         INSERT INTO organizations (name, type, region, shift_start_hour, shift_end_hour)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, type, region
+        RETURNING id, name, type, region, shift_start_hour, shift_end_hour
         "#,
     )
     .bind(&req.name)
     .bind(type_str)
     .bind(&req.region)
-    .bind(390i32)
-    .bind(1110i32)
+    .bind(start_work_time as i32)
+    .bind(end_work_time as i32)
     .fetch_one(pool)
     .await
     .map_err(AppError::database)?;
@@ -107,13 +134,15 @@ pub async fn create_organization(
         name: row.get("name"),
         org_type,
         region: row.get("region"),
+        start_work_time: row.get::<i32, _>("shift_start_hour") as u32,
+        end_work_time: row.get::<i32, _>("shift_end_hour") as u32,
     })
 }
 
-pub async fn get_organization_shift_hours(
+pub async fn get_organization_work_time(
     pool: &PgPool,
     organization_id: Uuid,
-) -> Result<OrganizationShiftHoursDto, AppError> {
+) -> Result<(u32, u32), AppError> {
     let row = sqlx::query(
         r#"
         SELECT shift_start_hour, shift_end_hour
@@ -128,30 +157,27 @@ pub async fn get_organization_shift_hours(
     .map_err(AppError::database)?
     .ok_or_else(|| AppError::not_found("Organization not found"))?;
 
-    Ok(OrganizationShiftHoursDto {
-        shift_start_hour: row.get::<i32, _>("shift_start_hour") as u32,
-        shift_end_hour: row.get::<i32, _>("shift_end_hour") as u32,
-    })
+    Ok((
+        row.get::<i32, _>("shift_start_hour") as u32,
+        row.get::<i32, _>("shift_end_hour") as u32,
+    ))
 }
 
 pub async fn get_organization_work_time_cached(
     pool: &PgPool,
     cache: &crate::app_cache::AppCache,
     organization_id: Uuid,
-) -> Result<OrganizationShiftHoursDto, AppError> {
+) -> Result<(u32, u32), AppError> {
     if let Some((start, end)) = cache.org_shift_hours.get(&organization_id).await {
-        return Ok(OrganizationShiftHoursDto {
-            shift_start_hour: start,
-            shift_end_hour: end,
-        });
+        return Ok((start, end));
     }
 
-    let dto = get_organization_shift_hours(pool, organization_id).await?;
+    let (start, end) = get_organization_work_time(pool, organization_id).await?;
     cache
         .org_shift_hours
-        .insert(organization_id, (dto.shift_start_hour, dto.shift_end_hour))
+        .insert(organization_id, (start, end))
         .await;
-    Ok(dto)
+    Ok((start, end))
 }
 
 pub async fn load_organizations_work_time_to_cache(
@@ -200,47 +226,6 @@ pub async fn load_organizations_work_time_to_cache(
 
     tracing::info!("Organization work time loading started in background (max 100)");
     Ok(())
-}
-
-pub async fn update_org_work_time_query(
-    pool: &PgPool,
-    organization_id: Uuid,
-    req: OrganizationShiftHoursDto,
-) -> Result<OrganizationShiftHoursDto, AppError> {
-    if req.shift_start_hour > 1439 || req.shift_end_hour > 1439 {
-        return Err(AppError::bad_request(
-            "shiftStartHour and shiftEndHour must be between 0 and 1439",
-        ));
-    }
-    if req.shift_start_hour >= req.shift_end_hour {
-        return Err(AppError::bad_request(
-            "shiftStartHour must be less than shiftEndHour",
-        ));
-    }
-
-    let row = sqlx::query(
-        r#"
-        UPDATE organizations
-        SET shift_start_hour = $1,
-            shift_end_hour   = $2,
-            updated_at       = NOW()
-        WHERE id = $3
-          AND deleted_at IS NULL
-        RETURNING shift_start_hour, shift_end_hour
-        "#,
-    )
-    .bind(req.shift_start_hour as i32)
-    .bind(req.shift_end_hour as i32)
-    .bind(organization_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(AppError::database)?
-    .ok_or_else(|| AppError::not_found("Organization not found"))?;
-
-    Ok(OrganizationShiftHoursDto {
-        shift_start_hour: row.get::<i32, _>("shift_start_hour") as u32,
-        shift_end_hour: row.get::<i32, _>("shift_end_hour") as u32,
-    })
 }
 
 pub async fn get_organization_by_id(
@@ -305,23 +290,18 @@ pub async fn update_organization(
     id: Uuid,
     req: UpdateOrganizationRequest,
 ) -> Result<Organization, AppError> {
-    // Check if organization exists
-    let exists: bool = sqlx::query_scalar(
+    let current_row = sqlx::query(
         r#"
-        SELECT EXISTS(
-            SELECT 1 FROM organizations 
-            WHERE id = $1 AND deleted_at IS NULL
-        )
+        SELECT shift_start_hour, shift_end_hour
+        FROM organizations
+        WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(id)
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await
-    .map_err(AppError::database)?;
-
-    if !exists {
-        return Err(AppError::not_found("Organization not found"));
-    }
+    .map_err(AppError::database)?
+    .ok_or_else(|| AppError::not_found("Organization not found"))?;
 
     // Check if new name conflicts with existing organization
     if let Some(ref name) = req.name {
@@ -350,6 +330,15 @@ pub async fn update_organization(
         }
     }
 
+    let current_start_work_time = current_row.get::<i32, _>("shift_start_hour") as u32;
+    let current_end_work_time = current_row.get::<i32, _>("shift_end_hour") as u32;
+    let next_start_work_time = req.start_work_time.unwrap_or(current_start_work_time);
+    let next_end_work_time = req.end_work_time.unwrap_or(current_end_work_time);
+
+    if req.start_work_time.is_some() || req.end_work_time.is_some() {
+        validate_work_time_range(next_start_work_time, next_end_work_time)?;
+    }
+
     // Build dynamic update query
     let mut query = String::from("UPDATE organizations SET updated_at = NOW()");
     let mut param_count = 1;
@@ -369,8 +358,15 @@ pub async fn update_organization(
         param_count += 1;
     }
 
+    if req.start_work_time.is_some() || req.end_work_time.is_some() {
+        query.push_str(&format!(", shift_start_hour = ${param_count}"));
+        param_count += 1;
+        query.push_str(&format!(", shift_end_hour = ${param_count}"));
+        param_count += 1;
+    }
+
     query.push_str(&format!(
-        " WHERE id = ${param_count} RETURNING id, name, type, region"
+        " WHERE id = ${param_count} RETURNING id, name, type, region, shift_start_hour, shift_end_hour"
     ));
 
     let mut query_builder = sqlx::query(&query);
@@ -393,6 +389,11 @@ pub async fn update_organization(
         query_builder = query_builder.bind(region);
     }
 
+    if req.start_work_time.is_some() || req.end_work_time.is_some() {
+        query_builder = query_builder.bind(next_start_work_time as i32);
+        query_builder = query_builder.bind(next_end_work_time as i32);
+    }
+
     query_builder = query_builder.bind(id);
 
     let row = query_builder
@@ -413,6 +414,8 @@ pub async fn update_organization(
         name: row.get("name"),
         org_type,
         region: row.get("region"),
+        start_work_time: row.get::<i32, _>("shift_start_hour") as u32,
+        end_work_time: row.get::<i32, _>("shift_end_hour") as u32,
     })
 }
 

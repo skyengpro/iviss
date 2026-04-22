@@ -18,6 +18,8 @@ pub struct Organization {
     pub name: String,
     pub org_type: OrganizationType,
     pub region: Option<String>,
+    pub start_work_time: u32,
+    pub end_work_time: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
