@@ -1,3 +1,10 @@
+# [1.0.0-rc.2](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-04-22)
+
+
+### Features
+
+* **ci:** unify deployment pipeline with dynamic versioning and OIDC hardening ([58cf3ab](https://github.com/skyengpro/iviss/commit/58cf3abb84991d20f2c267bbed1d2c5a47fc97a9))
+
 # 1.0.0-rc.1 (2026-04-22)
 
 
