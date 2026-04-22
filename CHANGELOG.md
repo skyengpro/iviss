@@ -1,3 +1,10 @@
+# [1.0.0-rc.5](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.4...v1.0.0-rc.5) (2026-04-22)
+
+
+### Bug Fixes
+
+* restore aud claim and implement repository-level trust ([a8aa8ef](https://github.com/skyengpro/iviss/commit/a8aa8ef091a5a495247d541b298aff250fcc2297))
+
 # [1.0.0-rc.4](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.3...v1.0.0-rc.4) (2026-04-22)
 
 
