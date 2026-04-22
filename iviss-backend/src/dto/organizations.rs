@@ -26,6 +26,8 @@ pub struct CreateOrganizationRequest {
     pub name: String,
     pub org_type: OrganizationType,
     pub region: Option<String>,
+    pub start_work_time: Option<u32>,
+    pub end_work_time: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -34,6 +36,8 @@ pub struct UpdateOrganizationRequest {
     pub name: Option<String>,
     pub org_type: Option<OrganizationType>,
     pub region: Option<String>,
+    pub start_work_time: Option<u32>,
+    pub end_work_time: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -48,13 +52,6 @@ pub struct OrganizationDetails {
     pub control_count: i64,
     pub created_at: String,
     pub updated_at: String,
-    pub shift_start_hour: u32,
-    pub shift_end_hour: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OrganizationShiftHoursDto {
     pub shift_start_hour: u32,
     pub shift_end_hour: u32,
 }
