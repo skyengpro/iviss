@@ -1,6 +1,6 @@
 use crate::dto::organizations::{
-    CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationType,
-    OrganizationShiftHoursDto, UpdateOrganizationRequest,
+    CreateOrganizationRequest, Organization, OrganizationDetails, OrganizationShiftHoursDto,
+    OrganizationType, UpdateOrganizationRequest,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
@@ -134,7 +134,75 @@ pub async fn get_organization_shift_hours(
     })
 }
 
-pub async fn update_organization_shift_hours(
+pub async fn get_organization_work_time_cached(
+    pool: &PgPool,
+    cache: &crate::app_cache::AppCache,
+    organization_id: Uuid,
+) -> Result<OrganizationShiftHoursDto, AppError> {
+    if let Some((start, end)) = cache.org_shift_hours.get(&organization_id).await {
+        return Ok(OrganizationShiftHoursDto {
+            shift_start_hour: start,
+            shift_end_hour: end,
+        });
+    }
+
+    let dto = get_organization_shift_hours(pool, organization_id).await?;
+    cache
+        .org_shift_hours
+        .insert(organization_id, (dto.shift_start_hour, dto.shift_end_hour))
+        .await;
+    Ok(dto)
+}
+
+pub async fn load_organizations_work_time_to_cache(
+    pool: &PgPool,
+    cache: &crate::app_cache::AppCache,
+) -> Result<(), AppError> {
+    let cache_clone = cache.clone();
+    let pool_clone = pool.clone();
+
+    tokio::spawn(async move {
+        let rows = sqlx::query(
+            r#"
+            SELECT id, shift_start_hour, shift_end_hour
+            FROM organizations
+            WHERE deleted_at IS NULL
+            LIMIT 100
+            "#,
+        )
+        .fetch_all(&pool_clone)
+        .await;
+
+        match rows {
+            Ok(rows) => {
+                let count = rows.len();
+
+                for row in rows {
+                    let org_id: Uuid = row.get("id");
+                    let start: u32 = row.get::<i32, _>("shift_start_hour") as u32;
+                    let end: u32 = row.get::<i32, _>("shift_end_hour") as u32;
+                    cache_clone
+                        .org_shift_hours
+                        .insert(org_id, (start, end))
+                        .await;
+                }
+
+                tracing::info!(
+                    count,
+                    "Loaded organization work time from PostgreSQL to cache (background task completed)"
+                );
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to load organization work time from PostgreSQL (background task)");
+            }
+        }
+    });
+
+    tracing::info!("Organization work time loading started in background (max 100)");
+    Ok(())
+}
+
+pub async fn update_org_work_time_query(
     pool: &PgPool,
     organization_id: Uuid,
     req: OrganizationShiftHoursDto,
