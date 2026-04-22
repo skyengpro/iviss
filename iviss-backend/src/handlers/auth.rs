@@ -500,12 +500,13 @@ pub async fn request_daily_login(
         AppError::forbidden("Agent must belong to an organization to request daily login")
     })?;
 
-    let shift = crate::queries::organization_queries::get_organization_work_time_cached(
-        &state.db,
-        &state.app_cache,
-        org_id,
-    )
-    .await?;
+    let (shift_start_hour, shift_end_hour) =
+        crate::queries::organization_queries::get_organization_work_time_cached(
+            &state.db,
+            &state.app_cache,
+            org_id,
+        )
+        .await?;
 
     let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
     let now_local = time::OffsetDateTime::now_utc().to_offset(local_offset);
@@ -513,12 +514,10 @@ pub async fn request_daily_login(
 
     // Shift window: shift_start_hour/shift_end_hour are stored as minutes since midnight
     // (inclusive start, exclusive end)
-    if current_minute_of_day < shift.shift_start_hour
-        || current_minute_of_day >= shift.shift_end_hour
-    {
+    if current_minute_of_day < shift_start_hour || current_minute_of_day >= shift_end_hour {
         return Err(AppError::unauthorized(format!(
             "Outside shift hours — login is available from {} to {} local time",
-            shift.shift_start_hour, shift.shift_end_hour
+            shift_start_hour, shift_end_hour
         )));
     }
 
@@ -674,17 +673,18 @@ pub async fn verify_daily_login(
     let org_id = user_org_id
         .ok_or_else(|| AppError::forbidden("Agent must belong to an organization to login"))?;
 
-    let shift_hours = crate::queries::organization_queries::get_organization_work_time_cached(
-        &state.db,
-        &state.app_cache,
-        org_id,
-    )
-    .await?;
+    let (shift_start_minutes, shift_end_minutes) =
+        crate::queries::organization_queries::get_organization_work_time_cached(
+            &state.db,
+            &state.app_cache,
+            org_id,
+        )
+        .await?;
 
-    let shift_start_hour = (shift_hours.shift_start_hour / 60) as u8;
-    let shift_start_minute = (shift_hours.shift_start_hour % 60) as u8;
-    let shift_end_hour = (shift_hours.shift_end_hour / 60) as u8;
-    let shift_end_minute = (shift_hours.shift_end_hour % 60) as u8;
+    let shift_start_hour = (shift_start_minutes / 60) as u8;
+    let shift_start_minute = (shift_start_minutes % 60) as u8;
+    let shift_end_hour = (shift_end_minutes / 60) as u8;
+    let shift_end_minute = (shift_end_minutes % 60) as u8;
 
     let shift_start_time = time::Time::from_hms(shift_start_hour, shift_start_minute, 0)
         .map_err(|_| AppError::internal_error("Invalid shift_start_hour in organization"))?;

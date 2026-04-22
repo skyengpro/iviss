@@ -1,12 +1,9 @@
 use crate::app_state::AppState;
-use crate::dto::organizations::{
-    CreateOrganizationRequest, OrganizationShiftHoursDto, UpdateOrganizationRequest,
-};
+use crate::dto::organizations::{CreateOrganizationRequest, UpdateOrganizationRequest};
 use crate::errors::AppError;
 use crate::queries::organization_queries::{
     create_organization as create_org_query, delete_organization as delete_org_query,
-    get_organization_by_id as get_org_query, update_org_work_time_query,
-    update_organization as update_org_query,
+    get_organization_by_id as get_org_query, update_organization as update_org_query,
 };
 use axum::{
     extract::{Path, State},
@@ -16,9 +13,6 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
-
-use crate::middleware::rbac::AuthenticatedAdmin;
-use axum::Extension;
 
 /// Create a new organization (admin only)
 #[utoipa::path(
@@ -40,6 +34,11 @@ pub async fn create_organization(
     Json(payload): Json<CreateOrganizationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let org = create_org_query(&state.db, payload).await?;
+    state
+        .app_cache
+        .org_shift_hours
+        .insert(org.id, (org.start_work_time, org.end_work_time))
+        .await;
 
     tracing::info!(
         organization_id = %org.id,
@@ -100,6 +99,11 @@ pub async fn update_organization(
     Json(payload): Json<UpdateOrganizationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let org = update_org_query(&state.db, id, payload).await?;
+    state
+        .app_cache
+        .org_shift_hours
+        .insert(org.id, (org.start_work_time, org.end_work_time))
+        .await;
 
     tracing::info!(
         organization_id = %org.id,
@@ -140,38 +144,4 @@ pub async fn delete_organization(
     );
 
     Ok(StatusCode::NO_CONTENT)
-}
-
-/// Update shift hours for the org admin's organization
-#[utoipa::path(
-    post,
-    path = "/api/v1/org-admin/organization/shift-hours",
-    request_body = OrganizationShiftHoursDto,
-    responses(
-        (status = 200, description = "Shift hours updated successfully", body = OrganizationShiftHoursDto),
-        (status = 400, description = "Bad request - validation error", body = AppErrorResponse),
-        (status = 401, description = "Unauthorized", body = AppErrorResponse),
-        (status = 403, description = "Forbidden - org_admin only", body = AppErrorResponse),
-        (status = 404, description = "Organization not found", body = AppErrorResponse)
-    ),
-    tag = "org-admin",
-    operation_id = "updateOrganizationShiftHours",
-    security(("bearer_auth" = []))
-)]
-pub async fn update_organization_work_time(
-    State(state): State<Arc<AppState>>,
-    Extension(requester): Extension<AuthenticatedAdmin>,
-    Json(payload): Json<OrganizationShiftHoursDto>,
-) -> Result<impl IntoResponse, AppError> {
-    let org_id = requester
-        .organization_id
-        .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
-
-    let updated = update_org_work_time_query(&state.db, org_id, payload).await?;
-    state
-        .app_cache
-        .org_shift_hours
-        .insert(org_id, (updated.shift_start_hour, updated.shift_end_hour))
-        .await;
-    Ok((StatusCode::OK, Json(updated)))
 }
