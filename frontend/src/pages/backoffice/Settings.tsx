@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { getAccessToken } from '@/services/auth/tokenManager';
@@ -17,13 +16,11 @@ import {
   User,
   Lock,
   Bell,
-  Shield,
   Building2,
   Eye,
   EyeOff,
   LogOut,
   CheckCircle2,
-  Info,
   Globe,
   Moon,
   Sun,
@@ -184,15 +181,7 @@ export default function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const isSuperAdmin = user?.role === 'admin';
-  const isOrgAdmin = user?.role === 'org_admin';
-
-  // Notification prefs (local state — extend with API when ready)
-  const [notifSessions, setNotifSessions] = useState(true);
-  const [notifAlerts, setNotifAlerts] = useState(true);
-  const [notifReports, setNotifReports] = useState(false);
-
-  const handleLogout = async () => {
+const handleLogout = async () => {
     await logout();
     navigate('/admin-login');
   };
@@ -293,73 +282,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Shield className="h-4 w-4" />
-                  Access & Role
-                </CardTitle>
-                <CardDescription>Your permissions within the system</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <SectionTitle>Permissions</SectionTitle>
-                <InfoRow
-                  label="Role"
-                  value={
-                    user?.role === 'admin'
-                      ? 'Super Administrator'
-                      : user?.role === 'org_admin'
-                        ? 'Organization Administrator'
-                        : user?.role === 'manager'
-                          ? 'Supervisor'
-                          : 'Agent'
-                  }
-                />
-                <Separator />
-                <InfoRow
-                  label="Account Status"
-                  value={user?.status === 'ACTIVE' ? 'Active' : user?.status}
-                />
-                {user?.organization && (
-                  <>
-                    <Separator />
-                    <InfoRow label="Organization" value={user.organization} />
-                  </>
-                )}
-                <Separator />
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-sm text-muted-foreground">Permissions</span>
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    {isSuperAdmin && (
-                      <>
-                        <Badge variant="secondary" className="text-xs">
-                          All Organizations
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          Create Org Admins
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          Full Access
-                        </Badge>
-                      </>
-                    )}
-                    {isOrgAdmin && (
-                      <>
-                        <Badge variant="secondary" className="text-xs">
-                          Org Users
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          Create Agents
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          Org Reports
-                        </Badge>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+
           </TabsContent>
 
           {/* ── Security tab ── */}
@@ -379,45 +302,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Info className="h-4 w-4" />
-                  Session Information
-                </CardTitle>
-                <CardDescription>Details about your current session</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <SectionTitle>Current Session</SectionTitle>
-                <InfoRow label="Session Type" value="Web (JWT)" />
-                <Separator />
-                <InfoRow
-                  label="Access Level"
-                  value={
-                    isSuperAdmin
-                      ? 'Global — all organizations'
-                      : isOrgAdmin
-                        ? `Scoped — ${user?.organization || 'your organization'}`
-                        : 'Standard'
-                  }
-                />
-                <Separator />
-                <InfoRow label="Token Lifetime" value="24 hours (auto-refresh)" />
-                <Separator />
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-sm text-muted-foreground">Session Status</span>
-                  <Badge
-                    className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                    variant="outline"
-                  >
-                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Active
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-destructive/20">
+<Card className="border-destructive/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-destructive">
                   <LogOut className="h-4 w-4" />
@@ -439,52 +324,7 @@ export default function Settings() {
 
           {/* ── Preferences tab ── */}
           <TabsContent value="preferences" className="mt-4 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Bell className="h-4 w-4" />
-                  Notifications
-                </CardTitle>
-                <CardDescription>Choose what events you want to be notified about</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <SectionTitle>In-App Alerts</SectionTitle>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Session Events</p>
-                    <p className="text-xs text-muted-foreground">
-                      Alerts when agent sessions are terminated or restarted
-                    </p>
-                  </div>
-                  <Switch checked={notifSessions} onCheckedChange={setNotifSessions} />
-                </div>
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Critical Alerts</p>
-                    <p className="text-xs text-muted-foreground">
-                      Flagged vehicles and high-priority control events
-                    </p>
-                  </div>
-                  <Switch checked={notifAlerts} onCheckedChange={setNotifAlerts} />
-                </div>
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Report Ready</p>
-                    <p className="text-xs text-muted-foreground">
-                      Notify when a generated report is available
-                    </p>
-                  </div>
-                  <Switch checked={notifReports} onCheckedChange={setNotifReports} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
+<Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Monitor className="h-4 w-4" />
