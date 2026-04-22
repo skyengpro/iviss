@@ -29,6 +29,14 @@ fi
 export DOMAIN_NAME="${1:-$DOMAIN_NAME}"
 export CERTBOT_EMAIL="${2:-$CERTBOT_EMAIL}"
 
+# Automatic Version Detection (find latest tag if not provided)
+if [ -z "$IMAGE_TAG" ]; then
+    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    # Remove 'v' prefix if it exists (e.g., v1.0.0 -> 1.0.0)
+    export IMAGE_TAG="${LATEST_TAG#v}"
+fi
+echo "📍 Deployment Version: ${IMAGE_TAG:-latest}"
+
 echo "🚀 Starting IVISS Production Deployment..."
 
 # 1. Terraform Initialization & Application
@@ -151,6 +159,7 @@ vars = {
     'smtp_port': os.environ.get('SMTP_PORT', ''),
     'smtp_username': os.environ.get('SMTP_USERNAME', ''),
     'smtp_from_email': os.environ.get('SMTP_FROM_EMAIL', ''),
+    'image_tag': os.environ.get('IMAGE_TAG', 'latest'),
 }
 
 with open('$VARS_FILE', 'w') as f:
