@@ -504,14 +504,14 @@ pub async fn request_daily_login(
         .await?;
 
     let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
-    let current_hour = time::OffsetDateTime::now_utc()
-        .to_offset(local_offset)
-        .hour() as u32;
+    let now_local = time::OffsetDateTime::now_utc().to_offset(local_offset);
+    let current_minute_of_day = (now_local.hour() as u32) * 60 + (now_local.minute() as u32);
 
-    // Shift window: shift_start_hour (inclusive) to shift_end_hour (exclusive)
-    if current_hour < shift.shift_start_hour || current_hour >= shift.shift_end_hour {
+    // Shift window: shift_start_hour/shift_end_hour are stored as minutes since midnight
+    // (inclusive start, exclusive end)
+    if current_minute_of_day < shift.shift_start_hour || current_minute_of_day >= shift.shift_end_hour {
         return Err(AppError::unauthorized(format!(
-            "Outside shift hours — login is available from {:02}:00 to {:02}:00 local time",
+            "Outside shift hours — login is available from {} to {} local time",
             shift.shift_start_hour, shift.shift_end_hour
         )));
     }
@@ -675,10 +675,15 @@ pub async fn verify_daily_login(
     )
     .await?;
 
-    let shift_start_time = time::Time::from_hms(shift_hours.shift_start_hour as u8, 0, 0)
+    let shift_start_hour = (shift_hours.shift_start_hour / 60) as u8;
+    let shift_start_minute = (shift_hours.shift_start_hour % 60) as u8;
+    let shift_end_hour = (shift_hours.shift_end_hour / 60) as u8;
+    let shift_end_minute = (shift_hours.shift_end_hour % 60) as u8;
+
+    let shift_start_time = time::Time::from_hms(shift_start_hour, shift_start_minute, 0)
         .map_err(|_| AppError::internal_error("Invalid shift_start_hour in organization"))?;
 
-    let shift_end_time = time::Time::from_hms(shift_hours.shift_end_hour as u8, 0, 0)
+    let shift_end_time = time::Time::from_hms(shift_end_hour, shift_end_minute, 0)
         .map_err(|_| AppError::internal_error("Invalid shift_end_hour in organization"))?;
 
     let shift_start: i64 =

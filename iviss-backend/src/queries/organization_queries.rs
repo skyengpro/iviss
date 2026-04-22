@@ -80,14 +80,16 @@ pub async fn create_organization(
 
     let row = sqlx::query(
         r#"
-        INSERT INTO organizations (name, type, region)
-        VALUES ($1, $2, $3)
+        INSERT INTO organizations (name, type, region, shift_start_hour, shift_end_hour)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id, name, type, region
         "#,
     )
     .bind(&req.name)
     .bind(type_str)
     .bind(&req.region)
+    .bind(390i32)
+    .bind(1110i32)
     .fetch_one(pool)
     .await
     .map_err(AppError::database)?;
@@ -137,9 +139,9 @@ pub async fn update_organization_shift_hours(
     organization_id: Uuid,
     req: OrganizationShiftHoursDto,
 ) -> Result<OrganizationShiftHoursDto, AppError> {
-    if req.shift_start_hour > 23 || req.shift_end_hour > 23 {
+    if req.shift_start_hour > 1439 || req.shift_end_hour > 1439 {
         return Err(AppError::bad_request(
-            "shiftStartHour and shiftEndHour must be between 0 and 23",
+            "shiftStartHour and shiftEndHour must be between 0 and 1439",
         ));
     }
     if req.shift_start_hour >= req.shift_end_hour {
@@ -186,6 +188,8 @@ pub async fn get_organization_by_id(
             o.region,
             o.created_at,
             o.updated_at,
+            o.shift_start_hour,
+            o.shift_end_hour,
             COUNT(DISTINCT u.id) FILTER (WHERE u.deleted_at IS NULL) as user_count,
             COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'agent' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL) as active_agents,
             COUNT(DISTINCT c.id) as control_count
@@ -223,6 +227,8 @@ pub async fn get_organization_by_id(
         control_count: row.get("control_count"),
         created_at: created_at.to_string(),
         updated_at: updated_at.to_string(),
+        shift_start_hour: row.get::<i32, _>("shift_start_hour") as u32,
+        shift_end_hour: row.get::<i32, _>("shift_end_hour") as u32,
     })
 }
 
