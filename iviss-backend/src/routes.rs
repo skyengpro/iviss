@@ -96,16 +96,12 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/admin/stats",
             get(crate::handlers::stats::get_dashboard_stats),
         )
-        .route(
-            "/api/v1/admin/organization/shift-hours",
-            post(crate::handlers::organization_management::update_organization_work_time),
-        )
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
     // Auth routes accessible to all authenticated users (admin + manager)
     // No role restriction, just require authentication
-        
+
     // Org-admin routes — scoped to org_admin users with a valid organization_id
     let org_admin_routes = Router::new()
         .route(
