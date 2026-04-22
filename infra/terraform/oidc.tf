@@ -33,16 +33,13 @@ resource "aws_iam_role" "github_actions_deploy" {
           Federated = aws_iam_openid_connect_provider.github_actions.arn
           }
           Action = "sts:AssumeRoleWithWebIdentity"
-          Condition = {
-            StringLike = {
-              "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-              "token.actions.githubusercontent.com:sub" = [
-                "repo:skyengpro/iviss:*main",
-                "repo:skyengpro/iviss:*dev",
-                "repo:skyengpro/iviss:*aws-dev-test"
-              ]
-            }
+        Condition = {
+          StringLike = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:sub" = "repo:skyengpro/iviss:*"
+            "token.actions.githubusercontent.com/:sub" = "repo:skyengpro/iviss:*"
           }
+        }
       }
     ]
   })
