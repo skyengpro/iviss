@@ -38,6 +38,15 @@
     - not cert_stat.stat.exists
     - certbot_obtain is failed
 
+- name: Check if Nginx config is missing SSL lines
+  command: grep -q "managed by Certbot" /etc/nginx/sites-available/iviss
+  register: fresh_certbot_check
+  ignore_errors: yes
+  changed_when: false
+  when: 
+    - domain_name is defined
+    - cert_stat.stat.exists
+
 - name: Re-apply Certbot configuration if missing from Nginx
   command: >
     certbot install --nginx
@@ -45,6 +54,6 @@
     --cert-name {{ domain_name }}
     --non-interactive
   when: 
-    - cert_stat.stat.exists
-    - certbot_check.rc != 0
     - domain_name is defined
+    - cert_stat.stat.exists
+    - fresh_certbot_check.rc is defined and fresh_certbot_check.rc != 0

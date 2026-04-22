@@ -106,8 +106,16 @@ services:
     environment:
       <<: *backend-environment
       ENVIRONMENT: ${ENVIRONMENT:-local}
-      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      SMS_PROVIDER: ${SMS_PROVIDER:?SMS_PROVIDER must be set for backend}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+      ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID}
+      ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET}
+      ORANGE_SENDER_NUMBER: ${ORANGE_SENDER_NUMBER}
+      VONAGE_API_KEY: ${VONAGE_API_KEY}
+      VONAGE_API_SECRET: ${VONAGE_API_SECRET}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
     ports:
       - "3000:3000"
     volumes:
@@ -125,7 +133,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 600s
+      start_period: 180s
     logging: *default-logging
     networks:
       - iviss-network
@@ -146,6 +154,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-production}
       SMS_PROVIDER: ${SMS_PROVIDER:?SMS_PROVIDER must be set for backend-prod}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set for backend-prod}
+      ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID}
+      ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET}
+      ORANGE_SENDER_NUMBER: ${ORANGE_SENDER_NUMBER}
       VONAGE_API_KEY: ${VONAGE_API_KEY}
       VONAGE_API_SECRET: ${VONAGE_API_SECRET}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
@@ -171,11 +182,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 4G
-        reservations:
-          cpus: "0.5"
+          cpus: "0.75"
           memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     networks:
       - iviss-network
 
@@ -286,3 +297,4 @@ volumes:
     driver: local
   target_cache:
     driver: local
+    

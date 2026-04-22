@@ -3,8 +3,6 @@ name: Deploy to AWS Lightsail
 on:
   push:
     branches:
-      - main
-      - dev
       - aws-dev-sync
   pull_request:
     branches:
@@ -20,7 +18,17 @@ jobs:
   deploy:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
-    
+
+    # GitHub Environment protection — configure required reviewers in repo Settings
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      url: ${{ github.ref_name == 'main' && 'https://iviss.vpn.kivoyo.com' || '' }}
+
+    # OIDC: request an identity token from GitHub to exchange for AWS credentials
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,54 +36,48 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.7.0"
+          terraform_version: "1.14.9"
 
       - name: Setup Ansible
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible
 
-      - name: Configure AWS Credentials
+      # OIDC Assume Role — no static keys needed
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::577638362880:role/iviss-github-actions-deploy
+          role-session-name: iviss-deploy-${{ github.run_id }}
           aws-region: eu-west-1
 
+      # Secrets are fetched from AWS Secrets Manager by deploy.sh at runtime.
+      # Only non-secret configuration is passed as env vars here.
       - name: Deploy Infrastructure and App
         env:
-          DOCKER_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_PRIVATE_KEY_PEM: ${{ secrets.JWT_PRIVATE_KEY_PEM }}
-          JWT_PUBLIC_KEY_PEM: ${{ secrets.JWT_PUBLIC_KEY_PEM }}
-          ACTIVATION_CODE_PEPPER: ${{ secrets.ACTIVATION_CODE_PEPPER }}
-          ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
-          LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
-          SHIFT_START_HOUR: ${{ secrets.SHIFT_START_HOUR }}
-          SHIFT_END_HOUR: ${{ secrets.SHIFT_END_HOUR }}
-          ADMIN_BOOTSTRAP_EMAIL: ${{ secrets.ADMIN_BOOTSTRAP_EMAIL }}
-          ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
-          ADMIN_BOOTSTRAP_PHONE: ${{ secrets.ADMIN_BOOTSTRAP_PHONE }}
-          ADMIN_BOOTSTRAP_USERNAME: ${{ secrets.ADMIN_BOOTSTRAP_USERNAME }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          SMS_PROVIDER: ${{ secrets.SMS_PROVIDER }}
-          VONAGE_API_KEY: ${{ secrets.VONAGE_API_KEY }}
-          VONAGE_API_SECRET: ${{ secrets.VONAGE_API_SECRET }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          EMAIL_PROVIDER: ${{ secrets.EMAIL_PROVIDER }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
-          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
-          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+          # --- Non-secret configuration (use GitHub Variables where possible) ---
+          ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
+          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
+          SMS_PROVIDER: ${{ vars.SMS_PROVIDER || 'orange' }}
+          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'lettre' }}
+          SHIFT_START_HOUR: ${{ vars.SHIFT_START_HOUR || '6' }}
+          SHIFT_END_HOUR: ${{ vars.SHIFT_END_HOUR || '18' }}
+          DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
+          CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'iviss_user' }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'iviss_dev' }}
+          # --- Non-secret provider config ---
+          SMTP_HOST: ${{ vars.SMTP_HOST || 'smtp.gmail.com' }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || '587' }}
+          SMTP_USERNAME: ${{ vars.SMTP_USERNAME || '' }}
+          SMTP_FROM_EMAIL: ${{ vars.SMTP_FROM_EMAIL || '' }}
+          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL || '' }}
+          TWILIO_FROM_NUMBER: ${{ vars.TWILIO_FROM_NUMBER || '' }}
+          # --- Bootstrap config (non-secret parts) ---
+          ADMIN_BOOTSTRAP_EMAIL: ${{ vars.ADMIN_BOOTSTRAP_EMAIL || 'admin@iviss.com' }}
+          ADMIN_BOOTSTRAP_PHONE: ${{ vars.ADMIN_BOOTSTRAP_PHONE || '' }}
+          ADMIN_BOOTSTRAP_USERNAME: ${{ vars.ADMIN_BOOTSTRAP_USERNAME || 'admin' }}
+          # --- Secrets Manager flag ---
+          USE_SECRETS_MANAGER: "true"
         run: |
-          ./infra/scripts/deploy.sh "${{ secrets.DOMAIN_NAME }}" "${{ secrets.CERTBOT_EMAIL }}"
+          ./infra/scripts/deploy.sh "${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}" "${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}"
