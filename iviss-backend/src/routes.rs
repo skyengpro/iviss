@@ -96,25 +96,22 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/admin/stats",
             get(crate::handlers::stats::get_dashboard_stats),
         )
+        .route(
+            "/api/v1/admin/organization/shift-hours",
+            post(crate::handlers::organization_management::update_organization_work_time),
+        )
         .layer(from_fn_with_state(state.clone(), rbac::require_admin))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
     // Auth routes accessible to all authenticated users (admin + manager)
     // No role restriction, just require authentication
-    let auth_routes = Router::new()
-        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
-        .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
-
+        
     // Org-admin routes — scoped to org_admin users with a valid organization_id
     let org_admin_routes = Router::new()
         .route(
             "/api/v1/org-admin/users",
             get(crate::handlers::user_management::list_org_users)
                 .post(crate::handlers::user_management::provision_org_user),
-        )
-        .route(
-            "/api/v1/org-admin/organization/shift-hours",
-            post(crate::handlers::organization_management::update_organization_work_time),
         )
         .route(
             "/api/v1/org-admin/stats",
@@ -145,6 +142,7 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/auth/change-password",
             post(crate::handlers::auth::change_password),
         )
+        .route("/api/v1/auth/logout", post(crate::handlers::auth::logout))
         .layer(from_fn_with_state(state.clone(), rbac::require_auth_web));
 
     let protected_routes = Router::new()
@@ -196,7 +194,6 @@ pub fn assembly(state: AppState) -> Router {
 
     public_routes
         .merge(admin_routes)
-        .merge(auth_routes)
         .merge(org_admin_routes)
         .merge(web_auth_routes)
         .merge(protected_routes)
