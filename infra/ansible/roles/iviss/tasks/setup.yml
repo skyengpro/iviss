@@ -110,7 +110,6 @@
     mode: '0644'
   when: 
     - domain_name is defined
-    - (nginx_conf_stat.stat.exists == false) or (certbot_check.rc is defined and certbot_check.rc != 0)
 
 - name: Enable Nginx configuration
   file:

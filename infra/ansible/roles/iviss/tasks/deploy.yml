@@ -1,4 +1,7 @@
----
+- name: Debug Docker Config
+  debug:
+    msg: "Username is '{{ docker_username }}' and Password length is {{ docker_password | length }}"
+
 - name: Login to GitHub Container Registry
   docker_login:
     registry_url: ghcr.io
@@ -29,9 +32,15 @@
     dest: "{{ app_dir }}/iviss-backend/.env"
     mode: '0600'
 
+- name: Create frontend directory
+  file:
+    path: "{{ app_dir }}/frontend"
+    state: directory
+    mode: '0755'
+
 - name: Generate .env file for Frontend (Specific)
   template:
-    src: dotenv.j2
+    src: frontend_dotenv.j2
     dest: "{{ app_dir }}/frontend/.env"
     mode: '0600'
 

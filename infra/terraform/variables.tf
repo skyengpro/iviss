@@ -53,6 +53,13 @@ variable "activation_code_pepper" {
   sensitive = true 
 }
 
+variable "db_password" {
+  description = "PostgreSQL database password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "admin_bootstrap_email" { 
   type      = string 
   default   = "admin@iviss.local" 

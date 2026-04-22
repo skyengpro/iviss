@@ -1,0 +1,133 @@
+# =============================================================================
+# GitHub Actions OIDC — Federated Authentication (No Static AWS Keys)
+# =============================================================================
+# This replaces long-lived AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY with
+# short-lived, auto-rotating credentials tied to specific repo/branch.
+#
+# NOTE: The OIDC provider for GitHub Actions already exists in this AWS account
+# (created by another project). We reference it via a data source instead of
+# creating a duplicate. Only the IAM role + policy are new.
+# =============================================================================
+
+# --- Reference the EXISTING OIDC Identity Provider ---
+# There can only be ONE provider per URL per AWS account.
+# If it doesn't exist yet, uncomment the resource block below and comment out the data block.
+data "aws_iam_openid_connect_provider" "github_actions" {
+  url = "https://token.actions.githubusercontent.com"
+}
+
+# Uncomment this ONLY if the OIDC provider doesn't exist yet in your account:
+# resource "aws_iam_openid_connect_provider" "github_actions" {
+#   url             = "https://token.actions.githubusercontent.com"
+#   client_id_list  = ["sts.amazonaws.com"]
+#   thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]
+#   tags = {
+#     Project     = var.project_name
+#     Description = "GitHub Actions OIDC for CI/CD deployments"
+#   }
+# }
+
+# --- IAM Role assumed by GitHub Actions ---
+resource "aws_iam_role" "github_actions_deploy" {
+  name = "${var.project_name}-github-actions-deploy"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = data.aws_iam_openid_connect_provider.github_actions.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            # Lock down to specific repo — only main and dev branches can deploy
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:skyengpro/iviss:ref:refs/heads/main",
+              "repo:skyengpro/iviss:ref:refs/heads/dev"
+            ]
+          }
+        }
+      }
+    ]
+  })
+
+  max_session_duration = 3600 # 1 hour max
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+# --- Permissions Policy: Least-Privilege for Deploy ---
+resource "aws_iam_role_policy" "deploy_permissions" {
+  name = "${var.project_name}-deploy-policy"
+  role = aws_iam_role.github_actions_deploy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "LightsailFullAccess"
+        Effect = "Allow"
+        Action = ["lightsail:*"]
+        Resource = "*"
+      },
+      {
+        Sid    = "TerraformStateBucket"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::iviss-terraform-state-577638362880",
+          "arn:aws:s3:::iviss-terraform-state-577638362880/*"
+        ]
+      },
+      {
+        Sid    = "TerraformStateLock"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = "arn:aws:dynamodb:eu-central-1:577638362880:table/iviss-terraform-lock"
+      },
+      {
+        Sid    = "SecretsManagerRead"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/*"
+      },
+      {
+        Sid    = "SecretsManagerWrite"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:CreateSecret",
+          "secretsmanager:UpdateSecret",
+          "secretsmanager:PutSecretValue",
+          "secretsmanager:TagResource"
+        ]
+        Resource = "arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/*"
+      }
+    ]
+  })
+}
+
+# --- Outputs ---
+output "github_actions_role_arn" {
+  value       = aws_iam_role.github_actions_deploy.arn
+  description = "Use this ARN in deploy-aws.yml: role-to-assume"
+}
