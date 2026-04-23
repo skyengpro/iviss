@@ -13,14 +13,16 @@ interface PlateInputProps {
   placeholder?: string;
 }
 
-// Comprehensive regex for Cameroon plate formats:
-// 1. Standard: (AD|CE|ES|EN|LT|NO|NW|OU|SU|SW) 1234 A or LT 123 AB
+// 1. Standard: (REGION) 1234 A OR (REGION) 123 AB
 // 2. Police: SN 1234
 // 3. Military: 1234567
 // 4. Government: EN1234X
 // 5. Postal: RT123456
 // 6. Diplomatic: CD 01 123
-const PLATE_REGEX = /^(?:(?:AD|CE|ES|EN|LT|NO|NW|OU|SU|SW)\s\d{3,4}\s[A-Z]{1,2}|SN\s\d{4}|\d{7}|[A-Z]{2}\d{4}[A-Z]|RT\d{6}|CD\s\d{1,3}\s\d{1,3})$/;
+const REGION = 'AD|CE|ES|EN|LT|NO|NW|OU|SU|SW';
+const PLATE_REGEX = new RegExp(
+  `^(?:(?:${REGION})\\s\\d{4}\\s[A-Z]|(?:${REGION})\\s\\d{3}\\s[A-Z]{2}|SN\\s\\d{4}|\\d{7}|[A-Z]{2}\\d{4}[A-Z]|RT\\d{6}|CD\\s\\d{1,3}\\s\\d{1,3})$`
+);
 
 export function PlateInput({
   value,
