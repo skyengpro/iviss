@@ -3,7 +3,7 @@ name: Docker
 on:
   push:
     # Build images for main releases, dev, and the dedicated AWS deployment branch
-    branches: ["main", "dev", "dep/iviss-aws-lightsail", "aws-dev-sync"]
+    branches: ["main", "dev", "dep/iviss-aws-lightsail", "aws-dev-sync", "integrate-orange-sms-provider"]
     tags: ["v*.*.*"]
   pull_request:
     branches: ["main", "dev"]
