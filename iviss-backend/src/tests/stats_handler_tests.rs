@@ -106,10 +106,12 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
 /// Helper: seed an organization and admin user with access token.
 async fn seed_admin_user(db: &sqlx::PgPool, jwt_private_key_pem: &str) -> (Uuid, String) {
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(db)
         .await
         .unwrap();
@@ -163,10 +165,12 @@ async fn seed_org_admin(
     org_name: &str,
 ) -> (Uuid, Uuid, String) {
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind(org_name)
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(db)
         .await
         .unwrap();
@@ -215,10 +219,12 @@ async fn seed_test_data(
     jwt_private_key_pem: &str,
 ) -> (Uuid, Uuid, Uuid, String) {
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(db)
         .await
         .unwrap();

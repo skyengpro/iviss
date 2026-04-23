@@ -94,10 +94,12 @@ async fn seed_users_with_active_session(
     jwt_private_key_pem: &str,
 ) -> (Uuid, Uuid, Uuid, Uuid, String, String) {
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(db)
         .await
         .unwrap();
