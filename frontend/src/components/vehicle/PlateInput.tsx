@@ -13,8 +13,14 @@ interface PlateInputProps {
   placeholder?: string;
 }
 
-// Strict license plate format: 2 letters + 3 numbers + 2 letters (e.g., "WE 234 SD")
-const PLATE_REGEX = /^[A-Z]{2}\s\d{3}\s[A-Z]{2}$/;
+// Comprehensive regex for Cameroon plate formats:
+// 1. Standard: (AD|CE|ES|EN|LT|NO|NW|OU|SU|SW) 1234 A or LT 123 AB
+// 2. Police: SN 1234
+// 3. Military: 1234567
+// 4. Government: EN1234X
+// 5. Postal: RT123456
+// 6. Diplomatic: CD 01 123
+const PLATE_REGEX = /^(?:(?:AD|CE|ES|EN|LT|NO|NW|OU|SU|SW)\s\d{3,4}\s[A-Z]{1,2}|SN\s\d{4}|\d{7}|[A-Z]{2}\d{4}[A-Z]|RT\d{6}|CD\s\d{1,3}\s\d{1,3})$/;
 
 export function PlateInput({
   value,
@@ -22,7 +28,7 @@ export function PlateInput({
   onSubmit,
   isLoading,
   className,
-  placeholder = 'WE 234 SD',
+  placeholder = 'CE 1234 A',
 }: Readonly<PlateInputProps>) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,32 +37,11 @@ export function PlateInput({
 
   // Auto-format plate number with proper spacing: XX 123 YY
   const formatPlate = (input: string): string => {
-    // Remove all non-alphanumeric characters
-    const cleaned = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    // Standardize to uppercase
+    const upper = input.toUpperCase();
 
-    // Build formatted string: 2 letters + space + 3 numbers + space + 2 letters
-    let formatted = '';
-
-    // First 2 letters
-    if (cleaned.length > 0) {
-      formatted += cleaned.slice(0, 2).replace(/[^A-Z]/g, '');
-    }
-
-    // Add space after 2 letters
-    if (cleaned.length > 2) {
-      formatted += ' ';
-      // Next 3 numbers
-      formatted += cleaned.slice(2, 5).replace(/[^0-9]/g, '');
-    }
-
-    // Add space after numbers
-    if (cleaned.length > 5) {
-      formatted += ' ';
-      // Last 2 letters
-      formatted += cleaned.slice(5, 7).replace(/[^A-Z]/g, '');
-    }
-
-    return formatted;
+    // Remove multiple spaces and limit to 12 chars (safety)
+    return upper.replace(/\s+/g, ' ').slice(0, 12);
   };
 
   // Validate if the plate matches the required format
@@ -96,7 +81,7 @@ export function PlateInput({
     inputRef.current?.focus();
   };
 
-  const isComplete = value.length === 9; // "XX 123 YY" = 9 characters
+  const isComplete = value.length >= 7; // Shortest valid is 7 chars (Military/Postal)
 
   return (
     <div className={cn('relative', className)}>
@@ -135,7 +120,7 @@ export function PlateInput({
           className="flex-1 bg-transparent text-xl font-bold tracking-widest placeholder:text-muted-foreground/50 placeholder:font-normal placeholder:tracking-normal focus:outline-none"
           autoComplete="off"
           autoCapitalize="characters"
-          maxLength={9}
+          maxLength={12}
         />
 
         {/* Clear button */}
@@ -154,20 +139,20 @@ export function PlateInput({
 
       {/* Validation messages */}
       {showValidationError && (
-        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          <p>
-            {t(
-              'mobileSearch.invalidFormat',
-              'Invalid format. Use: WE 234 SD (2 letters, 3 numbers, 2 letters)'
-            )}
+        <div className="mt-2 flex flex-col items-center justify-center gap-1 text-sm text-destructive">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <p>{t('mobileSearch.invalidFormat', 'Invalid plate format')}</p>
+          </div>
+          <p className="text-xs opacity-80">
+            {t('mobileSearch.supportedFormats', 'Example: CE 1234 A, SN 1234, 1234567, RT123456')}
           </p>
         </div>
       )}
 
       {value.length > 0 && !isComplete && !showValidationError && (
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          {t('mobileSearch.formatExample', 'Format: WE 234 SD (2 letters, 3 numbers, 2 letters)')}
+          {t('mobileSearch.formatExample', 'Enter a valid Cameroon license plate')}
         </p>
       )}
     </div>
