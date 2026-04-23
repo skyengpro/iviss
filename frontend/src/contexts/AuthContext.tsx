@@ -73,6 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+
+
   const logout = async (forced = false) => {
     const accessToken = getAccessToken();
 
@@ -114,6 +116,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Assign the global logout function to the instance logout so the interceptor can call it
   useEffect(() => {
     globalLogout = () => logout(true);
+
+    // Listen for token refresh events from the interceptor
+    const handleTokenRefreshed = (event: Event) => {
+      const customEvent = event as CustomEvent<{ accessToken: string; session: AuthResponse }>;
+      const { accessToken, session: updatedSession } = customEvent.detail;
+      
+      // Update React state with the new token
+      setSession(updatedSession);
+      // User object should remain the same, but update if needed
+      if (updatedSession.user) {
+        setUser(updatedSession.user);
+      }
+    };
+
+    window.addEventListener('iviss:token-refreshed', handleTokenRefreshed);
+
+    return () => {
+      window.removeEventListener('iviss:token-refreshed', handleTokenRefreshed);
+    };
   }, []);
 
   // Set up the API response interceptor
@@ -131,9 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const clonedResponse = response.clone();
           const body = await clonedResponse.json();
+          
           if (body && typeof body === 'object' && 'code' in body) {
             if (body.code === 'SESSION_REVOKED') {
               isSessionRevoked = true;
+              console.warn('[AuthContext] Session revoked by admin, logging out');
             }
           }
         } catch {
@@ -195,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Sync token manager with existing session token
             if (sessionData.accessToken && !getAccessToken()) {
-              setAccessToken(sessionData.accessToken);
+              setAccessToken(sessionData.accessToken, false);
             }
             // Always restore refresh token so the interceptor can refresh expired access tokens
             if (sessionData.refreshToken) {
@@ -207,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // on the next API call rather than clearing everything immediately.
             if (sessionData.refreshToken && sessionData.accessToken) {
               setRefreshToken(sessionData.refreshToken);
-              setAccessToken(sessionData.accessToken); // Always set, even if expired
+              setAccessToken(sessionData.accessToken, false); // Always set, even if expired
               setSession(sessionData);
               setUser(sessionData.user);
             } else {
@@ -238,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const resClone = response.clone();
             const json = await resClone.json();
+            
             if (
               json?.message === 'Shift ended' ||
               json?.reason === 'Shift ended' ||
@@ -251,7 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               globalThis.location.href = '/daily-login';
             }
           } catch {
-            // ignore parse error
+            // ignore parse error - let auth interceptor handle it
           }
         }
         return response;
@@ -299,7 +323,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const newSession = {
-        token: data.accessToken,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         user: resolvedUser,
       } as unknown as AuthResponse;
 
@@ -307,8 +332,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
       localStorage.setItem('iviss_device_activated', 'true');
 
-      // Sync with token manager
-      setAccessToken(data.accessToken);
+      // Sync with token manager (don't notify context during initial login)
+      setAccessToken(data.accessToken, false);
       setRefreshToken(data.refreshToken);
 
       applyAuthTokenToApiClient(data.accessToken);
@@ -384,7 +409,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const newSession = {
-        token: data.accessToken,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         user: resolvedUser,
       } as unknown as AuthResponse;
 
@@ -392,7 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
       localStorage.setItem('iviss_device_activated', 'true');
 
-      setAccessToken(data.accessToken);
+      setAccessToken(data.accessToken, false);
       setRefreshToken(data.refreshToken);
 
       applyAuthTokenToApiClient(data.accessToken);
@@ -430,7 +456,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
-      setAccessToken(data.accessToken);
+      setAccessToken(data.accessToken, false);
       setRefreshToken(data.refreshToken);
 
       applyAuthTokenToApiClient(data.accessToken);
