@@ -73,8 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-
-
   const logout = async (forced = false) => {
     const accessToken = getAccessToken();
 
@@ -121,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleTokenRefreshed = (event: Event) => {
       const customEvent = event as CustomEvent<{ accessToken: string; session: AuthResponse }>;
       const { accessToken, session: updatedSession } = customEvent.detail;
-      
+
       // Update React state with the new token
       setSession(updatedSession);
       // User object should remain the same, but update if needed
@@ -152,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const clonedResponse = response.clone();
           const body = await clonedResponse.json();
-          
+
           if (body && typeof body === 'object' && 'code' in body) {
             if (body.code === 'SESSION_REVOKED') {
               isSessionRevoked = true;
@@ -261,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const resClone = response.clone();
             const json = await resClone.json();
-            
+
             if (
               json?.message === 'Shift ended' ||
               json?.reason === 'Shift ended' ||
