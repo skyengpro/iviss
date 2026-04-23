@@ -318,7 +318,6 @@ impl Config {
                     "Mock SMS provider is not allowed in production environment"
                 ));
             }
-            
             // Validate Orange credentials if using Orange provider
             if matches!(
                 &self.sms_credentials,
