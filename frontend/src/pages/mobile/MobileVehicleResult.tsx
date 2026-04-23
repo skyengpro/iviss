@@ -2,12 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { Clock, ArrowLeft, Plus, CheckCircle, Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/auth/use-auth';
+import { Clock, ArrowLeft } from 'lucide-react';
 import { useVehicles } from '@/hooks/api/useVehicles';
 import { VehicleSearchResult } from '@/openapi-rq/requests/types.gen';
-import { useGeolocation } from '@/hooks/useGeolocation';
-import { useLogControl } from '@/hooks/api/useLogControl';
 
 import { VehicleHeader } from '@/components/mobile/vehicle/VehicleHeader';
 import { VehicleStatusGrid } from '@/components/mobile/vehicle/VehicleStatusGrid';
@@ -19,11 +16,8 @@ import { Button } from '@/components/ui/button';
 export default function MobileVehicleResult() {
   const { plateNumber } = useParams<{ plateNumber: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { t } = useTranslation();
   const { search, isSearching } = useVehicles();
-  const { lat, lng, address: geoAddress } = useGeolocation();
-  const { logControl, isLoggingControl, controlLogged } = useLogControl();
 
   interface SearchError {
     status: number;
@@ -192,43 +186,8 @@ export default function MobileVehicleResult() {
         </div>
       </div>
 
-      {/* Log Control / New Search */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background p-4 z-30 space-y-2">
-        {!controlLogged ? (
-          <Button
-            className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
-            onClick={() =>
-              user &&
-              result &&
-              logControl(
-                user,
-                plateNumber!,
-                result.status_results,
-                result.vehicle ?? null,
-                { latitude: lat, longitude: lng, address: geoAddress || '' },
-                'manual'
-              )
-            }
-            disabled={isLoggingControl}
-          >
-            {isLoggingControl ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <Plus className="h-5 w-5" />
-                {t('vehicleResult.logControl')}
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button
-            className="w-full h-12 gap-2 bg-status-valid text-status-valid-foreground"
-            disabled
-          >
-            <CheckCircle className="h-5 w-5" />
-            {t('vehicleResult.controlLogged')}
-          </Button>
-        )}
+      {/* Actions */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background p-4 z-30">
         <Button
           variant="outline"
           className="w-full h-12"
