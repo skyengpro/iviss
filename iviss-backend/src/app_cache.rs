@@ -86,8 +86,8 @@ impl AppCache {
         &self,
         db_pool: &sqlx::Pool<sqlx::Postgres>,
     ) -> Result<(), AppError> {
-        auth_queries::load_blacklisted_jtis_to_cache(&db_pool, &self).await?;
-        organization_queries::load_organizations_work_time_to_cache(&db_pool, &self).await?;
+        auth_queries::load_blacklisted_jtis_to_cache(db_pool, self).await?;
+        organization_queries::load_organizations_work_time_to_cache(db_pool, self).await?;
 
         Ok(())
     }

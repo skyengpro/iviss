@@ -288,6 +288,11 @@ impl Config {
         }
         // Validate SMS provider config in production
         if self.environment == Environment::Production {
+            if matches!(&self.sms_credentials, SmsProviderCredentials::Mock) {
+                return Err(anyhow!(
+                    "Mock SMS provider is not allowed in production environment"
+                ));
+            }
             if matches!(
                 &self.sms_credentials,
                 SmsProviderCredentials::Orange {
