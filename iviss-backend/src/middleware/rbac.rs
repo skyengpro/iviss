@@ -111,13 +111,13 @@ pub async fn require_admin(request: Request, next: Next) -> Result<Response, App
             AppError::internal_error("Authentication context missing")
         })?;
 
-    if user.role != "admin" {
+    if user.role != "admin" && user.role != "org_admin" {
         tracing::warn!(
             %method,
             %path,
             user_id = %user.user_id,
             role = %user.role,
-            "rbac: access denied — not an admin"
+            "rbac: access denied — not an admin or org_admin"
         );
         return Err(AppError::forbidden("Admin access required"));
     }

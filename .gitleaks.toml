@@ -12,6 +12,7 @@ paths = [
   '''^iviss-backend/\.env\.example$''',
   '''^iviss-backend/src/tests/fixtures/test_private_key\.pem$''',
   '''^iviss-backend/src/tests/activation_endpoint_tests\.rs$''',
+  '''^iviss-backend/docs/deployment_guide\.md$''',
   '''^docs/admin_session_termination\.md$''',
   '''^infra/scripts/debug_jwt\.py$''',
   '''^infra/scripts/test_rust_parsing\.rs$''',
