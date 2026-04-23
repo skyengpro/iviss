@@ -70,8 +70,9 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
   const isProcessingRef = useRef(false);
 
   /**
-   * Capture a screenshot, preprocess it at high resolution, and send to the
-   * backend OCR endpoint. Updates state through idle → processing → result/error.
+   * Capture a screenshot, assess quality, preprocess by cropping to the
+   * viewfinder guide frame, and send to the backend OCR endpoint.
+   * Updates state through idle → processing → result/error.
    */
   const captureAndProcess = useCallback(
     async (getScreenshot: () => string | null) => {
@@ -91,6 +92,14 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
 
         // Save the raw captured frame for UI preview (freeze frame)
         setCapturedImageSrc(imageSrc);
+
+        // ── Quality gate — reject blurry / dark / bright images early ──────
+        const quality = await ImageProcessor.assessImageQuality(imageSrc, t);
+        if (!quality.isAcceptable) {
+          setError(quality.feedback);
+          setState('error');
+          return;
+        }
 
         const sendToOcr = async (processedDataUrl: string) => {
           const fetchRes = await fetch(processedDataUrl);
@@ -112,10 +121,13 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
           return apiResponse.data as ScanPlateResponse;
         };
 
-        const firstProcessed = await ImageProcessor.preprocessForHighRes(imageSrc, t);
-        let json = await sendToOcr(firstProcessed);
+        // ── Primary attempt — viewfinder-cropped, plate-ratio image ───────
+        const primaryProcessed = await ImageProcessor.preprocessForPhoto(imageSrc, t);
+        let json = await sendToOcr(primaryProcessed);
 
         let extracted = extractPlateFromAny(json);
+
+        // ── Fallback — only if primary returned nothing useful ────────────
         if ((!json?.success || extracted.plate === '') && json?.success !== false) {
           const fallbackProcessed = await ImageProcessor.preprocessForPhotoCapture(imageSrc, t);
           json = await sendToOcr(fallbackProcessed);

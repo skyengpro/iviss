@@ -18,10 +18,11 @@ vi.mock('react-i18next', () => ({
 // Mock ImageProcessor
 vi.mock('@/utils/imageProcessor', () => ({
   ImageProcessor: {
-    preprocessForHighRes: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_highres'),
+    preprocessForPhoto: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_photo'),
     preprocessForPhotoCapture: vi
       .fn()
       .mockResolvedValue('data:image/jpeg;base64,processed_capture'),
+    assessImageQuality: vi.fn().mockResolvedValue({ isAcceptable: true, feedback: '' }),
   },
 }));
 
@@ -155,7 +156,7 @@ describe('usePhotoCapture', () => {
       await result.current.captureAndProcess(mockGetScreenshot);
     });
 
-    expect(ImageProcessor.preprocessForHighRes).toHaveBeenCalledTimes(1);
+    expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledTimes(1);
     expect(ImageProcessor.preprocessForPhotoCapture).toHaveBeenCalledTimes(1);
     expect(photoPlate).toHaveBeenCalledTimes(2);
 
