@@ -26,12 +26,14 @@ export function setAccessToken(token: string, notifyContext = true): void {
       const session = JSON.parse(raw);
       session.accessToken = token;
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      
+
       // Notify AuthContext to update its state with the new token
       if (notifyContext) {
-        window.dispatchEvent(new CustomEvent(TOKEN_REFRESHED_EVENT, { 
-          detail: { accessToken: token, session } 
-        }));
+        window.dispatchEvent(
+          new CustomEvent(TOKEN_REFRESHED_EVENT, {
+            detail: { accessToken: token, session },
+          })
+        );
       }
     }
   } catch {
