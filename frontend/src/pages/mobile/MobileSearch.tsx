@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MobileLayout } from '@/components/layout/MobileLayout';
-import { PlateInput } from '@/components/vehicle/PlateInput';
+import { PlateInput, isValidPlate } from '@/components/vehicle/PlateInput';
 import { Button } from '@/components/ui/button';
 import { Camera, History, Search } from 'lucide-react';
 
@@ -65,7 +65,7 @@ export default function MobileSearch() {
           {/* Primary Search Button */}
           <Button
             onClick={() => handleSearch()}
-            disabled={plateNumber.length !== 9 || isLoading}
+            disabled={!isValidPlate(plateNumber) || isLoading}
             className="mt-4 w-full h-14 text-lg font-bold gap-3 rounded-xl shadow-lg active:scale-[0.98] transition-all"
           >
             {isLoading ? (
