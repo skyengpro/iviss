@@ -26,7 +26,7 @@ export const PLATE_REGEX = new RegExp(
 );
 
 export const isValidPlate = (plate: string): boolean => {
-  return PLATE_REGEX.test(plate);
+  return PLATE_REGEX.test(plate.trim());
 };
 
 export function PlateInput({
@@ -53,7 +53,7 @@ export function PlateInput({
 
   // Validate if the plate matches any supported format
   const isValidFormat = (plate: string): boolean => {
-    return PLATE_REGEX.test(plate);
+    return PLATE_REGEX.test(plate.trim());
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,12 +148,7 @@ export function PlateInput({
       {showValidationError && (
         <div className="mt-2 flex items-center justify-center gap-2 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <p>
-            {t(
-              'mobileSearch.invalidFormat',
-              'Invalid format. Please check the plate number.'
-            )}
-          </p>
+          <p>{t('mobileSearch.invalidFormat', 'Invalid format. Please check the plate number.')}</p>
         </div>
       )}
 
