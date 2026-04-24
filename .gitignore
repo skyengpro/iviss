@@ -54,3 +54,7 @@ iviss-backend/lcov.info
 .env
 .vscode/settings.json
 iviss-backend/docs/redis-to-moka-migration.md
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
