@@ -303,11 +303,17 @@ export class ImageProcessor {
           const meanBrightness = brightnessSum / pixelCount;
 
           if (meanBrightness < 40) {
-            resolve({ isAcceptable: false, feedback: t('mobileScan.qualityTooDark', 'Too dark — move to better lighting') });
+            resolve({
+              isAcceptable: false,
+              feedback: t('mobileScan.qualityTooDark', 'Too dark — move to better lighting'),
+            });
             return;
           }
           if (meanBrightness > 220) {
-            resolve({ isAcceptable: false, feedback: t('mobileScan.qualityTooBright', 'Too bright — avoid direct sunlight') });
+            resolve({
+              isAcceptable: false,
+              feedback: t('mobileScan.qualityTooBright', 'Too bright — avoid direct sunlight'),
+            });
             return;
           }
 
@@ -328,11 +334,11 @@ export class ImageProcessor {
             for (let x = 1; x < checkW - 1; x++) {
               const idx = y * checkW + x;
               const lap =
-                gray[idx - checkW] +       // top
-                gray[idx - 1] +             // left
-                -4 * gray[idx] +            // center
-                gray[idx + 1] +             // right
-                gray[idx + checkW];          // bottom
+                gray[idx - checkW] + // top
+                gray[idx - 1] + // left
+                -4 * gray[idx] + // center
+                gray[idx + 1] + // right
+                gray[idx + checkW]; // bottom
               lapSum += lap;
               lapSumSq += lap * lap;
               lapCount++;
@@ -344,7 +350,10 @@ export class ImageProcessor {
 
           // Threshold determined empirically; typical sharp plate > 200, blurry < 80
           if (lapVariance < 80) {
-            resolve({ isAcceptable: false, feedback: t('mobileScan.qualityTooBlurry', 'Image is blurry — hold steady') });
+            resolve({
+              isAcceptable: false,
+              feedback: t('mobileScan.qualityTooBlurry', 'Image is blurry — hold steady'),
+            });
             return;
           }
 
