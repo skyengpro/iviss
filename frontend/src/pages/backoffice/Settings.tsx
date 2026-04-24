@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { getAccessToken } from '@/services/auth/tokenManager';
+import { changePassword } from '@/openapi-rq/requests/services.gen';
 import {
   User,
   Lock,
@@ -89,22 +89,26 @@ function PasswordSection() {
     }
     setIsLoading(true);
     try {
-      const token = getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${baseUrl}/api/v1/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ newPassword, confirmPassword }),
+      const result = await changePassword({
+        body: {
+          newPassword,
+          confirmPassword,
+        },
+        throwOnError: false,
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.message || 'Failed to update password');
+
+      if (result.error) {
+        const errorMessage =
+          typeof result.error === 'object' && result.error && 'message' in result.error
+            ? (result.error.message as string)
+            : 'Failed to update password';
+        toast.error(errorMessage);
       } else {
         toast.success('Password updated successfully');
         setNewPassword('');
         setConfirmPassword('');
       }
-    } catch {
+    } catch (error) {
       toast.error('Failed to update password');
     } finally {
       setIsLoading(false);
