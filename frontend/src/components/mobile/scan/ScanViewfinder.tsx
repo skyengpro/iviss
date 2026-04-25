@@ -8,6 +8,7 @@ interface ScanViewfinderProps {
   mode: 'photo' | 'live';
   liveScanActive: boolean;
   capturedImageSrc?: string | null;
+  hasError?: boolean;
   onUserMedia?: () => void;
   onUserMediaError?: (error: string | DOMException) => void;
 }
@@ -19,12 +20,15 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
   mode,
   liveScanActive,
   capturedImageSrc,
+  hasError,
   onUserMedia,
   onUserMediaError,
 }) => {
   const videoConstraints = {
     facingMode: facingMode,
   };
+
+  const borderColor = hasError ? 'border-destructive' : 'border-accent';
 
   return (
     <div className="relative flex-1 bg-black">
@@ -51,10 +55,18 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
       <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
         <div className="relative aspect-[7/2] w-full max-w-sm">
           {/* Corner markers */}
-          <div className="absolute left-0 top-0 h-5 w-8 border-l-4 border-t-4 border-accent" />
-          <div className="absolute right-0 top-0 h-5 w-8 border-r-4 border-t-4 border-accent" />
-          <div className="absolute bottom-0 left-0 h-5 w-8 border-b-4 border-l-4 border-accent" />
-          <div className="absolute bottom-0 right-0 h-5 w-8 border-b-4 border-r-4 border-accent" />
+          <div
+            className={`absolute left-0 top-0 h-5 w-8 border-l-4 border-t-4 transition-colors duration-300 ${borderColor}`}
+          />
+          <div
+            className={`absolute right-0 top-0 h-5 w-8 border-r-4 border-t-4 transition-colors duration-300 ${borderColor}`}
+          />
+          <div
+            className={`absolute bottom-0 left-0 h-5 w-8 border-b-4 border-l-4 transition-colors duration-300 ${borderColor}`}
+          />
+          <div
+            className={`absolute bottom-0 right-0 h-5 w-8 border-b-4 border-r-4 transition-colors duration-300 ${borderColor}`}
+          />
 
           {/* Scan line animation for live mode */}
           {mode === 'live' && liveScanActive && (

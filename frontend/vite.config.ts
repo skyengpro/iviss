@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '::',
       port: 8080,
+      allowedHosts: ['stoic-studio-nest.ngrok-free.dev'],
       hmr: {
         overlay: false,
       },
