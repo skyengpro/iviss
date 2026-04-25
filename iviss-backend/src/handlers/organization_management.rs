@@ -36,7 +36,7 @@ pub async fn create_organization(
     let org = create_org_query(&state.db, payload).await?;
     state
         .app_cache
-        .org_shift_hours
+        .org_work_time
         .insert(org.id, (org.start_work_time, org.end_work_time))
         .await;
 
@@ -101,7 +101,7 @@ pub async fn update_organization(
     let org = update_org_query(&state.db, id, payload).await?;
     state
         .app_cache
-        .org_shift_hours
+        .org_work_time
         .insert(org.id, (org.start_work_time, org.end_work_time))
         .await;
 
@@ -137,6 +137,7 @@ pub async fn delete_organization(
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     delete_org_query(&state.db, id).await?;
+    state.app_cache.org_work_time.remove(&id).await;
 
     tracing::info!(
         organization_id = %id,
