@@ -81,7 +81,11 @@ function PasswordSection() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canSubmit = currentPassword.trim() && newPassword.trim().length >= 8 && confirmPassword.trim() && !isLoading;
+  const canSubmit =
+    currentPassword.trim() &&
+    newPassword.trim().length >= 8 &&
+    confirmPassword.trim() &&
+    !isLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,7 +326,8 @@ export default function Settings() {
                   Change Password
                 </CardTitle>
                 <CardDescription>
-                  Enter your current password, then set a new password. Use at least 8 characters with a mix of letters and numbers.
+                  Enter your current password, then set a new password. Use at least 8 characters
+                  with a mix of letters and numbers.
                 </CardDescription>
               </CardHeader>
               <CardContent>
