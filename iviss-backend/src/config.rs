@@ -310,9 +310,19 @@ impl Config {
         if self.server_port == 0 {
             // return Err(anyhow!("SERVER_PORT cannot be 0"));
         }
+
+        // Reject Mock SMS provider in production
+        if self.environment == Environment::Production
+            && matches!(&self.sms_credentials, SmsProviderCredentials::Mock)
+        {
+            return Err(anyhow!(
+                "Mock SMS provider is not allowed in production environment"
+            ));
+        }
+
         // Validate SMS provider config in production
-        if self.environment == Environment::Production {
-            if matches!(
+        if self.environment == Environment::Production
+            && matches!(
                 &self.sms_credentials,
                 SmsProviderCredentials::Orange {
                     client_id,
@@ -320,11 +330,11 @@ impl Config {
                     ..
                 } if client_id.trim().is_empty()
                     || client_secret.trim().is_empty()
-            ) {
-                return Err(anyhow!(
-                    "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
-                ));
-            }
+            )
+        {
+            return Err(anyhow!(
+                "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
+            ));
         }
 
         if matches!(
