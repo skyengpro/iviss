@@ -1195,6 +1195,27 @@ pub async fn change_password(
         return Err(AppError::bad_request("New password cannot be empty"));
     }
 
+    // If current password is provided, verify it
+    if let Some(current_password) = &payload.current_password {
+        // Fetch user's current password hash
+        let user_password_hash: String = sqlx::query_scalar(
+            "SELECT password_hash FROM users WHERE id = $1 AND deleted_at IS NULL",
+        )
+        .bind(requester.user_id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(AppError::Database)?;
+
+        // Verify current password
+        let is_valid = crate::utils::password::verify_password(current_password, &user_password_hash)
+            .await
+            .map_err(|_| AppError::bad_request("Invalid current password"))?;
+
+        if !is_valid {
+            return Err(AppError::bad_request("Invalid current password"));
+        }
+    }
+
     let new_hash = crate::utils::password::hash_password(&payload.new_password).await?;
 
     sqlx::query(
