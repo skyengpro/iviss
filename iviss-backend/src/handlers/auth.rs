@@ -1207,9 +1207,10 @@ pub async fn change_password(
         .map_err(AppError::Database)?;
 
         // Verify current password
-        let is_valid = crate::utils::password::verify_password(current_password, &user_password_hash)
-            .await
-            .map_err(|_| AppError::bad_request("Invalid current password"))?;
+        let is_valid =
+            crate::utils::password::verify_password(current_password, &user_password_hash)
+                .await
+                .map_err(|_| AppError::bad_request("Invalid current password"))?;
 
         if !is_valid {
             return Err(AppError::bad_request("Invalid current password"));
