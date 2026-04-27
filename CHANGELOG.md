@@ -1,3 +1,10 @@
+# [1.0.0-rc.7](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.6...v1.0.0-rc.7) (2026-04-27)
+
+
+### Bug Fixes
+
+* **docs:** add teardown instructions to deployment guide and refine CI triggers ([26e2e33](https://github.com/skyengpro/iviss/commit/26e2e33e03d1b3714f9f7fb95e4422e72c217bc0))
+
 # [1.0.0-rc.6](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.5...v1.0.0-rc.6) (2026-04-22)
 
 
