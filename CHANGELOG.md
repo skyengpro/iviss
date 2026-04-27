@@ -1,3 +1,10 @@
+# [1.0.0-rc.8](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.7...v1.0.0-rc.8) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ci:** add missing terraform and ansible dependencies to unified pipeline ([0005c5c](https://github.com/skyengpro/iviss/commit/0005c5cf21ff65e2ad50d75b5dfbbed29b816fdd))
+
 # [1.0.0-rc.7](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.6...v1.0.0-rc.7) (2026-04-27)
 
 
