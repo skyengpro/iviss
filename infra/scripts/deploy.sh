@@ -164,6 +164,7 @@ vars = {
     'admin_bootstrap_password': app.get('admin_bootstrap_password', ''),
     'docker_password': docker_pass,
     'docker_username': docker_user,
+    'docker_org': os.environ.get('DOCKER_ORG', ''),
     
     'twilio_account_sid': providers.get('twilio_account_sid', ''),
     'twilio_auth_token': providers.get('twilio_auth_token', ''),
@@ -254,6 +255,7 @@ vars = {
     'smtp_from_email': os.environ.get('SMTP_FROM_EMAIL', ''),
     'docker_username': os.environ.get('DOCKER_USERNAME', ''),
     'docker_password': os.environ.get('DOCKER_PASSWORD', ''),
+    'docker_org': os.environ.get('DOCKER_ORG', ''),
 }
 
 with open('$VARS_FILE', 'w') as f:
