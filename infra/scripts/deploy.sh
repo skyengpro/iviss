@@ -17,6 +17,23 @@ TERRAFORM_DIR="$PROJECT_ROOT/infra/terraform"
 ANSIBLE_DIR="$PROJECT_ROOT/infra/ansible"
 VARS_FILE="$ANSIBLE_DIR/.deploy-vars.json"
 
+# Auto-detect DOCKER_ORG from git remote if not set
+if [ -z "$DOCKER_ORG" ]; then
+    # Try to get the remote URL (handles https and ssh)
+    GIT_REMOTE=$(git -C "$PROJECT_ROOT" remote get-url origin 2>/dev/null || echo "")
+    if [[ $GIT_REMOTE =~ github.com[:/]([^/]+)/ ]]; then
+        export DOCKER_ORG="${BASH_REMATCH[1]}"
+        echo "🔍 Auto-detected DOCKER_ORG from Git: $DOCKER_ORG"
+    fi
+fi
+
+# Validation: DOCKER_ORG is now required for the new docker-compose.yml
+if [ -z "$DOCKER_ORG" ]; then
+    echo "❌ FATAL ERROR: DOCKER_ORG is not set and could not be auto-detected."
+    echo "Please set it manually: export DOCKER_ORG=your-org-name"
+    exit 1
+fi
+
 # Load local .env if it exists
 if [ -f "$PROJECT_ROOT/.env" ]; then
     echo "📄 Loading variables from local .env..."
@@ -31,8 +48,7 @@ export CERTBOT_EMAIL="${2:-$CERTBOT_EMAIL}"
 
 # Automatic Version Detection (find latest tag if not provided)
 if [ -z "$IMAGE_TAG" ]; then
-    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-    # Remove 'v' prefix if it exists (e.g., v1.0.0 -> 1.0.0)
+    LATEST_TAG=$(git -C "$PROJECT_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "")
     export IMAGE_TAG="${LATEST_TAG#v}"
 fi
 echo "📍 Deployment Version: ${IMAGE_TAG:-latest}"
