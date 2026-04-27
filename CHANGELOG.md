@@ -1,3 +1,10 @@
+# [1.0.0-rc.13](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.12...v1.0.0-rc.13) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ci:** complete dynamic infrastructure and registry synchronization ([16b7d71](https://github.com/skyengpro/iviss/commit/16b7d715232f506b5a316fdd565d6cfcc0cda636))
+
 # [1.0.0-rc.12](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.11...v1.0.0-rc.12) (2026-04-27)
 
 
