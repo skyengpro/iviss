@@ -263,8 +263,9 @@ impl Config {
                     sender_number,
                 })
             }
+            "mock" | "none" => Ok(SmsProviderCredentials::Mock),
             other => Err(anyhow!(
-                "Invalid SMS_PROVIDER value: '{other}'. Must be one of: vonage, twilio, orange"
+                "Invalid SMS_PROVIDER value: '{other}'. Must be one of: vonage, twilio, orange, mock"
             )),
         }
     }

@@ -5,7 +5,7 @@ x-default-logging: &default-logging
     max-file: "3"
 
 x-backend-environment: &backend-environment
-  DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
+  DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-iviss_dev}
   EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:?EXTERNAL_POSTGRES_PASSWORD must be set}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
   SQLX_OFFLINE: "true"
   JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
@@ -177,7 +177,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 60s
     logging: *default-logging
     deploy:
       resources:
