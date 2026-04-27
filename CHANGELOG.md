@@ -1,3 +1,10 @@
+# [1.0.0-rc.11](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.10...v1.0.0-rc.11) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ci:** manage image version in terraform and add provider fallbacks ([0767520](https://github.com/skyengpro/iviss/commit/07675203a5a73911f4b41fce0aedc12515ecff94))
+
 # [1.0.0-rc.10](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.9...v1.0.0-rc.10) (2026-04-27)
 
 
