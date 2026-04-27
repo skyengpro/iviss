@@ -104,6 +104,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -111,6 +113,16 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
           role-session-name: iviss-deploy-${{ github.run_id }}
           aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Setup Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
 
       - name: Deploy via Script
         env:
