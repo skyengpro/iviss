@@ -43,6 +43,32 @@ echo "🚀 Starting IVISS Production Deployment..."
 echo "📦 Provisioning infrastructure..."
 cd "$TERRAFORM_DIR"
 terraform init -reconfigure
+
+# 1.5 Auto-healing: Import existing resources if missing from state
+PROJECT="iviss"
+ENV="production"
+REGION="eu-west-1"
+
+# Helper for conditional import
+auto_import() {
+    local resource=$1
+    local name=$2
+    local query=$3
+    local check_cmd=$4
+
+    echo "🔍 Checking for $name..."
+    if eval "$check_cmd" >/dev/null 2>&1; then
+        if ! terraform state list | grep -q "$resource"; then
+            echo "⚠️  $name exists but is not in state. Importing..."
+            terraform import -var="domain_name=${DOMAIN_NAME:-}" -var="certbot_email=${CERTBOT_EMAIL:-}" "$resource" "$name" || echo "Import of $name failed, proceeding..."
+        fi
+    fi
+}
+
+auto_import "aws_lightsail_key_pair.iviss_key" "${PROJECT}-${ENV}-key-v2" "Key Pair" "aws lightsail get-key-pair --key-pair-name ${PROJECT}-${ENV}-key-v2 --region $REGION"
+auto_import "aws_lightsail_static_ip.iviss_ip" "${PROJECT}-${ENV}-ip-v2" "Static IP" "aws lightsail get-static-ip --static-ip-name ${PROJECT}-${ENV}-ip-v2 --region $REGION"
+auto_import "aws_lightsail_instance.iviss_app" "${PROJECT}-${ENV}-app-v2" "Instance" "aws lightsail get-instance --instance-name ${PROJECT}-${ENV}-app-v2 --region $REGION"
+
 terraform apply -auto-approve \
   -var="auto_deploy=false" \
   -var="domain_name=${DOMAIN_NAME:-}" \
