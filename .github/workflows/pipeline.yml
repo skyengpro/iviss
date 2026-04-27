@@ -26,18 +26,14 @@ jobs:
 
       - name: Semantic Release
         id: semantic
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Run semantic-release and capture output
-          npx -y \
-            -p semantic-release \
-            -p @semantic-release/changelog \
-            -p @semantic-release/commit-analyzer \
-            -p @semantic-release/release-notes-generator \
-            -p @semantic-release/git \
-            -p @semantic-release/github \
-            semantic-release
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+          branch: ${{ github.ref_name }}
 
   docker:
     name: Build & Push Docker Images
