@@ -127,7 +127,7 @@ jobs:
           DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
           CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
-          IMAGE_TAG: ${{ needs.release.outputs.new_release_version }}
+          IMAGE_TAG: ${{ needs.release.outputs.new_release_version || 'latest' }}
           ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
           POSTGRES_USER: ${{ vars.POSTGRES_USER || 'iviss_user' }}
           POSTGRES_DB: ${{ vars.POSTGRES_DB || 'iviss_dev' }}
