@@ -1,3 +1,10 @@
+# [1.0.0-rc.9](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.8...v1.0.0-rc.9) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ci:** bump terraform version to 1.10.0 ([3086c27](https://github.com/skyengpro/iviss/commit/3086c27bdaaac68026324d6790a2ab1aa9f1d43a))
+
 # [1.0.0-rc.8](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.7...v1.0.0-rc.8) (2026-04-27)
 
 
