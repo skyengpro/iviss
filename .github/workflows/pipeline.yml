@@ -123,6 +123,7 @@ jobs:
       - name: Deploy via Script
         env:
           USE_SECRETS_MANAGER: "true"
+          DOCKER_ORG: ${{ github.repository_owner }}
           DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
           CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
