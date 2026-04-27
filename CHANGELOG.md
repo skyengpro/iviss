@@ -1,3 +1,10 @@
+# [1.0.0-rc.12](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.11...v1.0.0-rc.12) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ci:** resolved version propagation by using semantic-release-action ([1a9f4be](https://github.com/skyengpro/iviss/commit/1a9f4beb772862950e058985ffb05ba09f231858))
+
 # [1.0.0-rc.11](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.10...v1.0.0-rc.11) (2026-04-27)
 
 
