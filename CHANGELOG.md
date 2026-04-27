@@ -1,3 +1,10 @@
+# [1.0.0-rc.6](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.5...v1.0.0-rc.6) (2026-04-22)
+
+
+### Bug Fixes
+
+* add missing IAM and SecretsManager read permissions for CI/CD ([c5e74dd](https://github.com/skyengpro/iviss/commit/c5e74dd5935602baf58462cf01991b895b992524))
+
 # [1.0.0-rc.5](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.4...v1.0.0-rc.5) (2026-04-22)
 
 
