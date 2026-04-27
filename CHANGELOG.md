@@ -1,3 +1,10 @@
+# [1.0.0-rc.10](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.9...v1.0.0-rc.10) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ci:** implement automated terraform state recovery in deploy script ([2b9752c](https://github.com/skyengpro/iviss/commit/2b9752cc32bfede853ae2f24bc454729cd702377))
+
 # [1.0.0-rc.9](https://github.com/skyengpro/iviss/compare/v1.0.0-rc.8...v1.0.0-rc.9) (2026-04-27)
 
 
