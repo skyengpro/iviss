@@ -77,8 +77,19 @@ terraform apply -auto-approve \
 # 2. Extract Infrastructure Details
 INSTANCE_IP=$(terraform output -raw instance_ip)
 PRIVATE_KEY=$(terraform output -raw private_key)
+TF_IMAGE_TAG=$(terraform output -raw image_tag 2>/dev/null || echo "latest")
 
-# 3. Save SSH Key
+# 2.5 Resolve Deployment Version (Override order: ENV > Terraform > Git Tag)
+if [ -n "$IMAGE_TAG" ]; then
+    echo "📍 Using IMAGE_TAG from environment: $IMAGE_TAG"
+elif [ "$TF_IMAGE_TAG" != "latest" ]; then
+    export IMAGE_TAG="$TF_IMAGE_TAG"
+    echo "📍 Using IMAGE_TAG from Terraform: $IMAGE_TAG"
+else
+    LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    export IMAGE_TAG="${LATEST_TAG#v}"
+    echo "📍 Using IMAGE_TAG from Git: ${IMAGE_TAG:-latest}"
+fi
 echo "$PRIVATE_KEY" > "$ANSIBLE_DIR/iviss-key.pem"
 chmod 600 "$ANSIBLE_DIR/iviss-key.pem"
 
@@ -178,8 +189,8 @@ vars = {
     'admin_bootstrap_email': os.environ.get('ADMIN_BOOTSTRAP_EMAIL', ''),
     'admin_bootstrap_phone': os.environ.get('ADMIN_BOOTSTRAP_PHONE', ''),
     'admin_bootstrap_username': os.environ.get('ADMIN_BOOTSTRAP_USERNAME', ''),
-    'sms_provider': os.environ.get('SMS_PROVIDER', ''),
-    'email_provider': os.environ.get('EMAIL_PROVIDER', ''),
+    'sms_provider': os.environ.get('SMS_PROVIDER') or 'mock',
+    'email_provider': os.environ.get('EMAIL_PROVIDER') or 'mock',
     'resend_from_email': os.environ.get('RESEND_FROM_EMAIL', ''),
     'smtp_host': os.environ.get('SMTP_HOST', ''),
     'smtp_port': os.environ.get('SMTP_PORT', ''),

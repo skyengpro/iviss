@@ -34,6 +34,12 @@ variable "auto_deploy" {
   default     = true
 }
 
+variable "image_tag" {
+  description = "The Docker image tag to deploy (e.g. 1.0.0-rc.8 or latest)"
+  type        = string
+  default     = "latest"
+}
+
 # Application Secrets (Used if auto_deploy is true)
 variable "jwt_private_key_pem" { 
   type      = string 
