@@ -56,9 +56,21 @@ terraform apply -var="domain_name=yourdomain.com"
 Or use the wrapper script:
 ```bash
 cd infra/
+export IMAGE_TAG=latest
 export USE_SECRETS_MANAGER=true
 ./scripts/deploy.sh
 ```
+
+### C. Infrastructure Teardown
+To completely remove the provisioned infrastructure (Instance, Ports, Static IP attachment), use the destroy script:
+
+```bash
+cd infra/
+./scripts/destroy.sh
+```
+
+> [!CAUTION]
+> This will permanently delete the Lightsail instance and its data. It will **not** delete the Static IP or the Terraform State bucket, allowing you to re-deploy to the same entry point later.
 
 ---
 
@@ -331,4 +343,18 @@ openssl rand -hex 32
 - **Fix**: Ensure `DOMAIN_NAME` is set in GitHub and `deploy.sh` runs successfully.
 
 ---
-**Version 2.1 | Last Updated: 2026-04-22**
+
+## 13. Teardown & Maintenance
+
+### A. Partial Destruction (Instance only)
+To save costs while keeping your Static IP and DNS settings intact:
+```bash
+cd infra/terraform
+terraform destroy -target=aws_lightsail_instance.iviss_app
+```
+
+### B. Full Cleanup
+If you need to wipe everything including the remote state storage (S3/DynamoDB), you must manually delete the S3 bucket and DynamoDB table via the AWS CLI or Console, as these are "bootstrap" resources not managed by the main `iviss` Terraform module.
+
+---
+**Version 2.2 | Last Updated: 2026-04-27**
