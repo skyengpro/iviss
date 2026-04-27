@@ -131,17 +131,23 @@ jobs:
           ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
           POSTGRES_USER: ${{ vars.POSTGRES_USER || 'iviss_user' }}
           POSTGRES_DB: ${{ vars.POSTGRES_DB || 'iviss_dev' }}
-          SMTP_HOST: ${{ vars.SMTP_HOST }}
-          SMTP_PORT: ${{ vars.SMTP_PORT }}
-          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
-          SMTP_FROM_EMAIL: ${{ vars.SMTP_FROM_EMAIL }}
-          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
-          SMS_PROVIDER: ${{ vars.SMS_PROVIDER }}
-          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER }}
-          ADMIN_BOOTSTRAP_EMAIL: ${{ vars.ADMIN_BOOTSTRAP_EMAIL }}
-          ADMIN_BOOTSTRAP_USERNAME: ${{ vars.ADMIN_BOOTSTRAP_USERNAME }}
-          SHIFT_START_HOUR: ${{ vars.SHIFT_START_HOUR }}
-          SHIFT_END_HOUR: ${{ vars.SHIFT_END_HOUR }}
+          # Admin Bootstrap
+          ADMIN_BOOTSTRAP_EMAIL: ${{ vars.ADMIN_BOOTSTRAP_EMAIL || secrets.ADMIN_BOOTSTRAP_EMAIL }}
+          ADMIN_BOOTSTRAP_PASSWORD: ${{ vars.ADMIN_BOOTSTRAP_PASSWORD || secrets.ADMIN_BOOTSTRAP_PASSWORD }}
+          ADMIN_BOOTSTRAP_PHONE: ${{ vars.ADMIN_BOOTSTRAP_PHONE || secrets.ADMIN_BOOTSTRAP_PHONE }}
+          ADMIN_BOOTSTRAP_USERNAME: ${{ vars.ADMIN_BOOTSTRAP_USERNAME || secrets.ADMIN_BOOTSTRAP_USERNAME }}
+          # Shift configuration
+          SHIFT_START_HOUR: ${{ vars.SHIFT_START_HOUR || '6' }}
+          SHIFT_END_HOUR: ${{ vars.SHIFT_END_HOUR || '18' }}
+          # Provider overrides
+          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL || secrets.RESEND_FROM_EMAIL }}
+          SMTP_HOST: ${{ vars.SMTP_HOST || secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT }}
+          SMTP_FROM_EMAIL: ${{ vars.SMTP_FROM_EMAIL || secrets.SMTP_FROM_EMAIL }}
+          SMTP_USERNAME: ${{ vars.SMTP_USERNAME || secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMS_PROVIDER: ${{ vars.SMS_PROVIDER || 'mock' }}
+          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'mock' }}
         run: |
           chmod +x ./infra/scripts/deploy.sh
           ./infra/scripts/deploy.sh
