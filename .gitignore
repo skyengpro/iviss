@@ -57,5 +57,5 @@ iviss-backend/scripts/start-ngrok.sh
 iviss-backend/docs/redis-to-moka-migration.md
 
 
-#Ignore vscode AI rules
+# Ignore Codacy instruction files
 .github/instructions/codacy.instructions.md

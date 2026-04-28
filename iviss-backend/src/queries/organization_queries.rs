@@ -168,13 +168,13 @@ pub async fn get_organization_work_time_cached(
     cache: &crate::app_cache::AppCache,
     organization_id: Uuid,
 ) -> Result<(u32, u32), AppError> {
-    if let Some((start, end)) = cache.org_shift_hours.get(&organization_id).await {
+    if let Some((start, end)) = cache.org_work_time.get(&organization_id).await {
         return Ok((start, end));
     }
 
     let (start, end) = get_organization_work_time(pool, organization_id).await?;
     cache
-        .org_shift_hours
+        .org_work_time
         .insert(organization_id, (start, end))
         .await;
     Ok((start, end))
@@ -207,10 +207,7 @@ pub async fn load_organizations_work_time_to_cache(
                     let org_id: Uuid = row.get("id");
                     let start: u32 = row.get::<i32, _>("start_work_time") as u32;
                     let end: u32 = row.get::<i32, _>("end_work_time") as u32;
-                    cache_clone
-                        .org_shift_hours
-                        .insert(org_id, (start, end))
-                        .await;
+                    cache_clone.org_work_time.insert(org_id, (start, end)).await;
                 }
 
                 tracing::info!(

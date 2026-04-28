@@ -22,7 +22,7 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
 
     // 1. Color-adaptive crop (isolates the plate region based on known color profiles)
     let cropped = color_adaptive_crop(&img).unwrap_or_else(|| img.clone());
-    
+
     // 2. Smart upscaling for small crops (ensures characters are at least ~30px tall)
     let (cw, ch) = cropped.dimensions();
     let base_img = if cw < 400 {
@@ -48,10 +48,14 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // Fallback: 1.5x upscale with contrast boost and unsharpening
     let (bw, bh) = base_img.dimensions();
     let upscale_img = base_img
-        .resize((bw as f32 * 1.5) as u32, (bh as f32 * 1.5) as u32, FilterType::Triangle)
+        .resize(
+            (bw as f32 * 1.5) as u32,
+            (bh as f32 * 1.5) as u32,
+            FilterType::Triangle,
+        )
         .adjust_contrast(25.0)
         .unsharpen(1.0, 1);
-        
+
     let second = run_ocr(&upscale_img)?;
     Ok(pick_best(first, second))
 }
@@ -59,34 +63,41 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
 fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage> {
     let rgb = img.to_rgb8();
     let (w, h) = rgb.dimensions();
-    
+ type ColorProfile = fn(f32, f32, f32) -> bool;
     // HSV profiles for Cameroon plates: (Name, Box<dyn Fn(H,S,V) -> bool>)
-    let profiles: &[(&str, fn(f32, f32, f32) -> bool)] = &[
-        ("orange", |h, s, v| h >= 10.0 && h <= 30.0 && s >= 0.4 && v >= 0.4),
-        ("yellow", |h, s, v| h >= 20.0 && h <= 50.0 && s >= 0.3 && v >= 0.5),
+    let profiles: &[(&str, ColorProfile)] = &[
+        ("orange", |h, s, v| {
+            (10.0..=30.0).contains(&h) && s >= 0.4 && v >= 0.4
+        }),
+        ("yellow", |h, s, v| {
+            (20.0..=50.0).contains(&h) && s >= 0.3 && v >= 0.5
+        }),
         ("white", |_, s, v| s <= 0.15 && v >= 0.8),
-        ("red", |h, s, v| (h <= 10.0 || h >= 340.0) && s >= 0.4 && v >= 0.3),
-        ("green", |h, s, v| h >= 35.0 && h <= 85.0 && s >= 0.2 && v >= 0.2),
+        ("red", |h, s, v| {
+            (h <= 10.0 || h >= 340.0) && s >= 0.4 && v >= 0.3
+        }),
+        ("green", |h, s, v| {
+            (35.0..=85.0).contains(&h) && s >= 0.2 && v >= 0.2
+        }),
     ];
-    
+
     for (name, condition) in profiles {
-        let mut mask = image::GrayImage::new(w, h);
         let mut match_count = 0;
-        
+
         let mut min_x = u32::MAX;
         let mut min_y = u32::MAX;
         let mut max_x = 0;
         let mut max_y = 0;
-        
+
         for (x, y, p) in rgb.enumerate_pixels() {
             let r = p[0] as f32 / 255.0;
             let g = p[1] as f32 / 255.0;
             let b = p[2] as f32 / 255.0;
-            
+
             let cmax = r.max(g).max(b);
             let cmin = r.min(g).min(b);
             let delta = cmax - cmin;
-            
+
             let mut hue = 0.0;
             if delta > 0.0 {
                 if cmax == r {
@@ -97,29 +108,38 @@ fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage>
                     hue = 60.0 * (((r - g) / delta) + 4.0);
                 }
             }
-            if hue < 0.0 { hue += 360.0; }
-            
+            if hue < 0.0 {
+                hue += 360.0;
+            }
+
             let s = if cmax == 0.0 { 0.0 } else { delta / cmax };
             let v = cmax;
-            
+
             if condition(hue, s, v) {
-                mask.put_pixel(x, y, image::Luma([255]));
                 match_count += 1;
-                if x < min_x { min_x = x; }
-                if x > max_x { max_x = x; }
-                if y < min_y { min_y = y; }
-                if y > max_y { max_y = y; }
+                if x < min_x {
+                    min_x = x;
+                }
+                if x > max_x {
+                    max_x = x;
+                }
+                if y < min_y {
+                    min_y = y;
+                }
+                if y > max_y {
+                    max_y = y;
+                }
             }
         }
-        
+
         // If matched region is at least 1% of the image
         if match_count > (w * h) / 100 && min_x <= max_x && min_y <= max_y {
             let cw = max_x - min_x + 1;
             let ch = max_y - min_y + 1;
             let aspect = cw as f32 / ch as f32;
-            
+
             // Standard plates are ~4.7:1, two-line plates are ~2:1. Allow 1.5 to 7.0.
-            if aspect >= 1.5 && aspect <= 7.0 {
+            if (1.5..=7.0).contains(&aspect) {
                 tracing::info!("Color profile match: {} (aspect {:.1})", name, aspect);
                 // Add 10% padding
                 let pad_w = (cw as f32 * 0.1) as u32;
@@ -179,7 +199,12 @@ pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData 
     }
 
     // Character-level voting if both are invalid but have the same length
-    if !a.plate.is_empty() && !b.plate.is_empty() && a.plate.len() == b.plate.len() {
+    if !a.format_valid
+        && !b.format_valid
+        && !a.plate.is_empty()
+        && !b.plate.is_empty()
+        && a.plate.len() == b.plate.len()
+    {
         let mut voted = String::new();
         for (ca, cb) in a.plate.chars().zip(b.plate.chars()) {
             if ca == cb {
@@ -189,7 +214,11 @@ pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData 
                 voted.push(if a.confidence > b.confidence { ca } else { cb });
             }
         }
-        let mut res = if a.confidence > b.confidence { a.clone() } else { b.clone() };
+        let mut res = if a.confidence > b.confidence {
+            a.clone()
+        } else {
+            b.clone()
+        };
         res.plate = voted;
         if PHOTO_PLATE_REGEX.is_match(&res.plate) {
             res.format_valid = true;

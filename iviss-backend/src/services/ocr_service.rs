@@ -83,16 +83,16 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
 
     // 3. Preprocessing: deskew → percentile contrast stretch → adaptive threshold → morphology
     let process_start = std::time::Instant::now();
-    
+
     // Rotation correction
     let deskewed = deskew(&gray);
-    
+
     // Contrast stretch (using 2nd/98th percentiles)
     let stretched = contrast_stretch_percentile(&deskewed);
-    
+
     // Local adaptive threshold
     let binary_raw = adaptive_threshold(&stretched, ADAPTIVE_RADIUS, ADAPTIVE_C);
-    
+
     // Morphological opening to clean up noise (small white blobs in black regions)
     let binary_clean = morphology_open(&binary_raw);
 
@@ -398,8 +398,7 @@ pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
     let mut lut = [0u8; 256];
     for (i, v) in lut.iter_mut().enumerate() {
         let mut val = (i as f32 - min_val as f32) / range * 255.0;
-        if val < 0.0 { val = 0.0; }
-        if val > 255.0 { val = 255.0; }
+        val = val.clamp(0.0, 255.0);
         *v = val as u8;
     }
 
@@ -415,34 +414,34 @@ pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
 pub fn deskew(img: &GrayImage) -> GrayImage {
     use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
     let (w, h) = img.dimensions();
-    
+
     let mut best_angle = 0.0;
     let mut max_variance = 0.0;
 
     for angle_deg in -7..=7 {
         let rad = (angle_deg as f32).to_radians();
         let rotated = rotate_about_center(img, rad, Interpolation::Bilinear, image::Luma([0]));
-        
+
         let mut row_sums = vec![0u32; h as usize];
         for y in 0..h {
             for x in 0..w {
                 row_sums[y as usize] += rotated.get_pixel(x, y)[0] as u32;
             }
         }
-        
+
         let mean = row_sums.iter().sum::<u32>() as f32 / h as f32;
         let mut variance = 0.0;
         for &sum in &row_sums {
             let diff = sum as f32 - mean;
             variance += diff * diff;
         }
-        
+
         if variance > max_variance {
             max_variance = variance;
             best_angle = rad;
         }
     }
-    
+
     if best_angle.abs() > 0.01 {
         rotate_about_center(img, best_angle, Interpolation::Bilinear, image::Luma([0]))
     } else {
@@ -454,32 +453,38 @@ pub fn deskew(img: &GrayImage) -> GrayImage {
 /// Cleans up small noise specs in the binary image.
 pub fn morphology_open(img: &GrayImage) -> GrayImage {
     let (w, h) = img.dimensions();
-    if w < 3 || h < 3 { return img.clone(); }
+    if w < 3 || h < 3 {
+        return img.clone();
+    }
 
-    // Erode
-    let mut eroded = GrayImage::new(w, h);
+    // Erode (initialize with input to preserve borders)
+    let mut eroded = img.clone();
     for y in 1..(h - 1) {
         for x in 1..(w - 1) {
             let mut min_val = 255;
             for dy in -1..=1 {
                 for dx in -1..=1 {
                     let px = img.get_pixel((x as i32 + dx) as u32, (y as i32 + dy) as u32)[0];
-                    if px < min_val { min_val = px; }
+                    if px < min_val {
+                        min_val = px;
+                    }
                 }
             }
             eroded.put_pixel(x, y, image::Luma([min_val]));
         }
     }
 
-    // Dilate
-    let mut out = GrayImage::new(w, h);
+    // Dilate (initialize with eroded to preserve borders)
+    let mut out = eroded.clone();
     for y in 1..(h - 1) {
         for x in 1..(w - 1) {
             let mut max_val = 0;
             for dy in -1..=1 {
                 for dx in -1..=1 {
                     let px = eroded.get_pixel((x as i32 + dx) as u32, (y as i32 + dy) as u32)[0];
-                    if px > max_val { max_val = px; }
+                    if px > max_val {
+                        max_val = px;
+                    }
                 }
             }
             out.put_pixel(x, y, image::Luma([max_val]));

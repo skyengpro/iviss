@@ -147,7 +147,8 @@
     "processingPhoto": "Traitement de la photo...",
     "photoError": "Échec du traitement de la photo. Veuillez réessayer.",
     "captureHint": "Positionnez la plaque dans le cadre et appuyez pour capturer",
-    "liveScanHint": "Restez stable — la plaque sera détectée automatiquement"
+    "liveScanHint": "Restez stable — la plaque sera détectée automatiquement",
+    "tapToRetry": "Appuyez pour réessayer"
   },
   "mobileSearch": {
     "title": "Rechercher un véhicule",

@@ -152,7 +152,7 @@ export default function MobileScan() {
               size="sm"
               className="bg-white text-black hover:bg-gray-200 rounded-full shadow-lg font-semibold px-6"
             >
-              Tap to Retry
+              {t('mobileScan.tapToRetry')}
             </Button>
           </div>
         )}
