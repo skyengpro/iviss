@@ -63,7 +63,7 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
 fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage> {
     let rgb = img.to_rgb8();
     let (w, h) = rgb.dimensions();
- type ColorProfile = fn(f32, f32, f32) -> bool;
+    type ColorProfile = fn(f32, f32, f32) -> bool;
     // HSV profiles for Cameroon plates: (Name, Box<dyn Fn(H,S,V) -> bool>)
     let profiles: &[(&str, ColorProfile)] = &[
         ("orange", |h, s, v| {
