@@ -96,7 +96,11 @@ export default function BackOfficeReports() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Fetch control data for reports
-  const { data: controlsData, isLoading: isLoadingControls, error: controlsError } = useQuery({
+  const {
+    data: controlsData,
+    isLoading: isLoadingControls,
+    error: controlsError,
+  } = useQuery({
     queryKey: ['reports-controls', filters.startDate, filters.endDate, filters.organizationId],
     queryFn: async (): Promise<PagedControlsResponse> => {
       const qs = new URLSearchParams();
@@ -126,7 +130,7 @@ export default function BackOfficeReports() {
     staleTime: 30000, // 30 seconds
   });
 
-  const controls: ListControlResponse[] = controlsData?.items ?? [];
+  const controls = useMemo(() => controlsData?.items ?? [], [controlsData?.items]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -174,8 +178,7 @@ export default function BackOfficeReports() {
 
     controls.forEach((control) => {
       const orgId = control.organization_id;
-      const orgName =
-        organizations?.find((o) => o.id === orgId)?.name || 'Unknown Organization';
+      const orgName = organizations?.find((o) => o.id === orgId)?.name || 'Unknown Organization';
 
       if (!orgMap.has(orgId)) {
         orgMap.set(orgId, {
@@ -267,7 +270,8 @@ export default function BackOfficeReports() {
         // Add report type
         doc.setFontSize(14);
         doc.setFont('helvetica', 'normal');
-        const reportTypeLabel = reportTypeOptions.find(opt => opt.value === filters.reportType)?.label || '';
+        const reportTypeLabel =
+          reportTypeOptions.find((opt) => opt.value === filters.reportType)?.label || '';
         doc.text(reportTypeLabel, 14, 30);
 
         // Add metadata
@@ -275,9 +279,10 @@ export default function BackOfficeReports() {
         doc.setTextColor(100);
         doc.text(`Date Range: ${filters.startDate} to ${filters.endDate}`, 14, 38);
 
-        const orgName = filters.organizationId === 'all'
-          ? 'All Organizations'
-          : organizations?.find(o => o.id === filters.organizationId)?.name || 'Unknown';
+        const orgName =
+          filters.organizationId === 'all'
+            ? 'All Organizations'
+            : organizations?.find((o) => o.id === filters.organizationId)?.name || 'Unknown';
         doc.text(`Organization: ${orgName}`, 14, 44);
         doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 50);
 
@@ -290,26 +295,38 @@ export default function BackOfficeReports() {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.text(`Total Controls: ${stats.total}`, 14, 68);
-        doc.text(`Valid: ${stats.valid} (${stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}%)`, 14, 74);
-        doc.text(`Warning: ${stats.warning} (${stats.total > 0 ? Math.round((stats.warning / stats.total) * 100) : 0}%)`, 14, 80);
-        doc.text(`Critical: ${stats.critical} (${stats.total > 0 ? Math.round((stats.critical / stats.total) * 100) : 0}%)`, 14, 86);
+        doc.text(
+          `Valid: ${stats.valid} (${stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}%)`,
+          14,
+          74
+        );
+        doc.text(
+          `Warning: ${stats.warning} (${stats.total > 0 ? Math.round((stats.warning / stats.total) * 100) : 0}%)`,
+          14,
+          80
+        );
+        doc.text(
+          `Critical: ${stats.critical} (${stats.total > 0 ? Math.round((stats.critical / stats.total) * 100) : 0}%)`,
+          14,
+          86
+        );
 
         // Add table based on report type
-        let tableData: any[][] = [];
+        let tableData: string[][] = [];
         let headers: string[] = [];
 
         if (filters.reportType === 'control-summary') {
           headers = ['Plate Number', 'Status', 'Agent', 'Organization', 'Date'];
-          tableData = controls.map(control => [
+          tableData = controls.map((control) => [
             control.plate_number,
             control.status,
             control.agent_name || 'Unknown',
-            organizations?.find(o => o.id === control.organization_id)?.name || 'Unknown',
+            organizations?.find((o) => o.id === control.organization_id)?.name || 'Unknown',
             new Date(control.timestamp).toLocaleDateString(),
           ]);
         } else if (filters.reportType === 'agent-performance') {
           headers = ['Agent Name', 'Total Controls', 'Valid', 'Warning', 'Critical'];
-          tableData = agentStats.map(agent => [
+          tableData = agentStats.map((agent) => [
             agent.agentName,
             agent.totalControls.toString(),
             agent.validControls.toString(),
@@ -318,7 +335,7 @@ export default function BackOfficeReports() {
           ]);
         } else if (filters.reportType === 'organization-stats') {
           headers = ['Organization', 'Total Controls', 'Active Agents', 'Alerts'];
-          tableData = organizationStats.map(org => [
+          tableData = organizationStats.map((org) => [
             org.organizationName,
             org.totalControls.toString(),
             org.activeAgents.toString(),
@@ -326,12 +343,14 @@ export default function BackOfficeReports() {
           ]);
         } else {
           headers = ['Plate Number', 'Status', 'Agent', 'Date'];
-          tableData = controls.slice(0, 50).map(control => [
-            control.plate_number,
-            control.status,
-            control.agent_name || 'Unknown',
-            new Date(control.timestamp).toLocaleDateString(),
-          ]);
+          tableData = controls
+            .slice(0, 50)
+            .map((control) => [
+              control.plate_number,
+              control.status,
+              control.agent_name || 'Unknown',
+              new Date(control.timestamp).toLocaleDateString(),
+            ]);
         }
 
         // Add table using autoTable plugin
@@ -396,18 +415,36 @@ export default function BackOfficeReports() {
         const metadataData = [
           ['IVISS Control Report'],
           [''],
-          ['Report Type', reportTypeOptions.find(opt => opt.value === filters.reportType)?.label || ''],
+          [
+            'Report Type',
+            reportTypeOptions.find((opt) => opt.value === filters.reportType)?.label || '',
+          ],
           ['Date Range', `${filters.startDate} to ${filters.endDate}`],
-          ['Organization', filters.organizationId === 'all'
-            ? 'All Organizations'
-            : organizations?.find(o => o.id === filters.organizationId)?.name || 'Unknown'],
+          [
+            'Organization',
+            filters.organizationId === 'all'
+              ? 'All Organizations'
+              : organizations?.find((o) => o.id === filters.organizationId)?.name || 'Unknown',
+          ],
           ['Generated', new Date().toLocaleString()],
           [''],
           ['Summary Statistics'],
           ['Total Controls', stats.total],
-          ['Valid Controls', stats.valid, `${stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}%`],
-          ['Warning Controls', stats.warning, `${stats.total > 0 ? Math.round((stats.warning / stats.total) * 100) : 0}%`],
-          ['Critical Controls', stats.critical, `${stats.total > 0 ? Math.round((stats.critical / stats.total) * 100) : 0}%`],
+          [
+            'Valid Controls',
+            stats.valid,
+            `${stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}%`,
+          ],
+          [
+            'Warning Controls',
+            stats.warning,
+            `${stats.total > 0 ? Math.round((stats.warning / stats.total) * 100) : 0}%`,
+          ],
+          [
+            'Critical Controls',
+            stats.critical,
+            `${stats.total > 0 ? Math.round((stats.critical / stats.total) * 100) : 0}%`,
+          ],
         ];
         const wsMetadata = XLSX.utils.aoa_to_sheet(metadataData);
         XLSX.utils.book_append_sheet(wb, wsMetadata, 'Summary');
@@ -416,11 +453,11 @@ export default function BackOfficeReports() {
         if (filters.reportType === 'control-summary') {
           const controlData = [
             ['Plate Number', 'Status', 'Agent', 'Organization', 'Date', 'Location'],
-            ...controls.map(control => [
+            ...controls.map((control) => [
               control.plate_number,
               control.status,
               control.agent_name || 'Unknown',
-              organizations?.find(o => o.id === control.organization_id)?.name || 'Unknown',
+              organizations?.find((o) => o.id === control.organization_id)?.name || 'Unknown',
               new Date(control.timestamp).toLocaleString(),
               control.location?.address || '',
             ]),
@@ -441,7 +478,7 @@ export default function BackOfficeReports() {
         } else if (filters.reportType === 'agent-performance') {
           const agentData = [
             ['Agent Name', 'Total Controls', 'Valid', 'Warning', 'Critical', 'Success Rate'],
-            ...agentStats.map(agent => [
+            ...agentStats.map((agent) => [
               agent.agentName,
               agent.totalControls,
               agent.validControls,
@@ -466,7 +503,7 @@ export default function BackOfficeReports() {
         } else if (filters.reportType === 'organization-stats') {
           const orgData = [
             ['Organization', 'Total Controls', 'Active Agents', 'Alerts', 'Alert Rate'],
-            ...organizationStats.map(org => [
+            ...organizationStats.map((org) => [
               org.organizationName,
               org.totalControls,
               org.activeAgents,
@@ -490,11 +527,11 @@ export default function BackOfficeReports() {
           // Vehicle status or default
           const vehicleData = [
             ['Plate Number', 'Status', 'Agent', 'Organization', 'Date'],
-            ...controls.map(control => [
+            ...controls.map((control) => [
               control.plate_number,
               control.status,
               control.agent_name || 'Unknown',
-              organizations?.find(o => o.id === control.organization_id)?.name || 'Unknown',
+              organizations?.find((o) => o.id === control.organization_id)?.name || 'Unknown',
               new Date(control.timestamp).toLocaleString(),
             ]),
           ];
@@ -556,7 +593,9 @@ export default function BackOfficeReports() {
                   Failed to Load Data
                 </h3>
                 <p className="mt-1 text-sm text-red-700 dark:text-red-300">
-                  {controlsError instanceof Error ? controlsError.message : 'An error occurred while fetching report data.'}
+                  {controlsError instanceof Error
+                    ? controlsError.message
+                    : 'An error occurred while fetching report data.'}
                 </p>
                 <Button
                   onClick={() => window.location.reload()}
@@ -861,11 +900,15 @@ export default function BackOfficeReports() {
                             <TableRow key={agent.agentId}>
                               <TableCell className="font-medium">{agent.agentName}</TableCell>
                               <TableCell className="font-bold">{agent.totalControls}</TableCell>
-                              <TableCell className="text-green-600">{agent.validControls}</TableCell>
+                              <TableCell className="text-green-600">
+                                {agent.validControls}
+                              </TableCell>
                               <TableCell className="text-yellow-600">
                                 {agent.warningControls}
                               </TableCell>
-                              <TableCell className="text-red-600">{agent.criticalControls}</TableCell>
+                              <TableCell className="text-red-600">
+                                {agent.criticalControls}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
