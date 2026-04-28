@@ -38,7 +38,7 @@ import {
   PieChart,
   Activity,
 } from 'lucide-react';
-import type { ListControlResponse, PagedControlsResponse } from '@/openapi-rq/requests/types.gen';
+import type { PagedControlsResponse } from '@/openapi-rq/requests/types.gen';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -817,151 +817,141 @@ export default function BackOfficeReports() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingControls ? (
-                <div className="flex h-64 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <Tabs value={filters.reportType} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 rounded-xl">
-                    <TabsTrigger value="control-summary" className="rounded-lg">
-                      Controls
-                    </TabsTrigger>
-                    <TabsTrigger value="agent-performance" className="rounded-lg">
-                      Agents
-                    </TabsTrigger>
-                    <TabsTrigger value="vehicle-status" className="rounded-lg">
-                      Vehicles
-                    </TabsTrigger>
-                    <TabsTrigger value="organization-stats" className="rounded-lg">
-                      Organizations
-                    </TabsTrigger>
-                  </TabsList>
+              <Tabs value={filters.reportType} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 rounded-xl">
+                  <TabsTrigger value="control-summary" className="rounded-lg">
+                    Controls
+                  </TabsTrigger>
+                  <TabsTrigger value="agent-performance" className="rounded-lg">
+                    Agents
+                  </TabsTrigger>
+                  <TabsTrigger value="vehicle-status" className="rounded-lg">
+                    Vehicles
+                  </TabsTrigger>
+                  <TabsTrigger value="organization-stats" className="rounded-lg">
+                    Organizations
+                  </TabsTrigger>
+                </TabsList>
 
-                  {/* Control Summary Tab */}
-                  <TabsContent value="control-summary" className="mt-6">
-                    <div className="overflow-hidden rounded-xl border border-border/60">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/40">
-                            <TableHead className="font-bold">Plate Number</TableHead>
-                            <TableHead className="font-bold">Status</TableHead>
-                            <TableHead className="font-bold">Agent</TableHead>
-                            <TableHead className="font-bold">Organization</TableHead>
-                            <TableHead className="font-bold">Date</TableHead>
+                {/* Control Summary Tab */}
+                <TabsContent value="control-summary" className="mt-6">
+                  <div className="overflow-hidden rounded-xl border border-border/60">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="font-bold">Plate Number</TableHead>
+                          <TableHead className="font-bold">Status</TableHead>
+                          <TableHead className="font-bold">Agent</TableHead>
+                          <TableHead className="font-bold">Organization</TableHead>
+                          <TableHead className="font-bold">Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {controls.slice(0, 10).map((control) => (
+                          <TableRow key={control.id}>
+                            <TableCell className="font-mono font-bold">
+                              {control.plate_number}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge variant={control.status} size="sm">
+                                {control.status}
+                              </StatusBadge>
+                            </TableCell>
+                            <TableCell>{control.agent_name}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {organizations?.find((o) => o.id === control.organization_id)?.name ||
+                                'Unknown'}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(control.timestamp).toLocaleDateString()}
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {controls.slice(0, 10).map((control) => (
-                            <TableRow key={control.id}>
-                              <TableCell className="font-mono font-bold">
-                                {control.plate_number}
-                              </TableCell>
-                              <TableCell>
-                                <StatusBadge variant={control.status} size="sm">
-                                  {control.status}
-                                </StatusBadge>
-                              </TableCell>
-                              <TableCell>{control.agent_name}</TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {organizations?.find((o) => o.id === control.organization_id)
-                                  ?.name || 'Unknown'}
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {new Date(control.timestamp).toLocaleDateString()}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      {controls.length > 10 && (
-                        <div className="border-t border-border/60 bg-muted/20 p-3 text-center text-sm text-muted-foreground">
-                          Showing 10 of {controls.length} controls. Export to see all data.
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {controls.length > 10 && (
+                      <div className="border-t border-border/60 bg-muted/20 p-3 text-center text-sm text-muted-foreground">
+                        Showing 10 of {controls.length} controls. Export to see all data.
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
 
-                  {/* Agent Performance Tab */}
-                  <TabsContent value="agent-performance" className="mt-6">
-                    <div className="overflow-hidden rounded-xl border border-border/60">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/40">
-                            <TableHead className="font-bold">Agent Name</TableHead>
-                            <TableHead className="font-bold">Total Controls</TableHead>
-                            <TableHead className="font-bold">Valid</TableHead>
-                            <TableHead className="font-bold">Warning</TableHead>
-                            <TableHead className="font-bold">Critical</TableHead>
+                {/* Agent Performance Tab */}
+                <TabsContent value="agent-performance" className="mt-6">
+                  <div className="overflow-hidden rounded-xl border border-border/60">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="font-bold">Agent Name</TableHead>
+                          <TableHead className="font-bold">Total Controls</TableHead>
+                          <TableHead className="font-bold">Valid</TableHead>
+                          <TableHead className="font-bold">Warning</TableHead>
+                          <TableHead className="font-bold">Critical</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {agentStats.slice(0, 10).map((agent) => (
+                          <TableRow key={agent.agentId}>
+                            <TableCell className="font-medium">{agent.agentName}</TableCell>
+                            <TableCell className="font-bold">{agent.totalControls}</TableCell>
+                            <TableCell className="text-green-600">{agent.validControls}</TableCell>
+                            <TableCell className="text-yellow-600">
+                              {agent.warningControls}
+                            </TableCell>
+                            <TableCell className="text-red-600">{agent.criticalControls}</TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {agentStats.slice(0, 10).map((agent) => (
-                            <TableRow key={agent.agentId}>
-                              <TableCell className="font-medium">{agent.agentName}</TableCell>
-                              <TableCell className="font-bold">{agent.totalControls}</TableCell>
-                              <TableCell className="text-green-600">
-                                {agent.validControls}
-                              </TableCell>
-                              <TableCell className="text-yellow-600">
-                                {agent.warningControls}
-                              </TableCell>
-                              <TableCell className="text-red-600">
-                                {agent.criticalControls}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      {agentStats.length > 10 && (
-                        <div className="border-t border-border/60 bg-muted/20 p-3 text-center text-sm text-muted-foreground">
-                          Showing 10 of {agentStats.length} agents. Export to see all data.
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {agentStats.length > 10 && (
+                      <div className="border-t border-border/60 bg-muted/20 p-3 text-center text-sm text-muted-foreground">
+                        Showing 10 of {agentStats.length} agents. Export to see all data.
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
 
-                  {/* Vehicle Status Tab */}
-                  <TabsContent value="vehicle-status" className="mt-6">
-                    <div className="rounded-xl border border-border/60 bg-muted/20 p-8 text-center">
-                      <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <p className="mt-4 text-sm text-muted-foreground">
-                        Vehicle status report shows detailed compliance information for all vehicles
-                        checked during the selected period.
-                      </p>
-                      <p className="mt-2 text-sm font-medium">
-                        Export the report to view detailed vehicle status data.
-                      </p>
-                    </div>
-                  </TabsContent>
+                {/* Vehicle Status Tab */}
+                <TabsContent value="vehicle-status" className="mt-6">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-8 text-center">
+                    <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Vehicle status report shows detailed compliance information for all vehicles
+                      checked during the selected period.
+                    </p>
+                    <p className="mt-2 text-sm font-medium">
+                      Export the report to view detailed vehicle status data.
+                    </p>
+                  </div>
+                </TabsContent>
 
-                  {/* Organization Stats Tab */}
-                  <TabsContent value="organization-stats" className="mt-6">
-                    <div className="overflow-hidden rounded-xl border border-border/60">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/40">
-                            <TableHead className="font-bold">Organization</TableHead>
-                            <TableHead className="font-bold">Total Controls</TableHead>
-                            <TableHead className="font-bold">Active Agents</TableHead>
-                            <TableHead className="font-bold">Alerts</TableHead>
+                {/* Organization Stats Tab */}
+                <TabsContent value="organization-stats" className="mt-6">
+                  <div className="overflow-hidden rounded-xl border border-border/60">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="font-bold">Organization</TableHead>
+                          <TableHead className="font-bold">Total Controls</TableHead>
+                          <TableHead className="font-bold">Active Agents</TableHead>
+                          <TableHead className="font-bold">Alerts</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {organizationStats.map((org) => (
+                          <TableRow key={org.organizationId}>
+                            <TableCell className="font-medium">{org.organizationName}</TableCell>
+                            <TableCell className="font-bold">{org.totalControls}</TableCell>
+                            <TableCell>{org.activeAgents}</TableCell>
+                            <TableCell className="text-red-600">{org.alertsCount}</TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {organizationStats.map((org) => (
-                            <TableRow key={org.organizationId}>
-                              <TableCell className="font-medium">{org.organizationName}</TableCell>
-                              <TableCell className="font-bold">{org.totalControls}</TableCell>
-                              <TableCell>{org.activeAgents}</TableCell>
-                              <TableCell className="text-red-600">{org.alertsCount}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              )}
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
