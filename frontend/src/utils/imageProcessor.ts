@@ -165,6 +165,49 @@ export class ImageProcessor {
   private static readonly VF_ASPECT = 3.5; // width / height
 
   /**
+   * Computes safe crop coordinates (sx, sy, sw, sh) and corresponding
+   * destination coordinates (dx, dy, dw, dh) for canvas drawing.
+   * Clamps to image boundaries to prevent out-of-bounds drawing,
+   * which can occur if window dimensions change or ratios overshoot.
+   */
+  private static getSafeCrop(imgW: number, imgH: number, targetW: number, targetH: number) {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    // The webcam uses object-cover, so the scale is the larger ratio
+    const scale = Math.max(W / imgW, H / imgH);
+
+    // Viewfinder dimensions in CSS pixels
+    const vw = W * ImageProcessor.VF_WIDTH_RATIO;
+    const vh = vw / ImageProcessor.VF_ASPECT;
+
+    // Convert CSS pixels → raw video pixels
+    const sw = vw / scale;
+    const sh = vh / scale;
+
+    // Center the crop on the video frame
+    const sx = (imgW - sw) / 2;
+    const sy = (imgH - sh) / 2;
+
+    // Clamp coordinates to image bounds
+    const safeSx = Math.max(0, sx);
+    const safeSy = Math.max(0, sy);
+    const safeSw = Math.min(sw, imgW - safeSx);
+    const safeSh = Math.min(sh, imgH - safeSy);
+
+    // Calculate destination coordinates to maintain aspect ratio if clamped
+    if (sw === 0 || sh === 0) {
+      return { sx: 0, sy: 0, sw: imgW, sh: imgH, dx: 0, dy: 0, dw: targetW, dh: targetH };
+    }
+    const dx = (targetW - (safeSw / sw) * targetW) / 2;
+    const dy = (targetH - (safeSh / sh) * targetH) / 2;
+    const dw = (safeSw / sw) * targetW;
+    const dh = (safeSh / sh) * targetH;
+
+    return { sx: safeSx, sy: safeSy, sw: safeSw, sh: safeSh, dx, dy, dw, dh };
+  }
+
+  /**
    * Preprocess a photo capture for OCR by cropping exactly to the viewfinder
    * guide frame, up-scaling to an OCR-friendly resolution, and applying a
    * light sharpen kernel.
@@ -195,33 +238,20 @@ export class ImageProcessor {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
-          // --- Map the viewfinder rectangle back to raw video pixels ----------
-          const W = window.innerWidth;
-          const H = window.innerHeight;
-          const w = img.width;
-          const h = img.height;
-
-          // The webcam uses object-cover, so the scale is the larger ratio
-          const scale = Math.max(W / w, H / h);
-
-          // Viewfinder dimensions in CSS pixels
-          const vw = W * ImageProcessor.VF_WIDTH_RATIO;
-          const vh = vw / ImageProcessor.VF_ASPECT;
-
-          // Convert CSS pixels → raw video pixels
-          const sw = vw / scale;
-          const sh = vh / scale;
-
-          // Center the crop on the video frame
-          const sx = (w - sw) / 2;
-          const sy = (h - sh) / 2;
+          // Calculate clamped crop and destination coordinates
+          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
+            img.width,
+            img.height,
+            targetWidth,
+            targetHeight
+          );
 
           // White background (in case crop overshoots)
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, targetWidth, targetHeight);
 
           // Draw ONLY the viewfinder region into the output canvas
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 
           // Light sharpen to compensate for scaling and minor hand tremor
           ImageProcessor.convolve(
@@ -276,20 +306,15 @@ export class ImageProcessor {
           canvas.width = checkW;
           canvas.height = checkH;
 
-          // Crop to viewfinder region (same math as preprocessForPhoto)
-          const W = window.innerWidth;
-          const H = window.innerHeight;
-          const w = img.width;
-          const h = img.height;
-          const scale = Math.max(W / w, H / h);
-          const vw = W * ImageProcessor.VF_WIDTH_RATIO;
-          const vh = vw / ImageProcessor.VF_ASPECT;
-          const sw = vw / scale;
-          const sh = vh / scale;
-          const sx = (w - sw) / 2;
-          const sy = (h - sh) / 2;
+          // Crop to viewfinder region using the shared helper
+          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
+            img.width,
+            img.height,
+            checkW,
+            checkH
+          );
 
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, checkW, checkH);
+          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
           const imageData = ctx.getImageData(0, 0, checkW, checkH);
           const pixels = imageData.data;
 
@@ -505,33 +530,20 @@ export class ImageProcessor {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
-          // 1. Account for 'object-cover' scaling
-          const W = window.innerWidth;
-          const H = window.innerHeight;
-          const w = img.width;
-          const h = img.height;
-
-          // object-cover scale
-          const scale = Math.max(W / w, H / h);
-
-          // Viewfinder-mapped region: 92% of screen width, 3.5:1 aspect ratio
-          const vw = W * ImageProcessor.VF_WIDTH_RATIO;
-          const vh = vw / ImageProcessor.VF_ASPECT;
-
-          // Map viewfinder pixels back to raw video pixels
-          const sw = vw / scale;
-          const sh = vh / scale;
-
-          // Center the crop on the video
-          const sx = (w - sw) / 2;
-          const sy = (h - sh) / 2;
+          // Calculate clamped crop and destination coordinates
+          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
+            img.width,
+            img.height,
+            targetWidth,
+            targetHeight
+          );
 
           // White background
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, targetWidth, targetHeight);
 
-          // Draw without squashing! (sw/sh aspect == targetWidth/targetHeight aspect)
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+          // Draw without squashing!
+          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 
           resolve(canvas.toDataURL('image/jpeg', 0.9));
         } catch (error) {
@@ -566,24 +578,16 @@ export class ImageProcessor {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
-          const W = window.innerWidth;
-          const H = window.innerHeight;
-          const w = img.width;
-          const h = img.height;
-
-          const scale = Math.max(W / w, H / h);
-          const vw = W * ImageProcessor.VF_WIDTH_RATIO;
-          const vh = vw / ImageProcessor.VF_ASPECT;
-
-          const sw = vw / scale;
-          const sh = vh / scale;
-
-          const sx = (w - sw) / 2;
-          const sy = (h - sh) / 2;
+          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
+            img.width,
+            img.height,
+            targetWidth,
+            targetHeight
+          );
 
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, targetWidth, targetHeight);
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 
           // Lower quality for speed in live mode
           resolve(canvas.toDataURL('image/jpeg', 0.65));

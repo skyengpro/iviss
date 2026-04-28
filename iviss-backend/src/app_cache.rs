@@ -56,7 +56,7 @@ pub struct AppCache {
     pub jti_blacklist: Cache<String, ()>,
     /// Key: organization_id (Uuid)
     /// Value: (shift_start_minute, shift_end_minute)
-    pub org_shift_hours: Cache<Uuid, (u32, u32)>,
+    pub org_work_time: Cache<Uuid, (u32, u32)>,
 }
 
 impl AppCache {
@@ -78,7 +78,7 @@ impl AppCache {
                 .max_capacity(10_000)
                 .time_to_live(Duration::from_secs(JTI_BLACKLIST_TTL_SECS))
                 .build(),
-            org_shift_hours: Cache::builder().max_capacity(50).build(),
+            org_work_time: Cache::builder().max_capacity(50).build(),
         }
     }
 
