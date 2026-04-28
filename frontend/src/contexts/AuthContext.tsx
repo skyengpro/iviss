@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for token refresh events from the interceptor
     const handleTokenRefreshed = (event: Event) => {
       const customEvent = event as CustomEvent<{ accessToken: string; session: AuthResponse }>;
-      const { accessToken, session: updatedSession } = customEvent.detail;
+      const { session: updatedSession } = customEvent.detail;
 
       // Update React state with the new token
       setSession(updatedSession);
