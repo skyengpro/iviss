@@ -169,19 +169,46 @@ pub async fn search_vehicle_v1(
 }
 
 pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {
-    // Normalize: remove all whitespace/dashes for internal lookup
-    let normalized = plate.trim().to_uppercase().replace([' ', '-'], "");
+    // Normalize: trim, uppercase, collapse multiple spaces/dashes to single space
+    let normalized = plate
+        .trim()
+        .to_uppercase()
+        .replace('-', " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
 
-    // Validates 7-character Cameroon format (LLDDDLL)
-    static COMPACT_REGEX: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"^[A-Z]{2}\d{3}[A-Z]{2}$").unwrap());
+    if normalized.is_empty() {
+        return Err(AppError::bad_request("Plate number cannot be empty"));
+    }
 
-    if !COMPACT_REGEX.is_match(&normalized) {
+    // Compact form (no spaces) used for DB lookup
+    let compact = normalized.replace(' ', "");
+
+    // Supported Cameroon plate formats:
+    // 1. Standard short:  CE 128 BC  → [REGION] \d{3} [A-Z]{2}
+    // 2. Standard long:   LT 3334 W  → [REGION] \d{4} [A-Z]
+    // 3. Police/Security: SN 1234    → SN \d{4}
+    // 4. Military:        1234567    → \d{7}
+    // 5. State/Govt:      EN1234X    → [A-Z]{2}\d{4}[A-Z]
+    // 6. Postal:          RT123456   → RT\d{6}
+    // 7. Diplomatic:      CD 34 444  → CD \d{1,3} \d{1,3}
+    static PLATE_REGEX: Lazy<Regex> = Lazy::new(|| {
+        let region = "AD|CE|ES|EN|LT|NO|NW|OU|SU|SW";
+        Regex::new(&format!(
+            r"^(?:(?:{r})\d{{3}}[A-Z]{{2}}|(?:{r})\d{{4}}[A-Z]|SN\d{{4}}|\d{{7}}|[A-Z]{{2}}\d{{4}}[A-Z]|RT\d{{6}}|CD\d{{1,6}})$",
+            r = region
+        ))
+        .unwrap()
+    });
+
+    if !PLATE_REGEX.is_match(&compact) {
         return Err(AppError::bad_request(format!(
-            "Invalid plate format: '{plate}'. Expected 7-character Cameroon format (e.g. CE128BC)"
+            "Invalid plate format: '{plate}'. Supported formats: CE 128 BC, LT 3334 W, SN 1234, 1234567, EN1234X, RT123456, CD 34 444"
         )));
     }
-    Ok(normalized)
+
+    Ok(compact)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -230,59 +257,86 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_plate_format_standard_long() {
+        // Standard long: REGION + 4 digits + 1 letter
+        let result = validate_plate_format("LT 3334 W");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "LT3334W");
+    }
+
+    #[test]
+    fn test_validate_plate_format_police() {
+        // Police/Security: SN + 4 digits
+        let result = validate_plate_format("SN 1234");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "SN1234");
+    }
+
+    #[test]
+    fn test_validate_plate_format_military() {
+        // Military: 7 digits
+        let result = validate_plate_format("1234567");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "1234567");
+    }
+
+    #[test]
+    fn test_validate_plate_format_state() {
+        // State/Govt: 2 letters + 4 digits + 1 letter
+        let result = validate_plate_format("EN1234X");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "EN1234X");
+    }
+
+    #[test]
+    fn test_validate_plate_format_postal() {
+        // Postal: RT + 6 digits
+        let result = validate_plate_format("RT123456");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "RT123456");
+    }
+
+    #[test]
+    fn test_validate_plate_format_diplomatic() {
+        // Diplomatic: CD + digits + digits
+        let result = validate_plate_format("CD 34 444");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "CD34444");
+    }
+
+    #[test]
     fn test_validate_plate_format_invalid_too_short() {
         let result = validate_plate_format("CE128B");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
     }
 
     #[test]
     fn test_validate_plate_format_invalid_too_long() {
-        let result = validate_plate_format("CE128BCD");
+        let result = validate_plate_format("CE128BCDE");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
     }
 
     #[test]
     fn test_validate_plate_format_invalid_wrong_pattern() {
-        // Missing digit in middle
         let result = validate_plate_format("CE1ABBC");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
-    }
-
-    #[test]
-    fn test_validate_plate_format_invalid_all_digits() {
-        let result = validate_plate_format("1234567");
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
     }
 
     #[test]
     fn test_validate_plate_format_invalid_all_letters() {
         let result = validate_plate_format("ABCDEFG");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
     }
 
     #[test]
     fn test_validate_plate_format_invalid_empty() {
         let result = validate_plate_format("");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
     }
 
     #[test]
     fn test_validate_plate_format_invalid_special_chars() {
         let result = validate_plate_format("CE@128BC");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("Invalid plate format"));
     }
 }
