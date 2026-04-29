@@ -13,7 +13,7 @@ export default function BackOfficeReports() {
             <CardTitle>{t('backOfficeSidebar.generateReport')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">Coming soon</div>
+            <div className="text-sm text-muted-foreground">{t('common.comingSoon')}</div>
           </CardContent>
         </Card>
       </div>

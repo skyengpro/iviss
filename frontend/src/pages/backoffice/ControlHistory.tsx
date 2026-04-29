@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import { fr as frLocale } from 'date-fns/locale';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -46,7 +48,8 @@ import type {
 } from '@/openapi-rq/requests/types.gen';
 
 export default function ControlHistory() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'fr' ? frLocale : undefined;
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -199,7 +202,9 @@ export default function ControlHistory() {
                 <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>
                     {selectedControl?.timestamp
-                      ? new Date(selectedControl.timestamp).toLocaleString()
+                      ? format(new Date(selectedControl.timestamp), 'd MMM yyyy, HH:mm', {
+                          locale: dateLocale,
+                        })
                       : ''}
                   </span>
                   {selectedControl?.agent_name ? (
@@ -221,15 +226,19 @@ export default function ControlHistory() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Control
+                      {t('backOfficeControlDetail.title')}
                     </h3>
                     <div className="mt-3 space-y-2 text-sm">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">Mode</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlHistory.status')}
+                        </span>
                         <span className="font-medium">{selectedControl.identification_mode}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">Confidence</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlDetail.confidence')}
+                        </span>
                         <span className="font-medium">
                           {typeof selectedControl.confidence === 'number'
                             ? `${Math.round(selectedControl.confidence * 100)}%`
@@ -237,7 +246,9 @@ export default function ControlHistory() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">Notes</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlDetail.agentNotes')}
+                        </span>
                         <span className="max-w-[220px] truncate font-medium">
                           {selectedControl.notes ?? '—'}
                         </span>
@@ -247,11 +258,13 @@ export default function ControlHistory() {
 
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Location
+                      {t('backOfficeControlDetail.location')}
                     </h3>
                     <div className="mt-3 space-y-2 text-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-muted-foreground">Address</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlHistory.location')}
+                        </span>
                         <span className="max-w-[260px] text-right font-medium">
                           {selectedControl.location?.address ?? '—'}
                         </span>
@@ -271,7 +284,7 @@ export default function ControlHistory() {
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4 md:col-span-2">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Results
+                        {t('backOfficeControlDetail.verificationResults')}
                       </h3>
                       <StatusBadge variant={selectedControl.status} size="sm" showIcon={false}>
                         {selectedControl.status}
@@ -281,7 +294,7 @@ export default function ControlHistory() {
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                       <div className="rounded-xl border border-border/60 bg-card p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                          Registration
+                          {t('backOfficeControlDetail.registration')}
                         </p>
                         <div className="mt-2">
                           <StatusBadge variant={selectedControl.results.registration} size="sm">
@@ -291,7 +304,7 @@ export default function ControlHistory() {
                       </div>
                       <div className="rounded-xl border border-border/60 bg-card p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                          Insurance
+                          {t('backOfficeControlDetail.insurance')}
                         </p>
                         <div className="mt-2">
                           <StatusBadge variant={selectedControl.results.insurance} size="sm">
@@ -301,7 +314,7 @@ export default function ControlHistory() {
                       </div>
                       <div className="rounded-xl border border-border/60 bg-card p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                          Technical
+                          {t('backOfficeControlDetail.technicalInspection')}
                         </p>
                         <div className="mt-2">
                           <StatusBadge
@@ -314,7 +327,7 @@ export default function ControlHistory() {
                       </div>
                       <div className="rounded-xl border border-border/60 bg-card p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                          Police
+                          {t('backOfficeControlDetail.wantedStatus')}
                         </p>
                         <div className="mt-2">
                           <StatusBadge variant={selectedControl.results.wanted_status} size="sm">
@@ -324,7 +337,7 @@ export default function ControlHistory() {
                       </div>
                       <div className="rounded-xl border border-border/60 bg-card p-3">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                          Customs
+                          {t('backOfficeControlDetail.customs')}
                         </p>
                         <div className="mt-2">
                           <StatusBadge variant={selectedControl.results.customs_status} size="sm">
@@ -337,7 +350,7 @@ export default function ControlHistory() {
                     {selectedControl.notes ? (
                       <div className="mt-4 rounded-xl border border-border/60 bg-card p-4">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                          Notes
+                          {t('backOfficeControlDetail.agentNotes')}
                         </p>
                         <p className="mt-2 text-sm leading-relaxed">{selectedControl.notes}</p>
                       </div>
@@ -398,7 +411,7 @@ export default function ControlHistory() {
 
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">From</span>
+                <span className="text-xs text-muted-foreground">{t('common.from')}</span>
                 <input
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
@@ -406,7 +419,7 @@ export default function ControlHistory() {
                   className="h-6 bg-transparent text-sm text-foreground outline-none"
                 />
                 <span className="text-sm text-muted-foreground">-</span>
-                <span className="text-xs text-muted-foreground">To</span>
+                <span className="text-xs text-muted-foreground">{t('common.to')}</span>
                 <input
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
@@ -427,7 +440,7 @@ export default function ControlHistory() {
                   onClick={clearFilters}
                   className="h-10 rounded-xl text-sm"
                 >
-                  Clear
+                  {t('common.clear')}
                 </Button>
               ) : null}
             </div>
@@ -480,7 +493,7 @@ export default function ControlHistory() {
                 onClick={() => setStatusFilter('all')}
                 className="h-8 rounded-full px-3 text-xs text-muted-foreground"
               >
-                Reset status
+                {t('common.resetStatus')}
               </Button>
             ) : null}
           </div>
@@ -519,7 +532,7 @@ export default function ControlHistory() {
               {error ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                    Failed to load controls
+                    {t('backOfficeControlHistory.noControlsFound')}
                   </TableCell>
                 </TableRow>
               ) : isLoading ? (
@@ -565,12 +578,7 @@ export default function ControlHistory() {
                           : '-'}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(control.timestamp).toLocaleString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {format(new Date(control.timestamp), 'd MMM, HH:mm', { locale: dateLocale })}
                     </TableCell>
                     <TableCell>
                       <Button
