@@ -321,8 +321,15 @@ impl Config {
         }
 
         // Validate SMS provider config in production
-        if self.environment == Environment::Production
-            && matches!(
+        if self.environment == Environment::Production {
+            // Mock SMS provider is not allowed in production
+            if matches!(&self.sms_credentials, SmsProviderCredentials::Mock) {
+                return Err(anyhow!(
+                    "Mock SMS provider is not allowed in production environment"
+                ));
+            }
+            // Validate Orange credentials if using Orange provider
+            if matches!(
                 &self.sms_credentials,
                 SmsProviderCredentials::Orange {
                     client_id,
@@ -331,10 +338,11 @@ impl Config {
                 } if client_id.trim().is_empty()
                     || client_secret.trim().is_empty()
             )
-        {
-            return Err(anyhow!(
-                "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
-            ));
+            {
+                return Err(anyhow!(
+                    "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
+                ));
+            }
         }
 
         if matches!(
