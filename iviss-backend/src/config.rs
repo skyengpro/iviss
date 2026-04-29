@@ -337,8 +337,7 @@ impl Config {
                     ..
                 } if client_id.trim().is_empty()
                     || client_secret.trim().is_empty()
-            )
-            {
+            ) {
                 return Err(anyhow!(
                     "ORANGE_CLIENT_ID and ORANGE_CLIENT_SECRET must be set when SMS_PROVIDER=orange"
                 ));
