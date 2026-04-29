@@ -568,6 +568,59 @@
       "other": "Autre"
     }
   },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérer votre compte et les préférences système",
+    "signOut": "Se déconnecter",
+    "tabs": {
+      "profile": "Profil",
+      "security": "Sécurité",
+      "preferences": "Préférences"
+    },
+    "profile": {
+      "title": "Informations du compte",
+      "description": "Vos informations d'identité et d'accès",
+      "identity": "Identité",
+      "fullName": "Nom complet",
+      "username": "Nom d'utilisateur",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "badgeId": "ID du badge"
+    },
+    "security": {
+      "changePasswordTitle": "Changer le mot de passe",
+      "changePasswordDescription": "Mettez à jour votre mot de passe. Utilisez au moins 8 caractères avec un mélange de lettres et de chiffres.",
+      "newPassword": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Au moins 8 caractères",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "confirmPasswordPlaceholder": "Ressaisissez le nouveau mot de passe",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "passwordMatch": "Les mots de passe correspondent",
+      "updateButton": "Mettre à jour le mot de passe",
+      "updating": "Mise à jour…",
+      "updateSuccess": "Mot de passe mis à jour avec succès",
+      "updateError": "Échec de la mise à jour du mot de passe",
+      "passwordMismatchError": "Les mots de passe ne correspondent pas",
+      "signOutTitle": "Se déconnecter",
+      "signOutDescription": "Terminer votre session actuelle. Vous devrez vous reconnecter pour accéder à l'administration.",
+      "signOutButton": "Se déconnecter d'IVISS"
+    },
+    "preferences": {
+      "appearanceTitle": "Apparence",
+      "appearanceDescription": "Personnaliser l'interface",
+      "theme": "Thème",
+      "themeLight": "Clair",
+      "themeDark": "Sombre",
+      "themeSystem": "Système",
+      "themeComingSoon": "Changement de thème bientôt disponible — suit actuellement les préférences système.",
+      "languageTitle": "Langue et région",
+      "languageDescription": "Langue de l'interface et paramètres régionaux",
+      "language": "Langue",
+      "timezone": "Fuseau horaire",
+      "dateFormat": "Format de date"
+    }
+  },
   "common": {
     "cancel": "Annuler",
     "delete": "Supprimer",

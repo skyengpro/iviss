@@ -568,6 +568,59 @@
       "other": "Other"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and system preferences",
+    "signOut": "Sign Out",
+    "tabs": {
+      "profile": "Profile",
+      "security": "Security",
+      "preferences": "Preferences"
+    },
+    "profile": {
+      "title": "Account Information",
+      "description": "Your identity and access details",
+      "identity": "Identity",
+      "fullName": "Full Name",
+      "username": "Username",
+      "email": "Email",
+      "phone": "Phone",
+      "badgeId": "Badge ID"
+    },
+    "security": {
+      "changePasswordTitle": "Change Password",
+      "changePasswordDescription": "Update your password. Use at least 8 characters with a mix of letters and numbers.",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "At least 8 characters",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "passwordMatch": "Passwords match",
+      "updateButton": "Update Password",
+      "updating": "Updating…",
+      "updateSuccess": "Password updated successfully",
+      "updateError": "Failed to update password",
+      "passwordMismatchError": "Passwords do not match",
+      "signOutTitle": "Sign Out",
+      "signOutDescription": "End your current session. You will need to sign in again to access the back-office.",
+      "signOutButton": "Sign Out of IVISS"
+    },
+    "preferences": {
+      "appearanceTitle": "Appearance",
+      "appearanceDescription": "Customize how the interface looks",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "themeComingSoon": "Theme switching coming soon — currently follows your system preference.",
+      "languageTitle": "Language & Region",
+      "languageDescription": "Interface language and regional settings",
+      "language": "Language",
+      "timezone": "Timezone",
+      "dateFormat": "Date Format"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "delete": "Delete",
