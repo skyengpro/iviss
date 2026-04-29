@@ -436,7 +436,23 @@
     "restartSession": "Restart Session",
     "restartSessionDescription": "Are you sure you want to restart the session for this agent? This will extend their shift and allow them to continue working without re-activation.",
     "restartSuccess": "Agent session restarted successfully",
-    "restartError": "Failed to restart agent session"
+    "restartError": "Failed to restart agent session",
+    "resendActivationCode": "Resend activation code",
+    "resendSuccess": "Activation code sent",
+    "resendError": "Failed to resend activation code",
+    "sessionActive": "Active",
+    "sessionTerminated": "Terminated",
+    "sessionInactive": "Inactive",
+    "orgAdminCreatedTitle": "Organization Admin Created",
+    "orgAdminCreatedMessage": "The account has been created. Share these credentials securely with the user — this password will not be shown again.",
+    "tempEmail": "Email",
+    "tempPassword": "Temp password",
+    "tempPasswordNote": "The user will be required to change this password on first login.",
+    "done": "Done",
+    "allOrganizations": "All Organizations",
+    "editUserDescription": "Update the professional details and access level for this user.",
+    "deleteDescription": "This action cannot be undone. This will permanently remove the user from the active directory.",
+    "pending": "Pending"
   },
   "backOfficeAudit": {
     "title": "System Audit Logs",
@@ -552,6 +568,59 @@
       "other": "Other"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and system preferences",
+    "signOut": "Sign Out",
+    "tabs": {
+      "profile": "Profile",
+      "security": "Security",
+      "preferences": "Preferences"
+    },
+    "profile": {
+      "title": "Account Information",
+      "description": "Your identity and access details",
+      "identity": "Identity",
+      "fullName": "Full Name",
+      "username": "Username",
+      "email": "Email",
+      "phone": "Phone",
+      "badgeId": "Badge ID"
+    },
+    "security": {
+      "changePasswordTitle": "Change Password",
+      "changePasswordDescription": "Update your password. Use at least 8 characters with a mix of letters and numbers.",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "At least 8 characters",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "passwordMatch": "Passwords match",
+      "updateButton": "Update Password",
+      "updating": "Updating…",
+      "updateSuccess": "Password updated successfully",
+      "updateError": "Failed to update password",
+      "passwordMismatchError": "Passwords do not match",
+      "signOutTitle": "Sign Out",
+      "signOutDescription": "End your current session. You will need to sign in again to access the back-office.",
+      "signOutButton": "Sign Out of IVISS"
+    },
+    "preferences": {
+      "appearanceTitle": "Appearance",
+      "appearanceDescription": "Customize how the interface looks",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "themeComingSoon": "Theme switching coming soon — currently follows your system preference.",
+      "languageTitle": "Language & Region",
+      "languageDescription": "Interface language and regional settings",
+      "language": "Language",
+      "timezone": "Timezone",
+      "dateFormat": "Date Format"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "delete": "Delete",
@@ -559,6 +628,24 @@
     "create": "Create",
     "update": "Update",
     "saving": "Saving...",
-    "optional": "optional"
+    "optional": "optional",
+    "comingSoon": "Coming soon",
+    "from": "From",
+    "to": "To",
+    "clear": "Clear",
+    "fullscreen": "Fullscreen",
+    "lastActive": "Last active",
+    "activeNow": "Active Now",
+    "agentsOnline": "Agents Online",
+    "updated": "Updated",
+    "noAgentsOnline": "No agents currently online",
+    "controls": "controls",
+    "loadingActivity": "Loading activity…",
+    "noActivityData": "No activity data yet",
+    "last24h": "Last 24h",
+    "last7d": "Last 7d",
+    "last30d": "Last 30d",
+    "live": "Live",
+    "resetStatus": "Reset status"
   }
 }
