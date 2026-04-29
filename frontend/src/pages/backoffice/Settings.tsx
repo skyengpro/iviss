@@ -47,13 +47,26 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { label: string; className: string }> = {
-    admin: { label: 'Super Admin', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    admin: {
+      label: 'Super Admin',
+      className: 'bg-destructive/10 text-destructive border-destructive/20',
+    },
     org_admin: { label: 'Org Admin', className: 'bg-primary/10 text-primary border-primary/20' },
-    manager: { label: 'Supervisor', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+    manager: {
+      label: 'Supervisor',
+      className: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    },
     agent: { label: 'Agent', className: 'bg-muted text-muted-foreground' },
   };
-  const { label, className } = map[role] ?? { label: role, className: 'bg-muted text-muted-foreground' };
-  return <Badge variant="outline" className={className}>{label}</Badge>;
+  const { label, className } = map[role] ?? {
+    label: role,
+    className: 'bg-muted text-muted-foreground',
+  };
+  return (
+    <Badge variant="outline" className={className}>
+      {label}
+    </Badge>
+  );
 }
 
 function PasswordSection() {
@@ -173,7 +186,12 @@ export default function Settings() {
   };
 
   const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
     : 'AD';
 
   return (
@@ -190,7 +208,9 @@ export default function Settings() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-semibold truncate">{user?.name || 'Administrator'}</h2>
+                  <h2 className="text-xl font-semibold truncate">
+                    {user?.name || 'Administrator'}
+                  </h2>
                   {user?.role && <RoleBadge role={user.role} />}
                 </div>
                 <p className="mt-0.5 text-sm text-muted-foreground truncate">
@@ -270,7 +290,9 @@ export default function Settings() {
                   <Lock className="h-4 w-4" />
                   {t('settings.security.changePasswordTitle')}
                 </CardTitle>
-                <CardDescription>{t('settings.security.changePasswordDescription')}</CardDescription>
+                <CardDescription>
+                  {t('settings.security.changePasswordDescription')}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <PasswordSection />
@@ -310,7 +332,11 @@ export default function Settings() {
                   {[
                     { value: 'light', icon: Sun, label: t('settings.preferences.themeLight') },
                     { value: 'dark', icon: Moon, label: t('settings.preferences.themeDark') },
-                    { value: 'system', icon: Monitor, label: t('settings.preferences.themeSystem') },
+                    {
+                      value: 'system',
+                      icon: Monitor,
+                      label: t('settings.preferences.themeSystem'),
+                    },
                   ].map(({ value, icon: Icon, label }) => (
                     <button
                       key={value}
@@ -341,7 +367,10 @@ export default function Settings() {
                   value={i18n.language === 'fr' ? 'Français (fr)' : 'English (en)'}
                 />
                 <Separator />
-                <InfoRow label={t('settings.preferences.timezone')} value="UTC+1 (West Africa Time)" />
+                <InfoRow
+                  label={t('settings.preferences.timezone')}
+                  value="UTC+1 (West Africa Time)"
+                />
                 <Separator />
                 <InfoRow label={t('settings.preferences.dateFormat')} value="DD/MM/YYYY" />
               </CardContent>
