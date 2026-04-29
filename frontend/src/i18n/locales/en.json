@@ -147,7 +147,8 @@
     "processingPhoto": "Processing photo...",
     "photoError": "Failed to process photo. Please try again.",
     "captureHint": "Position the plate within the frame and tap to capture",
-    "liveScanHint": "Hold steady — scanning will detect the plate automatically"
+    "liveScanHint": "Hold steady — scanning will detect the plate automatically",
+    "tapToRetry": "Tap to Retry"
   },
   "mobileSearch": {
     "title": "Search Vehicle",
@@ -561,6 +562,10 @@
     "editDescription": "Update the organization details",
     "namePlaceholder": "Enter organization name",
     "regionPlaceholder": "Enter region (optional)",
+    "startWorkTime": "Start work time",
+    "endWorkTime": "End work time",
+    "defaultStartWorkTimeHint": "Default: 6h00 AM",
+    "defaultEndWorkTimeHint": "Default: 6h00 PM",
     "types": {
       "police": "Police",
       "customs": "Customs",

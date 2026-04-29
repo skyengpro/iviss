@@ -15,8 +15,6 @@ pub struct AppState {
     pub email_svc: Arc<EmailService>,
     pub jwt_svc: Arc<JwtService>,
     pub jwt_public_key_pem: String,
-    pub shift_start_hour: u32,
-    pub shift_end_hour: u32,
 }
 
 impl AppState {
@@ -43,8 +41,6 @@ impl AppState {
             email_svc: Arc::new(email_svc),
             jwt_svc: Arc::new(jwt_svc),
             jwt_public_key_pem: config.jwt_public_key_pem.clone(),
-            shift_start_hour: config.shift_start_hour,
-            shift_end_hour: config.shift_end_hour,
         }
     }
 }

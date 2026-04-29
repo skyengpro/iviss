@@ -39,8 +39,26 @@ import type {
   UpdateOrganizationRequest,
 } from '@/openapi-rq/types.gen';
 
+function formatWorkTime(minutes: number, language: string) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  if (language.startsWith('fr')) {
+    return `${hours}h${String(mins).padStart(2, '0')}`;
+  }
+
+  const date = new Date(Date.UTC(2000, 0, 1, hours, mins));
+
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 export default function OrganizationManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     organizations,
     isLoading,
@@ -182,6 +200,8 @@ export default function OrganizationManagement() {
                     <TableHead>{t('organizationManagement.organizationName')}</TableHead>
                     <TableHead>{t('organizationManagement.organizationType')}</TableHead>
                     <TableHead>{t('organizationManagement.region')}</TableHead>
+                    <TableHead>{t('organizationManagement.startWorkTime')}</TableHead>
+                    <TableHead>{t('organizationManagement.endWorkTime')}</TableHead>
                     <TableHead className="text-right">
                       {t('organizationManagement.actions')}
                     </TableHead>
@@ -197,6 +217,8 @@ export default function OrganizationManagement() {
                         </span>
                       </TableCell>
                       <TableCell>{org.region || '-'}</TableCell>
+                      <TableCell>{formatWorkTime(org.startWorkTime, i18n.language)}</TableCell>
+                      <TableCell>{formatWorkTime(org.endWorkTime, i18n.language)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

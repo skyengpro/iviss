@@ -147,7 +147,8 @@
     "processingPhoto": "Traitement de la photo...",
     "photoError": "Échec du traitement de la photo. Veuillez réessayer.",
     "captureHint": "Positionnez la plaque dans le cadre et appuyez pour capturer",
-    "liveScanHint": "Restez stable — la plaque sera détectée automatiquement"
+    "liveScanHint": "Restez stable — la plaque sera détectée automatiquement",
+    "tapToRetry": "Appuyez pour réessayer"
   },
   "mobileSearch": {
     "title": "Rechercher un véhicule",
@@ -494,6 +495,42 @@
     "settings": "Paramètres",
     "adminUser": "Utilisateur Admin",
     "superAdmin": "Super Admin"
+  },
+  "organizationManagement": {
+    "title": "Gestion des organisations",
+    "subtitle": "Gérer les organisations du système",
+    "addOrganization": "Ajouter une organisation",
+    "editOrganization": "Modifier l'organisation",
+    "deleteOrganization": "Supprimer l'organisation",
+    "organizationName": "Nom de l'organisation",
+    "organizationType": "Type",
+    "region": "Région",
+    "actions": "Actions",
+    "searchPlaceholder": "Rechercher des organisations...",
+    "allTypes": "Tous les types",
+    "emptyState": "Aucune organisation pour le moment. Créez votre première organisation.",
+    "noResults": "Aucune organisation ne correspond à votre recherche.",
+    "confirmDelete": "Voulez-vous vraiment supprimer {{name}} ? Cette action est irréversible.",
+    "organizationCreated": "Organisation créée avec succès",
+    "organizationUpdated": "Organisation mise à jour avec succès",
+    "organizationDeleted": "Organisation supprimée avec succès",
+    "createError": "Échec de la création de l'organisation",
+    "updateError": "Échec de la mise à jour de l'organisation",
+    "deleteError": "Échec de la suppression de l'organisation",
+    "createDescription": "Renseignez les informations pour créer une nouvelle organisation",
+    "editDescription": "Mettez à jour les informations de l'organisation",
+    "namePlaceholder": "Saisissez le nom de l'organisation",
+    "regionPlaceholder": "Saisissez la région (optionnel)",
+    "startWorkTime": "Heure de début",
+    "endWorkTime": "Heure de fin",
+    "defaultStartWorkTimeHint": "Par défaut : 6h00",
+    "defaultEndWorkTimeHint": "Par défaut : 18h00",
+    "types": {
+      "police": "Police",
+      "customs": "Douanes",
+      "border_control": "Contrôle frontalier",
+      "other": "Autre"
+    }
   },
   "errors": {
     "useFormField": "useFormField doit être utilisé à l'intérieur d'un <FormField>",

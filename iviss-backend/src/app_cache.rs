@@ -1,3 +1,6 @@
+use crate::errors::AppError;
+use crate::queries::auth_queries;
+use crate::queries::organization_queries;
 use moka::future::Cache;
 use moka::Expiry;
 use std::time::{Duration, Instant};
@@ -51,6 +54,9 @@ pub struct AppCache {
     /// Key: jti (String)
     /// Value: ()
     pub jti_blacklist: Cache<String, ()>,
+    /// Key: organization_id (Uuid)
+    /// Value: (shift_start_minute, shift_end_minute)
+    pub org_work_time: Cache<Uuid, (u32, u32)>,
 }
 
 impl AppCache {
@@ -72,7 +78,18 @@ impl AppCache {
                 .max_capacity(10_000)
                 .time_to_live(Duration::from_secs(JTI_BLACKLIST_TTL_SECS))
                 .build(),
+            org_work_time: Cache::builder().max_capacity(50).build(),
         }
+    }
+
+    pub async fn cache_necessary_data_from_database(
+        &self,
+        db_pool: &sqlx::Pool<sqlx::Postgres>,
+    ) -> Result<(), AppError> {
+        auth_queries::load_blacklisted_jtis_to_cache(db_pool, self).await?;
+        organization_queries::load_organizations_work_time_to_cache(db_pool, self).await?;
+
+        Ok(())
     }
 }
 

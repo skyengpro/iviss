@@ -212,7 +212,7 @@ pub async fn blacklist_jti_db(
 pub async fn load_blacklisted_jtis_to_cache(
     pool: &PgPool,
     cache: &crate::app_cache::AppCache,
-) -> Result<usize, AppError> {
+) -> Result<(), AppError> {
     let cache_clone = cache.clone();
     let pool_clone = pool.clone();
 
@@ -252,7 +252,7 @@ pub async fn load_blacklisted_jtis_to_cache(
     });
 
     tracing::info!("Blacklisted JTIs loading started in background (max 10000, most recent first)");
-    Ok(0)
+    Ok(())
 }
 
 /// Blacklist a JTI in the Moka cache
