@@ -53,7 +53,11 @@ export function ControlActivityChart({
   const maxCount = data.length > 0 ? Math.max(...data.map((d) => d.count)) : 0;
 
   const rangeLabel =
-    range === '24h' ? t('common.last24h') : range === '7d' ? t('common.last7d') : t('common.last30d');
+    range === '24h'
+      ? t('common.last24h')
+      : range === '7d'
+        ? t('common.last7d')
+        : t('common.last30d');
 
   return (
     <Card className="col-span-1 lg:col-span-3 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md">
@@ -64,7 +68,9 @@ export function ControlActivityChart({
               <Activity className="h-5 w-5 text-accent" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">{t('backOfficeDashboard.controlActivity24h')}</p>
+              <p className="text-sm font-bold text-foreground">
+                {t('backOfficeDashboard.controlActivity24h')}
+              </p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                 {rangeLabel}
               </p>
