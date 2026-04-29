@@ -176,7 +176,9 @@ export function LiveControlMap({
                     <MapIcon className="h-4 w-4" />
                     {t('backOfficeDashboard.liveControlMap')}
                   </div>
-                  <div className="text-xs text-muted-foreground">{agents.length} {t('common.agentsOnline').toLowerCase()}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {agents.length} {t('common.agentsOnline').toLowerCase()}
+                  </div>
                 </div>
 
                 <div className="relative flex-1">
@@ -266,11 +268,14 @@ export function LiveControlMap({
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-blue-500" />
-              <span>{agents.length} {t('common.agentsOnline')}</span>
+              <span>
+                {agents.length} {t('common.agentsOnline')}
+              </span>
             </div>
             {mostRecentUpdate && (
               <span className="text-[10px] text-muted-foreground">
-                {t('common.updated')} {formatDistanceToNow(mostRecentUpdate, { addSuffix: true, locale: dateLocale })}
+                {t('common.updated')}{' '}
+                {formatDistanceToNow(mostRecentUpdate, { addSuffix: true, locale: dateLocale })}
               </span>
             )}
           </div>
