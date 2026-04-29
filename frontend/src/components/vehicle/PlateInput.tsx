@@ -51,11 +51,6 @@ export function PlateInput({
       .trimStart(); // Allow spaces only between parts
   };
 
-  // Validate if the plate matches any supported format
-  const isValidFormat = (plate: string): boolean => {
-    return PLATE_REGEX.test(plate.trim());
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPlate(e.target.value);
     onChange(formatted);
@@ -73,7 +68,7 @@ export function PlateInput({
   };
 
   const handleSubmit = () => {
-    if (!isValidFormat(value)) {
+    if (!isValidPlate(value)) {
       setShowValidationError(true);
       return;
     }
@@ -88,7 +83,7 @@ export function PlateInput({
     inputRef.current?.focus();
   };
 
-  const isValid = isValidFormat(value);
+  const isValid = isValidPlate(value);
 
   return (
     <div className={cn('relative', className)}>
