@@ -40,7 +40,10 @@ async function performTokenRefresh(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
 
   const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    console.warn('[AuthInterceptor] No refresh token available');
+    return null;
+  }
 
   refreshPromise = withTimeout(
     (async () => {
@@ -59,7 +62,10 @@ async function performTokenRefresh(): Promise<string | null> {
 
         if (isAdminRole) {
           const res = await requestRefresh({ body: { refreshToken }, throwOnError: false });
-          if (res.error || !res.data) return null;
+          if (res.error || !res.data) {
+            console.error('[AuthInterceptor] Token refresh failed:', res.error);
+            return null;
+          }
           const data = res.data as { accessToken?: string };
           if (data.accessToken) {
             setAccessToken(data.accessToken);
@@ -74,29 +80,42 @@ async function performTokenRefresh(): Promise<string | null> {
           body: { refreshToken, deviceId },
           throwOnError: false,
         });
-        if (res1.error || !res1.data) return null;
+        if (res1.error || !res1.data) {
+          console.error('[AuthInterceptor] Token refresh failed:', res1.error);
+          return null;
+        }
 
         const { nonce } = res1.data as { nonce?: string };
-        if (!nonce) return null;
+        if (!nonce) {
+          console.error('[AuthInterceptor] No nonce received');
+          return null;
+        }
 
         const signedNonce = await signNonce(nonce);
         const res2 = await verifyRefresh({
           body: { refreshToken, deviceId, signedNonce },
           throwOnError: false,
         });
-        if (res2.error || !res2.data) return null;
+        if (res2.error || !res2.data) {
+          console.error('[AuthInterceptor] Token refresh verification failed:', res2.error);
+          return null;
+        }
 
         const { accessToken, refreshToken: nextRT } = res2.data as {
           accessToken?: string;
           refreshToken?: string;
         };
-        if (!accessToken) return null;
+        if (!accessToken) {
+          console.error('[AuthInterceptor] No access token received');
+          return null;
+        }
 
         setAccessToken(accessToken);
         if (nextRT) setRefreshToken(nextRT);
         return accessToken;
-      } catch {
+      } catch (error) {
         // Network error, backend down, etc. — return null but don't logout
+        console.error('[AuthInterceptor] Token refresh exception:', error);
         return null;
       } finally {
         refreshPromise = null;
@@ -134,7 +153,9 @@ export function setupAuthInterceptors(
     if (response.status !== 401) return response;
 
     // Unauthenticated request (e.g. login) — not a session issue
-    if (!getAccessToken()) return response;
+    if (!getAccessToken()) {
+      return response;
+    }
 
     // Check if this is a refresh endpoint returning 401
     // That means the refresh token itself was rejected (session revoked by admin)
@@ -146,7 +167,7 @@ export function setupAuthInterceptors(
           const body = await response.clone().json();
           const msg = body?.message?.toLowerCase() || '';
           if (msg.includes('invalid') || msg.includes('expired') || msg.includes('revoked')) {
-            console.warn('AuthInterceptor: refresh token rejected — session revoked by admin');
+            console.warn('[AuthInterceptor] Refresh token rejected — session revoked by admin');
             options.onSessionExpired?.();
           }
         } catch {
@@ -159,7 +180,9 @@ export function setupAuthInterceptors(
     }
 
     // Prevent infinite retry loop
-    if (request.headers.get(RETRY_HEADER)) return response;
+    if (request.headers.get(RETRY_HEADER)) {
+      return response;
+    }
 
     // Try to refresh the access token silently
     const newToken = await performTokenRefresh();
@@ -176,7 +199,7 @@ export function setupAuthInterceptors(
           msg.includes('session terminated') ||
           msg.includes('device is not active')
         ) {
-          console.warn('AuthInterceptor: explicit session end signal:', body.message);
+          console.warn('[AuthInterceptor] Session terminated:', body.message);
           options.onSessionExpired?.();
         }
         // For all other failures (network errors, backend down), keep the session
