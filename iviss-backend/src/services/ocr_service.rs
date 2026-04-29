@@ -363,14 +363,13 @@ pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
     }
 
     let total_pixels = pixels.len() as u64;
-    let p2_threshold = (total_pixels as f32 * 0.02) as u64;
-    let p98_threshold = (total_pixels as f32 * 0.98) as u64;
+    let drop_count = (total_pixels as f32 * 0.02) as u64;
 
     let mut min_val = 0u8;
     let mut count = 0u64;
     for (i, &freq) in histogram.iter().enumerate() {
         count += freq;
-        if count >= p2_threshold {
+        if count > drop_count {
             min_val = i as u8;
             break;
         }
@@ -380,7 +379,7 @@ pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
     let mut count_rev = 0u64;
     for (i, &freq) in histogram.iter().enumerate().rev() {
         count_rev += freq;
-        if count_rev >= (total_pixels - p98_threshold) {
+        if count_rev > drop_count {
             max_val = i as u8;
             break;
         }
