@@ -202,7 +202,9 @@ export default function ControlHistory() {
                 <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>
                     {selectedControl?.timestamp
-                      ? format(new Date(selectedControl.timestamp), 'd MMM yyyy, HH:mm', { locale: dateLocale })
+                      ? format(new Date(selectedControl.timestamp), 'd MMM yyyy, HH:mm', {
+                          locale: dateLocale,
+                        })
                       : ''}
                   </span>
                   {selectedControl?.agent_name ? (
@@ -228,11 +230,15 @@ export default function ControlHistory() {
                     </h3>
                     <div className="mt-3 space-y-2 text-sm">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{t('backOfficeControlHistory.status')}</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlHistory.status')}
+                        </span>
                         <span className="font-medium">{selectedControl.identification_mode}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{t('backOfficeControlDetail.confidence')}</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlDetail.confidence')}
+                        </span>
                         <span className="font-medium">
                           {typeof selectedControl.confidence === 'number'
                             ? `${Math.round(selectedControl.confidence * 100)}%`
@@ -240,7 +246,9 @@ export default function ControlHistory() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{t('backOfficeControlDetail.agentNotes')}</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlDetail.agentNotes')}
+                        </span>
                         <span className="max-w-[220px] truncate font-medium">
                           {selectedControl.notes ?? '—'}
                         </span>
@@ -254,7 +262,9 @@ export default function ControlHistory() {
                     </h3>
                     <div className="mt-3 space-y-2 text-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-muted-foreground">{t('backOfficeControlHistory.location')}</span>
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlHistory.location')}
+                        </span>
                         <span className="max-w-[260px] text-right font-medium">
                           {selectedControl.location?.address ?? '—'}
                         </span>
