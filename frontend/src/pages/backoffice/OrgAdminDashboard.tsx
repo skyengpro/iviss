@@ -30,7 +30,6 @@ export default function OrgAdminDashboard() {
     setRange,
     stats,
     statsLoading,
-    refetchStats,
     activityFeed,
     activityFeedLoading,
     recentAlerts,
@@ -39,7 +38,6 @@ export default function OrgAdminDashboard() {
     topAgentsLoading,
     controlActivity,
     controlActivityLoading,
-    isInitialLoading,
   } = useOrgDashboard();
 
   const activityLabel = (status?: string) => {
@@ -48,31 +46,12 @@ export default function OrgAdminDashboard() {
     return t('orgAdminDashboard.controlCompleted');
   };
 
-  const handleRefreshAll = async () => {
-    // For simplicity, we just refetch the main stats which is the heart of the hook
-    // though in a real scenario we might want a reach-all refetch in the hook itself.
-    refetchStats();
-  };
-
   return (
     <BackOfficeLayout
       title={t('orgAdminDashboard.title')}
       subtitle={t('orgAdminDashboard.subtitle', {
         organization: user?.organization || 'Organization',
       })}
-      actions={
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-xl"
-            onClick={handleRefreshAll}
-            disabled={isInitialLoading}
-          >
-            Refresh
-          </Button>
-        </div>
-      }
     >
       <div className="space-y-6">
         {/* ── Quick Actions ── */}
