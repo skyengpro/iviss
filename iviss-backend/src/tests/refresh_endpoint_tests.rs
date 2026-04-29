@@ -89,10 +89,12 @@ async fn setup_test_infrastructure() -> (
 
     // Create organization
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .unwrap();
@@ -180,8 +182,6 @@ async fn setup_test_infrastructure() -> (
         email_credentials: crate::config::EmailProviderCredentials::Mock,
         activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
             .to_string(),
-        shift_start_hour: 0,
-        shift_end_hour: 24,
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),
         admin_bootstrap_phone: Some("1234567890".to_string()),

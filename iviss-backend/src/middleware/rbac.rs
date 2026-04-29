@@ -95,9 +95,9 @@ pub async fn require_auth_web(
     Ok(next.run(request).await)
 }
 
-/// Role guard — allows `admin` and `org_admin`.
+/// Role guard — requires `admin`.
 ///
-/// Returns 403 if the user is neither an admin nor an org_admin.
+/// Returns 403 if the user is not an admin.
 pub async fn require_admin(request: Request, next: Next) -> Result<Response, AppError> {
     let method = request.method().clone();
     let path = request.uri().path().to_string();

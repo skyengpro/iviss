@@ -64,7 +64,7 @@ mod tests {
                 _ => 200,
             }])
         });
-        let stretched = contrast_stretch(&img);
+        let stretched = contrast_stretch_percentile(&img);
         assert_eq!(stretched.get_pixel(0, 0)[0], 0);
         assert_eq!(stretched.get_pixel(2, 0)[0], 255);
     }
@@ -307,23 +307,23 @@ mod tests {
     fn test_contrast_stretch_edge_cases() {
         // Test empty image
         let empty_img = GrayImage::new(0, 0);
-        let result = contrast_stretch(&empty_img);
+        let result = contrast_stretch_percentile(&empty_img);
         assert_eq!(result.dimensions(), (0, 0));
 
         // Test uniform image (all same pixel value)
         let uniform_img = GrayImage::from_pixel(10, 10, Luma([128]));
-        let result = contrast_stretch(&uniform_img);
+        let result = contrast_stretch_percentile(&uniform_img);
         assert_eq!(result.get_pixel(0, 0)[0], 128); // Should remain unchanged
 
         // Test already full range image
         let full_range_img = GrayImage::from_fn(2, 1, |x, _| Luma([if x == 0 { 0 } else { 255 }]));
-        let result = contrast_stretch(&full_range_img);
+        let result = contrast_stretch_percentile(&full_range_img);
         assert_eq!(result.get_pixel(0, 0)[0], 0);
         assert_eq!(result.get_pixel(1, 0)[0], 255);
 
         // Test single pixel image
         let single_img = GrayImage::from_pixel(1, 1, Luma([100]));
-        let result = contrast_stretch(&single_img);
+        let result = contrast_stretch_percentile(&single_img);
         assert_eq!(result.get_pixel(0, 0)[0], 100);
     }
 
@@ -378,6 +378,29 @@ mod tests {
         // Test double inversion returns original
         let double_inverted = invert_image(&inverted_gray);
         assert_eq!(double_inverted.get_pixel(0, 0)[0], 128);
+    }
+
+    #[test]
+    fn test_morphology_closes_white_holes() {
+        // Create an image with a solid black background (representing text) and one white pixel (hole)
+        let mut img = GrayImage::from_pixel(10, 10, Luma([0]));
+        img.put_pixel(5, 5, Luma([255])); // Single white hole pixel
+
+        let cleaned = morphology_open(&img);
+        // The min filter expands the black, erasing the white pixel.
+        // The max filter shrinks the black back, but the white hole is permanently gone.
+        assert_eq!(cleaned.get_pixel(5, 5)[0], 0);
+        // The rest of the image should remain black
+        assert_eq!(cleaned.get_pixel(0, 0)[0], 0);
+        assert_eq!(cleaned.get_pixel(9, 9)[0], 0);
+    }
+
+    #[test]
+    fn test_deskew_returns_image() {
+        // Test that deskew gracefully handles a blank image without crashing
+        let empty_img = GrayImage::from_pixel(20, 20, Luma([255]));
+        let deskewed = deskew(&empty_img);
+        assert_eq!(deskewed.dimensions(), (20, 20));
     }
 
     #[test]

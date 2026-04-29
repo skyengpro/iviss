@@ -70,6 +70,7 @@ impl Modify for SecurityAddon {
         (name = "users", description = "User profile management"),
         (name = "auth", description = "Authentication and registration"),
         (name = "admin", description = "Admin operations"),
+        (name = "org-admin", description = "Organization admin operations"),
     ),
     paths(
         crate::handlers::health::health_check,

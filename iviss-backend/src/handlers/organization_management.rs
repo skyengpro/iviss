@@ -34,6 +34,11 @@ pub async fn create_organization(
     Json(payload): Json<CreateOrganizationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let org = create_org_query(&state.db, payload).await?;
+    state
+        .app_cache
+        .org_work_time
+        .insert(org.id, (org.start_work_time, org.end_work_time))
+        .await;
 
     tracing::info!(
         organization_id = %org.id,
@@ -94,6 +99,11 @@ pub async fn update_organization(
     Json(payload): Json<UpdateOrganizationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let org = update_org_query(&state.db, id, payload).await?;
+    state
+        .app_cache
+        .org_work_time
+        .insert(org.id, (org.start_work_time, org.end_work_time))
+        .await;
 
     tracing::info!(
         organization_id = %org.id,
