@@ -327,7 +327,10 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>{t('backOfficeUserManagement.editUser')}</DialogTitle>
                 <DialogDescription>
-                  {t('backOfficeUserManagement.editUserDescription', 'Mettre à jour les informations et le niveau d\'accès de cet utilisateur.')}
+                  {t(
+                    'backOfficeUserManagement.editUserDescription',
+                    "Mettre à jour les informations et le niveau d'accès de cet utilisateur."
+                  )}
                 </DialogDescription>
               </DialogHeader>
               {selectedUser && (
@@ -431,17 +434,23 @@ export default function UserManagement() {
           >
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{t('backOfficeUserManagement.orgAdminCreatedTitle')}</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {t('backOfficeUserManagement.orgAdminCreatedTitle')}
+                </AlertDialogTitle>
                 <AlertDialogDescription asChild>
                   <div className="space-y-3">
                     <p>{t('backOfficeUserManagement.orgAdminCreatedMessage')}</p>
                     <div className="rounded-md border bg-muted p-3 space-y-1 text-sm font-mono">
                       <div>
-                        <span className="text-muted-foreground">{t('backOfficeUserManagement.tempEmail')}:</span>{' '}
+                        <span className="text-muted-foreground">
+                          {t('backOfficeUserManagement.tempEmail')}:
+                        </span>{' '}
                         {tempPasswordInfo?.email}
                       </div>
                       <div>
-                        <span className="text-muted-foreground">{t('backOfficeUserManagement.tempPassword')}:</span>{' '}
+                        <span className="text-muted-foreground">
+                          {t('backOfficeUserManagement.tempPassword')}:
+                        </span>{' '}
                         {tempPasswordInfo?.password}
                       </div>
                     </div>
