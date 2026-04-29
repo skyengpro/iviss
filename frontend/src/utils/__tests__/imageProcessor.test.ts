@@ -3,6 +3,7 @@ import { ImageProcessor } from '@/utils/imageProcessor';
 
 // Mock translation function
 const mockT = vi.fn((key: string) => key) as any;
+const originalImage = globalThis.Image;
 
 // Helper factory for canvas mocking
 function setupCanvasMock(contextMethods = {}, returnsNullContext = false) {
@@ -37,8 +38,6 @@ function setupCanvasMock(contextMethods = {}, returnsNullContext = false) {
 
 // Helper factory for Image mocking
 function setupImageMock(triggerLoad = true) {
-  const originalImage = globalThis.Image;
-
   globalThis.Image = class extends originalImage {
     constructor() {
       super();
@@ -67,6 +66,7 @@ describe('ImageProcessor', () => {
   });
 
   afterEach(() => {
+    globalThis.Image = originalImage;
     vi.restoreAllMocks();
   });
 
@@ -195,6 +195,97 @@ describe('ImageProcessor', () => {
     });
   });
 
+  describe('preprocessForPhoto', () => {
+    it('crops to the plate-ratio viewfinder and applies sharpening', async () => {
+      const { mockContext, mockCanvas } = setupCanvasMock({
+        getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(1400 * 400 * 4) })),
+        createImageData: vi.fn(() => ({ data: new Uint8ClampedArray(1400 * 400 * 4) })),
+      });
+      const restoreImg = setupImageMock(true);
+
+      const result = await ImageProcessor.preprocessForPhoto('data:image', mockT);
+
+      expect(result).toBe('data:image/jpeg;base64,mockdata');
+      expect(mockCanvas.width).toBe(1400);
+      expect(mockCanvas.height).toBe(400);
+      expect(mockContext.fillRect).toHaveBeenCalledWith(0, 0, 1400, 400);
+      expect(mockContext.drawImage).toHaveBeenCalledWith(
+        expect.any(HTMLImageElement),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockContext.getImageData).toHaveBeenCalledWith(0, 0, 1400, 400);
+      expect(mockContext.putImageData).toHaveBeenCalled();
+      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.92);
+
+      restoreImg();
+    });
+  });
+
+  describe('assessImageQuality', () => {
+    const checkW = 400;
+    const checkH = Math.round(400 / 3.5);
+
+    function pixelsWith(rgb: [number, number, number]) {
+      const data = new Uint8ClampedArray(checkW * checkH * 4);
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = rgb[0];
+        data[i + 1] = rgb[1];
+        data[i + 2] = rgb[2];
+        data[i + 3] = 255;
+      }
+      return data;
+    }
+
+    it('rejects dark captures before OCR processing', async () => {
+      setupCanvasMock({
+        getImageData: vi.fn(() => ({ data: pixelsWith([20, 20, 20]) })),
+      });
+      const restoreImg = setupImageMock(true);
+
+      await expect(ImageProcessor.assessImageQuality('data:image', mockT)).resolves.toEqual({
+        isAcceptable: false,
+        feedback: 'mobileScan.qualityTooDark',
+      });
+
+      restoreImg();
+    });
+
+    it('rejects overexposed captures before OCR processing', async () => {
+      setupCanvasMock({
+        getImageData: vi.fn(() => ({ data: pixelsWith([240, 240, 240]) })),
+      });
+      const restoreImg = setupImageMock(true);
+
+      await expect(ImageProcessor.assessImageQuality('data:image', mockT)).resolves.toEqual({
+        isAcceptable: false,
+        feedback: 'mobileScan.qualityTooBright',
+      });
+
+      restoreImg();
+    });
+
+    it('rejects low-variance blurry captures before OCR processing', async () => {
+      setupCanvasMock({
+        getImageData: vi.fn(() => ({ data: pixelsWith([120, 120, 120]) })),
+      });
+      const restoreImg = setupImageMock(true);
+
+      await expect(ImageProcessor.assessImageQuality('data:image', mockT)).resolves.toEqual({
+        isAcceptable: false,
+        feedback: 'mobileScan.qualityTooBlurry',
+      });
+
+      restoreImg();
+    });
+  });
+
   describe('cropToViewfinder', () => {
     it('resolves and uses window.innerWidth/innerHeight correctly', async () => {
       const { mockCanvas } = setupCanvasMock();
@@ -203,7 +294,8 @@ describe('ImageProcessor', () => {
       const result = await ImageProcessor.cropToViewfinder('data:image', mockT);
       expect(result).toBe('data:image/jpeg;base64,mockdata');
       expect(mockCanvas.width).toBe(1200);
-      expect(mockCanvas.height).toBe(600);
+      expect(mockCanvas.height).toBe(343);
+      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.9);
 
       restoreImg();
     });
@@ -218,7 +310,7 @@ describe('ImageProcessor', () => {
 
       expect(result).toBe('data:image/jpeg;base64,mockdata');
       expect(mockCanvas.width).toBe(800);
-      expect(mockCanvas.height).toBe(400);
+      expect(mockCanvas.height).toBe(229);
       expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.65);
 
       restoreImg();
