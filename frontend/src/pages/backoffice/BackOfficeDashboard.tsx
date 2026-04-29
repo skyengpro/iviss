@@ -35,14 +35,7 @@ import { useNavigate } from 'react-router-dom';
 export default function BackOfficeDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const {
-    stats,
-    isLoading: statsLoading,
-    refetch: refetchStats,
-    isFetching: statsIsFetching,
-    isRefetching: statsIsRefetching,
-    dataUpdatedAt: statsUpdatedAt,
-  } = useDashboard();
+  const { stats, isLoading: statsLoading } = useDashboard();
 
   const recentAlertsQuery = useGetRecentAlerts(
     {
@@ -111,28 +104,6 @@ export default function BackOfficeDashboard() {
     return t(notes.key, notes.params);
   };
 
-  const isAnyUpdating =
-    statsIsFetching ||
-    statsIsRefetching ||
-    recentAlertsQuery.isFetching ||
-    recentAlertsQuery.isRefetching ||
-    controlActivityQuery.isFetching ||
-    controlActivityQuery.isRefetching ||
-    topAgentsQuery.isFetching ||
-    topAgentsQuery.isRefetching ||
-    activityFeedQuery.isFetching ||
-    activityFeedQuery.isRefetching;
-
-  const handleRefreshAll = async () => {
-    await Promise.all([
-      refetchStats(),
-      recentAlertsQuery.refetch(),
-      controlActivityQuery.refetch(),
-      topAgentsQuery.refetch(),
-      activityFeedQuery.refetch(),
-    ]);
-  };
-
   const lastUpdatedText = (dataUpdatedAt?: number) => {
     if (!dataUpdatedAt) return null;
     return `Last updated ${formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true })}`;
@@ -142,20 +113,6 @@ export default function BackOfficeDashboard() {
     <BackOfficeLayout
       title={t('backOfficeDashboard.title')}
       subtitle={t('backOfficeDashboard.subtitle')}
-      actions={
-        <div className="flex items-center gap-3">
-          {isAnyUpdating && <span className="text-xs text-muted-foreground">Updating…</span>}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-xl"
-            onClick={handleRefreshAll}
-            disabled={isAnyUpdating}
-          >
-            Refresh
-          </Button>
-        </div>
-      }
     >
       <div className="space-y-6">
         {/* ── Stats Grid ── */}

@@ -1,4 +1,4 @@
-import { Bell, Search, ChevronDown, Globe } from 'lucide-react';
+import { ChevronDown, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -34,15 +34,6 @@ export function BackOfficeHeader({ title, subtitle, actions, className }: BackOf
         {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
-      {/* Centre: Global search (hidden on small screens) */}
-      <div className="relative hidden xl:flex">
-        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        <input
-          placeholder={t('backOfficeHeader.searchPlaceholder')}
-          className="h-8 w-64 rounded-lg border border-border bg-muted/50 pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
       {/* Right: compact action zone */}
       <div className="flex shrink-0 items-center gap-1.5">
         {/* Language */}
@@ -57,12 +48,6 @@ export function BackOfficeHeader({ title, subtitle, actions, className }: BackOf
             <DropdownMenuItem onClick={() => i18n.changeLanguage('fr')}>Français</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-status-critical" />
-        </Button>
 
         {/* Custom page actions */}
         {actions && <div className="ml-1 flex items-center gap-1.5">{actions}</div>}

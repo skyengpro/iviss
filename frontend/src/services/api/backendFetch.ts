@@ -26,25 +26,17 @@ export async function fetchWithAuth(input: string, init?: RequestInit): Promise<
     headers,
   });
 
-  if (!response.ok) {
-    let isSessionRevoked = false;
-    if (response.status === 401 && token) {
-      // Only treat as session revoked if we had a token — a login failure is not a revocation
-      isSessionRevoked = true;
-    } else {
-      try {
-        const cloned = response.clone();
-        const body = await cloned.json();
-        if (body && typeof body === 'object' && body.code === 'SESSION_REVOKED') {
-          isSessionRevoked = true;
-        }
-      } catch {
-        // Not JSON or other error
+  // Only check for explicit SESSION_REVOKED code, not generic 401s
+  // Generic 401s (token expired) are handled by the auth interceptor which refreshes tokens
+  if (!response.ok && response.status !== 401) {
+    try {
+      const cloned = response.clone();
+      const body = await cloned.json();
+      if (body && typeof body === 'object' && body.code === 'SESSION_REVOKED') {
+        window.dispatchEvent(new CustomEvent('iviss:session-revoked'));
       }
-    }
-
-    if (isSessionRevoked) {
-      window.dispatchEvent(new CustomEvent('iviss:session-revoked'));
+    } catch {
+      // Not JSON or other error - ignore
     }
   }
 
