@@ -1267,6 +1267,36 @@ pub async fn change_password(
         return Err(AppError::bad_request("New password cannot be empty"));
     }
 
+    // Fetch user's current state to determine if current password is required
+    let user: (String, bool) = sqlx::query_as(
+        "SELECT password_hash, must_change_password FROM users WHERE id = $1 AND deleted_at IS NULL",
+    )
+    .bind(requester.user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
+    let (user_password_hash, must_change_password) = user;
+
+    // Security: Current password is REQUIRED unless this is a forced first-login password change
+    if !must_change_password {
+        // Normal password change - current password is MANDATORY
+        let current_password = payload.current_password.as_ref().ok_or_else(|| {
+            AppError::bad_request("Current password is required for password changes")
+        })?;
+
+        // Verify current password
+        let is_valid =
+            crate::utils::password::verify_password(current_password, &user_password_hash)
+                .await
+                .map_err(|_| AppError::bad_request("Invalid current password"))?;
+
+        if !is_valid {
+            return Err(AppError::bad_request("Invalid current password"));
+        }
+    }
+    // If must_change_password is true (first login), current password is optional
+
     let new_hash = crate::utils::password::hash_password(&payload.new_password).await?;
 
     sqlx::query(

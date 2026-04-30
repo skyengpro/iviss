@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { ControlActivityPoint, DashboardRange } from '@/openapi-rq/requests/types.gen';
 import { Activity } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ControlActivityChartProps {
   data: ControlActivityPoint[];
@@ -27,6 +28,7 @@ interface ControlActivityChartProps {
 }
 
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  const { t } = useTranslation();
   if (active && payload && payload.length) {
     return (
       <div className="min-w-[140px] rounded-xl border border-border bg-background p-3 shadow-xl">
@@ -34,7 +36,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
           {label}
         </p>
         <p className="text-2xl font-bold text-foreground">{payload[0].value}</p>
-        <p className="text-[10px] text-muted-foreground">controls</p>
+        <p className="text-[10px] text-muted-foreground">{t('common.controls')}</p>
       </div>
     );
   }
@@ -47,10 +49,15 @@ export function ControlActivityChart({
   onRangeChange,
   loading,
 }: ControlActivityChartProps) {
+  const { t } = useTranslation();
   const maxCount = data.length > 0 ? Math.max(...data.map((d) => d.count)) : 0;
 
   const rangeLabel =
-    range === '24h' ? 'Last 24 Hours' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days';
+    range === '24h'
+      ? t('common.last24h')
+      : range === '7d'
+        ? t('common.last7d')
+        : t('common.last30d');
 
   return (
     <Card className="col-span-1 lg:col-span-3 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md">
@@ -61,7 +68,9 @@ export function ControlActivityChart({
               <Activity className="h-5 w-5 text-accent" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Control Activity</p>
+              <p className="text-sm font-bold text-foreground">
+                {t('backOfficeDashboard.controlActivity24h')}
+              </p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                 {rangeLabel}
               </p>
@@ -73,16 +82,16 @@ export function ControlActivityChart({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="24h">Last 24h</SelectItem>
-                <SelectItem value="7d">Last 7d</SelectItem>
-                <SelectItem value="30d">Last 30d</SelectItem>
+                <SelectItem value="24h">{t('common.last24h')}</SelectItem>
+                <SelectItem value="7d">{t('common.last7d')}</SelectItem>
+                <SelectItem value="30d">{t('common.last30d')}</SelectItem>
               </SelectContent>
             </Select>
 
             <div className="flex items-center gap-2 rounded-full border border-status-valid/20 bg-status-valid/10 px-3 py-1.5">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-valid" />
               <span className="text-[10px] font-semibold uppercase tracking-widest text-status-valid">
-                Live
+                {t('common.live')}
               </span>
             </div>
           </div>
@@ -91,11 +100,11 @@ export function ControlActivityChart({
       <CardContent className="px-2 pb-4 pt-6 h-[280px]">
         {loading ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading activity…</p>
+            <p className="text-sm text-muted-foreground">{t('common.loadingActivity')}</p>
           </div>
         ) : data.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">No activity data yet</p>
+            <p className="text-sm text-muted-foreground">{t('common.noActivityData')}</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { getAccessToken } from '@/services/auth/tokenManager';
+import { changePassword } from '@/openapi-rq/requests/services.gen';
+import { useTranslation } from 'react-i18next';
 import {
   User,
   Lock,
@@ -27,7 +28,6 @@ import {
   Monitor,
 } from 'lucide-react';
 
-// ── small helper ──────────────────────────────────────────────────────────────
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex items-center justify-between py-2.5">
@@ -45,7 +45,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Role badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { label: string; className: string }> = {
     admin: {
@@ -70,42 +69,54 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-// ── Password change section ───────────────────────────────────────────────────
 function PasswordSection() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canSubmit = newPassword.trim().length >= 8 && confirmPassword.trim() && !isLoading;
+  const canSubmit =
+    currentPassword.trim() &&
+    newPassword.trim().length >= 8 &&
+    confirmPassword.trim() &&
+    !isLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('settings.security.passwordMismatchError'));
       return;
     }
     setIsLoading(true);
     try {
-      const token = getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${baseUrl}/api/v1/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ newPassword, confirmPassword }),
+      const result = await changePassword({
+        body: {
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          confirmPassword: confirmPassword,
+        },
+        throwOnError: false,
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.message || 'Failed to update password');
+
+      if (result.error) {
+        const errorMessage =
+          typeof result.error === 'object' && result.error && 'message' in result.error
+            ? (result.error.message as string)
+            : t('settings.security.updateError');
+        toast.error(errorMessage);
       } else {
-        toast.success('Password updated successfully');
+        toast.success(t('settings.security.updateSuccess'));
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
-    } catch {
-      toast.error('Failed to update password');
+    } catch (error) {
+      toast.error(t('settings.security.updateError'));
     } finally {
       setIsLoading(false);
     }
@@ -114,14 +125,36 @@ function PasswordSection() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="new-pw">New Password</Label>
+        <Label htmlFor="current-pw">{t('settings.security.currentPassword')}</Label>
+        <div className="relative">
+          <Input
+            id="current-pw"
+            type={showCurrent ? 'text' : 'password'}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder={t('settings.security.currentPasswordPlaceholder')}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrent((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            tabIndex={-1}
+          >
+            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="new-pw">{t('settings.security.newPassword')}</Label>
         <div className="relative">
           <Input
             id="new-pw"
             type={showNew ? 'text' : 'password'}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="At least 8 characters"
+            placeholder={t('settings.security.newPasswordPlaceholder')}
             className="pr-10"
           />
           <button
@@ -136,14 +169,14 @@ function PasswordSection() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-pw">Confirm New Password</Label>
+        <Label htmlFor="confirm-pw">{t('settings.security.confirmPassword')}</Label>
         <div className="relative">
           <Input
             id="confirm-pw"
             type={showConfirm ? 'text' : 'password'}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Re-enter new password"
+            placeholder={t('settings.security.confirmPasswordPlaceholder')}
             className="pr-10"
           />
           <button
@@ -158,26 +191,26 @@ function PasswordSection() {
       </div>
 
       {newPassword && newPassword.length < 8 && (
-        <p className="text-xs text-destructive">Password must be at least 8 characters</p>
+        <p className="text-xs text-destructive">{t('settings.security.passwordTooShort')}</p>
       )}
       {newPassword.length >= 8 && confirmPassword && newPassword !== confirmPassword && (
-        <p className="text-xs text-destructive">Passwords do not match</p>
+        <p className="text-xs text-destructive">{t('settings.security.passwordMismatch')}</p>
       )}
       {newPassword.length >= 8 && confirmPassword && newPassword === confirmPassword && (
         <p className="flex items-center gap-1 text-xs text-emerald-600">
-          <CheckCircle2 className="h-3.5 w-3.5" /> Passwords match
+          <CheckCircle2 className="h-3.5 w-3.5" /> {t('settings.security.passwordMatch')}
         </p>
       )}
 
       <Button type="submit" disabled={!canSubmit} className="w-full sm:w-auto">
-        {isLoading ? 'Updating…' : 'Update Password'}
+        {isLoading ? t('settings.security.updating') : t('settings.security.updateButton')}
       </Button>
     </form>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function Settings() {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -196,9 +229,9 @@ export default function Settings() {
     : 'AD';
 
   return (
-    <BackOfficeLayout title="Settings" subtitle="Manage your account and system preferences">
+    <BackOfficeLayout title={t('settings.title')} subtitle={t('settings.subtitle')}>
       <div className="mx-auto max-w-4xl space-y-6">
-        {/* ── Profile banner ── */}
+        {/* Profile banner */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
@@ -231,68 +264,68 @@ export default function Settings() {
                 className="shrink-0 gap-2 text-destructive hover:bg-destructive/5 hover:text-destructive border-destructive/30"
               >
                 <LogOut className="h-4 w-4" />
-                Sign Out
+                {t('settings.signOut')}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* ── Tabs ── */}
+        {/* Tabs */}
         <Tabs defaultValue="profile">
           <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-flex">
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
+              <span className="hidden sm:inline">{t('settings.tabs.profile')}</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Lock className="h-4 w-4" />
-              <span className="hidden sm:inline">Security</span>
+              <span className="hidden sm:inline">{t('settings.tabs.security')}</span>
             </TabsTrigger>
             <TabsTrigger value="preferences" className="gap-2">
               <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Preferences</span>
+              <span className="hidden sm:inline">{t('settings.tabs.preferences')}</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Profile tab ── */}
+          {/* Profile tab */}
           <TabsContent value="profile" className="mt-4 space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <User className="h-4 w-4" />
-                  Account Information
+                  {t('settings.profile.title')}
                 </CardTitle>
-                <CardDescription>Your identity and access details</CardDescription>
+                <CardDescription>{t('settings.profile.description')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
-                <SectionTitle>Identity</SectionTitle>
-                <InfoRow label="Full Name" value={user?.name} />
+                <SectionTitle>{t('settings.profile.identity')}</SectionTitle>
+                <InfoRow label={t('settings.profile.fullName')} value={user?.name} />
                 <Separator />
-                <InfoRow label="Username" value={user?.username} />
+                <InfoRow label={t('settings.profile.username')} value={user?.username} />
                 <Separator />
-                <InfoRow label="Email" value={user?.email} />
+                <InfoRow label={t('settings.profile.email')} value={user?.email} />
                 <Separator />
-                <InfoRow label="Phone" value={user?.phoneNumber} />
+                <InfoRow label={t('settings.profile.phone')} value={user?.phoneNumber} />
                 {user?.badgeId && (
                   <>
                     <Separator />
-                    <InfoRow label="Badge ID" value={user.badgeId} />
+                    <InfoRow label={t('settings.profile.badgeId')} value={user.badgeId} />
                   </>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* ── Security tab ── */}
+          {/* Security tab */}
           <TabsContent value="security" className="mt-4 space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Lock className="h-4 w-4" />
-                  Change Password
+                  {t('settings.security.changePasswordTitle')}
                 </CardTitle>
                 <CardDescription>
-                  Update your password. Use at least 8 characters with a mix of letters and numbers.
+                  {t('settings.security.changePasswordDescription')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -304,39 +337,40 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-destructive">
                   <LogOut className="h-4 w-4" />
-                  Sign Out
+                  {t('settings.security.signOutTitle')}
                 </CardTitle>
-                <CardDescription>
-                  End your current session. You will need to sign in again to access the
-                  back-office.
-                </CardDescription>
+                <CardDescription>{t('settings.security.signOutDescription')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="destructive" onClick={handleLogout} className="gap-2">
                   <LogOut className="h-4 w-4" />
-                  Sign Out of IVISS
+                  {t('settings.security.signOutButton')}
                 </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* ── Preferences tab ── */}
+          {/* Preferences tab */}
           <TabsContent value="preferences" className="mt-4 space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Monitor className="h-4 w-4" />
-                  Appearance
+                  {t('settings.preferences.appearanceTitle')}
                 </CardTitle>
-                <CardDescription>Customize how the interface looks</CardDescription>
+                <CardDescription>{t('settings.preferences.appearanceDescription')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <SectionTitle>Theme</SectionTitle>
+                <SectionTitle>{t('settings.preferences.theme')}</SectionTitle>
                 <div className="flex gap-2">
                   {[
-                    { value: 'light', icon: Sun, label: 'Light' },
-                    { value: 'dark', icon: Moon, label: 'Dark' },
-                    { value: 'system', icon: Monitor, label: 'System' },
+                    { value: 'light', icon: Sun, label: t('settings.preferences.themeLight') },
+                    { value: 'dark', icon: Moon, label: t('settings.preferences.themeDark') },
+                    {
+                      value: 'system',
+                      icon: Monitor,
+                      label: t('settings.preferences.themeSystem'),
+                    },
                   ].map(({ value, icon: Icon, label }) => (
                     <button
                       key={value}
@@ -348,7 +382,7 @@ export default function Settings() {
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Theme switching coming soon — currently follows your system preference.
+                  {t('settings.preferences.themeComingSoon')}
                 </p>
               </CardContent>
             </Card>
@@ -357,16 +391,22 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Globe className="h-4 w-4" />
-                  Language & Region
+                  {t('settings.preferences.languageTitle')}
                 </CardTitle>
-                <CardDescription>Interface language and regional settings</CardDescription>
+                <CardDescription>{t('settings.preferences.languageDescription')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
-                <InfoRow label="Language" value="English (en)" />
+                <InfoRow
+                  label={t('settings.preferences.language')}
+                  value={i18n.language === 'fr' ? 'Français (fr)' : 'English (en)'}
+                />
                 <Separator />
-                <InfoRow label="Timezone" value="UTC+1 (West Africa Time)" />
+                <InfoRow
+                  label={t('settings.preferences.timezone')}
+                  value="UTC+1 (West Africa Time)"
+                />
                 <Separator />
-                <InfoRow label="Date Format" value="DD/MM/YYYY" />
+                <InfoRow label={t('settings.preferences.dateFormat')} value="DD/MM/YYYY" />
               </CardContent>
             </Card>
           </TabsContent>
