@@ -109,6 +109,7 @@ resource "aws_iam_role_policy" "deploy_permissions" {
           "cloudfront:DeleteDistribution",
           "cloudfront:ListDistributions",
           "cloudfront:CreateInvalidation",
+          "cloudfront:ListTagsForResource",
           "cloudfront:TagResource",
           "cloudfront:UntagResource",
           "acm:RequestCertificate",
