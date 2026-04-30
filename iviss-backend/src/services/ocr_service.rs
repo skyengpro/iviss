@@ -81,13 +81,23 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // 2. Convert to 8-bit grayscale
     let gray = img.to_luma8();
 
-    // 3. Preprocessing: contrast stretch → adaptive threshold
+    // 3. Preprocessing: deskew → percentile contrast stretch → adaptive threshold → morphology
     let process_start = std::time::Instant::now();
-    let stretched = contrast_stretch(&gray);
-    let binary = adaptive_threshold(&stretched, ADAPTIVE_RADIUS, ADAPTIVE_C);
+
+    // Rotation correction
+    let deskewed = deskew(&gray);
+
+    // Contrast stretch (using 2nd/98th percentiles)
+    let stretched = contrast_stretch_percentile(&deskewed);
+
+    // Local adaptive threshold
+    let binary_raw = adaptive_threshold(&stretched, ADAPTIVE_RADIUS, ADAPTIVE_C);
+
+    // Morphological opening to clean up noise (small white blobs in black regions)
+    let binary_clean = morphology_open(&binary_raw);
 
     // Add 30px white border — Tesseract works much better when chars aren't touching edges
-    let binary = add_border(&binary, 30, 255);
+    let binary = add_border(&binary_clean, 30, 255);
 
     // Lazily computed; only needed if binary variants fail.
     let mut inverted: Option<GrayImage> = None;
@@ -151,7 +161,23 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         }
     }
 
-    // --- MODE 2: PSM 11 (Sparse Text) --- Fallback
+    // --- MODE 2: PSM 8 (Single Word) ---
+    tess.set_variable(Variable::TesseditPagesegMode, "8")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 8: {e}")))?;
+    let r_b8 = try_ocr_path(&mut tess, &bin_path, "binary-psm8");
+
+    if let Some(ref res) = r_b8 {
+        if res.format_valid {
+            return finalize(
+                res.clone(),
+                process_elapsed,
+                tesseract_start.elapsed(),
+                start_total.elapsed(),
+            );
+        }
+    }
+
+    // --- MODE 3: PSM 11 (Sparse Text) --- Fallback
     tess.set_variable(Variable::TesseditPagesegMode, "11")
         .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
     let r_b11 = try_ocr_path(&mut tess, &bin_path, "binary-psm11");
@@ -181,10 +207,15 @@ pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
             .and_then(|p| try_ocr_path(&mut tess, p, "inverted-psm11"))
     };
 
+    // --- MODE 4: PSM 13 (Raw Line) --- Fallback
+    tess.set_variable(Variable::TesseditPagesegMode, "13")
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 13: {e}")))?;
+    let r_b13 = try_ocr_path(&mut tess, &bin_path, "binary-psm13");
+
     let tesseract_elapsed = tesseract_start.elapsed();
 
-    // 5. Result Selection
-    let candidates = vec![r_b7, r_i7, r_b11, r_i11];
+    // 5. Result Selection (Voting via pick_best_ensemble)
+    let candidates = vec![r_b7, r_i7, r_b8, r_b11, r_i11, r_b13];
     let final_result = pick_best_ensemble(candidates);
 
     // Best-effort cleanup of temp files
@@ -318,26 +349,43 @@ pub fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResult
 
 // ── image processing helpers ──────────────────────────────────────────────────
 
-/// Min-max contrast stretch: maps the pixel range [min, max] → [0, 255].
-pub fn contrast_stretch(img: &GrayImage) -> GrayImage {
+/// Percentile-based contrast stretch: maps the pixel range [p2, p98] → [0, 255].
+/// This ignores extreme outlier pixels (like sun glare or deep shadows).
+pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
     let pixels = img.as_raw();
     if pixels.is_empty() {
         return img.clone();
     }
 
-    let mut min_val = 255u8;
-    let mut max_val = 0u8;
-
+    let mut histogram = [0u64; 256];
     for &px in pixels {
-        if px < min_val {
-            min_val = px;
-        }
-        if px > max_val {
-            max_val = px;
+        histogram[px as usize] += 1;
+    }
+
+    let total_pixels = pixels.len() as u64;
+    let drop_count = (total_pixels as f32 * 0.02) as u64;
+
+    let mut min_val = 0u8;
+    let mut count = 0u64;
+    for (i, &freq) in histogram.iter().enumerate() {
+        count += freq;
+        if count > drop_count {
+            min_val = i as u8;
+            break;
         }
     }
 
-    if max_val == min_val {
+    let mut max_val = 255u8;
+    let mut count_rev = 0u64;
+    for (i, &freq) in histogram.iter().enumerate().rev() {
+        count_rev += freq;
+        if count_rev > drop_count {
+            max_val = i as u8;
+            break;
+        }
+    }
+
+    if max_val <= min_val {
         return img.clone();
     }
 
@@ -345,16 +393,102 @@ pub fn contrast_stretch(img: &GrayImage) -> GrayImage {
     let (w, h) = img.dimensions();
     let mut out = GrayImage::new(w, h);
 
-    // Predeterminlookup table for speed
+    // Predetermine lookup table for speed
     let mut lut = [0u8; 256];
     for (i, v) in lut.iter_mut().enumerate() {
-        *v = ((i as f32 - min_val as f32).max(0.0) / range * 255.0) as u8;
+        let mut val = (i as f32 - min_val as f32) / range * 255.0;
+        val = val.clamp(0.0, 255.0);
+        *v = val as u8;
     }
 
     for (out_px, &in_px) in out.iter_mut().zip(pixels.iter()) {
         *out_px = lut[in_px as usize];
     }
 
+    out
+}
+
+/// Deskew (rotation correction) using horizontal projection profile variance.
+/// Evaluates angles between -7 and +7 degrees to find the sharpest horizontal alignment.
+pub fn deskew(img: &GrayImage) -> GrayImage {
+    use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
+    let (w, h) = img.dimensions();
+
+    let mut best_angle = 0.0;
+    let mut max_variance = 0.0;
+
+    for angle_deg in -7..=7 {
+        let rad = (angle_deg as f32).to_radians();
+        let rotated = rotate_about_center(img, rad, Interpolation::Bilinear, image::Luma([0]));
+
+        let mut row_sums = vec![0u32; h as usize];
+        for y in 0..h {
+            for x in 0..w {
+                row_sums[y as usize] += rotated.get_pixel(x, y)[0] as u32;
+            }
+        }
+
+        let mean = row_sums.iter().sum::<u32>() as f32 / h as f32;
+        let mut variance = 0.0;
+        for &sum in &row_sums {
+            let diff = sum as f32 - mean;
+            variance += diff * diff;
+        }
+
+        if variance > max_variance {
+            max_variance = variance;
+            best_angle = rad;
+        }
+    }
+
+    if best_angle.abs() > 0.01 {
+        rotate_about_center(img, best_angle, Interpolation::Bilinear, image::Luma([0]))
+    } else {
+        img.clone()
+    }
+}
+
+/// Simple 3x3 morphological opening (erosion followed by dilation).
+/// Cleans up small noise specs in the binary image.
+pub fn morphology_open(img: &GrayImage) -> GrayImage {
+    let (w, h) = img.dimensions();
+    if w < 3 || h < 3 {
+        return img.clone();
+    }
+
+    // Erode (initialize with input to preserve borders)
+    let mut eroded = img.clone();
+    for y in 1..(h - 1) {
+        for x in 1..(w - 1) {
+            let mut min_val = 255;
+            for dy in -1..=1 {
+                for dx in -1..=1 {
+                    let px = img.get_pixel((x as i32 + dx) as u32, (y as i32 + dy) as u32)[0];
+                    if px < min_val {
+                        min_val = px;
+                    }
+                }
+            }
+            eroded.put_pixel(x, y, image::Luma([min_val]));
+        }
+    }
+
+    // Dilate (initialize with eroded to preserve borders)
+    let mut out = eroded.clone();
+    for y in 1..(h - 1) {
+        for x in 1..(w - 1) {
+            let mut max_val = 0;
+            for dy in -1..=1 {
+                for dx in -1..=1 {
+                    let px = eroded.get_pixel((x as i32 + dx) as u32, (y as i32 + dy) as u32)[0];
+                    if px > max_val {
+                        max_val = px;
+                    }
+                }
+            }
+            out.put_pixel(x, y, image::Luma([max_val]));
+        }
+    }
     out
 }
 

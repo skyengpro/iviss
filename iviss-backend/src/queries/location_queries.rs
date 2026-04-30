@@ -61,10 +61,12 @@ mod tests {
         let user_id = Uuid::new_v4();
 
         // Create organization first
-        sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+        sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
             .bind(org_id)
             .bind("Test Organization")
             .bind("police")
+            .bind(360i32)
+            .bind(1080i32)
             .execute(pool)
             .await
             .unwrap();

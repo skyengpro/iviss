@@ -54,11 +54,8 @@ async fn main() -> anyhow::Result<()> {
     info!("Running seed data...");
     run_seed_data(&db_pool).await;
 
-    info!("Loading blacklisted tokens into cache...");
-    let loaded_count =
-        iviss_backend::queries::auth_queries::load_blacklisted_jtis_to_cache(&db_pool, &cache)
-            .await?;
-    info!("Loaded {} blacklisted tokens into cache", loaded_count);
+    info!("Caching necessary data from database...");
+    cache.cache_necessary_data_from_database(&db_pool).await?;
 
     let state = AppState::new(db_pool, cache, sms_provider, email_provider, &config);
     let app = routes::assembly(state)
