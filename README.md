@@ -173,6 +173,8 @@ iviss/
 - PWA testing guide: [docs/pwa_testing_guide.md](docs/pwa_testing_guide.md)
 - Developer documentation index: [docs/developer/README.md](docs/developer/README.md)
 - Developer getting started: [docs/developer/getting-started.md](docs/developer/getting-started.md)
+- Developer project structure: [docs/developer/project-structure.md](docs/developer/project-structure.md)
+- Developer documentation guide (scope/structure): [docs/developer_documentation_guide.md](docs/developer_documentation_guide.md)
 
 
 ## Production Infrastructure

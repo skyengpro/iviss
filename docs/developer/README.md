@@ -14,6 +14,7 @@ It is focused on implementation, contribution workflows, and operational debuggi
 ## Start Here
 
 1. [Getting Started](./getting-started.md)
+2. [Project Structure](./project-structure.md)
 
 ## Scope
 
@@ -34,7 +35,7 @@ It does not replace:
 ## Planned Sections
 
 - `getting-started.md` (available)
-- `project-structure.md` (planned)
+- `project-structure.md` (available)
 - `api.md` (planned)
 - `database.md` (planned)
 - `testing.md` (planned)
