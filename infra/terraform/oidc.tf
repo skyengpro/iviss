@@ -115,6 +115,7 @@ resource "aws_iam_role_policy" "deploy_permissions" {
           "acm:DescribeCertificate",
           "acm:DeleteCertificate",
           "acm:AddTagsToCertificate",
+          "acm:ListTagsForCertificate",
           "acm:ListCertificates"
         ]
         Resource = "*"
