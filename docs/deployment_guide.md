@@ -81,9 +81,9 @@ Developer pushes code
 | CI checks (tests, lint) | ✅ Yes | ✅ Yes |
 | Docker images built | ✅ Yes | ✅ Yes |
 | Deploy to AWS | ✅ Yes | ✅ Yes |
-| Release created | ❌ No | ✅ Yes |
+| Release created | ❌ No | ✅ Yes (on `dev`) |
 
-> **In plain terms:** `dev` is the testing environment. `main` is production. Only merging into `main` creates an official release.
+> **In plain terms:** `dev` is both the testing environment and where releases are created. `main` is production. Merging into `dev` creates an official release and triggers a deploy.
 
 ### Triggering a deployment manually
 
