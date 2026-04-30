@@ -286,6 +286,16 @@ impl Config {
         if self.server_port == 0 {
             // return Err(anyhow!("SERVER_PORT cannot be 0"));
         }
+
+        // Reject Mock SMS provider in production
+        if self.environment == Environment::Production
+            && matches!(&self.sms_credentials, SmsProviderCredentials::Mock)
+        {
+            return Err(anyhow!(
+                "Mock SMS provider is not allowed in production environment"
+            ));
+        }
+
         // Validate SMS provider config in production
         if self.environment == Environment::Production {
             // Mock SMS provider is not allowed in production
