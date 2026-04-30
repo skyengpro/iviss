@@ -71,7 +71,8 @@ async fn try_bootstrap(pool: &PgPool, config: &Config) -> anyhow::Result<Bootstr
             role,
             full_name,
             phone_number,
-            status
+            status,
+            must_change_password
         )
         VALUES (
             uuid_generate_v4(),
@@ -82,7 +83,8 @@ async fn try_bootstrap(pool: &PgPool, config: &Config) -> anyhow::Result<Bootstr
             'admin'::user_role,
             'System Administrator',
             $4,
-            'ACTIVE'::user_status
+            'ACTIVE'::user_status,
+            TRUE
         )
         ON CONFLICT (email) DO NOTHING
         "#,

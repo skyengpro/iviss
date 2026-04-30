@@ -627,6 +627,8 @@
     "security": {
       "changePasswordTitle": "Changer le mot de passe",
       "changePasswordDescription": "Mettez à jour votre mot de passe. Utilisez au moins 8 caractères avec un mélange de lettres et de chiffres.",
+      "currentPassword": "Mot de passe actuel",
+      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
       "newPassword": "Nouveau mot de passe",
       "newPasswordPlaceholder": "Au moins 8 caractères",
       "confirmPassword": "Confirmer le nouveau mot de passe",
