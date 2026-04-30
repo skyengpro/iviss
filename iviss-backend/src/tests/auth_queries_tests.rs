@@ -126,10 +126,12 @@ async fn test_mark_device_inactive_success() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -198,10 +200,12 @@ async fn test_mark_device_inactive_already_inactive() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -253,10 +257,12 @@ async fn test_mark_device_active_success() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -310,10 +316,12 @@ async fn test_mark_device_active_updates_existing_device() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -367,10 +375,12 @@ async fn test_suspend_device_and_revoke_tokens_success() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -454,10 +464,12 @@ async fn test_suspend_device_and_revoke_tokens_no_tokens() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -504,10 +516,12 @@ async fn test_suspend_device_and_revoke_tokens_only_revokes_valid_tokens() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -639,10 +653,12 @@ async fn test_has_valid_refresh_token_true() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -683,10 +699,12 @@ async fn test_has_valid_refresh_token_false_no_token() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");
@@ -724,10 +742,12 @@ async fn test_has_valid_refresh_token_false_revoked() {
     let (db, _cache, _, _, _pg) = setup_test_infrastructure().await;
 
     let org_id = Uuid::new_v4();
-    sqlx::query(r#"INSERT INTO organizations (id, name, type) VALUES ($1, $2, $3)"#)
+    sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
+        .bind(360i32)
+        .bind(1080i32)
         .execute(&db)
         .await
         .expect("Failed to seed org");

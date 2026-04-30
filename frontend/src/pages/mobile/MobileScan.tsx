@@ -122,6 +122,7 @@ export default function MobileScan() {
           mode={mode}
           liveScanActive={liveScanActive}
           capturedImageSrc={mode === 'photo' ? capturedImageSrc : null}
+          hasError={!!photoError}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
         />
@@ -142,8 +143,17 @@ export default function MobileScan() {
         )}
 
         {photoError && mode === 'photo' && (
-          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-destructive/90 text-destructive-foreground rounded-full text-sm font-medium animate-in fade-in slide-in-from-top-4 shadow-lg whitespace-nowrap">
-            {photoError}
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-top-4">
+            <div className="px-4 py-2 bg-destructive/95 text-destructive-foreground rounded-full text-sm font-medium shadow-lg whitespace-nowrap border border-destructive-foreground/20 backdrop-blur-sm">
+              {photoError}
+            </div>
+            <Button
+              onClick={handlePhotoRetry}
+              size="sm"
+              className="bg-white text-black hover:bg-gray-200 rounded-full shadow-lg font-semibold px-6"
+            >
+              {t('mobileScan.tapToRetry')}
+            </Button>
           </div>
         )}
 

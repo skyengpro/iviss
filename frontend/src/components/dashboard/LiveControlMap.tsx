@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { AgentLocationDto } from '@/openapi-rq/requests/types.gen';
 import { formatDistanceToNow } from 'date-fns';
+import { fr as frLocale } from 'date-fns/locale';
 import { Expand, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Fix for default marker icons in Leaflet with Webpack/Vite
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -115,6 +117,8 @@ export function LiveControlMap({
   center = DEFAULT_CENTER,
   zoom = DEFAULT_ZOOM,
 }: LiveControlMapProps) {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'fr' ? frLocale : undefined;
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [view, setView] = useState<{ center: [number, number]; zoom: number }>({
     center,
@@ -162,7 +166,7 @@ export function LiveControlMap({
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 gap-2 rounded-xl">
                 <Expand className="h-4 w-4" />
-                Fullscreen
+                {t('common.fullscreen')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 overflow-hidden">
@@ -170,9 +174,11 @@ export function LiveControlMap({
                 <div className="flex items-center justify-between border-b px-4 py-3">
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <MapIcon className="h-4 w-4" />
-                    Live Control Map
+                    {t('backOfficeDashboard.liveControlMap')}
                   </div>
-                  <div className="text-xs text-muted-foreground">{agents.length} agents</div>
+                  <div className="text-xs text-muted-foreground">
+                    {agents.length} {t('common.agentsOnline').toLowerCase()}
+                  </div>
                 </div>
 
                 <div className="relative flex-1">
@@ -199,9 +205,10 @@ export function LiveControlMap({
                           <div className="p-1">
                             <p className="font-bold text-sm mb-1">{agent.agentName}</p>
                             <p className="text-xs text-muted-foreground">
-                              Last active:{' '}
+                              {t('common.lastActive')}:{' '}
                               {formatDistanceToNow(new Date(agent.lastUpdated), {
                                 addSuffix: true,
+                                locale: dateLocale,
                               })}
                             </p>
                           </div>
@@ -238,13 +245,16 @@ export function LiveControlMap({
                 <div className="p-1">
                   <p className="font-bold text-sm mb-1">{agent.agentName}</p>
                   <p className="text-xs text-muted-foreground">
-                    Last active:{' '}
-                    {formatDistanceToNow(new Date(agent.lastUpdated), { addSuffix: true })}
+                    {t('common.lastActive')}:{' '}
+                    {formatDistanceToNow(new Date(agent.lastUpdated), {
+                      addSuffix: true,
+                      locale: dateLocale,
+                    })}
                   </p>
                   <div className="mt-2 flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
                     <span className="text-[10px] uppercase font-bold text-green-600">
-                      Active Now
+                      {t('common.activeNow')}
                     </span>
                   </div>
                 </div>
@@ -258,11 +268,14 @@ export function LiveControlMap({
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-blue-500" />
-              <span>{agents.length} Agents Online</span>
+              <span>
+                {agents.length} {t('common.agentsOnline')}
+              </span>
             </div>
             {mostRecentUpdate && (
               <span className="text-[10px] text-muted-foreground">
-                Updated {formatDistanceToNow(mostRecentUpdate, { addSuffix: true })}
+                {t('common.updated')}{' '}
+                {formatDistanceToNow(mostRecentUpdate, { addSuffix: true, locale: dateLocale })}
               </span>
             )}
           </div>
@@ -271,7 +284,7 @@ export function LiveControlMap({
         {agents.length === 0 && (
           <div className="absolute inset-0 z-20 flex items-center justify-center">
             <div className="rounded-xl border bg-background/80 backdrop-blur-md px-4 py-3 text-sm text-muted-foreground shadow-sm">
-              No agents currently online
+              {t('common.noAgentsOnline')}
             </div>
           </div>
         )}
