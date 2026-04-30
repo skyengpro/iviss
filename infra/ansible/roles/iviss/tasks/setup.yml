@@ -6,7 +6,10 @@
 
 - name: Install required packages
   apt:
-    name:
+    name: "{{ common_packages + (cloudfront_enabled | default(false) | bool | ternary([], ssl_packages)) }}"
+    state: present
+  vars:
+    common_packages:
       - apt-transport-https
       - ca-certificates
       - curl
@@ -15,9 +18,9 @@
       - python3-pip
       - ufw
       - nginx
+    ssl_packages:
       - certbot
       - python3-certbot-nginx
-    state: present
 
 - name: Add Docker GPG key
   apt_key:
@@ -46,15 +49,34 @@
     state: started
     enabled: yes
 
-- name: Configure UFW
+- name: Set UFW default incoming policy
+  ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set UFW default outgoing policy
+  ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow HTTP ingress for the CloudFront origin path
   ufw:
     rule: allow
-    port: "{{ item }}"
+    port: "80"
     proto: tcp
-  loop:
-    - 22
-    - 80
-    - 443
+
+- name: Allow SSH ingress for debugging/testing
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow HTTPS only when edge termination is disabled
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+  when: not (cloudfront_enabled | default(false) | bool)
 
 - name: Enable UFW
   ufw:

@@ -74,7 +74,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
           tags: |
-            type=raw,value=${{ needs.release.outputs.new_release_version }}
+            ${{ needs.release.outputs.new_release_version != '' && format('type=raw,value={0}', needs.release.outputs.new_release_version) || '' }}
             type=raw,value=latest
             type=sha
 
@@ -126,9 +126,12 @@ jobs:
           DOCKER_ORG: ${{ github.repository_owner }}
           DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
+          ROUTE53_ZONE_ID: ${{ vars.ROUTE53_ZONE_ID || '' }}
+          EDGE_LOCKDOWN_ENABLED: ${{ vars.EDGE_LOCKDOWN_ENABLED || 'true' }}
           CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
           IMAGE_TAG: ${{ needs.release.outputs.new_release_version || 'latest' }}
           ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-1' }}
           POSTGRES_USER: ${{ vars.POSTGRES_USER || 'iviss_user' }}
           POSTGRES_DB: ${{ vars.POSTGRES_DB || 'iviss_dev' }}
           # Admin Bootstrap

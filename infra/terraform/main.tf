@@ -4,11 +4,32 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.4"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
   }
 }
 
 provider "aws" {
   region = var.aws_region
+}
+
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
 }
 
 # SSH Key Pair for Lightsail
@@ -33,7 +54,7 @@ resource "aws_lightsail_instance" "iviss_app" {
 # Static IP for the Instance
 resource "aws_lightsail_static_ip" "iviss_ip" {
   name = "${var.project_name}-${var.environment}-ip-v2"
-  
+
   lifecycle {
     prevent_destroy = true
   }
@@ -44,8 +65,8 @@ resource "aws_lightsail_static_ip_attachment" "iviss_ip_attach" {
   instance_name  = aws_lightsail_instance.iviss_app.id
 }
 
-# Firewall rules
 resource "aws_lightsail_instance_public_ports" "iviss_ports" {
+  count         = var.edge_lockdown_enabled ? 0 : 1
   instance_name = aws_lightsail_instance.iviss_app.name
 
   port_info {
@@ -133,6 +154,7 @@ EOF
 
   depends_on = [
     aws_lightsail_instance_public_ports.iviss_ports,
+    null_resource.lightsail_firewall,
     aws_lightsail_static_ip_attachment.iviss_ip_attach
   ]
 }
