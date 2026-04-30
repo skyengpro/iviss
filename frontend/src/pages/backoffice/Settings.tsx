@@ -11,8 +11,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { changePassword } from '@/openapi-rq/requests/services.gen';
 import { useTranslation } from 'react-i18next';
-import { getAccessToken } from '@/services/auth/tokenManager';
 import {
   User,
   Lock,
@@ -72,13 +72,19 @@ function RoleBadge({ role }: { role: string }) {
 function PasswordSection() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canSubmit = newPassword.trim().length >= 8 && confirmPassword.trim() && !isLoading;
+  const canSubmit =
+    currentPassword.trim() &&
+    newPassword.trim().length >= 8 &&
+    confirmPassword.trim() &&
+    !isLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,22 +94,28 @@ function PasswordSection() {
     }
     setIsLoading(true);
     try {
-      const token = getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${baseUrl}/api/v1/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ newPassword, confirmPassword }),
+      const result = await changePassword({
+        body: {
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          confirmPassword: confirmPassword,
+        },
+        throwOnError: false,
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.message || t('settings.security.updateError'));
+
+      if (result.error) {
+        const errorMessage =
+          typeof result.error === 'object' && result.error && 'message' in result.error
+            ? (result.error.message as string)
+            : t('settings.security.updateError');
+        toast.error(errorMessage);
       } else {
         toast.success(t('settings.security.updateSuccess'));
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
-    } catch {
+    } catch (error) {
       toast.error(t('settings.security.updateError'));
     } finally {
       setIsLoading(false);
@@ -112,6 +124,28 @@ function PasswordSection() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="current-pw">{t('settings.security.currentPassword')}</Label>
+        <div className="relative">
+          <Input
+            id="current-pw"
+            type={showCurrent ? 'text' : 'password'}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder={t('settings.security.currentPasswordPlaceholder')}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrent((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            tabIndex={-1}
+          >
+            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="new-pw">{t('settings.security.newPassword')}</Label>
         <div className="relative">

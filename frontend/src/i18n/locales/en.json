@@ -595,6 +595,8 @@
     "security": {
       "changePasswordTitle": "Change Password",
       "changePasswordDescription": "Update your password. Use at least 8 characters with a mix of letters and numbers.",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter your current password",
       "newPassword": "New Password",
       "newPasswordPlaceholder": "At least 8 characters",
       "confirmPassword": "Confirm New Password",
