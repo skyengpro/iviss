@@ -74,16 +74,17 @@ The result is a **single MAJOR release** that includes all three changes in the 
 
 ## 4. When Does a Release Happen?
 
-Releases are **only created when code is merged into the `main` branch**.
+Releases are **only created when code is merged into the `dev` branch**.
 
 ```
-feature branch  →  dev branch  →  main branch  →  RELEASE CREATED
+feature branch  →  dev branch  →  RELEASE CREATED
+                       │
+                       └──→  main branch  (production deploy)
 ```
 
-- Pushing to `dev` → **no release** (this is the testing/staging branch)
-- Merging `dev` into `main` → **release is created automatically**
-
-This means the team can work freely on `dev`, test everything, and only trigger a release when they are confident the changes are ready for production.
+- Pushing to a feature branch → **no release**
+- Merging into `dev` → **release is created automatically**
+- `main` is reserved for production deployments
 
 ---
 
