@@ -96,9 +96,9 @@ function PasswordSection() {
     try {
       const result = await changePassword({
         body: {
-          current_password: currentPassword,
-          new_password: newPassword,
-          confirm_password: confirmPassword,
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          confirmPassword: confirmPassword,
         },
         throwOnError: false,
       });
