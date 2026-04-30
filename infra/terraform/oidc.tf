@@ -31,14 +31,14 @@ resource "aws_iam_role" "github_actions_deploy" {
         Effect = "Allow"
         Principal = {
           Federated = aws_iam_openid_connect_provider.github_actions.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringLike = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:sub" = "repo:skyengpro/iviss:*"
           }
-          Action = "sts:AssumeRoleWithWebIdentity"
-          Condition = {
-            StringLike = {
-              "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-              "token.actions.githubusercontent.com:sub" = "repo:skyengpro/iviss:*"
-            }
-          }
+        }
       }
     ]
   })
@@ -60,9 +60,89 @@ resource "aws_iam_role_policy" "deploy_permissions" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "LightsailFullAccess"
+        Sid      = "LightsailFullAccess"
+        Effect   = "Allow"
+        Action   = ["lightsail:*"]
+        Resource = "*"
+      },
+      {
+        Sid    = "EC2RelayAndEndpoint"
         Effect = "Allow"
-        Action = ["lightsail:*"]
+        Action = [
+          "ec2:RunInstances",
+          "ec2:TerminateInstances",
+          "ec2:CreateTags",
+          "ec2:DeleteTags",
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupEgress",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceStatus",
+          "ec2:DescribeImages",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeRouteTables",
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:CreateInstanceConnectEndpoint",
+          "ec2:DeleteInstanceConnectEndpoint",
+          "ec2:DescribeInstanceConnectEndpoints",
+          "ec2:ModifyInstanceConnectEndpoint",
+          "ec2-instance-connect:OpenTunnel",
+          "ec2:ImportKeyPair",
+          "ec2:DeleteKeyPair"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "CloudFrontAndAcm"
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateDistribution",
+          "cloudfront:UpdateDistribution",
+          "cloudfront:GetDistribution",
+          "cloudfront:GetDistributionConfig",
+          "cloudfront:DeleteDistribution",
+          "cloudfront:ListDistributions",
+          "cloudfront:CreateInvalidation",
+          "cloudfront:TagResource",
+          "cloudfront:UntagResource",
+          "acm:RequestCertificate",
+          "acm:DescribeCertificate",
+          "acm:DeleteCertificate",
+          "acm:AddTagsToCertificate",
+          "acm:ListCertificates"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "WafManage"
+        Effect = "Allow"
+        Action = [
+          "wafv2:CreateWebACL",
+          "wafv2:UpdateWebACL",
+          "wafv2:DeleteWebACL",
+          "wafv2:GetWebACL",
+          "wafv2:ListWebACLs",
+          "wafv2:ListTagsForResource",
+          "wafv2:TagResource",
+          "wafv2:UntagResource"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "Route53ForCloudFrontDns"
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets",
+          "route53:GetHostedZone",
+          "route53:ListHostedZonesByName",
+          "route53:ListResourceRecordSets"
+        ]
         Resource = "*"
       },
       {
@@ -97,6 +177,9 @@ resource "aws_iam_role_policy" "deploy_permissions" {
           "secretsmanager:DescribeSecret",
           "secretsmanager:GetResourcePolicy"
         ]
+        # ARN pattern matches secrets like:
+        # arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/app-secrets-AbCdEf
+        # The wildcard after 'iviss/' matches the full path including AWS's random suffix
         Resource = "arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/*"
       },
       {
@@ -123,6 +206,9 @@ resource "aws_iam_role_policy" "deploy_permissions" {
           "secretsmanager:PutSecretValue",
           "secretsmanager:TagResource"
         ]
+        # ARN pattern matches secrets like:
+        # arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/cloudfront-origin-secret-XyZ123
+        # The wildcard after 'iviss/' matches the full path including AWS's random suffix
         Resource = "arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/*"
       }
     ]

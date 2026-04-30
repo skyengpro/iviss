@@ -31,7 +31,7 @@ variable "lightsail_bundle_id" {
 variable "auto_deploy" {
   description = "Whether to automatically trigger Ansible deployment after provisioning"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "image_tag" {
@@ -41,22 +41,22 @@ variable "image_tag" {
 }
 
 # Application Secrets (Used if auto_deploy is true)
-variable "jwt_private_key_pem" { 
-  type      = string 
-  default   = "" 
-  sensitive = true 
+variable "jwt_private_key_pem" {
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
-variable "jwt_public_key_pem" { 
-  type      = string 
-  default   = "" 
-  sensitive = true 
+variable "jwt_public_key_pem" {
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
-variable "activation_code_pepper" { 
-  type      = string 
-  default   = "" 
-  sensitive = true 
+variable "activation_code_pepper" {
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
 variable "db_password" {
@@ -66,62 +66,74 @@ variable "db_password" {
   sensitive   = true
 }
 
-variable "admin_bootstrap_email" { 
-  type      = string 
-  default   = "admin@iviss.local" 
+variable "admin_bootstrap_email" {
+  type    = string
+  default = "admin@iviss.local"
 }
 
-variable "admin_bootstrap_password" { 
-  type      = string 
-  default   = "" 
-  sensitive = true 
+variable "admin_bootstrap_password" {
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
-variable "admin_bootstrap_phone" { 
-  type      = string 
-  default   = "" 
+variable "admin_bootstrap_phone" {
+  type    = string
+  default = ""
 }
 
-variable "admin_bootstrap_username" { 
-  type      = string 
-  default   = "admin" 
+variable "admin_bootstrap_username" {
+  type    = string
+  default = "admin"
 }
 
-variable "twilio_account_sid" { 
-  type      = string 
-  default   = "mock" 
+variable "twilio_account_sid" {
+  type    = string
+  default = "mock"
 }
 
-variable "twilio_auth_token" { 
-  type      = string 
-  default   = "mock" 
-  sensitive = true 
+variable "twilio_auth_token" {
+  type      = string
+  default   = "mock"
+  sensitive = true
 }
 
-variable "twilio_from_number" { 
-  type      = string 
-  default   = "mock" 
+variable "twilio_from_number" {
+  type    = string
+  default = "mock"
 }
 
-variable "github_username" { 
-  type      = string 
-  default   = "" 
+variable "github_username" {
+  type    = string
+  default = ""
 }
 
-variable "github_token" { 
-  type      = string 
-  default   = "" 
-  sensitive = true 
+variable "github_token" {
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
-variable "domain_name" { 
-  type      = string 
-  default   = "" 
+variable "domain_name" {
+  type    = string
+  default = ""
 }
 
-variable "certbot_email" { 
-  type      = string 
-  default   = "admin@iviss.local" 
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID used to validate and alias the CloudFront distribution"
+  type        = string
+  default     = ""
+}
+
+variable "certbot_email" {
+  type    = string
+  default = "admin@iviss.local"
+}
+
+variable "edge_lockdown_enabled" {
+  description = "When true, restrict Lightsail public ingress to the CloudFront origin path and close public SSH"
+  type        = bool
+  default     = false
 }
 
 # SMS Provider Configuration
@@ -194,4 +206,3 @@ variable "shift_end_hour" {
   type    = string
   default = "18"
 }
-

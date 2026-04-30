@@ -13,10 +13,27 @@ server {
     # Hide Nginx version
     server_tokens off;
 
-    # --- Rate Limiting Zones (defined in http context via include) ---
-    # Applied per-location below
+    # --- Origin Verification for CloudFront ---
+    # When CloudFront is enabled, reject requests without valid X-Origin-Verify header
+    # This protects the origin from direct access bypassing the edge
+    {% if cloudfront_enabled | default(false) %}
+    set $origin_verify_valid 0;
+    if ($http_x_origin_verify = "{{ cloudfront_origin_secret }}") {
+        set $origin_verify_valid 1;
+    }
+    {% endif %}
+
+    # Origin health check endpoint (no verification required)
+    location = /__origin_check__ {
+        return 204;
+    }
 
     location / {
+        {% if cloudfront_enabled | default(false) %}
+        if ($origin_verify_valid = 0) {
+            return 403;
+        }
+        {% endif %}
         proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -25,6 +42,11 @@ server {
     }
 
     location /api {
+        {% if cloudfront_enabled | default(false) %}
+        if ($origin_verify_valid = 0) {
+            return 403;
+        }
+        {% endif %}
         proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

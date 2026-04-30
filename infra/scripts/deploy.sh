@@ -5,7 +5,10 @@ set -e
 cleanup() {
   local exit_code=$?
   echo "🧹 Cleaning up sensitive files..."
-  rm -f "${VARS_FILE:-}" "${ANSIBLE_DIR:-}/iviss-key.pem"
+  rm -f \
+    "${VARS_FILE:-}" \
+    "${ANSIBLE_DIR:-}/iviss-key.pem" \
+    "${ANSIBLE_DIR:-}/ssh_config"
   exit $exit_code
 }
 trap cleanup EXIT
@@ -40,6 +43,16 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
     set -o allexport
     source "$PROJECT_ROOT/.env"
     set +o allexport
+    
+    # Show loaded critical variables (mask sensitive values)
+    echo "✅ Loaded from .env:"
+    echo "   - DOMAIN_NAME: ${DOMAIN_NAME:-'(not set)'}"
+    echo "   - AWS_REGION: ${AWS_REGION:-'(not set, will use default)'}"
+    echo "   - ENVIRONMENT: ${ENVIRONMENT:-'(not set, will default to production)'}"
+    echo "   - USE_SECRETS_MANAGER: ${USE_SECRETS_MANAGER:-'(not set, will default to false)'}"
+else
+    echo "⚠️  No .env file found at $PROJECT_ROOT/.env"
+    echo "   Using environment variables only"
 fi
 
 # Override with command line arguments if provided
@@ -63,7 +76,8 @@ terraform init -reconfigure
 # 1.5 Auto-healing: Import existing resources if missing from state
 PROJECT="iviss"
 ENV="production"
-REGION="eu-west-1"
+REGION="${AWS_REGION:-eu-west-1}"
+LIGHTSAIL_INSTANCE_NAME="${PROJECT}-${ENV}-app-v2"
 
 # Helper for conditional import
 auto_import() {
@@ -85,15 +99,38 @@ auto_import "aws_lightsail_key_pair.iviss_key" "${PROJECT}-${ENV}-key-v2" "Key P
 auto_import "aws_lightsail_static_ip.iviss_ip" "${PROJECT}-${ENV}-ip-v2" "Static IP" "aws lightsail get-static-ip --static-ip-name ${PROJECT}-${ENV}-ip-v2 --region $REGION"
 auto_import "aws_lightsail_instance.iviss_app" "${PROJECT}-${ENV}-app-v2" "Instance" "aws lightsail get-instance --instance-name ${PROJECT}-${ENV}-app-v2 --region $REGION"
 
+echo ""
+echo "📋 Terraform Configuration:"
+echo "   - Domain Name: ${DOMAIN_NAME:-'(not set - will use CloudFront default)'}"
+echo "   - Edge Lockdown: ${EDGE_LOCKDOWN_ENABLED:-true}"
+echo "   - Route53 Zone ID: ${ROUTE53_ZONE_ID:-'(not set)'}"
+echo ""
+
 terraform apply -auto-approve \
   -var="auto_deploy=false" \
   -var="domain_name=${DOMAIN_NAME:-}" \
-  -var="certbot_email=${CERTBOT_EMAIL:-}"
+  -var="certbot_email=${CERTBOT_EMAIL:-}" \
+  -var="route53_zone_id=${ROUTE53_ZONE_ID:-}" \
+  -var="edge_lockdown_enabled=${EDGE_LOCKDOWN_ENABLED:-true}"
+
+# Warn if edge lockdown is explicitly disabled in production
+if [ "${EDGE_LOCKDOWN_ENABLED:-true}" = "false" ]; then
+  echo "⚠️  WARNING: Edge lockdown is DISABLED. Lightsail will have public SSH and unrestricted HTTP access."
+  echo "⚠️  This is NOT recommended for production environments."
+fi
 
 # 2. Extract Infrastructure Details
 INSTANCE_IP=$(terraform output -raw instance_ip)
 PRIVATE_KEY=$(terraform output -raw private_key)
+CF_DISTRIBUTION_DOMAIN=$(terraform output -raw cloudfront_distribution_domain_name)
 TF_IMAGE_TAG=$(terraform output -raw image_tag 2>/dev/null || echo "latest")
+
+# Temporarily relaxed mode: keep SSH publicly reachable during setup/testing.
+echo "⚠️  Opening Lightsail SSH publicly (0.0.0.0/0) for debugging/testing..."
+aws lightsail open-instance-public-ports \
+  --region "${REGION}" \
+  --instance-name "${LIGHTSAIL_INSTANCE_NAME}" \
+  --port-info fromPort=22,toPort=22,protocol=tcp,cidrs=0.0.0.0/0 >/dev/null
 
 # 2.5 Resolve Deployment Version (Override order: ENV > Terraform > Git Tag)
 if [ -n "$IMAGE_TAG" ]; then
@@ -111,18 +148,57 @@ chmod 600 "$ANSIBLE_DIR/iviss-key.pem"
 
 # 4. Generate Ansible Inventory
 echo "📝 Generating Ansible inventory..."
+cat <<EOF > "$ANSIBLE_DIR/ssh_config"
+Host lightsail-public
+  HostName $INSTANCE_IP
+  User ubuntu
+  IdentityFile $ANSIBLE_DIR/iviss-key.pem
+  IdentitiesOnly yes
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+EOF
+
 cat <<EOF > "$ANSIBLE_DIR/inventory.ini"
 [iviss_prod]
-$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=./iviss-key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no -o IdentitiesOnly=yes'
+lightsail-public ansible_user=ubuntu ansible_ssh_private_key_file=./iviss-key.pem ansible_ssh_common_args='-F ./ssh_config'
 EOF
 
 # 5. Wait for SSH
 echo "⚙️ Configuring server and deploying application..."
 cd "$ANSIBLE_DIR"
-echo "Waiting for SSH to be ready on $INSTANCE_IP..."
-until nc -zvw5 $INSTANCE_IP 22; do
+echo "Waiting for direct SSH to be ready on $INSTANCE_IP..."
+
+# Add timeout to prevent infinite waiting
+SSH_TIMEOUT=300  # 5 minutes
+SSH_START_TIME=$(date +%s)
+SSH_ATTEMPT=0
+
+while ! ssh -F ./ssh_config -o BatchMode=yes -o ConnectTimeout=10 lightsail-public "true" >/dev/null 2>&1; do
+  SSH_ELAPSED=$(($(date +%s) - SSH_START_TIME))
+  SSH_ATTEMPT=$((SSH_ATTEMPT + 1))
+  
+  if [ $SSH_ELAPSED -ge $SSH_TIMEOUT ]; then
+    echo ""
+    echo "❌ ERROR: SSH connection timed out after ${SSH_TIMEOUT} seconds (${SSH_ATTEMPT} attempts)"
+    echo ""
+    echo "Troubleshooting steps:"
+    echo "1. Check if Lightsail instance is running:"
+    echo "   aws lightsail get-instances --region ${AWS_REGION:-eu-west-1}"
+    echo ""
+    echo "3. Test SSH manually:"
+    echo "   ssh -F ./ssh_config -v lightsail-public"
+    echo ""
+    exit 1
+  fi
+  
+  if [ $((SSH_ATTEMPT % 12)) -eq 0 ]; then
+    echo "Still waiting for SSH... (${SSH_ELAPSED}s elapsed)"
+  fi
+  
   sleep 5
 done
+
+echo "✓ SSH connection established successfully"
 
 # 6. Build JSON vars file
 if [ "${USE_SECRETS_MANAGER:-false}" = "true" ]; then
@@ -143,6 +219,10 @@ if [ "${USE_SECRETS_MANAGER:-false}" = "true" ]; then
   export PROVIDER_KEYS=$(aws secretsmanager get-secret-value \
     --secret-id "iviss/${ENVIRONMENT_NAME}/provider-keys" \
     --query SecretString --output text --region $REGION)
+
+  export CLOUDFRONT_ORIGIN_SECRET=$(aws secretsmanager get-secret-value \
+    --secret-id "iviss/${ENVIRONMENT_NAME}/cloudfront-origin-secret" \
+    --query SecretString --output text --region $REGION)
   
   python3 -c "
 import json, os, sys
@@ -160,8 +240,14 @@ except Exception as e:
 
 domain = os.environ.get('DOMAIN_NAME', '')
 instance_ip = '${INSTANCE_IP}'
+cloudfront_domain = '${CF_DISTRIBUTION_DOMAIN}'
 docker_user = os.environ.get('DOCKER_USERNAME', '')
 docker_pass = app.get('docker_password', '')
+
+print('Building Ansible vars with:')
+print('   - Domain: ' + (domain or '(using CloudFront domain)'))
+print('   - Instance IP: ' + instance_ip)
+print('   - CloudFront Domain: ' + cloudfront_domain)
 
 # Mandatory Validation
 if not docker_pass:
@@ -198,7 +284,7 @@ vars = {
     'certbot_email': os.environ.get('CERTBOT_EMAIL', ''),
     'db_user': os.environ.get('POSTGRES_USER', ''),
     'db_name': os.environ.get('POSTGRES_DB', ''),
-    'vite_api_url': f'https://{domain}' if domain else f'http://{instance_ip}:3000',
+    'vite_api_url': f'https://{domain}' if domain else f'https://{cloudfront_domain}',
     'iviss_env': os.environ.get('ENVIRONMENT') or 'production',
     'log_level': os.environ.get('LOG_LEVEL', 'info'),
     'shift_start_hour': os.environ.get('SHIFT_START_HOUR', '6'),
@@ -214,6 +300,9 @@ vars = {
     'smtp_username': os.environ.get('SMTP_USERNAME', ''),
     'smtp_from_email': os.environ.get('SMTP_FROM_EMAIL', ''),
     'image_tag': os.environ.get('IMAGE_TAG', 'latest'),
+    'cloudfront_origin_secret': os.environ.get('CLOUDFRONT_ORIGIN_SECRET', ''),
+    'cloudfront_enabled': os.environ.get('EDGE_LOCKDOWN_ENABLED', 'false').lower(),
+    'deploy_ssh_cidr': os.environ.get('DEPLOY_SSH_CIDR', ''),
 }
 
 with open('$VARS_FILE', 'w') as f:
@@ -233,6 +322,12 @@ def get_pem(env_var, file_path):
 
 domain = os.environ.get('DOMAIN_NAME', '')
 instance_ip = '${INSTANCE_IP}'
+cloudfront_domain = '${CF_DISTRIBUTION_DOMAIN}'
+
+print('Building Ansible vars with:')
+print('   - Domain: ' + (domain or '(using CloudFront domain)'))
+print('   - Instance IP: ' + instance_ip)
+print('   - CloudFront Domain: ' + cloudfront_domain)
 
 vars = {
     'domain_name': domain,
@@ -240,7 +335,7 @@ vars = {
     'db_password': os.environ.get('POSTGRES_PASSWORD', ''),
     'db_user': os.environ.get('POSTGRES_USER', ''),
     'db_name': os.environ.get('POSTGRES_DB', ''),
-    'vite_api_url': f'https://{domain}' if domain else f'http://{instance_ip}:3000',
+    'vite_api_url': f'https://{domain}' if domain else f'https://{cloudfront_domain}',
     'jwt_private_key_pem': get_pem('JWT_PRIVATE_KEY_PEM', '$PROJECT_ROOT/jwt-private.pem'),
     'jwt_public_key_pem': get_pem('JWT_PUBLIC_KEY_PEM', '$PROJECT_ROOT/jwt-public.pem'),
     'activation_code_pepper': os.environ.get('ACTIVATION_CODE_PEPPER', ''),
@@ -272,6 +367,10 @@ vars = {
     'docker_username': os.environ.get('DOCKER_USERNAME', ''),
     'docker_password': os.environ.get('DOCKER_PASSWORD', ''),
     'docker_org': os.environ.get('DOCKER_ORG', ''),
+    'image_tag': os.environ.get('IMAGE_TAG', 'latest'),
+    'cloudfront_origin_secret': os.environ.get('CLOUDFRONT_ORIGIN_SECRET', ''),
+    'cloudfront_enabled': os.environ.get('EDGE_LOCKDOWN_ENABLED', 'false').lower(),
+    'deploy_ssh_cidr': os.environ.get('DEPLOY_SSH_CIDR', ''),
 }
 
 with open('$VARS_FILE', 'w') as f:
@@ -286,6 +385,34 @@ with open('$VARS_FILE', 'r') as f:
 fi
 
 ansible-playbook -i inventory.ini playbook.yml --extra-vars "@$VARS_FILE"
+
+if [ $? -eq 0 ]; then
+  echo ""
+  echo "=========================================="
+  echo "  Deployment Completed Successfully!"
+  echo "=========================================="
+  echo ""
+  echo "Infrastructure:"
+  echo "  - CloudFront: https://${DOMAIN_NAME:-yourdomain.com}"
+  echo "  - Lightsail:  $INSTANCE_IP"
+  echo ""
+  echo "Next Steps:"
+  echo "  1. Test the application:"
+  echo "     curl https://${DOMAIN_NAME:-yourdomain.com}/api/v1/health"
+  echo ""
+  echo "  2. SSH to the server:"
+  echo "     ssh -F ./ssh_config lightsail-public"
+  echo ""
+  echo "  3. Check application logs:"
+  echo "     ssh -F ./ssh_config lightsail-public 'cd /opt/iviss && docker compose logs -f'"
+  echo ""
+  echo "=========================================="
+else
+  echo ""
+  echo "❌ ERROR: Ansible playbook failed!"
+  echo "Check the output above for error details."
+  exit 1
+fi
 
 # Clean up sensitive vars file (Disabled for debugging)
 # rm -f "$VARS_FILE"
