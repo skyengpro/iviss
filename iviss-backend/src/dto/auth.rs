@@ -83,6 +83,8 @@ pub struct RefreshRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangePasswordRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_password: Option<String>,
     pub new_password: String,
     pub confirm_password: String,
 }

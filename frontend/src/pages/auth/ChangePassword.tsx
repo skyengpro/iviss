@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { KeyRound, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/use-auth';
-import { getAccessToken } from '@/services/auth/tokenManager';
+import { changePassword } from '@/openapi-rq/requests/services.gen';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -37,24 +37,20 @@ export default function ChangePassword() {
 
     setIsLoading(true);
     try {
-      const token = getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-
-      const response = await fetch(`${baseUrl}/api/v1/auth/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const result = await changePassword({
+        body: {
           newPassword,
           confirmPassword,
-        }),
+        },
+        throwOnError: false,
       });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        setError(data.message || 'Failed to change password');
+      if (result.error) {
+        const errorMessage =
+          typeof result.error === 'object' && result.error && 'message' in result.error
+            ? (result.error.message as string)
+            : 'Failed to change password';
+        setError(errorMessage);
       } else {
         navigate('/backoffice');
       }

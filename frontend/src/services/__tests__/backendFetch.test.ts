@@ -73,15 +73,15 @@ describe('fetchWithAuth', () => {
     expect(calledHeaders.get('Authorization')).toBeNull();
   });
 
-  it('should dispatch iviss:session-revoked on 401', async () => {
+  it('should NOT dispatch iviss:session-revoked on 401 (handled by auth interceptor)', async () => {
     mockedGetAccessToken.mockReturnValue('expired-token');
     fetchSpy.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }));
 
     await fetchWithAuth(`${BASE_URL}/api/test`);
 
-    expect(dispatchSpy).toHaveBeenCalledTimes(1);
-    const event = dispatchSpy.mock.calls[0][0] as CustomEvent;
-    expect(event.type).toBe('iviss:session-revoked');
+    // 401s are now handled by the auth interceptor for token refresh
+    // backendFetch should not dispatch session-revoked for generic 401s
+    expect(dispatchSpy).not.toHaveBeenCalled();
   });
 
   it('should dispatch iviss:session-revoked when body contains SESSION_REVOKED code', async () => {

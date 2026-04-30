@@ -13,8 +13,21 @@ interface PlateInputProps {
   placeholder?: string;
 }
 
-// Strict license plate format: 2 letters + 3 numbers + 2 letters (e.g., "WE 234 SD")
-const PLATE_REGEX = /^[A-Z]{2}\s\d{3}\s[A-Z]{2}$/;
+// Supported formats:
+// 1. Standard: (REGION) 1234 A OR (REGION) 123 AB
+// 2. Police: SN 1234
+// 3. Military: 1234567
+// 4. Government: EN1234X
+// 5. Postal: RT123456
+// 6. Diplomatic: CD 01 123
+const REGION = 'AD|CE|ES|EN|LT|NO|NW|OU|SU|SW';
+export const PLATE_REGEX = new RegExp(
+  `^(?:(?:${REGION})\\s\\d{4}\\s[A-Z]|(?:${REGION})\\s\\d{3}\\s[A-Z]{2}|SN\\s\\d{4}|\\d{7}|[A-Z]{2}\\d{4}[A-Z]|RT\\d{6}|CD\\s\\d{1,3}\\s\\d{1,3})$`
+);
+
+export const isValidPlate = (plate: string): boolean => {
+  return PLATE_REGEX.test(plate.trim());
+};
 
 export function PlateInput({
   value,
@@ -22,46 +35,20 @@ export function PlateInput({
   onSubmit,
   isLoading,
   className,
-  placeholder = 'WE 234 SD',
+  placeholder = 'CE 123 BC',
 }: Readonly<PlateInputProps>) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
 
-  // Auto-format plate number with proper spacing: XX 123 YY
+  // Flexible formatting: uppercase and allow valid characters
   const formatPlate = (input: string): string => {
-    // Remove all non-alphanumeric characters
-    const cleaned = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
-
-    // Build formatted string: 2 letters + space + 3 numbers + space + 2 letters
-    let formatted = '';
-
-    // First 2 letters
-    if (cleaned.length > 0) {
-      formatted += cleaned.slice(0, 2).replace(/[^A-Z]/g, '');
-    }
-
-    // Add space after 2 letters
-    if (cleaned.length > 2) {
-      formatted += ' ';
-      // Next 3 numbers
-      formatted += cleaned.slice(2, 5).replace(/[^0-9]/g, '');
-    }
-
-    // Add space after numbers
-    if (cleaned.length > 5) {
-      formatted += ' ';
-      // Last 2 letters
-      formatted += cleaned.slice(5, 7).replace(/[^A-Z]/g, '');
-    }
-
-    return formatted;
-  };
-
-  // Validate if the plate matches the required format
-  const isValidFormat = (plate: string): boolean => {
-    return PLATE_REGEX.test(plate);
+    return input
+      .toUpperCase()
+      .replace(/\s+/g, ' ') // Collapse multiple spaces
+      .replace(/[^A-Z0-9 ]/g, '') // Remove invalid chars
+      .trimStart(); // Allow spaces only between parts
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +68,7 @@ export function PlateInput({
   };
 
   const handleSubmit = () => {
-    if (!isValidFormat(value)) {
+    if (!isValidPlate(value)) {
       setShowValidationError(true);
       return;
     }
@@ -96,7 +83,7 @@ export function PlateInput({
     inputRef.current?.focus();
   };
 
-  const isComplete = value.length === 9; // "XX 123 YY" = 9 characters
+  const isValid = isValidPlate(value);
 
   return (
     <div className={cn('relative', className)}>
@@ -135,7 +122,7 @@ export function PlateInput({
           className="flex-1 bg-transparent text-xl font-bold tracking-widest placeholder:text-muted-foreground/50 placeholder:font-normal placeholder:tracking-normal focus:outline-none"
           autoComplete="off"
           autoCapitalize="characters"
-          maxLength={9}
+          maxLength={12}
         />
 
         {/* Clear button */}
@@ -156,18 +143,13 @@ export function PlateInput({
       {showValidationError && (
         <div className="mt-2 flex items-center justify-center gap-2 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <p>
-            {t(
-              'mobileSearch.invalidFormat',
-              'Invalid format. Use: WE 234 SD (2 letters, 3 numbers, 2 letters)'
-            )}
-          </p>
+          <p>{t('mobileSearch.invalidFormat', 'Invalid format. Please check the plate number.')}</p>
         </div>
       )}
 
-      {value.length > 0 && !isComplete && !showValidationError && (
+      {value.length > 0 && !isValid && !showValidationError && (
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          {t('mobileSearch.formatExample', 'Format: WE 234 SD (2 letters, 3 numbers, 2 letters)')}
+          {t('mobileSearch.formatExample', 'Enter a valid Cameroon plate format')}
         </p>
       )}
     </div>

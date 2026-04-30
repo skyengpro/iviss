@@ -14,6 +14,7 @@ paths = [
   '''^iviss-backend/src/tests/activation_endpoint_tests\.rs$''',
   '''^docs/deployment_guide\.md$''',
   '''^docs/admin_session_termination\.md$''',
+  '''^docs/deployment_guide\.md$''',
   '''^infra/scripts/debug_jwt\.py$''',
   '''^infra/scripts/test_rust_parsing\.rs$''',
 ]
