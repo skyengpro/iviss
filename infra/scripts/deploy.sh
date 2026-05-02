@@ -168,7 +168,7 @@ EOF
 
 cat <<EOF > "$ANSIBLE_DIR/inventory.ini"
 [iviss_prod]
-lightsail-public ansible_user=ubuntu ansible_ssh_private_key_file=./iviss-key.pem ansible_ssh_common_args='-F ./ssh_config'
+lightsail-public ansible_host=$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=$ANSIBLE_DIR/iviss-key.pem ansible_ssh_common_args='-F $ANSIBLE_DIR/ssh_config'
 EOF
 
 # 5. Wait for SSH
@@ -181,7 +181,7 @@ SSH_TIMEOUT=300  # 5 minutes
 SSH_START_TIME=$(date +%s)
 SSH_ATTEMPT=0
 
-while ! ssh -F ./ssh_config -o BatchMode=yes -o ConnectTimeout=10 lightsail-public "true" >/dev/null 2>&1; do
+while ! ssh -F "$ANSIBLE_DIR/ssh_config" -o BatchMode=yes -o ConnectTimeout=10 lightsail-public "true" >/dev/null 2>&1; do
   SSH_ELAPSED=$(($(date +%s) - SSH_START_TIME))
   SSH_ATTEMPT=$((SSH_ATTEMPT + 1))
   
@@ -194,7 +194,7 @@ while ! ssh -F ./ssh_config -o BatchMode=yes -o ConnectTimeout=10 lightsail-publ
     echo "   aws lightsail get-instances --region ${AWS_REGION:-eu-west-1}"
     echo ""
     echo "3. Test SSH manually:"
-    echo "   ssh -F ./ssh_config -v lightsail-public"
+    echo "   ssh -F $ANSIBLE_DIR/ssh_config -v lightsail-public"
     echo ""
     exit 1
   fi
@@ -409,10 +409,10 @@ if [ $? -eq 0 ]; then
   echo "     curl https://${DOMAIN_NAME:-yourdomain.com}/api/v1/health"
   echo ""
   echo "  2. SSH to the server:"
-  echo "     ssh -F ./ssh_config lightsail-public"
+  echo "     ssh -F $ANSIBLE_DIR/ssh_config lightsail-public"
   echo ""
   echo "  3. Check application logs:"
-  echo "     ssh -F ./ssh_config lightsail-public 'cd /opt/iviss && docker compose logs -f'"
+  echo "     ssh -F $ANSIBLE_DIR/ssh_config lightsail-public 'cd /opt/iviss && docker compose logs -f'"
   echo ""
   echo "=========================================="
 else
