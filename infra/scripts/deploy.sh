@@ -59,15 +59,6 @@ fi
 export DOMAIN_NAME="${1:-$DOMAIN_NAME}"
 export CERTBOT_EMAIL="${2:-$CERTBOT_EMAIL}"
 
-# Guard against partial custom-domain configuration that would disable
-# the ACM/Route53 resources and lead Terraform toward destructive drift.
-if [ -n "${DOMAIN_NAME:-}" ] && [ -z "${ROUTE53_ZONE_ID:-}" ]; then
-    echo "❌ FATAL ERROR: DOMAIN_NAME is set but ROUTE53_ZONE_ID is missing."
-    echo "Custom-domain CloudFront deployments require both values."
-    echo "Set ROUTE53_ZONE_ID in GitHub repository variables/secrets, or unset DOMAIN_NAME to use the default CloudFront domain."
-    exit 1
-fi
-
 # Automatic Version Detection (find latest tag if not provided)
 if [ -z "$IMAGE_TAG" ]; then
     LATEST_TAG=$(git -C "$PROJECT_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "")
