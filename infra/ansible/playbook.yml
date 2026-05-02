@@ -7,7 +7,6 @@
     docker_username: "{{ lookup('env', 'GITHUB_USERNAME') }}"
     docker_password: "{{ lookup('env', 'GITHUB_TOKEN') }}"
     app_dir: "/opt/iviss"
-    environment: "production"
 
   roles:
     - iviss

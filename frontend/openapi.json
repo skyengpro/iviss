@@ -1601,7 +1601,7 @@
             }
           },
           "400": {
-            "description": "Bad request — missing or invalid fields",
+            "description": "Bad request \u2014 missing or invalid fields",
             "content": {
               "application/json": {
                 "schema": {
@@ -1671,7 +1671,7 @@
             }
           },
           "400": {
-            "description": "Bad request — missing or invalid fields",
+            "description": "Bad request \u2014 missing or invalid fields",
             "content": {
               "application/json": {
                 "schema": {
@@ -3792,7 +3792,7 @@
       },
       "OrgDashboardStats": {
         "type": "object",
-        "description": "Org-scoped dashboard stats — returned for org_admin users.",
+        "description": "Org-scoped dashboard stats \u2014 returned for org_admin users.",
         "required": [
           "organizationName",
           "todayControls",
@@ -3843,7 +3843,13 @@
       },
       "Organization": {
         "type": "object",
-        "required": ["id", "name", "orgType", "startWorkTime", "endWorkTime"],
+        "required": [
+          "id",
+          "name",
+          "orgType",
+          "startWorkTime",
+          "endWorkTime"
+        ],
         "properties": {
           "endWorkTime": {
             "type": "integer",
@@ -4385,7 +4391,7 @@
           "confidence": {
             "type": "number",
             "format": "float",
-            "description": "Tesseract confidence score (0.0 – 1.0)."
+            "description": "Tesseract confidence score (0.0 \u2013 1.0)."
           },
           "format_valid": {
             "type": "boolean",
