@@ -168,7 +168,7 @@ EOF
 
 cat <<EOF > "$ANSIBLE_DIR/inventory.ini"
 [iviss_prod]
-lightsail-public ansible_host=$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=$ANSIBLE_DIR/iviss-key.pem ansible_ssh_common_args='-F $ANSIBLE_DIR/ssh_config'
+lightsail-public ansible_host=$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=$ANSIBLE_DIR/iviss-key.pem ansible_ssh_common_args='-F $ANSIBLE_DIR/ssh_config -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
 EOF
 
 # 5. Wait for SSH
@@ -392,7 +392,7 @@ with open('$VARS_FILE', 'r') as f:
 "
 fi
 
-ansible-playbook -i inventory.ini playbook.yml --extra-vars "@$VARS_FILE"
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini playbook.yml --extra-vars "@$VARS_FILE"
 
 if [ $? -eq 0 ]; then
   echo ""
