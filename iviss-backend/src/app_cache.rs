@@ -55,7 +55,7 @@ pub struct AppCache {
     /// Value: ()
     pub jti_blacklist: Cache<String, ()>,
     /// Key: organization_id (Uuid)
-    /// Value: (shift_start_minute, shift_end_minute)
+    /// Value: (start_work_time, end_work_time) in minutes
     pub org_work_time: Cache<Uuid, (u32, u32)>,
 }
 
