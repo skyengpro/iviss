@@ -115,6 +115,6 @@ export function useUser(id: string) {
   return useGetUser({ path: { id } });
 }
 
-export function useOrgUsers() {
-  return useListOrgUsers();
+export function useOrgUsers(enabled = true) {
+  return useListOrgUsers({}, undefined, { enabled });
 }

@@ -1,6 +1,7 @@
 {
   "branches": [
     "main",
+    "dev",
     { "name": "aws-dev-test", "prerelease": "rc" }
   ],
   "plugins": [
