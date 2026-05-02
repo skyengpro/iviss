@@ -126,7 +126,7 @@ jobs:
           DOCKER_ORG: ${{ github.repository_owner }}
           DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
-          ROUTE53_ZONE_ID: ${{ vars.ROUTE53_ZONE_ID || '' }}
+          ROUTE53_ZONE_ID: ${{ vars.ROUTE53_ZONE_ID || secrets.ROUTE53_ZONE_ID || '' }}
           EDGE_LOCKDOWN_ENABLED: ${{ vars.EDGE_LOCKDOWN_ENABLED || 'true' }}
           CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
           IMAGE_TAG: ${{ needs.release.outputs.new_release_version || 'latest' }}
@@ -152,5 +152,10 @@ jobs:
           SMS_PROVIDER: ${{ vars.SMS_PROVIDER || 'mock' }}
           EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'mock' }}
         run: |
+          if [ -n "${DOMAIN_NAME}" ] && [ -z "${ROUTE53_ZONE_ID}" ]; then
+            echo "❌ DOMAIN_NAME is set but ROUTE53_ZONE_ID is empty."
+            echo "Set ROUTE53_ZONE_ID in GitHub Variables or Secrets to avoid DNS/ACM teardown."
+            exit 1
+          fi
           chmod +x ./infra/scripts/deploy.sh
           ./infra/scripts/deploy.sh
