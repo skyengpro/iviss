@@ -1,8 +1,10 @@
 {
   "branches": [
     "main",
-    "dev",
-    { "name": "aws-dev-test", "prerelease": "rc" }
+    {
+      "name": "aws-dev-test",
+      "prerelease": "rc"
+    }
   ],
   "plugins": [
     "@semantic-release/commit-analyzer",
