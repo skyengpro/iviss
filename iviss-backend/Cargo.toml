@@ -32,7 +32,7 @@ regex = "1.12.3"
 once_cell = "1.21.3"
 leptess = "0.14"
 image = "0.25"
-
+imageproc = "0.25"
 
 async-trait = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
@@ -50,8 +50,8 @@ base64 = "0.22.1"
 p256 = { version = "0.13", features = ["ecdsa", "jwk"] }
 ecdsa = { version = "0.16", features = ["verifying"] }
 moka = { version = "0.12.15", features = ["future"] }
-# Force rustls-webpki to a patched version to fix RUSTSEC-2026-0098 and RUSTSEC-2026-0099
-rustls-webpki = "0.103.12"
+# Force rustls-webpki to a patched version to fix RUSTSEC-2026-0098, RUSTSEC-2026-0099, and RUSTSEC-2026-0104
+rustls-webpki = "0.103.13"
 lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1-rustls-tls", "builder", "pool"] }
 
 [dev-dependencies]

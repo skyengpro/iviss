@@ -24,6 +24,17 @@ describe('useScanPlate', () => {
     vi.spyOn(ImageProcessor, 'cropToViewfinderFast').mockResolvedValue(
       'data:image/jpeg;base64,AAA'
     );
+    vi.mocked(scanPlate).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          plate: '',
+          confidence: 0,
+          format_valid: false,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
 
     fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       if (typeof input === 'string' && input.startsWith('data:image')) {
@@ -88,8 +99,10 @@ describe('useScanPlate', () => {
     const { result } = renderHook(() => useScanPlate());
     const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
 
-    act(() => {
+    await act(async () => {
       result.current.startLiveScan(getScreenshot);
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(result.current.liveScanActive).toBe(true);
@@ -158,6 +171,8 @@ describe('useScanPlate', () => {
   });
 
   it('should set scanError on non-abort API failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
     vi.mocked(scanPlate).mockResolvedValueOnce({
       data: undefined,
       error: { message: 'Server crashed' },
@@ -177,6 +192,7 @@ describe('useScanPlate', () => {
     });
 
     expect(result.current.scanError).toBe('OCR API failed');
+    expect(console.error).toHaveBeenCalledWith('Frame processing failed:', expect.any(Error));
   });
 
   it('should add result to liveDetections when processing a frame successfully', async () => {
@@ -212,6 +228,10 @@ describe('useScanPlate', () => {
   });
 
   it('cleanup effect aborts in-flight request and clears timeout on unmount', () => {
+    vi.mocked(scanPlate).mockImplementationOnce(
+      () => new Promise(() => {}) as ReturnType<typeof scanPlate>
+    );
+
     const { result, unmount } = renderHook(() => useScanPlate());
     const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
 

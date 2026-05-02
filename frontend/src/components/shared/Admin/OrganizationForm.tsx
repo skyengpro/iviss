@@ -13,6 +13,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,18 +29,72 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import type { Organization } from '@/openapi-rq/requests/types.gen';
+import type {
+  CreateOrganizationRequest,
+  Organization,
+  UpdateOrganizationRequest,
+} from '@/openapi-rq/requests/types.gen';
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
-  orgType: z.enum(['police', 'customs', 'border_control', 'other']),
-  region: z.string().max(100, 'Region is too long').optional(),
-});
+function minutesToTimeValue(minutes?: number) {
+  if (minutes === undefined || minutes === null) return '';
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+function timeValueToMinutes(value?: string) {
+  if (!value) return undefined;
+
+  const [hours, minutes] = value.split(':').map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return undefined;
+
+  return hours * 60 + minutes;
+}
+
+const formSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+    orgType: z.enum(['police', 'customs', 'border_control', 'other']),
+    region: z.string().max(100, 'Region is too long').optional(),
+    startWorkTime: z.string().optional(),
+    endWorkTime: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    const startMinutes = timeValueToMinutes(values.startWorkTime);
+    const endMinutes = timeValueToMinutes(values.endWorkTime);
+
+    if (values.startWorkTime && startMinutes === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid start work time',
+        path: ['startWorkTime'],
+      });
+    }
+
+    if (values.endWorkTime && endMinutes === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid end work time',
+        path: ['endWorkTime'],
+      });
+    }
+
+    if (startMinutes !== undefined && endMinutes !== undefined && startMinutes >= endMinutes) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End work time must be after start work time',
+        path: ['endWorkTime'],
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface OrganizationFormProps {
-  onSubmit: (data: FormValues) => Promise<void>;
+  onSubmit: (data: CreateOrganizationRequest | UpdateOrganizationRequest) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
   initialData?: Organization;
@@ -59,11 +114,19 @@ export function OrganizationForm({
       name: initialData?.name || '',
       orgType: initialData?.orgType || 'police',
       region: initialData?.region || '',
+      startWorkTime: minutesToTimeValue(initialData?.startWorkTime),
+      endWorkTime: minutesToTimeValue(initialData?.endWorkTime),
     },
   });
 
   const handleSubmit = async (data: FormValues) => {
-    await onSubmit(data);
+    await onSubmit({
+      name: data.name,
+      orgType: data.orgType,
+      region: data.region || undefined,
+      startWorkTime: timeValueToMinutes(data.startWorkTime),
+      endWorkTime: timeValueToMinutes(data.endWorkTime),
+    });
   };
 
   return (
@@ -158,6 +221,54 @@ export function OrganizationForm({
                 </FormItem>
               )}
             />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="startWorkTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('organizationManagement.startWorkTime')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="time"
+                        step={60}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('organizationManagement.defaultStartWorkTimeHint')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="endWorkTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('organizationManagement.endWorkTime')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="time"
+                        step={60}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('organizationManagement.defaultEndWorkTimeHint')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>

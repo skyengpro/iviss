@@ -3455,6 +3455,12 @@
           "orgType"
         ],
         "properties": {
+          "endWorkTime": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
+          },
           "name": {
             "type": "string"
           },
@@ -3464,6 +3470,12 @@
           "region": {
             "type": "string",
             "nullable": true
+          },
+          "startWorkTime": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
           }
         }
       },
@@ -3831,12 +3843,13 @@
       },
       "Organization": {
         "type": "object",
-        "required": [
-          "id",
-          "name",
-          "orgType"
-        ],
+        "required": ["id", "name", "orgType", "startWorkTime", "endWorkTime"],
         "properties": {
+          "endWorkTime": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -3850,6 +3863,11 @@
           "region": {
             "type": "string",
             "nullable": true
+          },
+          "startWorkTime": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           }
         }
       },
@@ -3863,7 +3881,9 @@
           "activeAgents",
           "controlCount",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "shiftStartHour",
+          "shiftEndHour"
         ],
         "properties": {
           "activeAgents": {
@@ -3890,6 +3910,16 @@
           "region": {
             "type": "string",
             "nullable": true
+          },
+          "shiftEndHour": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "shiftStartHour": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "updatedAt": {
             "type": "string"
@@ -4622,6 +4652,12 @@
       "UpdateOrganizationRequest": {
         "type": "object",
         "properties": {
+          "endWorkTime": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
+          },
           "name": {
             "type": "string",
             "nullable": true
@@ -4637,6 +4673,12 @@
           "region": {
             "type": "string",
             "nullable": true
+          },
+          "startWorkTime": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
           }
         }
       },
@@ -5062,6 +5104,10 @@
     {
       "name": "admin",
       "description": "Admin operations"
+    },
+    {
+      "name": "org-admin",
+      "description": "Organization admin operations"
     }
   ]
 }

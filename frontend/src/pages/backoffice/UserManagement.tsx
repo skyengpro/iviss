@@ -119,7 +119,7 @@ export default function UserManagement() {
     isDeleting,
   } = useUsers();
 
-  const { data: orgUsers = [], isLoading: isLoadingOrg } = useOrgUsers();
+  const { data: orgUsers = [], isLoading: isLoadingOrg } = useOrgUsers(!isSuperAdmin);
 
   const users: UserProfile[] = isSuperAdmin
     ? (allUsers as UserProfile[])
@@ -327,7 +327,10 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>{t('backOfficeUserManagement.editUser')}</DialogTitle>
                 <DialogDescription>
-                  Update the professional details and access level for this user.
+                  {t(
+                    'backOfficeUserManagement.editUserDescription',
+                    "Mettre à jour les informations et le niveau d'accès de cet utilisateur."
+                  )}
                 </DialogDescription>
               </DialogHeader>
               {selectedUser && (
@@ -431,32 +434,35 @@ export default function UserManagement() {
           >
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Organization Admin Created</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {t('backOfficeUserManagement.orgAdminCreatedTitle')}
+                </AlertDialogTitle>
                 <AlertDialogDescription asChild>
                   <div className="space-y-3">
-                    <p>
-                      The account has been created. Share these credentials securely with the user —
-                      this password will not be shown again.
-                    </p>
+                    <p>{t('backOfficeUserManagement.orgAdminCreatedMessage')}</p>
                     <div className="rounded-md border bg-muted p-3 space-y-1 text-sm font-mono">
                       <div>
-                        <span className="text-muted-foreground">Email:</span>{' '}
+                        <span className="text-muted-foreground">
+                          {t('backOfficeUserManagement.tempEmail')}:
+                        </span>{' '}
                         {tempPasswordInfo?.email}
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Temp password:</span>{' '}
+                        <span className="text-muted-foreground">
+                          {t('backOfficeUserManagement.tempPassword')}:
+                        </span>{' '}
                         {tempPasswordInfo?.password}
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      The user will be required to change this password on first login.
+                      {t('backOfficeUserManagement.tempPasswordNote')}
                     </p>
                   </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogAction onClick={() => setTempPasswordInfo(null)}>
-                  Done
+                  {t('backOfficeUserManagement.done')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -567,7 +573,7 @@ export default function UserManagement() {
                   <TableHead>{t('backOfficeUserManagement.role')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.organization')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.status')}</TableHead>
-                  <TableHead>Session</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.terminateSession')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.lastActive')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.controlsToday')}</TableHead>
                   <TableHead className="w-[80px]">
@@ -626,15 +632,15 @@ export default function UserManagement() {
                       <TableCell>
                         {user.sessionStatus === 'ACTIVE' ? (
                           <StatusBadge variant="valid" size="sm">
-                            Active
+                            {t('backOfficeUserManagement.sessionActive')}
                           </StatusBadge>
                         ) : user.sessionStatus === 'REVOKED' ? (
                           <StatusBadge variant="destructive" size="sm">
-                            Terminated
+                            {t('backOfficeUserManagement.sessionTerminated')}
                           </StatusBadge>
                         ) : (
                           <StatusBadge variant="neutral" size="sm">
-                            Inactive
+                            {t('backOfficeUserManagement.sessionInactive')}
                           </StatusBadge>
                         )}
                       </TableCell>
@@ -686,7 +692,7 @@ export default function UserManagement() {
                               disabled={user.role !== 'agent' || user.sessionStatus !== 'ACTIVE'}
                             >
                               <PowerOff className="mr-2 h-4 w-4" />
-                              Terminate Session
+                              {t('backOfficeUserManagement.terminateSession')}
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
@@ -721,7 +727,7 @@ export default function UserManagement() {
                               ) : (
                                 <RefreshCw className="mr-2 h-4 w-4" />
                               )}
-                              Resend activation code
+                              {t('backOfficeUserManagement.resendActivationCode')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

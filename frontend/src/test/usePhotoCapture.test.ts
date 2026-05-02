@@ -18,10 +18,11 @@ vi.mock('react-i18next', () => ({
 // Mock ImageProcessor
 vi.mock('@/utils/imageProcessor', () => ({
   ImageProcessor: {
-    preprocessForHighRes: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_highres'),
+    preprocessForPhoto: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_photo'),
     preprocessForPhotoCapture: vi
       .fn()
       .mockResolvedValue('data:image/jpeg;base64,processed_capture'),
+    assessImageQuality: vi.fn().mockResolvedValue({ isAcceptable: true, feedback: '' }),
   },
 }));
 
@@ -33,6 +34,16 @@ describe('usePhotoCapture', () => {
   beforeEach(() => {
     originalFetch = global.fetch;
     vi.clearAllMocks();
+    vi.mocked(ImageProcessor.assessImageQuality).mockResolvedValue({
+      isAcceptable: true,
+      feedback: '',
+    });
+    vi.mocked(ImageProcessor.preprocessForPhoto).mockResolvedValue(
+      'data:image/jpeg;base64,processed_photo'
+    );
+    vi.mocked(ImageProcessor.preprocessForPhotoCapture).mockResolvedValue(
+      'data:image/jpeg;base64,processed_capture'
+    );
   });
 
   afterEach(() => {
@@ -83,6 +94,37 @@ describe('usePhotoCapture', () => {
       status: 'valid',
     });
     expect(result.current.editedPlate).toBe('CE128BC');
+    expect(ImageProcessor.assessImageQuality).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,screenshot',
+      expect.any(Function)
+    );
+    expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,screenshot',
+      expect.any(Function)
+    );
+    expect(ImageProcessor.preprocessForPhotoCapture).not.toHaveBeenCalled();
+  });
+
+  it('should stop before OCR when image quality is not acceptable', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    vi.mocked(ImageProcessor.assessImageQuality).mockResolvedValueOnce({
+      isAcceptable: false,
+      feedback: 'mobileScan.qualityTooBlurry',
+    });
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    expect(result.current.state).toBe('error');
+    expect(result.current.error).toBe('mobileScan.qualityTooBlurry');
+    expect(result.current.capturedImageSrc).toBe('data:image/jpeg;base64,screenshot');
+    expect(ImageProcessor.preprocessForPhoto).not.toHaveBeenCalled();
+    expect(ImageProcessor.preprocessForPhotoCapture).not.toHaveBeenCalled();
+    expect(photoPlate).not.toHaveBeenCalled();
   });
 
   it('should handle API errors gracefully', async () => {
@@ -155,7 +197,7 @@ describe('usePhotoCapture', () => {
       await result.current.captureAndProcess(mockGetScreenshot);
     });
 
-    expect(ImageProcessor.preprocessForHighRes).toHaveBeenCalledTimes(1);
+    expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledTimes(1);
     expect(ImageProcessor.preprocessForPhotoCapture).toHaveBeenCalledTimes(1);
     expect(photoPlate).toHaveBeenCalledTimes(2);
 
@@ -163,6 +205,73 @@ describe('usePhotoCapture', () => {
     expect(result.current.detectedPlate).toEqual({
       plateNumber: 'LT390HN',
       confidence: 88,
+      status: 'valid',
+    });
+  });
+
+  it('should extract a plate from raw_text when normalized plate is empty', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: '',
+          raw_text: 'OCR: ce 128 bc',
+          confidence: 0.81,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    expect(result.current.state).toBe('result');
+    expect(result.current.detectedPlate).toEqual({
+      plateNumber: 'CE128BC',
+      confidence: 81,
+      status: 'valid',
+    });
+    expect(ImageProcessor.preprocessForPhotoCapture).not.toHaveBeenCalled();
+    expect(photoPlate).toHaveBeenCalledTimes(1);
+  });
+
+  it('should normalize top-level OCR plate fields for backward-compatible responses', async () => {
+    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        plate: 'lt-390-hn',
+        confidence: 0.76,
+        format_valid: true,
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockGetScreenshot);
+    });
+
+    expect(result.current.state).toBe('result');
+    expect(result.current.detectedPlate).toEqual({
+      plateNumber: 'LT390HN',
+      confidence: 76,
       status: 'valid',
     });
   });
