@@ -141,6 +141,7 @@ resource "aws_iam_role_policy" "deploy_permissions" {
         Effect = "Allow"
         Action = [
           "route53:ChangeResourceRecordSets",
+          "route53:GetChange",
           "route53:GetHostedZone",
           "route53:ListHostedZonesByName",
           "route53:ListResourceRecordSets"
