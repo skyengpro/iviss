@@ -68,6 +68,14 @@ echo "📍 Deployment Version: ${IMAGE_TAG:-latest}"
 
 echo "🚀 Starting IVISS Production Deployment..."
 
+# Safety guard: prevent accidental custom-domain teardown
+if [ -n "${DOMAIN_NAME:-}" ] && [ -z "${ROUTE53_ZONE_ID:-}" ]; then
+    echo "❌ FATAL ERROR: DOMAIN_NAME is set but ROUTE53_ZONE_ID is empty."
+    echo "   Refusing to run Terraform because this can destroy Route53/ACM custom-domain resources."
+    echo "   Set ROUTE53_ZONE_ID and rerun."
+    exit 1
+fi
+
 # 1. Terraform Initialization & Application
 echo "📦 Provisioning infrastructure..."
 cd "$TERRAFORM_DIR"
