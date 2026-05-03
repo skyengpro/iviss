@@ -15,6 +15,9 @@ It is focused on implementation, contribution workflows, and operational debuggi
 
 1. [Getting Started](./getting-started.md)
 2. [Project Structure](./project-structure.md)
+3. [API Development Guide](./api.md)
+4. [Database Development Guide](./database.md)
+5. [Testing Guide](./testing.md)
 
 ## Scope
 
@@ -36,9 +39,9 @@ It does not replace:
 
 - `getting-started.md` (available)
 - `project-structure.md` (available)
-- `api.md` (planned)
-- `database.md` (planned)
-- `testing.md` (planned)
+- `api.md` (available)
+- `database.md` (available)
+- `testing.md` (available)
 - `coding-standards.md` (planned)
 - `debugging.md` (planned)
 
