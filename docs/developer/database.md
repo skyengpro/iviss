@@ -12,7 +12,6 @@ Main database sources:
 - `iviss-backend/src/db/`: pool initialization, migration-time helpers, bootstrap seed, and dev seed runner.
 - `iviss-backend/src/queries/`: SQL data access functions used by handlers and services.
 - `iviss-backend/seeds/seed_data.sql`: optional local/demo data.
-- `docs/schema.md`: higher-level schema and entity relationship documentation.
 
 At backend startup, `iviss-backend/src/main.rs` performs this sequence:
 
@@ -23,7 +22,7 @@ At backend startup, `iviss-backend/src/main.rs` performs this sequence:
 5. Run optional development seed data when `SEED_DATA=true`.
 6. Cache required database data in `AppCache`.
 
-The Rust application currently initializes only the main `DATABASE_URL` connection. `EXTERNAL_DATABASE_URL` appears in compose/env configuration for external-registry integration, but it is not currently loaded by `Config`.
+The Rust application currently initializes only the main `DATABASE_URL` connection. `EXTERNAL_DATABASE_URL` appears in compose/env configuration for external-registry integration, but it is not currently loaded by `Config` (waiting client external database credentials)
 
 ## 2) Local Database Runtime
 
@@ -162,8 +161,6 @@ Scripts live in `iviss-backend/scripts/`.
 Useful scripts:
 
 - `init_db.sh`: starts local database services and runs SQLx setup.
-- `truncate_all_tables.sql`: deletes data from known tables and resets `_sqlx_migrations`.
-- `drop_all_tables.sql`: drops known application tables.
 
 The truncate and drop scripts are destructive. Use them only for local development databases.
 

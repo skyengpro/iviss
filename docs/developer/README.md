@@ -19,6 +19,7 @@ It is focused on implementation, contribution workflows, and operational debuggi
 4. [Database Development Guide](./database.md)
 5. [Testing Guide](./testing.md)
 6. [Coding Standards](./coding-standards.md)
+7. [Architecture Decision Records](./adr/README.md)
 
 ## Scope
 
@@ -44,6 +45,7 @@ It does not replace:
 - `database.md` (available)
 - `testing.md` (available)
 - `coding-standards.md` (available)
+- `adr/` (available)
 - `debugging.md` (planned)
 
 ## Documentation Rules
