@@ -23,19 +23,20 @@ Required values for backend startup:
 - `JWT_PUBLIC_KEY_PEM`
 - `ACTIVATION_CODE_PEPPER` (minimum 32 chars)
 - `SMS_PROVIDER` (`vonage`, `twilio`, or `orange`)
-- EMAIL_PROVIDER (gmail)
+- `EMAIL_PROVIDER` (lettre)
 
 Provider-specific required variables:
 
 - If `SMS_PROVIDER=vonage`: set `VONAGE_API_KEY`, `VONAGE_API_SECRET`
 - If `SMS_PROVIDER=twilio`: set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
 - If `SMS_PROVIDER=orange`: set `ORANGE_CLIENT_ID`, `ORANGE_CLIENT_SECRET`
+- If `EMAIL_PROVIDER`=lettre: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`
 
 Notes:
 
 - `EMAIL_PROVIDER` defaults to `mock` if unset.
-- `EMAIL_PROVIDER`=gmail: 
 - `ADMIN_BOOTSTRAP_*` variables are optional. If all are set, an admin seed is attempted at startup.
+- `EXTERNAL_POSTGRES_PASSWORD` and other `EXTERNAL_POSTGRES_...` variable for the moment are not yet use because we don't have the external database credentials yet.
 
 ## 2) Start the Development Stack
 
@@ -117,7 +118,27 @@ Notes:
 - Frontend runs on `http://localhost:8080`.
 - On `npm run dev`, the `predev` hook fetches OpenAPI from `http://127.0.0.1:3000/api-doc/openapi.json` and falls back to `frontend/openapi.json` if backend is unreachable.
 
-## 6) Common Startup Issues
+## 6) Optional: Run Backend Outside Docker
+
+First you need to import the backend .env file
+
+```bash
+cp iviss-backend/.env.example iviss-backend/.env
+```
+
+And then run the cargo run command:
+
+```bash
+cd iviss-backend
+cargo build
+cargo run
+```
+
+Note:
+
+* Backend run on `http://localhost:`3000
+
+## 7) Common Startup Issues
 
 `SMS_PROVIDER must be set`:
 

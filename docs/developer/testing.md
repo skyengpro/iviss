@@ -8,7 +8,7 @@ IVISS has separate backend and frontend test stacks.
 
 Backend:
 
-- Rust test runner: `cargo test`
+- Rust test runner: `cargo test`  (or use nextest for fast tests runner)
 - Async tests: Tokio
 - HTTP/app integration tests: Axum + Tower
 - Database integration tests: Testcontainers + PostgreSQL

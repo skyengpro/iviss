@@ -38,7 +38,7 @@ Run before opening backend PRs:
 cd iviss-backend
 cargo fmt --all -- --check
 cargo clippy -- -D warnings
-cargo test
+cargo test (to run test fastly use nextest)
 ```
 
 Rust conventions:

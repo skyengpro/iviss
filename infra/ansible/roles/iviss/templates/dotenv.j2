@@ -23,7 +23,7 @@ ACTIVATION_CODE_PEPPER="{{ activation_code_pepper | replace('$', '$$') }}"
 ENVIRONMENT={{ app_environment | default('staging') }}
 SERVER_HOST=0.0.0.0
 SERVER_PORT=3000
-RUST_LOG=info
+LOG_LEVEL=info
 
 # Admin Bootstrap
 ADMIN_BOOTSTRAP_EMAIL={{ admin_bootstrap_email }}
