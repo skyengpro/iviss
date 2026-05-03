@@ -314,7 +314,6 @@ Before opening a PR:
 
 - Run the quick local checks for the changed subsystem.
 - Add or update tests for new behavior and regressions.
-- Keep tests deterministic; avoid real external network/provider calls.
 - Regenerate OpenAPI client when the API contract changes.
 - Review test data for secrets or production identifiers.
 - Update developer docs if setup, test commands, CI behavior, or generated artifacts change.
