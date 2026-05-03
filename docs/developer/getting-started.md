@@ -34,6 +34,7 @@ Provider-specific required variables:
 Notes:
 
 - `EMAIL_PROVIDER` defaults to `mock` if unset.
+- `EMAIL_PROVIDER`=gmail: 
 - `ADMIN_BOOTSTRAP_*` variables are optional. If all are set, an admin seed is attempted at startup.
 
 ## 2) Start the Development Stack

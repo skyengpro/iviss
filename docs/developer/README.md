@@ -18,6 +18,7 @@ It is focused on implementation, contribution workflows, and operational debuggi
 3. [API Development Guide](./api.md)
 4. [Database Development Guide](./database.md)
 5. [Testing Guide](./testing.md)
+6. [Coding Standards](./coding-standards.md)
 
 ## Scope
 
@@ -42,7 +43,7 @@ It does not replace:
 - `api.md` (available)
 - `database.md` (available)
 - `testing.md` (available)
-- `coding-standards.md` (planned)
+- `coding-standards.md` (available)
 - `debugging.md` (planned)
 
 ## Documentation Rules
