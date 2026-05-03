@@ -137,6 +137,7 @@ pub async fn delete_organization(
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     delete_org_query(&state.db, id).await?;
+    state.app_cache.org_work_time.remove(&id).await;
 
     tracing::info!(
         organization_id = %id,
