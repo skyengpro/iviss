@@ -28,13 +28,13 @@ Main folders:
 - `src/queries/`: SQL query layer and data access operations.
 - `src/dto/`: request/response and transfer shapes.
 - `src/models/`: domain models and DB-facing structures.
-- `src/middleware/`: auth/RBAC/CORS/work-scope middleware.
+- `src/middleware/`: auth/RBAC/CORS middleware.
 - `src/db/`: pool initialization and seed logic.
 - `src/tests/`: integration and module tests.
 - `src/bin/`: utility binaries (`seed`, `export_openapi`, `openapi_gen`).
 - `migrations/`: SQL migrations.
-- `seeds/`: SQL seed files.
-- `.sqlx/`: SQLx offline metadata.
+- `seeds/`: SQL seed files to populate tests data in the database.
+- `.sqlx/`: SQLx offline metadata to allow compiler time check to the database schema.
 
 Backend entry points:
 

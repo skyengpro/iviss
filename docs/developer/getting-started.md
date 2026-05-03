@@ -19,11 +19,11 @@ cp .env.example .env
 Required values for backend startup:
 
 - `POSTGRES_PASSWORD`
-- `EXTERNAL_POSTGRES_PASSWORD`
 - `JWT_PRIVATE_KEY_PEM`
 - `JWT_PUBLIC_KEY_PEM`
 - `ACTIVATION_CODE_PEPPER` (minimum 32 chars)
 - `SMS_PROVIDER` (`vonage`, `twilio`, or `orange`)
+- EMAIL_PROVIDER (gmail)
 
 Provider-specific required variables:
 
