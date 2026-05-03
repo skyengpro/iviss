@@ -137,6 +137,7 @@ cargo run
 Note:
 
 * Backend run on `http://localhost:`3000
+* `SHIFT_START_HOUR` and `SHIFT_END_HOUR` are not longer use for the moment as we can set this shift time when creating and organization directly
 
 ## 7) Common Startup Issues
 

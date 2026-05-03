@@ -45,7 +45,6 @@ It does not replace:
 - `database.md` (available)
 - `testing.md` (available)
 - `coding-standards.md` (available)
-- `adr/` (available)
 - `debugging.md` (planned)
 
 ## Documentation Rules
