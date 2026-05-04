@@ -10,6 +10,8 @@
 
 ## Table of Contents
 
+> The sections below are color-coded in **blue** for navigation.
+
 1. [Executive Summary](#1-executive-summary)
 2. [System Architecture](#2-system-architecture)
 3. [Hosting & Infrastructure](#3-hosting--infrastructure)
@@ -54,43 +56,21 @@ The system is composed of a mobile-first Progressive Web App for field agents, a
 
 ### 2.1 High-Level Overview
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                       Client Layer                        │
-│                                                           │
-│   ┌──────────────────┐      ┌──────────────────────┐     │
-│   │  Mobile PWA       │      │  Web Back-Office      │     │
-│   │  (Field Agents)   │      │  (Admins/Supervisors) │     │
-│   └────────┬──────────┘      └──────────┬────────────┘    │
-└────────────┼───────────────────────────┼───────────────────┘
-             │ HTTPS + JWT               │ HTTPS + JWT
-             ▼                           ▼
-┌──────────────────────────────────────────────────────────┐
-│                 Server Layer (AWS Lightsail)               │
-│                                                           │
-│   ┌───────────────────────────────────────────────────┐  │
-│   │            Nginx (Reverse Proxy + SSL)             │  │
-│   └─────────────────────┬─────────────────────────────┘  │
-│                          │                                │
-│   ┌──────────────────────▼────────────────────────────┐  │
-│   │           IVISS Backend (Rust / Axum)              │  │
-│   │  Auth · RBAC · Vehicle Search · Controls · OTP     │  │
-│   └──────────┬─────────────────────────────────────────┘  │
-│              │                                            │
-│   ┌──────────▼──────────┐                                │
-│   │  PostgreSQL          │                                │
-│   │  (Internal DB)       │                                │
-│   └─────────────────────┘                                │
-└──────────────────────────────────────────────────────────┘
-             │
-             ▼
-┌──────────────────────────────────────────────────────────┐
-│              External Systems (Read-Only)                  │
-│   National Vehicle Registry · Insurance · Customs         │
-└──────────────────────────────────────────────────────────┘
+The diagram below shows how the different components of IVISS interact. Client applications communicate with the backend through a secure Nginx reverse proxy. The backend handles all business logic and queries both an internal database and an external national registry.
+
+```mermaid
+graph TD
+    A[Mobile PWA\nField Agents] -->|HTTPS + JWT| C[Nginx\nReverse Proxy + SSL]
+    B[Web Back-Office\nAdmins & Supervisors] -->|HTTPS + JWT| C
+    C --> D[IVISS Backend\nRust / Axum]
+    D --> E[(PostgreSQL\nInternal DB)]
+    D -.->|Read-Only| F[(PostgreSQL\nExternal Registry)]
+    D -.->|API| G[External Systems\nInsurance · Customs · Police]
 ```
 
 ### 2.2 Component Breakdown
+
+The table below describes the role of each component in the system.
 
 | Component | Description |
 |---|---|
@@ -100,20 +80,11 @@ The system is composed of a mobile-first Progressive Web App for field agents, a
 | **PostgreSQL (External)** | National vehicle registry — read-only access |
 | **GHCR** | Private Docker image registry hosted on GitHub |
 
-### 2.3 Multi-Tenancy & RBAC
-
-IVISS is multi-tenant. Each organisation (e.g. Police, Customs) has isolated data. Access is controlled by four roles:
-
-| Role | Scope | Key Permissions |
-|---|---|---|
-| Super Admin | System-wide | Manage all organisations, users, system config |
-| Org Admin | Single organisation | Manage users within their organisation |
-| Supervisor | Assigned agents | View activity, generate reports |
-| Agent | Self only | Vehicle lookups, control records, carte grise submissions |
-
 ---
 
 ## 3. Hosting & Infrastructure
+
+This section describes the cloud provider, server specifications, and the tools used to provision and manage the infrastructure automatically.
 
 ### 3.1 Cloud Provider & Server
 
@@ -128,7 +99,7 @@ IVISS is multi-tenant. Each organisation (e.g. Police, Customs) has isolated dat
 
 ### 3.2 Infrastructure as Code
 
-All infrastructure is defined and managed using **Terraform**. The Terraform state is stored remotely in AWS S3 with DynamoDB locking to prevent concurrent modifications.
+All infrastructure is defined and managed using **Terraform**, ensuring the environment is reproducible and version-controlled. The Terraform state is stored remotely in AWS S3 with DynamoDB locking to prevent concurrent modifications.
 
 | IaC Component | Tool | Location |
 |---|---|---|
@@ -148,6 +119,8 @@ All infrastructure is defined and managed using **Terraform**. The Terraform sta
 ---
 
 ## 4. Environments
+
+IVISS currently operates in two environments. There is no dedicated staging environment — the local development setup serves that purpose.
 
 | Environment | Branch | Purpose | URL |
 |---|---|---|---|
@@ -358,7 +331,11 @@ All administrative actions (user creation, session termination, submission appro
 
 ## 10. Monitoring, Logging & Observability
 
+IVISS uses a Prometheus + Grafana stack to collect and visualise metrics from both the frontend and backend. This section describes the tools, what is monitored, and how to access the dashboards.
+
 ### 10.1 Monitoring Stack
+
+The following tools form the observability stack. They run as Docker containers alongside the application.
 
 | Tool | Purpose | Port |
 |---|---|---|
@@ -366,20 +343,9 @@ All administrative actions (user creation, session termination, submission appro
 | **Grafana** | Dashboards and visualisation | 3001 |
 | **Metrics Server** | Node.js bridge between frontend and Prometheus | 9091 |
 
-### 10.2 Frontend Metrics Collected
+### 10.2 Backend Logging
 
-| Metric | Description |
-|---|---|
-| `frontend_up` | Heartbeat — is the frontend reachable |
-| `frontend_active_sessions` | Number of concurrent browser sessions |
-| `frontend_page_load_duration_ms` | Page load time |
-| `frontend_lcp_ms` | Largest Contentful Paint (Core Web Vital) |
-| `frontend_errors_total` | JavaScript error count |
-| `frontend_route_navigations_total` | Client-side navigation count |
-
-### 10.3 Backend Logging
-
-The backend uses structured logging. Log level is configurable via `LOG_LEVEL` (`info` in production, `debug` for troubleshooting).
+The backend uses structured logging via the `tracing` crate. Log level is configurable via the `LOG_LEVEL` secret (`info` in production, `debug` for troubleshooting).
 
 ```bash
 # View live backend logs
@@ -387,7 +353,9 @@ cd /opt/iviss
 docker compose logs -f backend
 ```
 
-### 10.4 Accessing Dashboards
+### 10.3 Accessing Dashboards
+
+Once the stack is running, the dashboards are accessible at the following URLs.
 
 | Dashboard | URL |
 |---|---|
@@ -565,4 +533,14 @@ The private key is output by `terraform output private_key` and saved at `infra/
 
 ---
 
-*IVISS — Deployment & Release Document v1.0 — May 2026*
+## Document Version
+
+**Version:** 1.0
+**Last Updated:** April 30, 2026
+**Author:** IVISS Development Team
+
+For the latest version of this guide, check the Help section in the IVISS back-office or contact your system administrator.
+
+---
+
+**Welcome to IVISS. We're here to make your work safer, faster, and more effective.**

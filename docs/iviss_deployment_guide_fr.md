@@ -10,6 +10,8 @@
 
 ## Table des matières
 
+> Les sections ci-dessous sont colorées en **bleu** pour la navigation.
+
 1. [Résumé exécutif](#1-résumé-exécutif)
 2. [Architecture du système](#2-architecture-du-système)
 3. [Hébergement et infrastructure](#3-hébergement-et-infrastructure)
@@ -54,43 +56,21 @@ Le système est composé d'une Progressive Web App mobile pour les agents de ter
 
 ### 2.1 Vue d'ensemble
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                      Couche Client                        │
-│                                                           │
-│   ┌──────────────────┐      ┌──────────────────────┐     │
-│   │  PWA Mobile       │      │  Back-Office Web      │     │
-│   │  (Agents terrain) │      │  (Admins/Superviseurs)│     │
-│   └────────┬──────────┘      └──────────┬────────────┘    │
-└────────────┼───────────────────────────┼───────────────────┘
-             │ HTTPS + JWT               │ HTTPS + JWT
-             ▼                           ▼
-┌──────────────────────────────────────────────────────────┐
-│               Couche Serveur (AWS Lightsail)               │
-│                                                           │
-│   ┌───────────────────────────────────────────────────┐  │
-│   │          Nginx (Proxy inverse + SSL)               │  │
-│   └─────────────────────┬─────────────────────────────┘  │
-│                          │                                │
-│   ┌──────────────────────▼────────────────────────────┐  │
-│   │           Backend IVISS (Rust / Axum)              │  │
-│   │  Auth · RBAC · Recherche · Contrôles · OTP         │  │
-│   └──────────┬─────────────────────────────────────────┘  │
-│              │                                            │
-│   ┌──────────▼──────────┐                                │
-│   │  PostgreSQL          │                                │
-│   │  (Base interne)      │                                │
-│   └─────────────────────┘                                │
-└──────────────────────────────────────────────────────────┘
-             │
-             ▼
-┌──────────────────────────────────────────────────────────┐
-│           Systèmes externes (Lecture seule)                │
-│   Registre national · Assurance · Douanes                 │
-└──────────────────────────────────────────────────────────┘
+Le diagramme ci-dessous montre comment les différents composants d'IVISS interagissent. Les applications clientes communiquent avec le backend via un proxy inverse Nginx sécurisé. Le backend gère toute la logique métier et interroge à la fois une base de données interne et un registre national externe.
+
+```mermaid
+graph TD
+    A[PWA Mobile\nAgents terrain] -->|HTTPS + JWT| C[Nginx\nProxy inverse + SSL]
+    B[Back-Office Web\nAdmins & Superviseurs] -->|HTTPS + JWT| C
+    C --> D[Backend IVISS\nRust / Axum]
+    D --> E[(PostgreSQL\nBase interne)]
+    D -.->|Lecture seule| F[(PostgreSQL\nRegistre externe)]
+    D -.->|API| G[Systèmes externes\nAssurance · Douanes · Police]
 ```
 
 ### 2.2 Détail des composants
+
+Le tableau ci-dessous décrit le rôle de chaque composant dans le système.
 
 | Composant | Description |
 |---|---|
@@ -100,20 +80,11 @@ Le système est composé d'une Progressive Web App mobile pour les agents de ter
 | **PostgreSQL (Externe)** | Registre national des véhicules — accès en lecture seule |
 | **GHCR** | Registre privé d'images Docker hébergé sur GitHub |
 
-### 2.3 Multi-tenant et RBAC
-
-IVISS est multi-tenant. Chaque organisation (ex. Police, Douanes) dispose de données isolées. L'accès est contrôlé par quatre rôles :
-
-| Rôle | Périmètre | Permissions principales |
-|---|---|---|
-| Super Admin | Système entier | Gérer toutes les organisations, utilisateurs, configuration système |
-| Admin d'organisation | Une organisation | Gérer les utilisateurs de son organisation |
-| Superviseur | Agents assignés | Voir l'activité, générer des rapports |
-| Agent | Lui-même uniquement | Recherches de véhicules, enregistrements de contrôles, soumissions de cartes grises |
-
 ---
 
 ## 3. Hébergement et infrastructure
+
+Cette section décrit le fournisseur cloud, les spécifications du serveur et les outils utilisés pour provisionner et gérer l'infrastructure automatiquement.
 
 ### 3.1 Fournisseur cloud et serveur
 
@@ -128,7 +99,7 @@ IVISS est multi-tenant. Chaque organisation (ex. Police, Douanes) dispose de don
 
 ### 3.2 Infrastructure as Code
 
-Toute l'infrastructure est définie et gérée via **Terraform**. L'état Terraform est stocké à distance dans AWS S3 avec verrouillage DynamoDB pour éviter les modifications concurrentes.
+Toute l'infrastructure est définie et gérée via **Terraform**, garantissant que l'environnement est reproductible et versionné. L'état Terraform est stocké à distance dans AWS S3 avec verrouillage DynamoDB pour éviter les modifications concurrentes.
 
 | Composant IaC | Outil | Emplacement |
 |---|---|---|
@@ -148,6 +119,8 @@ Toute l'infrastructure est définie et gérée via **Terraform**. L'état Terraf
 ---
 
 ## 4. Environnements
+
+IVISS fonctionne actuellement dans deux environnements. Il n'existe pas d'environnement de staging dédié — la configuration de développement local remplit ce rôle.
 
 | Environnement | Branche | Objectif | URL |
 |---|---|---|---|
@@ -358,7 +331,11 @@ Toutes les actions administratives (création d'utilisateur, résiliation de ses
 
 ## 10. Monitoring, journalisation et observabilité
 
+IVISS utilise une stack Prometheus + Grafana pour collecter et visualiser les métriques du frontend et du backend. Cette section décrit les outils, ce qui est surveillé et comment accéder aux tableaux de bord.
+
 ### 10.1 Stack de monitoring
+
+Les outils suivants constituent la stack d'observabilité. Ils fonctionnent comme des conteneurs Docker aux côtés de l'application.
 
 | Outil | Rôle | Port |
 |---|---|---|
@@ -366,20 +343,9 @@ Toutes les actions administratives (création d'utilisateur, résiliation de ses
 | **Grafana** | Tableaux de bord et visualisation | 3001 |
 | **Serveur de métriques** | Pont Node.js entre le frontend et Prometheus | 9091 |
 
-### 10.2 Métriques frontend collectées
+### 10.2 Journalisation backend
 
-| Métrique | Description |
-|---|---|
-| `frontend_up` | Heartbeat — le frontend est-il accessible |
-| `frontend_active_sessions` | Nombre de sessions navigateur simultanées |
-| `frontend_page_load_duration_ms` | Temps de chargement des pages |
-| `frontend_lcp_ms` | Largest Contentful Paint (Core Web Vital) |
-| `frontend_errors_total` | Nombre d'erreurs JavaScript |
-| `frontend_route_navigations_total` | Nombre de navigations côté client |
-
-### 10.3 Journalisation backend
-
-Le backend utilise la journalisation structurée. Le niveau de log est configurable via `LOG_LEVEL` (`info` en production, `debug` pour le débogage).
+Le backend utilise la journalisation structurée via le crate `tracing`. Le niveau de log est configurable via le secret `LOG_LEVEL` (`info` en production, `debug` pour le débogage).
 
 ```bash
 # Voir les logs backend en direct
@@ -387,7 +353,9 @@ cd /opt/iviss
 docker compose logs -f backend
 ```
 
-### 10.4 Accès aux tableaux de bord
+### 10.3 Accès aux tableaux de bord
+
+Une fois la stack démarrée, les tableaux de bord sont accessibles aux URLs suivantes.
 
 | Tableau de bord | URL |
 |---|---|
@@ -565,4 +533,14 @@ La clé privée est disponible via `terraform output private_key` et sauvegardé
 
 ---
 
-*IVISS — Document de Déploiement et de Gestion des Versions v1.0 — Mai 2026*
+## Version du document
+
+**Version :** 1.0
+**Dernière mise à jour :** 30 avril 2026
+**Auteur :** Équipe de développement IVISS
+
+Pour la dernière version de ce guide, consultez la section Aide du back-office IVISS ou contactez votre administrateur système.
+
+---
+
+**Bienvenue sur IVISS. Nous sommes là pour rendre votre travail plus sûr, plus rapide et plus efficace.**
