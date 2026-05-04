@@ -1,6 +1,6 @@
 # IVISS
 
-Integrated Vehicle Inspection & Surveillance System (IVISS) is a multi-tenant platform for law-enforcement and regulatory teams to run roadside controls, verify vehicle compliance, and manage enforcement workflows.
+IVISS is a multi-tenant platform for law-enforcement and regulatory teams to run roadside controls, verify vehicle compliance, and manage enforcement workflows.
 
 ## Table of Contents
 
@@ -181,7 +181,7 @@ iviss/
 - Deployment and operations: [docs/deployment_guide.md](docs/deployment_guide.md)
 - Monitoring guide: [docs/monitoring.md](docs/monitoring.md)
 - PWA testing guide: [docs/pwa_testing_guide.md](docs/pwa_testing_guide.md)
-# Developer onboarding guide
+  #### Developer onboarding guide
 - Developer documentation index: [docs/developer/README.md](docs/developer/README.md)
 - Developer getting started: [docs/developer/getting-started.md](docs/developer/getting-started.md)
 - Developer project structure: [docs/developer/project-structure.md](docs/developer/project-structure.md)
@@ -190,7 +190,6 @@ iviss/
 - Developer testing guide: [docs/developer/testing.md](docs/developer/testing.md)
 - Developer coding standards: [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
 - Developer debugging guide: [docs/developer/debugging.md](docs/developer/debugging.md)
-- Developer documentation guide (scope/structure): [docs/developer_documentation_guide.md](docs/developer_documentation_guide.md)
 
 
 ## Production Infrastructure
