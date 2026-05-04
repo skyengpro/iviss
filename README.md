@@ -76,8 +76,18 @@ At minimum for local boot:
 - `EXTERNAL_POSTGRES_PASSWORD`
 - `JWT_PRIVATE_KEY_PEM`
 - `JWT_PUBLIC_KEY_PEM`
+- `ACTIVATION_CODE_PEPPER`
 - `SMS_PROVIDER`
-- `EMAIL_PROVIDER`
+
+Recommended for end-to-end back-office flows:
+
+- `EMAIL_PROVIDER` (`mock`, `resend`, `lettre`/`smtp`)
+- Provider credentials for the selected email mode (for example SMTP or Resend keys)
+
+Note:
+
+- The backend can start with `EMAIL_PROVIDER=mock` (or unset, which defaults to `mock`).
+- To provision an organization admin and deliver the temporary password by real email, configure a real provider (`resend` or `lettre`/`smtp`) with valid credentials.
 
 ### 2) Start the development stack
 
@@ -171,9 +181,15 @@ iviss/
 - Deployment and operations: [docs/deployment_guide.md](docs/deployment_guide.md)
 - Monitoring guide: [docs/monitoring.md](docs/monitoring.md)
 - PWA testing guide: [docs/pwa_testing_guide.md](docs/pwa_testing_guide.md)
+# Developer onboarding guide
 - Developer documentation index: [docs/developer/README.md](docs/developer/README.md)
 - Developer getting started: [docs/developer/getting-started.md](docs/developer/getting-started.md)
 - Developer project structure: [docs/developer/project-structure.md](docs/developer/project-structure.md)
+- Developer API guide: [docs/developer/api.md](docs/developer/api.md)
+- Developer database guide: [docs/developer/database.md](docs/developer/database.md)
+- Developer testing guide: [docs/developer/testing.md](docs/developer/testing.md)
+- Developer coding standards: [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+- Developer debugging guide: [docs/developer/debugging.md](docs/developer/debugging.md)
 - Developer documentation guide (scope/structure): [docs/developer_documentation_guide.md](docs/developer_documentation_guide.md)
 
 

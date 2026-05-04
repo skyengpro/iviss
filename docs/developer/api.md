@@ -34,7 +34,7 @@ These routes do not require a bearer token:
 | Method   | Path                                 | Purpose                                  |
 | -------- | ------------------------------------ | ---------------------------------------- |
 | `GET`  | `/api/v1/health`                   | Service health check                     |
-| `POST` | `/api/v1/auth/login`               | Web/(super admin  and org admin) login |
+| `POST` | `/api/v1/auth/login`               | Web login for `admin`, `manager` (business label: supervisor), and `org_admin` |
 | `POST` | `/api/v1/auth/activate`            | Device/account activation:               |
 | `POST` | `/api/v1/auth/refresh`             | Refresh token request or challenge       |
 | `POST` | `/api/v1/auth/refresh/verify`      | Refresh challenge verification           |
@@ -47,7 +47,7 @@ These routes concern the backoffice and require a valid web JWT:
 
 | Method   | Path                             | Purpose                                                                  |
 | -------- | -------------------------------- | ------------------------------------------------------------------------ |
-| `POST` | `/api/v1/auth/change-password` | Change current user password at the first super admin or org admin login |
+| `POST` | `/api/v1/auth/change-password` | Change current authenticated web user password |
 | `POST` | `/api/v1/auth/logout`          | Logout current session                                                   |
 
 ### Agent/Protected Routes

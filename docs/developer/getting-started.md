@@ -19,24 +19,24 @@ cp .env.example .env
 Required values for backend startup:
 
 - `POSTGRES_PASSWORD`
+- `EXTERNAL_POSTGRES_PASSWORD`
 - `JWT_PRIVATE_KEY_PEM`
 - `JWT_PUBLIC_KEY_PEM`
 - `ACTIVATION_CODE_PEPPER` (minimum 32 chars)
 - `SMS_PROVIDER` (`vonage`, `twilio`, or `orange`)
-- `EMAIL_PROVIDER` (lettre)
 
 Provider-specific required variables:
 
 - If `SMS_PROVIDER=vonage`: set `VONAGE_API_KEY`, `VONAGE_API_SECRET`
 - If `SMS_PROVIDER=twilio`: set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
 - If `SMS_PROVIDER=orange`: set `ORANGE_CLIENT_ID`, `ORANGE_CLIENT_SECRET`
-- If `EMAIL_PROVIDER`=lettre: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`
+- If `EMAIL_PROVIDER=lettre` (or `smtp`): set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`
 
 Notes:
 
 - `EMAIL_PROVIDER` defaults to `mock` if unset.
 - `ADMIN_BOOTSTRAP_*` variables are optional. If all are set, an admin seed is attempted at startup.
-- `EXTERNAL_POSTGRES_PASSWORD` and other `EXTERNAL_POSTGRES_...` variable for the moment are not yet use because we don't have the external database credentials yet.
+- `EXTERNAL_POSTGRES_PASSWORD` is currently required by Docker Compose interpolation, even though external DB integration is not fully used by business workflows yet.
 
 ## 2) Start the Development Stack
 
@@ -136,8 +136,8 @@ cargo run
 
 Note:
 
-* Backend run on `http://localhost:`3000
-* `SHIFT_START_HOUR` and `SHIFT_END_HOUR` are not longer use for the moment as we can set this shift time when creating and organization directly
+- Backend runs on `http://localhost:3000`.
+- Agent shift windows are defined at the organization level (`start_work_time` / `end_work_time`) during organization create/update, not from `SHIFT_START_HOUR` / `SHIFT_END_HOUR` at app startup.
 
 ## 7) Common Startup Issues
 
