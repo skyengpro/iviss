@@ -11,7 +11,7 @@ IVISS is designed for:
 - **Law enforcement agencies** conducting roadside vehicle inspections and enforcement
 - **Government regulatory bodies** managing vehicle compliance and registration
 - **Field agents** who need quick, reliable vehicle identification on the go
-- **Supervisors and administrators** who coordinate field operations and manage teams
+- **Administrators** who coordinate field operations and manage teams
 - **Organizations** responsible for public safety and regulatory compliance
 
 If your work involves checking vehicle status, verifying compliance, or managing field operations, IVISS streamlines these tasks with real-time data and mobile-first tools.
@@ -43,7 +43,7 @@ IVISS helps you:
 | **Mobile-First Design**          | Optimized for smartphones and tablets used in the field                      |
 | **Progressive Web App (PWA)**    | Install on any device, works offline, updates automatically                  |
 | **Multi-Organization Support**   | Separate data and settings for different agencies                            |
-| **Role-Based Access Control**    | Different permissions for Super Admins, Admins, Supervisors, and Agents      |
+| **Role-Based Access Control**    | Different permissions for Super Admins, Organization Admins, and Agents      |
 | **Enforcement Actions**          | Record citations, impounds, warnings, and flags directly from the field      |
 | **Report Generation**            | Export control summaries, agent performance, and statistics in CSV/PDF/Excel |
 | **Secure Device Binding**        | Each agent's device is cryptographically linked to their account             |
@@ -53,13 +53,15 @@ IVISS helps you:
 
 ## Getting Started: Your First Steps
 
-### For Administrators
+### For Super Administrators
+
+Super Administrators are the top-level system managers who set up organizations and their administrators. If you're a Super Admin, you'll start here. If you're an Organization Admin, skip to the "For Organization Administrators" section.
 
 #### 1. Access the Back-Office
 
-**Prerequisites:**
-- Admin account credentials (email and password)
-- Web browser (Chrome, Firefox, Safari, or Edge recommended)
+**What you need:**
+- Your Super Admin login details (email and password)
+- A web browser (Chrome, Firefox, Safari, or Edge work best)
 - Internet connection
 
 **Steps:**
@@ -83,8 +85,8 @@ IVISS helps you:
 
 #### 2. Create Your First Organization
 
-**Prerequisites:**
-- Super Admin role
+**What you need:**
+- Super Admin access
 - Organization details (name, contact information)
 
 **Steps:**
@@ -96,9 +98,9 @@ IVISS helps you:
 2. Click the **Add Organization** button (top right)
 3. Fill in the organization details:
    - **Name**: The official name of the agency or department
-   - **Contact Email**: Primary contact for the organization
-   - **Phone Number**: Main contact number
-   - **Address**: Physical location (optional)
+   - **Type**: Type of organization
+   - **Region**: Physical location (optional)
+   - **Working hours**: Start and end of work time
 
 ![Create Organization Form](../images/4_create_org_form.png)
 
@@ -107,48 +109,55 @@ IVISS helps you:
 
 **What happens next:**
 - The organization is now active in the system
-- You can now create admin users for this organization
-- Each organization's data is completely isolated from others
+- You can now create an Organization Admin for this organization
+- Each organization's data is kept completely separate from other organizations
 
 ---
 
-#### 3. Create Admin Users
+#### 3. Create Organization Administrators
 
-**Prerequisites:**
-- Admin or Super Admin role
-- User details (email, name, role)
+Organization Administrators manage their own organization - they create agents, view reports, and handle day-to-day operations. As a Super Admin, you'll create these Organization Admins.
+
+**What you need:**
+- Super Admin access
+- Admin user details (email, name)
 
 **Steps:**
 
 1. Click **Users** in the left sidebar
 2. Click **Add User** button
 
-![Users List Page](../images/5_create_new_users.png)
+![Create Org Admin](../images/5_create_org_admin.png)
 
 3. Fill in the user information:
-   - **Email**: User's email address (used for login)
-   - **First Name** and **Last Name**
-   - **Role**: Select **Admin** from the dropdown
-   - **Organization**: Select the organization this admin will manage
-   - **Password**: Create a secure password (minimum 8 characters)
+   - **Role**: Select **Organization Admin** from the dropdown
+   - **User Name** and **Full Name**
+   - **Phone Number**: Org admin's phone number
+   - **Email**: Org admin's email address (they'll use this to log in)
+   - **Organization**: Select which organization this admin will manage
+   - **badge number**: Org admin's badge number
 
-![Create User Form](../images/6_create_user_form.png)
+![Create Org Admin Form](../images/6_create_admin_form.png)
 
-4. Click **Create User**
-5. The new admin receives their credentials and can now log in
+4. Click **Save User**
+5. The new Organization Admin receives their login details and can now access the system
 
 **Important notes:**
-- Admins can only manage users within their own organization
-- Super Admins can manage users across all organizations
+- Organization Admins can only see and manage users within their own organization
+- Super Admins can see and manage all organizations and users
 - Passwords should be changed on first login (see Settings)
 
 ---
 
+### For Organization Administrators
+
+Organization Administrators manage their agency's daily operations. You'll create field agents, monitor their activity, and generate reports. If you're an Organization Admin, start here.
+
 #### 4. Provision Field Agents
 
-**Prerequisites:**
-- Admin role in the organization
-- Agent details (name, phone number, badge ID)
+**What you need:**
+- Organization Admin access
+- Agent details (name, phone number, badge number)
 - Agent's mobile device ready
 
 **Steps:**
@@ -156,19 +165,22 @@ IVISS helps you:
 1. Click **Users** in the left sidebar
 2. Click **Add User** button
 3. Fill in the agent information:
-   - **First Name** and **Last Name**
-   - **Phone Number**: Must be accurate (used for SMS verification)
-   - **Badge ID**: Agent's official identification number
    - **Role**: Select **Agent** from the dropdown
-   - **Organization**: Your organization (auto-selected)
-4. Click **Create User**
-5. The system generates an **activation code** and sends it via SMS to the agent's phone
-6. Provide the agent with instructions to activate their device (see Agent section below)
+   - **User Name** and **Full Name**
+   - **Phone Number**: Must be accurate (we'll send a text message to this number)
+   - **Email address**: Agent's email address
+   - **badge number**: Agent's official identification number
+
+![Org Admin Create User Form](../images/7_create_agent_form.png)
+
+4. Click **Save User**
+5. The system creates an **activation code** and sends it by text message to the agent's phone
+6. Give the agent instructions to activate their device (see Agent section below)
 
 **What happens next:**
-- Agent receives an SMS with their activation code
-- Agent can now activate their device and start working
-- You can track the agent's activation status in the Users list
+- Agent receives a text message with their activation code
+- Agent can now activate their device and start working within your organization
+- You can see the agent's activation status in the Users list
 
 ---
 
@@ -176,39 +188,36 @@ IVISS helps you:
 
 #### 1. Activate Your Device (First Time Only)
 
-**Prerequisites:**
-- Activation code received via SMS from your administrator
+**What you need:**
+- Activation code received by text message from your administrator
 - Mobile device (smartphone or tablet)
 - Internet connection
-- Your badge ID
+- Your badge number
 
 **Steps:**
 
 1. Open your web browser on your mobile device
-2. Navigate to the IVISS mobile app URL (provided by your administrator)
-3. On the welcome screen, tap **Activate Device**
+2. Go to the IVISS mobile app web address (your administrator will give you this)
+3. On the welcome screen, you'll see **Activate Device**
 
-![Mobile Welcome Screen - Activate Device](../images/7_activate_your_device.png)
+![Mobile Welcome Screen - Activate Device](../images/8_activate_your_device.png)
 
-4. Enter your **phone number** (the one registered with your administrator)
-5. Enter the **activation code** from your SMS
-6. Enter your **badge ID**
-7. Tap **Activate**
-8. Your device is now registered and you're logged in
+4. Enter your **badge number**
+5. Enter the **activation code** from your text message
+6. Tap **Activate**
+7. Your device is now registered and you're logged in
 
-[**Screenshot 8: Activation Success**
-- Show success message or redirect to main app screen
-- Annotation: "Device successfully activated - you're ready to start"]
+![Main App Screen After Login - Home](../images/9_activation_success.png)
 
 **What happens:**
-- Your device generates a unique cryptographic identity
-- This identity is permanently linked to your account
-- You receive access tokens that allow you to use the app
+- Your device creates a unique security link to your account
+- This link stays permanent and keeps your account secure
+- You get access to use the app
 - Your device status is set to **ACTIVE**
 
 **Important:**
 - This activation only happens once per device
-- If you clear your browser data, you'll need to activate again
+- If you clear your browser's saved data, you'll need to activate again
 - Keep your device secure — it's your key to the system
 
 ---
@@ -224,18 +233,22 @@ IVISS helps you:
 
 1. Open the IVISS app on your device
 2. If your previous shift has ended, you'll see the **Daily Login** screen
-3. Enter your **phone number**
-4. Tap **Request Code**
+3. Enter your **Badge number**
+4. Tap **Request OTP**
+
+![Mobile Welcome Screen - Daily Login](../images/10_daily_login.png)
+
 5. Wait for the SMS with your daily code (arrives within 1 minute)
 6. Enter the **6-digit code** from the SMS
 7. Tap **Verify**
 8. You're now logged in for your shift
 
-![Main App Screen After Login - Check Vehicles](../images/9_check_vehicles.png)
 
 **What you'll see:**
 - The main vehicle search screen
-- Your shift end time displayed at the top
+
+![Main App Screen After Login - Search](../images/11_check_vehicles.png)
+
 - Access to all field operations features
 
 **Important notes:**
@@ -318,7 +331,7 @@ IVISS helps you:
 
 **What you'll see after a search:**
 
-![Vehicle Search Results](../images/10_search_results.png)
+![Vehicle Search Results](../images/12_search_results.png)
 
 **Vehicle Details:**
 - License plate number
@@ -367,8 +380,7 @@ IVISS helps you:
 **What happens:**
 - The action is recorded with timestamp and your agent ID
 - The action is linked to the control record
-- Your supervisor can review all actions in the back-office
-- The vehicle owner may be notified (depending on configuration)
+- Your administrator can review all actions in the back-office
 
 **Best practices:**
 - Be specific in your notes
@@ -386,7 +398,7 @@ IVISS helps you:
 2. Select **My Controls Today**
 3. You'll see a list of all your vehicle checks
 
-![Control History List](../images/11_control_list.png)
+![Control History List](../images/13_control_list.png)
 
 **What you can do:**
 - **Filter** by date range
@@ -404,23 +416,23 @@ IVISS helps you:
 
 ---
 
-### For Supervisors
+### For Organization Administrators
 
-Supervisors have access to both mobile field operations and back-office monitoring features.
+Organization Administrators can monitor their team's activity and generate reports from the back-office.
 
-#### 1. Monitor Agent Activity
+#### Monitor Agent Activity
 
-**Prerequisites:**
-- Supervisor role
+**What you need:**
+- Organization Admin access
 - Access to back-office
 
 **Steps:**
 
 1. Log in to the back-office
-2. Click **Controls** in the left sidebar
+2. Click **Dashboard** in the left sidebar
 3. View the **Control Activity Dashboard**
 
-![Control Activity Dashboard](../images/12_activity_dashboard.png)
+![Control Activity Dashboard](../images/14_activity_dashboard.png)
 
 **What you'll see:**
 - Real-time map of agent locations and recent checks
@@ -435,6 +447,8 @@ Supervisors have access to both mobile field operations and back-office monitori
 - By vehicle status (compliant/non-compliant)
 - By enforcement action type
 
+---
+
 ## Common Workflows
 
 ### Workflow 1: Morning Shift Start
@@ -446,8 +460,7 @@ Supervisors have access to both mobile field operations and back-office monitori
 3. Request your daily login code
 4. Check your phone for the SMS code
 5. Enter the code to start your shift
-6. Verify your shift end time is correct
-7. Begin patrol and vehicle checks
+6. Begin patrol and vehicle checks
 
 **Time required:** 2-3 minutes
 
@@ -499,7 +512,7 @@ Supervisors have access to both mobile field operations and back-office monitori
 5. Close the app
 6. Your device returns to standby mode
 
-**For Supervisors:**
+**For Organization Administrators:**
 
 1. Review the day's control activity
 2. Check for any flagged vehicles or issues
@@ -511,17 +524,16 @@ Supervisors have access to both mobile field operations and back-office monitori
 
 ### Workflow 5: Adding a New Agent
 
-**For Admins:**
+**For Organization Admins:**
 
-1. Collect agent information (name, phone, badge ID)
+1. Collect agent information (name, phone, badge number)
 2. Log in to back-office
 3. Navigate to Users → Add User
 4. Enter agent details and create account
-5. System sends activation code via SMS
+5. System sends activation code via text message
 6. Provide agent with device activation instructions
 7. Verify agent successfully activates their device
-8. Assign agent to supervisor (if applicable)
-9. Brief agent on procedures and expectations
+8. Brief agent on procedures and expectations
 
 **Time required:** 5-10 minutes
 
@@ -568,7 +580,7 @@ Supervisors have access to both mobile field operations and back-office monitori
 - Device reported lost or stolen
 
 **Solutions:**
-1. Contact your supervisor or administrator immediately
+1. Contact your administrator immediately
 2. Do not attempt to bypass the suspension
 3. Wait for administrator to restore access
 4. You may need to re-activate your device
@@ -627,7 +639,7 @@ Supervisors have access to both mobile field operations and back-office monitori
 2. Check your internet connection
 3. Note the unknown status in your report
 4. Follow up later or use alternative verification methods
-5. Report persistent issues to your supervisor
+5. Report persistent issues to your administrator
 
 ---
 
@@ -669,61 +681,50 @@ Supervisors have access to both mobile field operations and back-office monitori
 
 ### Super Admin
 
+**Who they are:** System-wide administrators who set up and manage the entire IVISS platform.
+
 **Can do:**
 - Create and manage all organizations
-- Create and manage all users across organizations
-- View all system data and audit logs
+- Create and manage Organization Admins for each organization
+- View all system data and audit logs across all organizations
 - Configure system-wide settings
-- Access all reports and analytics
+- Access all reports and analytics from any organization
 - Suspend or restore any user or device
 
 **Cannot do:**
 - Perform field operations (agent functions)
 
-**Typical users:** System administrators, IT staff
+**Typical users:** System administrators, IT staff, platform managers
 
 ---
 
-### Admin
+### Organization Admin
+
+**Who they are:** Administrators who manage a single organization's daily operations.
 
 **Can do:**
-- Manage users within their organization
-- Create and assign agents
-- View organization-specific data and reports
-- Configure organization settings
-- Suspend or restore users in their organization
+- Manage users within their organization only
+- Create and assign field agents
+- View their organization's data and reports
+- Configure their organization's settings
+- Suspend or restore users and devices in their organization
 - Generate reports for their organization
+- Monitor agent activity and performance
 
 **Cannot do:**
 - Access other organizations' data
 - Create or modify organizations
 - Perform field operations (agent functions)
 - Change system-wide settings
+- See or manage users from other organizations
 
-**Typical users:** Department heads, operations managers
-
----
-
-### Supervisor
-
-**Can do:**
-- View all controls performed by assigned agents
-- Generate reports for their team
-- Monitor agent activity in real-time
-- Perform field operations (same as agents)
-- Review enforcement actions
-
-**Cannot do:**
-- Create or manage users
-- Change organization settings
-- Access other supervisors' teams
-- Suspend devices or users
-
-**Typical users:** Team leaders, shift supervisors
+**Typical users:** Department heads, operations managers, agency administrators
 
 ---
 
 ### Agent
+
+**Who they are:** Field officers who perform vehicle checks and enforcement actions.
 
 **Can do:**
 - Perform vehicle checks (scan or manual entry)
@@ -739,7 +740,7 @@ Supervisors have access to both mobile field operations and back-office monitori
 - Generate system reports
 - Change organization settings
 
-**Typical users:** Field officers, patrol agents
+**Typical users:** Field officers, patrol agents, enforcement officers
 
 ---
 
@@ -793,12 +794,6 @@ Supervisors have access to both mobile field operations and back-office monitori
 
 ## Getting Help
 
-### In-App Help
-
-- Look for the **Help** icon (question mark) in the app
-- Tap for context-sensitive help on any screen
-- Access user guides and tutorials
-
 ### Contact Your Administrator
 
 For issues with:
@@ -840,7 +835,7 @@ A: 5 minutes. Request a new code if yours expires.
 A: Contact your administrator to adjust shift times.
 
 **Q: What's the difference between Live Scan and Photo Mode?**
-A: Live Scan continuously detects plates in real-time, while Photo Mode captures a single high-quality image with quality assessment and allows you to edit the result before searching.
+A: Live Scan continuously detects plates in real-time, while Photo Mode captures a single high-quality image with quality checks and allows you to edit the result before searching.
 
 **Q: Why does Photo Mode reject my image?**
 A: Photo Mode includes quality checks for blur, brightness, and contrast. Follow the feedback messages to improve image quality (add light, hold steady, adjust angle).
@@ -855,7 +850,7 @@ A: Record all issues in your enforcement action notes. You can add multiple acti
 A: Go to Settings → Profile in the app or back-office.
 
 **Q: Can I delete a control record?**
-A: No. All control records are permanent for audit purposes. Contact your administrator if you need to add corrections or notes.
+A: No. All control records are permanent for record-keeping purposes. Contact your administrator if you need to add corrections or notes.
 
 **Q: How far back can I view my control history?**
 A: All your controls are available indefinitely. Use date filters to find specific records.
@@ -864,37 +859,25 @@ A: All your controls are available indefinitely. Use date filters to find specif
 
 ## Glossary
 
-**Agent**: A field user who performs vehicle checks and enforcement actions.
-
-**Activation Code**: A one-time code sent via SMS to register a new device.
-
-**Back-Office**: The web-based administrative interface for supervisors and admins.
-
-**Compliance Status**: Whether a vehicle meets requirements for insurance, customs, inspection, etc.
-
-**Control**: A vehicle check or inspection performed by an agent.
-
-**Control Record**: The complete documentation of a vehicle check, including timestamp, location, and results.
-
-**Daily Login**: The SMS-based verification required at the start of each shift.
-
-**Device Binding**: The cryptographic link between an agent's account and their physical device.
-
-**Enforcement Action**: A recorded action taken against a vehicle (citation, warning, impound, flag).
-
-**Multi-Tenant**: System architecture that keeps each organization's data completely separate.
-
-**OTP**: One-Time Password — a temporary code sent via SMS for authentication.
-
-**PWA**: Progressive Web App — a web application that works like a native app with offline support.
-
-**RBAC**: Role-Based Access Control — permissions system based on user roles.
-
-**Shift**: The time period during which an agent is logged in and authorized to work.
-
-**Super Admin**: System-wide administrator with access to all organizations.
-
-**Wanted Status**: Indicates if a vehicle is reported stolen or flagged by authorities.
+| Term | Definition |
+|------|------------|
+| **Agent** | A field user who performs vehicle checks and enforcement actions. |
+| **Activation Code** | A one-time code sent by text message to register a new device. |
+| **Back-Office** | The web-based administrative interface for administrators. |
+| **Compliance Status** | Whether a vehicle meets requirements for insurance, customs, inspection, etc. |
+| **Control** | A vehicle check or inspection performed by an agent. |
+| **Control Record** | The complete documentation of a vehicle check, including timestamp, location, and results. |
+| **Daily Login** | The text message-based verification required at the start of each shift. |
+| **Device Binding** | The secure link between an agent's account and their physical device. |
+| **Enforcement Action** | A recorded action taken against a vehicle (citation, warning, impound, flag). |
+| **Multi-Tenant** | System design that keeps each organization's data completely separate. |
+| **Organization Admin** | Administrator who manages a single organization's operations and users. |
+| **OTP** | One-Time Password — a temporary code sent by text message for login. |
+| **PWA** | Progressive Web App — a web application that works like a native app with offline support. |
+| **RBAC** | Role-Based Access Control — permissions system based on user roles. |
+| **Shift** | The time period during which an agent is logged in and authorized to work. |
+| **Super Admin** | System-wide administrator with access to all organizations. |
+| **Wanted Status** | Indicates if a vehicle is reported stolen or flagged by authorities. |
 
 ---
 
@@ -904,7 +887,7 @@ A: All your controls are available indefinitely. Use date filters to find specif
 **Last Updated:** April 30, 2026
 **Author:** IVISS Development Team
 
-For the latest version of this guide, check the Help section in the IVISS back-office or contact your system administrator.
+For the latest version of this guide, contact your system administrator.
 
 ---
 
