@@ -2,22 +2,34 @@
 
 IVISS is a multi-tenant platform for law-enforcement and regulatory teams to run roadside controls, verify vehicle compliance, and manage enforcement workflows.
 
+This README is the entry point for developers, operators, and reviewers. It gives a concise map of the system, local setup, architecture boundaries, security model, API/testing conventions, and where to find the full detailed documentation.
+
 ## Table of Contents
 
-- [Overview](#overview)
-- [Architecture at a Glance](#architecture-at-a-glance)
-- [Tech Stack](#tech-stack)
-- [Quick Start (Local Development)](#quick-start-local-development)
-- [Useful Endpoints](#useful-endpoints)
-- [Run Frontend Outside Docker (Optional)](#run-frontend-outside-docker-optional)
-- [Quality Checks](#quality-checks)
-- [Project Structure](#project-structure)
-- [Documentation Map](#documentation-map)
-- [Production Infrastructure](#production-infrastructure)
-- [Contributing](#contributing)
-- [License](#license)
+1. [Overview](#1-overview)
+2. [Architecture &amp; Design Decisions](#2-architecture--design-decisions)
+3. [Tech Stack](#3-tech-stack)
+4. [Multi-tenancy &amp; Security Model](#4-multi-tenancy--security-model)
+5. [Local Development](#5-local-development)
 
-## Overview
+    5.1[Prerequisites](#51-prerequisites)
+	5.2 [Configuration (`.env`)](#52-configuration-env)
+	5.3 [Startup](#53-startup)
+	5.4 [Useful Commands](#54-useful-commands)
+
+6. [Frontend Architecture](#6-frontend-architecture)
+7. [Backend Architecture (Rust)](#7-backend-architecture-rust)
+8. [Database &amp; Data Model](#8-database--data-model)
+9. [API Reference &amp; Conventions](#9-api-reference--conventions)
+10. [Testing Strategy](#10-testing-strategy)
+11. [Quality &amp; Coding Standards](#11-quality--coding-standards)
+12. [Debugging &amp; Troubleshooting](#12-debugging--troubleshooting)
+13. [Deployment &amp; CI/CD](#13-deployment--cicd)
+14. [Monitoring &amp; Logging](#14-monitoring--logging)
+15. [Contribution Guidelines](#15-contribution-guidelines)
+16. [Appendices](#16-appendices)
+
+## 1. Overview
 
 IVISS helps agencies:
 
@@ -27,14 +39,30 @@ IVISS helps agencies:
 - Operate with role-based access control in a multi-organization environment.
 - Use a mobile-first web experience with PWA capabilities.
 
-## Architecture at a Glance
+For system overview and functional context, see [docs/overview.md](docs/overview.md).
+
+## 2. Architecture & Design Decisions
+
+High-level architecture:
 
 - **Frontend**: React + TypeScript + Vite (mobile-first SPA, PWA-enabled)
 - **Backend**: Rust + Axum + SQLx (REST API + OpenAPI)
-- **Database**: PostgreSQL 15 (Docker)
-- **Infra**: Docker Compose for local, Terraform + Ansible + GitHub Actions for production
+- **Database**: PostgreSQL 15
+- **Infrastructure**: Docker Compose (local), Terraform + Ansible + GitHub Actions (deployment)
 
-## Tech Stack
+Main design choices:
+
+- Multi-tenant data isolation by organization.
+- Backend-generated OpenAPI contract consumed by frontend codegen.
+- Role-based access control enforced in backend middleware.
+- Infrastructure-as-Code and automated CI/CD pipelines.
+
+For complete architecture diagrams and rationale, see:
+
+- [docs/architecture_spec.md](docs/architecture_spec.md)
+- [docs/sequence_diagrams_&amp;_flows.md](docs/sequence_diagrams_&_flows.md)
+
+## 3. Tech Stack
 
 ### Frontend
 
@@ -45,7 +73,7 @@ IVISS helps agencies:
 
 ### Backend
 
-- Rust, Axum, Tokio
+- Rust, Cargo, Axum, Tokio
 - SQLx (PostgreSQL)
 - Utoipa + Swagger UI (OpenAPI generation and docs)
 
@@ -55,22 +83,43 @@ IVISS helps agencies:
 - GitHub Actions CI/CD
 - AWS Lightsail (deployment target)
 
-## Quick Start (Local Development)
+## 4. Multi-tenancy & Security Model
 
-### Prerequisites
+Core model:
+
+- Organization-scoped data and workflows.
+- RBAC across `admin`, `manager` (business label: supervisor), `org_admin`, and `agent` roles.
+- JWT-based authentication with role-aware access middleware.
+- Audit-oriented flows for sensitive operations.
+
+Security notes:
+
+- External providers (SMS/Email) are configured via environment variables.
+- Secrets must never be committed.
+- Authentication/session controls are handled server-side.
+
+For full details, see:
+
+- [docs/auth_tokens.md](docs/auth_tokens.md)
+- [docs/developer/api.md](docs/developer/api.md)
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+
+## 5. Local Development
+
+### 5.1 Prerequisites
 
 - Docker Engine 20.10+
 - Docker Compose v2+
-- Node.js 20+ (only if running frontend outside Docker)
+- Node.js 20+ (for frontend local dev and tooling)
+- Rust toolchain + Cargo (for backend local build/test)
 
-### 1) Configure environment
+### 5.2 Configuration (`.env`)
 
 ```bash
 cp .env.example .env
 ```
 
-Set required values in `.env` before starting containers.
-At minimum for local boot:
+Minimum values for local backend startup:
 
 - `POSTGRES_PASSWORD`
 - `EXTERNAL_POSTGRES_PASSWORD`
@@ -82,51 +131,48 @@ At minimum for local boot:
 Recommended for end-to-end back-office flows:
 
 - `EMAIL_PROVIDER` (`mock`, `resend`, `lettre`/`smtp`)
-- Provider credentials for the selected email mode (for example SMTP or Resend keys)
+- Provider credentials for the selected email mode
 
-Note:
+Notes:
 
-- The backend can start with `EMAIL_PROVIDER=mock` (or unset, which defaults to `mock`).
-- To provision an organization admin and deliver the temporary password by real email, configure a real provider (`resend` or `lettre`/`smtp`) with valid credentials.
+- The meaning of all those env varraibles are correctly documented in the `.env.example `file
+- Real org-admin email delivery (temporary password) requires a real provider (`resend` or `lettre`/`smtp`) and valid credentials.
 
-### 2) Start the development stack
+For the full setup matrix, see [docs/developer/getting-started.md](docs/developer/getting-started.md).
+
+### 5.3 Startup
 
 ```bash
 docker compose --profile dev up -d --build
 ```
 
-This starts the local development services (database, backend, frontend, adminer, metrics).
+Useful local URLs:
 
-### 3) Check service status and logs
-
-```bash
-docker compose ps
-docker compose logs -f backend
-docker compose logs -f frontend
-```
-
-### 4) Stop services
-
-```bash
-# Keep volumes
-docker compose down
-
-# Remove volumes (destructive for local DB data)
-docker compose down -v
-```
-
-## Useful Endpoints
-
-- Frontend (dev): http://localhost:8080
+- Frontend: http://localhost:8080
 - Backend health: http://localhost:3000/api/v1/health
 - Swagger UI: http://localhost:3000/docs
 - OpenAPI JSON: http://localhost:3000/api-doc/openapi.json
 - Adminer: http://localhost:8081
-- Metrics service health: http://localhost:9091/health
+- Metrics health: http://localhost:9091/health
 
-## Run Frontend Outside Docker (Optional)
+### 5.4 Useful Commands
 
-If you prefer running the frontend directly on Node:
+```bash
+# Service status
+docker compose ps
+
+# Logs
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Stop stack
+docker compose down
+
+# Stop + remove local volumes (destructive)
+docker compose down -v
+```
+
+Frontend outside Docker (optional):
 
 ```bash
 cd frontend
@@ -134,85 +180,206 @@ npm install
 npm run dev
 ```
 
-Notes:
+## 6. Frontend Architecture
 
-- Dev server runs on `http://localhost:8080`.
-- `predev` fetches OpenAPI from backend (`http://127.0.0.1:3000/api-doc/openapi.json`) and falls back to local `frontend/openapi.json` if unavailable.
+Frontend structure is organized around routes, pages, reusable components, hooks, and generated OpenAPI client layers.
 
-## Quality Checks
+For the complete frontend architecture and developer breakdown, see:
 
-### Frontend
+- [docs/FE_ARCHITECTURE.md](docs/FE_ARCHITECTURE.md)
+- [docs/developer/project-structure.md](docs/developer/project-structure.md)
 
-```bash
-cd frontend
-npm run lint
-npm run ts:check
-npm run test
-npm run build
-```
+## 7. Backend Architecture (Rust)
 
-### Backend
+Backend is an Axum service with modular boundaries for handlers, services, queries, middleware, DTOs, and tests.
 
-```bash
-cd iviss-backend
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test
-```
+Key entry points:
 
-## Project Structure
+- Runtime: `iviss-backend/src/main.rs`
+- Routes: `iviss-backend/src/routes.rs`
+- OpenAPI: `iviss-backend/src/api_doc.rs`
 
-```text
-iviss/
-├── .github/         # CI/CD workflows
-├── docs/            # Product, architecture, and operational documentation
-├── frontend/        # React + TypeScript application
-├── iviss-backend/   # Rust + Axum API service
-├── infra/           # Terraform + Ansible infrastructure code
-├── monitoring/      # Monitoring-related assets
-└── scripts/         # Utility scripts (e.g., OpenAPI fetch)
-```
+For complete backend structure and conventions, see:
 
-## Documentation Map
+- [docs/developer/project-structure.md](docs/developer/project-structure.md)
+- [docs/developer/api.md](docs/developer/api.md)
 
-- System overview: [docs/overview.md](docs/overview.md)
-- Technical architecture: [docs/architecture_spec.md](docs/architecture_spec.md)
-- Data model / schema: [docs/schema.md](docs/schema.md)
-- Deployment and operations: [docs/deployment_guide.md](docs/deployment_guide.md)
-- Monitoring guide: [docs/monitoring.md](docs/monitoring.md)
-- PWA testing guide: [docs/pwa_testing_guide.md](docs/pwa_testing_guide.md)
-  #### Developer onboarding guide
-- Developer documentation index: [docs/developer/README.md](docs/developer/README.md)
-- Developer getting started: [docs/developer/getting-started.md](docs/developer/getting-started.md)
-- Developer project structure: [docs/developer/project-structure.md](docs/developer/project-structure.md)
-- Developer API guide: [docs/developer/api.md](docs/developer/api.md)
-- Developer database guide: [docs/developer/database.md](docs/developer/database.md)
-- Developer testing guide: [docs/developer/testing.md](docs/developer/testing.md)
-- Developer coding standards: [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
-- Developer debugging guide: [docs/developer/debugging.md](docs/developer/debugging.md)
+## 8. Database & Data Model
 
+IVISS uses PostgreSQL with SQLx migrations and seed mechanisms.
 
-## Production Infrastructure
+Main domains include:
 
-[![Deployment Status](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml/badge.svg)](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml)
+- Organizations and users/roles
+- Vehicle registry and statuses
+- Control records and actions
+- Pending submission workflow
+- Audit logs
 
-IVISS production deployments are managed with Infrastructure-as-Code and CI/CD.
+For full schema and DB workflow documentation, see:
 
-- **Target**: AWS Lightsail
-- **Provisioning**: Terraform
-- **Configuration/Deploy**: Ansible + Docker Compose
-- **Pipelines**: GitHub Actions
+- [docs/schema.md](docs/schema.md)
+- [docs/data.md](docs/data.md)
+- [docs/developer/database.md](docs/developer/database.md)
 
-For full production setup, secrets, and runbooks, see:
-[docs/deployment_guide.md](docs/deployment_guide.md)
+## 9. API Reference & Conventions
 
-## Contributing
+API contract is generated from backend code and exposed through OpenAPI.
+
+References:
+
+- Swagger UI (local): http://localhost:3000/docs
+- OpenAPI JSON (local): http://localhost:3000/api-doc/openapi.json
+- Frontend snapshot: `frontend/openapi.json`
+
+API implementation and conventions are documented in:
+
+- [docs/developer/api.md](docs/developer/api.md)
+
+## 10. Testing Strategy
+
+Testing is split by subsystem:
+
+- Backend: Rust tests, integration tests, DB tests (Testcontainers)
+- Frontend: unit/component tests with Vitest + Testing Library
+- CI: workflow-based validation for build, lint, type checks, tests, coverage, and security scans
+
+For full commands and CI mapping, see:
+
+- [docs/developer/testing.md](docs/developer/testing.md)
+
+## 11. Quality & Coding Standards
+
+Project standards cover:
+
+- Code style and module ownership
+- API/DB change discipline
+- Security defaults
+- Conventional commits and PR hygiene
+
+See:
+
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+
+## 12. Debugging & Troubleshooting
+
+Use a layered troubleshooting approach:
+
+- Service health and logs
+- Env/config validation
+- Auth/RBAC checks
+- OpenAPI/codegen sync issues
+
+See:
+
+- [docs/developer/debugging.md](docs/developer/debugging.md)
+
+## 13. Deployment & CI/CD
+
+Production deployment model:
+
+- Infrastructure provisioning: Terraform
+- Server configuration and rollout: Ansible + Docker Compose
+- Automation: GitHub Actions
+- Target: AWS Lightsail
+
+For full deployment procedures and operational details, see:
+
+- [docs/deployment_guide.md](docs/deployment_guide.md)
+- [docs/release_guide.md](docs/release_guide.md)
+
+## 14. Monitoring & Logging
+
+Operational observability includes:
+
+- Prometheus scraping
+- Grafana dashboards
+- Service-level health endpoints and container logs
+
+See:
+
+- [docs/monitoring.md](docs/monitoring.md)
+- [monitoring/README.md](monitoring/README.md)
+
+## 15. Contribution Guidelines
 
 - Use dedicated feature branches.
 - Keep PRs focused and reviewable.
-- Update documentation when behavior, configuration, or interfaces change.
-- Ensure local checks pass before opening a PR.
+- Update docs whenever behavior, interfaces, or workflows change.
+- Run relevant local checks before opening a PR.
 
-## License
+Developer contribution standards:
+
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+
+## 16. Appendices
+
+### A) Project Structure Snapshot
+
+```text
+iviss/
+├── .github/
+│   └── workflows/
+├── docs/
+│   ├── architecture_spec.md
+│   └── developer/
+│       ├── README.md
+│       ├── ...
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── router/
+│   │   ├── services/
+│   │   └── openapi-rq/
+│   ├── public/
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── openapi.json
+├── iviss-backend/
+│   ├── src/
+│   │   ├── handlers/
+│   │   ├── services/
+│   │   ├── queries/
+│   │   ├── middleware/
+│   │   ├── dto/
+│   │   ├── tests/
+│   │   ├── main.rs
+│   │   ├── routes.rs
+│   │   └── api_doc.rs
+│   ├── migrations/          # SQL migrations
+│   ├── seeds/
+│   ├── scripts/
+│   └── Cargo.toml
+├── infra/
+│   ├── terraform/
+│   ├── ansible/
+│   └── scripts/
+├── monitoring/
+│   ├── prometheus/
+│   └── grafana/
+├── scripts/
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+For detailed structure, see [docs/developer/project-structure.md](docs/developer/project-structure.md).
+
+### B) Documentation Map
+
+- [docs/overview.md](docs/overview.md)
+- [docs/architecture_spec.md](docs/architecture_spec.md)
+- [docs/deployment_guide.md](docs/deployment_guide.md)
+- [docs/developer/README.md](docs/developer/README.md)
+- [docs/developer/getting-started.md](docs/developer/getting-started.md)
+- [docs/developer/api.md](docs/developer/api.md)
+- [docs/developer/database.md](docs/developer/database.md)
+- [docs/developer/testing.md](docs/developer/testing.md)
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+- [docs/developer/debugging.md](docs/developer/debugging.md)
+
+### C) License
 
 This project is proprietary. All rights reserved.
