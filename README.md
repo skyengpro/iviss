@@ -1,8 +1,8 @@
-# IVISS
+ **Welcome to IVISS.**
 
 IVISS is a multi-tenant platform for law-enforcement and regulatory teams to run roadside controls, verify vehicle compliance, and manage enforcement workflows.
 
-This README is the entry point for developers, operators, and reviewers. It gives a concise map of the system, local setup, architecture boundaries, security model, API/testing conventions, and where to find the full detailed documentation.
+This README is here to make your work safer, faster, and more effective. It is the entry point for developers, operators, and reviewers. It gives a concise map of the system, local setup, architecture boundaries, security model, API/testing conventions, and where to find the full detailed documentation.
 
 ## Table of Contents
 
@@ -12,11 +12,10 @@ This README is the entry point for developers, operators, and reviewers. It give
 4. [Multi-tenancy &amp; Security Model](#4-multi-tenancy--security-model)
 5. [Local Development](#5-local-development)
 
-    5.1[Prerequisites](#51-prerequisites)
-	5.2 [Configuration (`.env`)](#52-configuration-env)
-	5.3 [Startup](#53-startup)
-	5.4 [Useful Commands](#54-useful-commands)
-
+   5.1[Prerequisites](#51-prerequisites)
+   5.2 [Configuration (`.env`)](#52-configuration-env)
+   5.3 [Startup](#53-startup)
+   5.4 [Useful Commands](#54-useful-commands)
 6. [Frontend Architecture](#6-frontend-architecture)
 7. [Backend Architecture (Rust)](#7-backend-architecture-rust)
 8. [Database &amp; Data Model](#8-database--data-model)
@@ -316,16 +315,16 @@ Developer contribution standards:
 
 ### A) Project Structure Snapshot
 
-```text
+```plaintext
 iviss/
 ├── .github/
 │   └── workflows/
-├── docs/
+├── docs/                   # All documentation
 │   ├── architecture_spec.md
 │   └── developer/
 │       ├── README.md
 │       ├── ...
-├── frontend/
+├── frontend/               # React Frontend
 │   ├── src/
 │   │   ├── components/
 │   │   ├── hooks/
@@ -337,7 +336,7 @@ iviss/
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── openapi.json
-├── iviss-backend/
+├── iviss-backend/          # Rust Backend
 │   ├── src/
 │   │   ├── handlers/
 │   │   ├── services/
@@ -348,18 +347,18 @@ iviss/
 │   │   ├── main.rs
 │   │   ├── routes.rs
 │   │   └── api_doc.rs
-│   ├── migrations/          # SQL migrations
+│   ├── migrations/         # SQL migrations
 │   ├── seeds/
-│   ├── scripts/
+│   ├── scripts/            # Utility scripts
 │   └── Cargo.toml
-├── infra/
+├── infra/                  # Infrastructure as Code
 │   ├── terraform/
 │   ├── ansible/
 │   └── scripts/
-├── monitoring/
+├── monitoring/             # Observability
 │   ├── prometheus/
 │   └── grafana/
-├── scripts/
+├── scripts/                # Utility scripts
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -383,3 +382,13 @@ For detailed structure, see [docs/developer/project-structure.md](docs/developer
 ### C) License
 
 This project is proprietary. All rights reserved.
+
+
+
+## Document Version
+
+**Version:** 1.0
+**Last Updated:** May 04, 2026
+**Author:** IVISS Development Team
+
+For the latest version of this guide, check the Help section in the IVISS back-office or contact your system administrator.
