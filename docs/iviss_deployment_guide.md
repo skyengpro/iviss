@@ -63,8 +63,7 @@ graph TD
     A[Mobile PWA\nField Agents] -->|HTTPS + JWT| C[Nginx\nReverse Proxy + SSL]
     B[Web Back-Office\nAdmins & Supervisors] -->|HTTPS + JWT| C
     C --> D[IVISS Backend\nRust / Axum]
-    D --> E[(PostgreSQL\nInternal DB)]
-    D -.->|Read-Only| F[(PostgreSQL\nExternal Registry)]
+    D -->|Read-Only| F[(PostgreSQL\nExternal Registry)]
     D -.->|API| G[External Systems\nInsurance · Customs · Police]
 ```
 
@@ -76,8 +75,7 @@ The table below describes the role of each component in the system.
 |---|---|
 | **Nginx** | Reverse proxy, SSL termination, static file serving for the frontend |
 | **IVISS Backend** | Core API — handles authentication, vehicle lookups, control records, OTP, RBAC |
-| **PostgreSQL (Internal)** | IVISS-owned data: users, organisations, vehicles, controls, audit logs |
-| **PostgreSQL (External)** | National vehicle registry — read-only access |
+| **PostgreSQL (External)** | National vehicle registry — the single database used for all vehicle data |
 | **GHCR** | Private Docker image registry hosted on GitHub |
 
 ---
