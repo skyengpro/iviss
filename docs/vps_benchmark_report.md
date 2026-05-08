@@ -14,7 +14,7 @@ Test and compare two deployment scenarios for IVISS on CloudStore VPS Africa:
 
 **1. Bandwidth far below advertised specs**
 
-CloudStore's documentation advertises a bandwidth of **2 MB/s**. During testing, the actual measured speed was **below 1 MB/s**. This made Docker image pulls and package installations extremely slow and in some cases impossible to complete within a reasonable time.
+CloudStore's documentation advertises a bandwidth of **2 Mbps**. During testing, the actual measured speed was **below 1 Mbps**. This made Docker image pulls and package installations extremely slow and in some cases impossible to complete within a reasonable time.
 And it happened to vary from time to time. 
 Internet speed seemed to be faster at some points that other points.
 
