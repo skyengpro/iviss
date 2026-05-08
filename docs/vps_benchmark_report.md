@@ -18,6 +18,9 @@ CloudStore's documentation advertises a bandwidth of **2 MB/s**. During testing,
 And it happened to vary from time to time. 
 Internet speed seemed to be faster at some points that other points.
 
+This is an image sample of `apt update` command
+![alt text](image.png)
+
 #### Causes of this poor bandwidth
 
 - **Internet provider:** CloudStore uses **Camtel** as their internet provider as backbone and other sub ones like orange etc.
