@@ -1,3 +1,5 @@
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
 /// Integration test for authentication flow
 /// Tests the complete auth workflow: login -> refresh -> logout
 use iviss_backend::app_cache::AppCache;
@@ -6,28 +8,26 @@ use iviss_backend::config::Config;
 use iviss_backend::routes;
 use iviss_backend::services::email_provider::MockEmailProvider;
 use iviss_backend::services::sms_provider::NoopSmsProvider;
+use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tower::ServiceExt;
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use sqlx::postgres::PgPoolOptions;
 
 /// Helper to create test app state
 async fn setup_test_state() -> AppState {
     let config = Config::from_env().expect("Failed to load config");
-    
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&config.database_url)
         .await
         .expect("Failed to create pool");
-    
+
     let app_cache = Arc::new(AppCache::new());
-    let sms_provider: Arc<dyn iviss_backend::services::sms_provider::SmsProvider> = 
+    let sms_provider: Arc<dyn iviss_backend::services::sms_provider::SmsProvider> =
         Arc::new(NoopSmsProvider);
-    let email_provider: Arc<dyn iviss_backend::services::email_provider::EmailProvider> = 
+    let email_provider: Arc<dyn iviss_backend::services::email_provider::EmailProvider> =
         Arc::new(MockEmailProvider);
-    
+
     AppState::new(pool, app_cache, sms_provider, email_provider, &config)
 }
 
