@@ -1,0 +1,22 @@
+# Test outputs
+*.log
+test-results/
+playwright-report/
+coverage/
+
+# E2E specific
+e2e/node_modules/
+e2e/package-lock.json
+e2e/.cache/
+e2e/test-results/
+e2e/playwright-report/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
