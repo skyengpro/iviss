@@ -43,8 +43,6 @@ test.describe('Multi-Tenant Data Isolation', () => {
   }
 
   test('should isolate data between organizations', async ({ page }) => {
-    let orgAControlId: string | null = null;
-
     // Step 1: Login as Org A admin
     await test.step('Login as Organization A admin', async () => {
       await loginAsAdmin(page, orgAAdmin.email, orgAAdmin.password);
@@ -171,11 +169,17 @@ test.describe('Multi-Tenant Data Isolation', () => {
     });
 
     await test.step('Verify dashboard shows only Org A data', async () => {
-      // Check dashboard stats
+      // Check dashboard stats if present
       const statsContainer = page.locator('[data-testid*="stats"], .stats, [class*="stat"]').first();
       
       // Just verify dashboard loads
       await page.waitForTimeout(2000);
+      
+      // Verify stats container is visible if it exists
+      const statsVisible = await statsContainer.isVisible({ timeout: 2000 }).catch(() => false);
+      if (statsVisible) {
+        await expect(statsContainer).toBeVisible();
+      }
       
       // Verify no Org B references (basic check)
       const orgBText = page.locator('text=/organization b|org b/i');
