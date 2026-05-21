@@ -1,6 +1,5 @@
 /// Integration tests for database operations
 /// Uses testcontainers to spin up a real PostgreSQL instance
-use sqlx::PgPool;
 
 #[tokio::test]
 async fn test_database_connection() {
