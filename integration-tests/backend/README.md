@@ -1,89 +1,49 @@
-# Integration Tests
+# Backend Integration Tests - MOVED
 
-This directory contains integration tests for the IVISS backend.
+**⚠️ IMPORTANT: Backend integration tests have been moved!**
+
+## New Location
+
+All backend integration tests are now located in:
+```
+iviss-backend/tests/
+```
+
+This follows Rust/Cargo conventions where integration tests should live in the `tests/` directory next to `Cargo.toml`.
+
+## Running Tests
+
+To run backend integration tests:
+
+```bash
+cd iviss-backend
+cargo test
+```
+
+Or run specific tests:
+
+```bash
+cd iviss-backend
+cargo test integration_auth_flow
+cargo test integration_vehicle_search
+cargo test integration_multi_tenant
+cargo test integration_control_records
+```
 
 ## Test Structure
 
-- `integration_auth_flow.rs` - Tests authentication endpoints (login, refresh, logout)
-- `integration_database.rs` - Tests database operations with testcontainers
-- `integration_vehicle_search.rs` - Tests vehicle search and external API integration (TODO)
-- `integration_multi_tenant.rs` - Tests multi-tenant data isolation (TODO)
-
-## Running Integration Tests
-
-### Run all tests (unit + integration)
-```bash
-cargo test
+```
+iviss-backend/tests/
+├── helpers/
+│   └── mod.rs                          # Shared test utilities
+├── integration_auth_flow.rs            # Authentication flow tests
+├── integration_vehicle_search.rs       # Vehicle search tests
+├── integration_multi_tenant.rs         # Multi-tenant isolation tests
+└── integration_control_records.rs      # Control record CRUD tests
 ```
 
-### Run only integration tests
-```bash
-cargo test --test integration_*
-```
+## See Also
 
-### Run specific integration test file
-```bash
-cargo test --test integration_auth_flow
-```
-
-### Run with output
-```bash
-cargo test --test integration_auth_flow -- --nocapture
-```
-
-### Run with database
-```bash
-# Make sure DATABASE_URL is set
-export DATABASE_URL="postgres://iviss_user:password@localhost:5432/iviss_dev"
-cargo test
-```
-
-### Run with Docker (testcontainers)
-```bash
-# Testcontainers will automatically start PostgreSQL
-cargo test --test integration_database
-```
-
-## Environment Variables
-
-- `DATABASE_URL` - Required for tests that need database access
-- `SKIP_DOCKER_TESTS` - Set to skip tests that require Docker
-- `RUST_LOG` - Set to `debug` or `trace` for verbose output
-
-## CI/CD Integration
-
-These tests run automatically in GitHub Actions via `.github/workflows/backend-ci.yml`.
-
-The CI pipeline:
-1. Starts PostgreSQL service
-2. Runs migrations
-3. Executes all tests with coverage
-4. Generates coverage report
-
-## Writing New Integration Tests
-
-1. Create a new file: `tests/integration_<feature>.rs`
-2. Use `#[tokio::test]` for async tests
-3. Use `setup_test_state()` helper for app state
-4. Use testcontainers for database tests
-5. Add cleanup logic in test teardown
-
-Example:
-```rust
-#[tokio::test]
-async fn test_my_feature() {
-    let state = setup_test_state().await;
-    // Your test logic here
-}
-```
-
-## Best Practices
-
-- ✅ Test real HTTP requests through the router
-- ✅ Use testcontainers for database isolation
-- ✅ Clean up test data after each test
-- ✅ Use meaningful test names
-- ✅ Test error cases, not just happy paths
-- ❌ Don't rely on shared state between tests
-- ❌ Don't use production database for tests
-- ❌ Don't skip cleanup on test failure
+- Main integration tests documentation: `docs/INTEGRATION_TESTS.md`
+- Backend-specific tests: `iviss-backend/tests/`
+- E2E tests: `integration-tests/e2e/`

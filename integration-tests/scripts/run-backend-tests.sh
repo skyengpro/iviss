@@ -49,23 +49,7 @@ echo "----------------------------"
 
 cd "$BACKEND_DIR"
 
-# Create symlinks to integration tests if they don't exist
-if [ ! -d "tests" ]; then
-    mkdir -p tests
-fi
-
-# Link integration tests
-for test_file in "$PROJECT_ROOT/integration-tests/backend"/*.rs; do
-    if [ -f "$test_file" ]; then
-        test_name=$(basename "$test_file")
-        if [ ! -L "tests/$test_name" ]; then
-            ln -sf "$test_file" "tests/$test_name"
-            echo "Linked: $test_name"
-        fi
-    fi
-done
-
-# Run tests
+# Run tests (they're now in iviss-backend/tests/ following Cargo conventions)
 if cargo test --test integration_* -- --nocapture; then
     echo ""
     echo -e "${GREEN}✓ Backend integration tests PASSED${NC}"
