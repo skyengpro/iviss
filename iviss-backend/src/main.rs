@@ -57,7 +57,8 @@ async fn main() -> anyhow::Result<()> {
     info!("Caching necessary data from database...");
     cache.cache_necessary_data_from_database(&db_pool).await?;
 
-    let state = AppState::new(db_pool, cache, sms_provider, email_provider, &config);
+    let state = AppState::new(db_pool, cache, sms_provider, email_provider, &config)
+        .context("Failed to initialize application state")?;
     let app = routes::assembly(state)
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 

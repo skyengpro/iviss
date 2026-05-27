@@ -93,7 +93,8 @@ async fn setup_admin_logout_test() -> (
         Arc::new(crate::services::sms_provider::MockSmsProvider),
         Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
-    );
+    )
+    .expect("failed to initialize test app state");
 
     let app = routes::assembly(state);
 

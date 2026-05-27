@@ -70,7 +70,8 @@ async fn setup_test_app() -> (
         Arc::new(MockSmsProvider),
         Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
-    );
+    )
+    .expect("failed to initialize test app state");
 
     let app = routes::assembly(state.clone());
 

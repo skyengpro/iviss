@@ -151,7 +151,8 @@ async fn setup_test_app() -> (
         sms_provider,
         email_provider,
         &config,
-    );
+    )
+    .expect("failed to initialize test app state");
 
     // Create router
     let app = routes::assembly(state);

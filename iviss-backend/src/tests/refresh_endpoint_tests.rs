@@ -195,7 +195,8 @@ async fn setup_test_infrastructure() -> (
         Arc::new(MockSmsProvider),
         Arc::new(MockEmailProvider),
         &config,
-    );
+    )
+    .expect("failed to initialize test app state");
 
     let app = routes::assembly(state);
 

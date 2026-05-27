@@ -7,4 +7,3 @@ pub mod photo_ocr_service;
 pub mod sms_provider;
 pub mod vehicle_client_service;
 pub mod vehicle_service;
-
