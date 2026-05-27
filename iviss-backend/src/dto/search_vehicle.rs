@@ -19,20 +19,21 @@ pub struct VehicleSearchRequest {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OwnerInfo {
-    pub name: String,
+    pub name: Option<String>,
     pub address: Option<String>,
     pub national_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct VehicleInfo {
-    pub brand: String,
-    pub model: String,
-    pub year: i32,
+    pub brand: Option<String>,
+    pub model: Option<String>,
+    pub year: Option<i32>,
     pub color: Option<String>,
     pub engine_power: Option<String>,
     pub fuel_type: Option<String>,
-    pub chassis_number: String,
+    pub chassis_number: Option<String>,
+    pub customs_status: Option<String>,
     pub owner: OwnerInfo,
 }
 

@@ -1,6 +1,8 @@
 pub use crate::services::email_provider::EmailProviderCredentials;
 pub use crate::services::sms_provider::SmsProviderCredentials;
-pub use crate::services::vehicke_client_service::VehicleApiCredentials;
+pub use crate::services::vehicle_client_service::{
+    ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
+};
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;
@@ -170,7 +172,8 @@ impl Config {
         let admin_bootstrap_username = env::var("ADMIN_BOOTSTRAP_USERNAME").ok();
 
         // Vehicle API credentials
-        let vehicle_api_credentials = Self::get_vehicle_api_credentials().context("Failed to configure Vehicle API credentials")?;
+        let vehicle_api_credentials = Self::get_vehicle_api_credentials()
+            .context("Failed to configure Vehicle API credentials")?;
         Ok(Self {
             database_url,
             server_host,
@@ -186,7 +189,7 @@ impl Config {
             admin_bootstrap_password,
             admin_bootstrap_phone,
             admin_bootstrap_username,
-            vehicle_api_credentials
+            vehicle_api_credentials,
         })
     }
 
@@ -286,29 +289,32 @@ impl Config {
         }
     }
 
-        fn get_vehicle_api_credentials() -> Result<VehicleApiCredentials> {
-            let base_url = env::var("EXTERNAL_API_BASE_URL").context("EXTERNAL_API_BASE_URL must be set")?;
-            let username = env::var("EXTERNAL_API_USERNAME").context("EXTERNAL_API_USERNAME must be set")?;
-            let password = env::var("EXTERNAL_API_PASSWORD").context("EXTERNAL_API_PASSWORD must be set")?;
-            let lock_ndia = env::var("EXTERNAL_API_LOCK_NDIA").context("EXTERNAL_API_LOCK_NDIA must be set")?;
-            let kindia = env::var("EXTERNAL_API_KINDIA").context("EXTERNAL_API_KINDIA must be set")?;
-            let user = env::var("EXTERNAL_API_USER").context("EXTERNAL_API_USER must be set")?;
-            let client = env::var("EXTERNAL_API_CLIENT").context("EXTERNAL_API_CLIENT must be set")?;
-            let ctr = env::var("EXTERNAL_API_CTR").context("EXTERNAL_API_CTR must be set")?;
-    
-            let vahicle_api_credentials = VehicleApiCredentials{
-                base_url,
-                user_auth: ApiUserAuth { username, password },
-                header_parms: ExternalApiHeaderParms {
-                    user,
-                    lock_ndia,
-                    kindia,
-                    client,
-                    ctr,
-                },
-            }; 
-            Ok(vahicle_api_credentials)
-        }
+    fn get_vehicle_api_credentials() -> Result<VehicleApiCredentials> {
+        let base_url =
+            env::var("EXTERNAL_API_BASE_URL").context("EXTERNAL_API_BASE_URL must be set")?;
+        let username =
+            env::var("EXTERNAL_API_USERNAME").context("EXTERNAL_API_USERNAME must be set")?;
+        let password =
+            env::var("EXTERNAL_API_PASSWORD").context("EXTERNAL_API_PASSWORD must be set")?;
+        let lock_ndia =
+            env::var("EXTERNAL_API_LOCK_NDIA").context("EXTERNAL_API_LOCK_NDIA must be set")?;
+        let kindia = env::var("EXTERNAL_API_KINDIA").context("EXTERNAL_API_KINDIA must be set")?;
+        let user = env::var("EXTERNAL_API_USER").context("EXTERNAL_API_USER must be set")?;
+        let client = env::var("EXTERNAL_API_CLIENT").context("EXTERNAL_API_CLIENT must be set")?;
+        let ctr = env::var("EXTERNAL_API_CTR").context("EXTERNAL_API_CTR must be set")?;
+
+        Ok(VehicleApiCredentials {
+            base_url,
+            user_auth: ApiUserAuth { username, password },
+            header_parms: ExternalApiHeaderParms {
+                user,
+                lock_ndia,
+                kindia,
+                client,
+                ctr,
+            },
+        })
+    }
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<()> {
@@ -408,6 +414,24 @@ impl Config {
 }
 
 #[cfg(test)]
+pub fn mock_vehicle_api_credentials() -> VehicleApiCredentials {
+    VehicleApiCredentials {
+        base_url: "https://vehicle-api.test".into(),
+        user_auth: ApiUserAuth {
+            username: "test_username".into(),
+            password: "test_password".into(),
+        },
+        header_parms: ExternalApiHeaderParms {
+            user: "test_user".into(),
+            lock_ndia: "test_lock_ndia".into(),
+            kindia: "test_kindia".into(),
+            client: "test_client".into(),
+            ctr: "test_ctr".into(),
+        },
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -451,22 +475,6 @@ mod tests {
 
     #[test]
     fn test_config_helpers() {
-
-        let mok_vehicle_api_credentials = VehicleApiCredentials{
-                base_url: "https://siagitt.utsch-cm.com:8443".into(),
-                user_auth: ApiUserAuth {
-                    username: "username".into(),
-                    password: "password".into(),
-                },
-                header_parms: ExternalApiHeaderParms {
-                    user: "user_val".into(),
-                    lock_ndia: "lock_ndia_val".into(),
-                    kindia: "kindia_val".into(),
-                    client: "client_val".into(),
-                    ctr: "ctr_val".into(),
-                },
-            };
-
         let config = Config {
             database_url: "db".into(),
             server_host: "0.0.0.0".into(),
@@ -485,9 +493,7 @@ mod tests {
             admin_bootstrap_password: Some("ChangeMe!2025".into()),
             admin_bootstrap_phone: Some("+237600000000".into()),
             admin_bootstrap_username: Some("admin".into()),
-            vehicle_api_credentials: VehicleApiCredentials::new(
-            mok_vehicle_api_credentials
-            ),
+            vehicle_api_credentials: mock_vehicle_api_credentials(),
         };
 
         assert!(config.is_local());

@@ -81,6 +81,7 @@ async fn setup_admin_login_test() -> (
         admin_bootstrap_password: Some("password".to_string()),
         admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
+        vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
     };
 
     let state = AppState::new(
