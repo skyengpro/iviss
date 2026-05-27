@@ -134,6 +134,7 @@ async fn setup_test_app() -> (
         admin_bootstrap_password: None,
         admin_bootstrap_phone: None,
         admin_bootstrap_username: None,
+        vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
     };
 
     // Create Moka cache

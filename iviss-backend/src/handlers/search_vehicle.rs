@@ -5,8 +5,7 @@ use crate::{
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    queries::vehicle_queries::{get_vehicle_status_by_plate, get_vehicle_with_owner_by_plate},
-    services::vehicle_service::VehicleService,
+    services::vehicle_client_service::VehicleApiService,
 };
 use axum::{
     extract::{Json, State},
@@ -46,21 +45,17 @@ pub async fn search_vehicle(
     // Validate plate format
     let plate = validate_plate_format(&payload.plate)?;
 
-    // Query vehicle data from database
-    let vehicle_row: crate::models::search_vehicle::VehicleRow =
-        get_vehicle_with_owner_by_plate(&state.db, &plate)
-            .await?
-            .ok_or_else(|| {
-                AppError::not_found(format!("No vehicle found with plate number: {plate}"))
-            })?;
+    let api_response = state
+        .vehicle_api_svc
+        .query_plate(&plate)
+        .await
+        .map_err(|error| {
+            tracing::error!("Vehicle API lookup failed for plate {}: {}", plate, error);
+            AppError::external_api_failure("Vehicle registry lookup failed")
+        })?;
 
-    // Query vehicle status data
-    let status_row: Option<crate::queries::vehicle_queries::VehicleStatusRow> =
-        get_vehicle_status_by_plate(&state.db, &plate).await?;
-
-    // Build response using service layer
-    let vehicle_info = VehicleService::build_vehicle_info(&vehicle_row);
-    let status_results = VehicleService::build_status_results(&status_row);
+    let vehicle_info = api_response.vehicle;
+    let status_results = VehicleApiService::build_status_results_from_api(&vehicle_info);
 
     // Contextual logging for search location (using the fields to avoid "unused field" warning)
     if let (Some(lat), Some(lon)) = (payload.latitude, payload.longitude) {
@@ -78,19 +73,8 @@ pub async fn search_vehicle(
     let control_id = Uuid::new_v4();
     let current_time = time::OffsetDateTime::now_utc();
 
-    // Use original plate_number with spaces from database for display
-    let original_plate = &vehicle_row.plate_number;
-
-    let status_str = if status_row.as_ref().is_some_and(|s| s.stolen_status) {
-        "critical"
-    } else if status_row.as_ref().is_some_and(|s| {
-        s.insurance_status.as_ref().is_some_and(|i| i == "expired")
-            || s.technical_status.as_ref().is_some_and(|t| t == "expired")
-    }) {
-        "warning"
-    } else {
-        "valid"
-    };
+    let original_plate = api_response.plate_number.unwrap_or_else(|| plate.clone());
+    let status_str = status_to_control_value(&status_results.overall_status);
 
     // Insert control record
     let _ = sqlx::query(
@@ -104,7 +88,7 @@ pub async fn search_vehicle(
         "#,
     )
     .bind(control_id)
-    .bind(original_plate)
+    .bind(&original_plate)
     .bind(payload.agent_id.unwrap_or_else(Uuid::new_v4))
     .bind(payload.organization_id.unwrap_or_else(Uuid::new_v4))
     .bind(current_time)
@@ -115,9 +99,10 @@ pub async fn search_vehicle(
     .bind(1.0)
     .bind(status_str)
     .bind(serde_json::json!({
-        "insurance": status_row.as_ref().and_then(|s| s.insurance_status.clone()),
-        "technical": status_row.as_ref().and_then(|s| s.technical_status.clone()),
-        "stolen": status_row.as_ref().map(|s| s.stolen_status),
+        "insurance": null,
+        "technical": null,
+        "stolen": null,
+        "customs": vehicle_info.customs_status.clone(),
     }))
     .bind("Auto-logged via vehicle search")
     .execute(&state.db)
@@ -132,7 +117,7 @@ pub async fn search_vehicle(
     let confidence = Some(1.0); // Perfect confidence for manual input
 
     let response = VehicleSearchResult {
-        plate_number: vehicle_row.plate_number,
+        plate_number: original_plate,
         confidence,
         identification_mode: Some(identification_mode),
         vehicle: vehicle_info,
@@ -209,6 +194,15 @@ pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {
     }
 
     Ok(compact)
+}
+
+fn status_to_control_value(status: &crate::dto::common::Status) -> &'static str {
+    match status {
+        crate::dto::common::Status::Valid => "valid",
+        crate::dto::common::Status::Warning => "warning",
+        crate::dto::common::Status::Critical => "critical",
+        crate::dto::common::Status::Pending => "pending",
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

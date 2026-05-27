@@ -6,7 +6,7 @@ use crate::services::email_service::EmailService;
 use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::SmsProvider;
-use crate::services::vehicke_client_service::VehicleApiServise;
+use crate::services::vehicle_client_service::VehicleApiServise;
 use std::sync::Arc;
 #[derive(Clone)]
 pub struct AppState {
@@ -43,9 +43,9 @@ impl AppState {
             email_svc: Arc::new(email_svc),
             jwt_svc: Arc::new(jwt_svc),
             jwt_public_key_pem: config.jwt_public_key_pem.clone(),
-            vehicle_api_svc: Arc::new(
-                VehicleApiServise::new(config.vehicle_api_credentials.clone())
-            ),
+            vehicle_api_svc: Arc::new(VehicleApiServise::new(
+                config.vehicle_api_credentials.clone(),
+            )),
         }
     }
 }
