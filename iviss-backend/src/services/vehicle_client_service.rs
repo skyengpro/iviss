@@ -33,12 +33,10 @@ pub struct ApiUserAuth {
     pub password: String,
 }
 #[derive(Debug, Clone)]
-pub struct VehicleApiServise {
+pub struct VehicleApiService {
     pub credentials: VehicleApiCredentials,
     pub client: reqwest::Client,
 }
-
-pub type VehicleApiService = VehicleApiServise;
 
 #[derive(Debug)]
 pub struct VehicleApiResponse {
@@ -46,20 +44,20 @@ pub struct VehicleApiResponse {
     pub vehicle: VehicleInfo,
 }
 
-impl VehicleApiServise {
-    pub fn new(api_credentials: VehicleApiCredentials) -> Self {
-        Self {
+impl VehicleApiService {
+    pub fn new(api_credentials: VehicleApiCredentials) -> anyhow::Result<Self> {
+        Ok(Self {
             credentials: api_credentials,
             client: reqwest::Client::builder()
                 .http1_only()
-                .timeout(Duration::from_secs(15))
+                .timeout(Duration::from_secs(25))
                 .build()
-                .expect("failed to build vehicle API HTTP client"),
-        }
+                .context("failed to build vehicle API HTTP client")?,
+        })
     }
 
     pub async fn query_plate(&self, plate: &str) -> anyhow::Result<VehicleApiResponse> {
-        debug!("Querying vehicle API for plate: {}", plate);
+        debug!("Querying vehicle API for plate");
         let url = format!("{}/query", self.credentials.base_url.trim_end_matches('/'));
         let response = self
             .client
@@ -85,11 +83,7 @@ impl VehicleApiServise {
             .text()
             .await
             .context("failed to read vehicle API response")?;
-        debug!(
-            "Received vehicle API response for plate {} ({} bytes)",
-            plate,
-            html.len()
-        );
+        debug!("Received vehicle API response ({} bytes)", html.len());
 
         self.parse_html_response(&html)
     }
