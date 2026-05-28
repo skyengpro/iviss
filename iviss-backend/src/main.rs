@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
     // info!("Running seed data...");
     // run_seed_data(&db_pool).await;
 
-    info!("Caching necessary data from database..."); 
+    info!("Caching necessary data from database...");
     cache.cache_necessary_data_from_database(&db_pool).await?;
 
     let state = AppState::new(db_pool, cache, sms_provider, email_provider, &config)
