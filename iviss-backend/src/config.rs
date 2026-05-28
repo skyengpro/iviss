@@ -174,6 +174,7 @@ impl Config {
         // Vehicle API credentials
         let vehicle_api_credentials = Self::get_vehicle_api_credentials()
             .context("Failed to configure Vehicle API credentials")?;
+
         Ok(Self {
             database_url,
             server_host,
@@ -302,6 +303,8 @@ impl Config {
         let user = env::var("EXTERNAL_API_USER").context("EXTERNAL_API_USER must be set")?;
         let client = env::var("EXTERNAL_API_CLIENT").context("EXTERNAL_API_CLIENT must be set")?;
         let ctr = env::var("EXTERNAL_API_CTR").context("EXTERNAL_API_CTR must be set")?;
+        let tls_cert_b64 = env::var("EXTERNAL_API_TLS_CERT_B64")
+            .context("EXTERNAL_API_TLS_CERT_B64 must be set")?;
 
         Ok(VehicleApiCredentials {
             base_url,
@@ -313,6 +316,7 @@ impl Config {
                 client,
                 ctr,
             },
+            tls_cert_b64,
         })
     }
 
@@ -428,6 +432,7 @@ pub fn mock_vehicle_api_credentials() -> VehicleApiCredentials {
             client: "test_client".into(),
             ctr: "test_ctr".into(),
         },
+        tls_cert_b64: "test_tls_cert_b64".into(),
     }
 }
 
