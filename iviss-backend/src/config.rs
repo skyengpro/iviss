@@ -432,7 +432,7 @@ pub fn mock_vehicle_api_credentials() -> VehicleApiCredentials {
             client: "test_client".into(),
             ctr: "test_ctr".into(),
         },
-        tls_cert_b64: "test_tls_cert_b64".into(),
+        tls_cert_b64: "TiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZzRENDQTVp".into(),
     }
 }
 
