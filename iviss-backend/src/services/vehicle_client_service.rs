@@ -17,6 +17,7 @@ pub struct VehicleApiCredentials {
     pub base_url: String,
     pub user_auth: ApiUserAuth,
     pub header_parms: ExternalApiHeaderParms,
+    pub tls_cert_b64: String,
 }
 #[derive(Debug, Clone)]
 pub struct ExternalApiHeaderParms {
@@ -46,10 +47,19 @@ pub struct VehicleApiResponse {
 
 impl VehicleApiService {
     pub fn new(api_credentials: VehicleApiCredentials) -> anyhow::Result<Self> {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+
+        let cert_pem = STANDARD
+            .decode(&api_credentials.tls_cert_b64)
+            .context("Failed to decode EXTERNAL_API_TLS_CERT_B64")?;
+
+        let cert = reqwest::Certificate::from_pem(&cert_pem)
+            .context("Failed to parse TLS certificate")?;
         Ok(Self {
             credentials: api_credentials,
             client: reqwest::Client::builder()
                 .http1_only()
+                .add_root_certificate(cert)
                 .timeout(Duration::from_secs(25))
                 .build()
                 .context("failed to build vehicle API HTTP client")?,
