@@ -53,8 +53,8 @@ impl VehicleApiService {
             .decode(&api_credentials.tls_cert_b64)
             .context("Failed to decode EXTERNAL_API_TLS_CERT_B64")?;
 
-        let cert = reqwest::Certificate::from_pem(&cert_pem)
-            .context("Failed to parse TLS certificate")?;
+        let cert =
+            reqwest::Certificate::from_pem(&cert_pem).context("Failed to parse TLS certificate")?;
         Ok(Self {
             credentials: api_credentials,
             client: reqwest::Client::builder()
