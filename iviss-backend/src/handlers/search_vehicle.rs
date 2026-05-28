@@ -1,7 +1,8 @@
 use crate::app_state::AppState;
 use crate::{
     dto::{
-        common::IdentificationMode,
+        common::{IdentificationMode, Status},
+        list_control::ControlResults,
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
@@ -75,6 +76,13 @@ pub async fn search_vehicle(
 
     let original_plate = api_response.plate_number.unwrap_or_else(|| plate.clone());
     let status_str = status_to_control_value(&status_results.overall_status);
+    let control_results = ControlResults {
+        registration: Status::Valid,
+        insurance: status_results.insurance.status.clone(),
+        technical_inspection: status_results.technical.status.clone(),
+        wanted_status: status_results.police.status.clone(),
+        customs_status: status_results.customs.status.clone(),
+    };
 
     // Insert control record
     let _ = sqlx::query(
@@ -98,12 +106,12 @@ pub async fn search_vehicle(
     .bind("manual")
     .bind(1.0)
     .bind(status_str)
-    .bind(serde_json::json!({
-        "insurance": null,
-        "technical": null,
-        "stolen": null,
-        "customs": vehicle_info.customs_status.clone(),
-    }))
+    .bind(
+        serde_json::to_value(&control_results).unwrap_or_else(|error| {
+            tracing::error!("Failed to serialize control results: {}", error);
+            serde_json::json!({})
+        }),
+    )
     .bind("Auto-logged via vehicle search")
     .execute(&state.db)
     .await
