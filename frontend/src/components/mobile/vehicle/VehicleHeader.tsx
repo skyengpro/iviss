@@ -40,7 +40,11 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <DetailItem icon={Car} label={t('vehicleResult.brand')} value={display(vehicle.brand)} />
           <DetailItem icon={Car} label={t('vehicleResult.model')} value={display(vehicle.model)} />
-          <DetailItem icon={FileText} label={t('vehicleResult.year')} value={display(vehicle.year)} />
+          <DetailItem
+            icon={FileText}
+            label={t('vehicleResult.year')}
+            value={display(vehicle.year)}
+          />
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.power')}

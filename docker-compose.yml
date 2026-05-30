@@ -44,7 +44,7 @@ x-backend-environment: &backend-environment
   ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
   ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
   ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
-  SEED_DATA: ${SEED_DATA:-true}
+  # SEED_DATA: ${SEED_DATA:-true}
 
 services:
   # PostgreSQL service shared by dev and prod-style local runs
