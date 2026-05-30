@@ -131,7 +131,7 @@ impl VehicleApiService {
             },
         };
 
-        if fields.get("IMMAT").is_none()
+        if !fields.contains_key("IMMAT")
             && vehicle.chassis_number.is_none()
             && vehicle.brand.is_none()
             && vehicle.owner.name.is_none()

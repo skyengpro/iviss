@@ -121,7 +121,6 @@
     "workbox-window": "^7.3.0"
   },
   "overrides": {
-    "commander": "12.1.0",
-    "brace-expansion": "^2.0.1"
+    "commander": "12.1.0"
   }
 }
