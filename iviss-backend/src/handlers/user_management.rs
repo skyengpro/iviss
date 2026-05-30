@@ -86,7 +86,7 @@ pub async fn provision_user(
     // Send the password to the user's email
     state
         .email_svc
-        .send_email(user.email.as_deref().unwrap_or(""), &temp_password)
+        .send_email(user.email.as_deref().unwrap_or(""), "org_admin", &temp_password)
         .await?;
 
     Ok((
@@ -364,8 +364,19 @@ pub async fn resend_activation_code(
     // Build OtpService from shared state resources
     let otp_svc = &state.otp_svc;
 
-    // Generate, store and send the activation code via SMS
-    otp_svc.request_otp(&user_id, &phone_number).await?;
+    // Determine contact based on AppState setting
+    let contact = if state.otp_via_email {
+        let profile = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+        profile
+            .email
+            .clone()
+            .unwrap_or_else(|| profile.phone_number.clone().unwrap_or_default())
+    } else {
+        phone_number.clone()
+    };
+
+    // Generate, store and send the activation code
+    otp_svc.request_otp(&user_id, &contact).await?;
 
     Ok((
         StatusCode::CREATED,
@@ -442,14 +453,20 @@ pub async fn provision_org_user(
 
     let user = crate::queries::user_queries::create_user(&state.db, req).await?;
 
-    // Send activation OTP via SMS so the agent can activate their device
+    // Send activation OTP so the agent can activate their device
+    let contact = if state.otp_via_email {
+        user.email.clone().unwrap_or_else(|| user.phone_number.clone().unwrap_or_default())
+    } else {
+        user.phone_number.clone().unwrap_or_default()
+    };
+
     state
         .otp_svc
-        .request_otp(&user.id, user.phone_number.as_deref().unwrap_or(""))
+        .request_otp(&user.id, &contact)
         .await
         .map_err(|e| {
             tracing::error!(user_id = %user.id, error = %e, "Failed to send activation OTP");
-            AppError::internal_error("User created but failed to send activation SMS")
+            AppError::internal_error("User created but failed to send activation OTP")
         })?;
 
     tracing::info!(

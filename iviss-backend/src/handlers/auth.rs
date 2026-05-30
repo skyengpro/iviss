@@ -550,7 +550,19 @@ pub async fn request_daily_login(
 
     let otp_svc = &state.otp_svc;
 
-    otp_svc.request_otp(&user.id, &user.phone_number).await?;
+    // Determine contact (email or phone) based on AppState setting
+    let contact = if state.otp_via_email {
+        // Fetch full profile to obtain email if configured to use email
+        let profile = crate::queries::user_queries::get_user_by_id(&state.db, user.id).await?;
+        profile
+            .email
+            .clone()
+            .unwrap_or_else(|| profile.phone_number.clone().unwrap_or_default())
+    } else {
+        user.phone_number.clone()
+    };
+
+    otp_svc.request_otp(&user.id, &contact).await?;
 
     tracing::info!(
         target: "daily_login",

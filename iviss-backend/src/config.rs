@@ -88,6 +88,7 @@ pub struct Config {
     pub sms_credentials: SmsProviderCredentials,
     // Email
     pub email_credentials: EmailProviderCredentials,
+    pub otp_via_email: bool,
     pub activation_code_pepper: String,
     // Bootstrap admin — used only at first startup if no admin exists
     pub admin_bootstrap_email: Option<String>,
@@ -175,6 +176,15 @@ impl Config {
         let vehicle_api_credentials = Self::get_vehicle_api_credentials()
             .context("Failed to configure Vehicle API credentials")?;
 
+        // OTP delivery via email toggle (default: false)
+        let otp_via_email = env::var("OTP_VIA_EMAIL")
+            .ok()
+            .map(|v| {
+                let v = v.trim().to_lowercase();
+                matches!(v.as_str(), "1" | "true" | "yes")
+            })
+            .unwrap_or(false);
+
         Ok(Self {
             database_url,
             server_host,
@@ -185,6 +195,7 @@ impl Config {
             environment,
             sms_credentials,
             email_credentials,
+            otp_via_email,
             activation_code_pepper,
             admin_bootstrap_email,
             admin_bootstrap_password,
@@ -432,7 +443,35 @@ pub fn mock_vehicle_api_credentials() -> VehicleApiCredentials {
             client: "test_client".into(),
             ctr: "test_ctr".into(),
         },
-        tls_cert_b64: "test_tls_cert_b64".into(),
+        tls_cert_b64: concat!(
+            "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURGakNDQWY2Z0F3SUJB",
+            "Z0lUSUhUN0ordEV6NmNLaTgzOU44d1UwSU1SNnpBTkJna3Foa2lHOXcwQkFR",
+            "c0YKQURBYk1Sa3dGd1lEVlFRRERCQjJaV2hwWTJ4bExXRndhUzUwWlhOME1C",
+            "NFhEVEkyTURVeU9ERXpOVFF4TmxvWApEVEkyTURVeU9URXpOVFF4Tmxvd0d6",
+            "RVpNQmNHQTFVRUF3d1FkbVZvYVdOc1pTMWhjR2t1ZEdWemREQ0NBU0l3CkRR",
+            "WUpLb1pJaHZjTkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFML2xJSlJ6NUkz",
+            "NU1SWXdvTk5XYUgxM3hlbUoKbzN1QjUxTXBBTE1ZaWtDdkNSS1lWamhsNFJG",
+            "YW5jNDJPOUNzSEVwclRnWkYzWWp5c3FGV1ovS3NXT0dmRVhCMApzeWE0Z3VM",
+            "ZlVLcGlraFdsZ2JGWW9ETVVCL2ZhV2xrYmJIb3pxRXNHMFc0MmpMR25FeExs",
+            "WEJlSU5PYXZEd1BsClRMQURxbTFUbllvT3hqa3F3N1NZL3ZTb3l2c0lhMH",
+            "RMNU5ueG9OU1B3a2xsMUQyMFcyZkd3VlR4NkJET0V4YWUKdGpPeTVPaGsv",
+            "T3hSK3lNQkNNa200UG1HWld2WkZsaWNUaVVKZU5kVFI4YkM5ejRMR2RIUVNG",
+            "UTE2ODJVNlQyaApFVmdNRWZMZDhRTmZXZlErOXhPaGEvaFhlaW9TeEYzbCsw",
+            "eXZ6Z293b2NtQjlBb0lJU3JiRHcxU005Y0NBd0VBCkFhTlRNRkV3SFFZRFZS",
+            "ME9CQllFRkt2ZUVMeEdIU0lFTHdnSlZEN2tUcjFSSERqcU1COEdBMVVkSXdR",
+            "WU1CYUEKRkt2ZUVMeEdIU0lFTHdnSlZEN2tUcjFSSERqcU1BOEdBMVVkRXdF",
+            "Qi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBQWc0TEZU",
+            "dFpaQTlrZTNBOFFzRHpVMEthRm9BYXlLY2N1K3Y4UjNiSWxqazR6dGltVXRv",
+            "CmpCcHgrMC9yUWV1SGJJUGJGemtlY0p2U205MXFrMnNnenVDakxZK1N3ZjRE",
+            "aXo3SEMvUFJ5THQ3MDd0aW1tWXcKL2RJQjFIeDdsL2grZ2hwakhlYmlKcjlD",
+            "SkNEemE4YzNQSWJ5TjlwMVBFYVJFcnptTDFxV0lIdEdrZ3B3UVBXdgpJNVBw",
+            "L0NtOTA5cG9nT1FNT2owMU53RUpDM1RYbG0xTVRnaDFkV1B3eE4wb1Iwb01R",
+            "S2l4N0JJeFhSdkw2UjZVCmc5dmxpc3hGUnFrajRydGRZUXI4V0VEZXMyR01Z",
+            "SUMwZDZuVWtFTzVZSGFyZ1FqdGsxVC9FR1NlMzZJZzNHUUQKcE5sMzJ3T1pQ",
+            "QnJBTzJzWitleEJiMjZpNUx6MW41L0srZWs9Ci0tLS0tRU5EIENFUlRJRklD",
+            "QVRFLS0tLS0K"
+        )
+        .into(),
     }
 }
 

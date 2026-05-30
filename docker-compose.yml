@@ -32,6 +32,7 @@ x-backend-environment: &backend-environment
   TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
   TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
   EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+  OTP_VIA_EMAIL: ${OTP_VIA_EMAIL:-false}
   RESEND_API_KEY: ${RESEND_API_KEY:-mock}
   RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-mock@example.com}
   SMTP_HOST: ${SMTP_HOST:-localhost}
