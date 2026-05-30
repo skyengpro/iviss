@@ -17,6 +17,7 @@ pub struct AppState {
     pub email_svc: Arc<EmailService>,
     pub jwt_svc: Arc<JwtService>,
     pub jwt_public_key_pem: String,
+    pub otp_via_email: bool,
     pub vehicle_api_svc: Arc<VehicleApiService>,
 }
 
@@ -34,7 +35,9 @@ impl AppState {
         let otp_svc = OtpService::new(
             app_cache.clone(),
             sms_pvd.clone(),
+            email_pvd.clone(),
             config.activation_code_pepper.clone(),
+            config.otp_via_email,
         );
         let email_svc = EmailService::new(email_pvd.clone());
         let vehicle_api_svc = VehicleApiService::new(config.vehicle_api_credentials.clone())
@@ -47,6 +50,7 @@ impl AppState {
             email_svc: Arc::new(email_svc),
             jwt_svc: Arc::new(jwt_svc),
             jwt_public_key_pem: config.jwt_public_key_pem.clone(),
+            otp_via_email: config.otp_via_email,
             vehicle_api_svc: Arc::new(vehicle_api_svc),
         })
     }
