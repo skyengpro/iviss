@@ -79,6 +79,7 @@ async fn setup_admin_logout_test() -> (
         environment: crate::config::Environment::Local,
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
+        otp_via_email: false,
         activation_code_pepper: TEST_PEPPER.to_string(),
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),

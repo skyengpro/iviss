@@ -129,6 +129,7 @@ async fn setup_test_app() -> (
         environment: Environment::Local,
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
+        otp_via_email: false,
         activation_code_pepper: TEST_PEPPER.to_string(),
         admin_bootstrap_email: None,
         admin_bootstrap_password: None,
@@ -313,7 +314,7 @@ async fn test_provision_user_creates_new_user() {
     assert_eq!(body["user"]["email"], "newagent@test.com");
     // superadmin endpoint always creates org_admin regardless of requested role
     assert_eq!(body["user"]["role"], "org_admin");
-    assert_eq!(body["user"]["status"], "ACTIVE");
+    assert_eq!(body["user"]["status"], "PENDING_ACTIVATION");
     // temp password must be present
     assert!(
         body["tempPassword"].is_string(),

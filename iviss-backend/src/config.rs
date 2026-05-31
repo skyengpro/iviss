@@ -504,6 +504,7 @@ mod tests {
                 api_secret: "secret".into(),
             },
             email_credentials: EmailProviderCredentials::Mock,
+            otp_via_email: false,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
             admin_bootstrap_email: Some("admin@iviss.local".into()),
             admin_bootstrap_password: Some("ChangeMe!2025".into()),
