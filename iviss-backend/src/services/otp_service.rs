@@ -1,7 +1,7 @@
 use crate::app_cache::{AppCache, OtpEntry};
 use crate::errors::AppError;
-use crate::services::sms_provider::SmsProvider;
 use crate::services::email_provider::EmailProvider;
+use crate::services::sms_provider::SmsProvider;
 use hmac::{Hmac, Mac};
 use rand::Rng;
 use sha2::Sha256;
@@ -24,7 +24,6 @@ pub struct OtpService {
 }
 
 impl OtpService {
-
     pub fn new(
         app_cache: Arc<AppCache>,
         sms: Arc<dyn SmsProvider>,
@@ -41,8 +40,6 @@ impl OtpService {
         }
     }
 
-    /// Check rate limit, generate OTP, store in Moka cache and send via SMS
-
     /// Check rate limit, generate OTP, store in Moka cache and send via SMS or Email
     pub async fn request_otp(&self, user_id: &Uuid, contact: &str) -> Result<(), AppError> {
         self.check_rate_limit(contact).await?;
@@ -50,18 +47,18 @@ impl OtpService {
         let code = self.generate_code();
         let code_hash = self.hash_code(&code);
 
-        // Print OTP to console for development/debugging
-        println!(
-            "\n┌─────────────────────────────────────┐\
-             \n│  OTP CODE                           │\
-             \n│  User  : {:<28}│\
-             \n│  Contact : {:<28}│\
-             \n│  Code  : {:<28}│\
-             \n└─────────────────────────────────────┘\n",
-            user_id.to_string(),
-            contact,
-            code,
-        );
+        //        Print OTP to console for development/debugging
+        //        println!(
+        //           "\n┌─────────────────────────────────────┐\
+        //             \n│  OTP CODE                           │\
+        //             \n│  User  : {:<28}│\
+        //             \n│  Contact : {:<28}│\
+        //             \n│  Code  : {:<28}│\
+        //             \n└─────────────────────────────────────┘\n",
+        //            user_id.to_string(),
+        //            contact,
+        //            code,
+        //       );
 
         let entry = OtpEntry {
             code_hash,

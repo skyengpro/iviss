@@ -86,7 +86,11 @@ pub async fn provision_user(
     // Send the password to the user's email
     state
         .email_svc
-        .send_email(user.email.as_deref().unwrap_or(""), "org_admin", &temp_password)
+        .send_email(
+            user.email.as_deref().unwrap_or(""),
+            "org_admin",
+            &temp_password,
+        )
         .await?;
 
     Ok((
@@ -455,7 +459,9 @@ pub async fn provision_org_user(
 
     // Send activation OTP so the agent can activate their device
     let contact = if state.otp_via_email {
-        user.email.clone().unwrap_or_else(|| user.phone_number.clone().unwrap_or_default())
+        user.email
+            .clone()
+            .unwrap_or_else(|| user.phone_number.clone().unwrap_or_default())
     } else {
         user.phone_number.clone().unwrap_or_default()
     };

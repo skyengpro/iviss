@@ -137,7 +137,7 @@ impl EmailProvider for ResendEmailProvider {
         <p>Valid for 5 minutes.</p>"#,
                 password
             ),
-            _ => format!("<p>You are not identified.</p>"),
+            _ => "<p>You are not identified.</p>".to_string(),
         };
         let payload = serde_json::json!({
             "from": self.from_email,
@@ -251,7 +251,7 @@ impl EmailProvider for LettreEmailProvider {
         <p>Valid for 5 minutes.</p>"#,
                 password
             ),
-            _ => format!("<p>You are not identified.</p>"),
+            _ => "<p>You are not identified.</p>".to_string(),
         };
 
         let email = Message::builder()
