@@ -180,6 +180,7 @@ async fn setup_test_infrastructure() -> (
         environment: crate::config::Environment::Local,
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
+        otp_via_email: false,
         activation_code_pepper: "test_pepper_for_activation_code_hashing_must_be_32_chars_long"
             .to_string(),
         admin_bootstrap_email: Some("admin@example.com".to_string()),

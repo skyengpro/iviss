@@ -121,6 +121,7 @@ mod tests {
             environment: crate::config::Environment::Local,
             sms_credentials: crate::services::sms_provider::SmsProviderCredentials::Mock,
             email_credentials: crate::services::email_provider::EmailProviderCredentials::Mock,
+            otp_via_email: false,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".to_string(),
             admin_bootstrap_email: Some(email.to_string()),
             admin_bootstrap_password: Some(password.to_string()),
