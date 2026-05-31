@@ -1,7 +1,7 @@
 use crate::app_cache::AppCache;
+use crate::services::email_provider::MockEmailProvider;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::MockSmsProvider;
-use crate::services::email_provider::MockEmailProvider;
 use std::sync::Arc;
 use uuid::Uuid;
 
