@@ -12,6 +12,7 @@ backend:
     logLevel: info
     smsProvider: vonage
     emailProvider: resend
+    otpViaEmail: true
 
 frontend:
   replicas: 3
