@@ -56,7 +56,7 @@ helm upgrade --install cert-manager cert-manager \
 These three secrets already exist in AWS Secrets Manager (managed by Terraform with `ignore_changes`).  
 **Verify each one has the correct keys populated.** If any value is empty, seed it using the AWS Console or CLI.
 
-#### Secret 1: `iviss/production/app-secrets`
+#### Secret 1: `iviss/prod/app-secrets`
 
 ```json
 {
@@ -66,12 +66,12 @@ These three secrets already exist in AWS Secrets Manager (managed by Terraform w
 Verify:
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id iviss/production/app-secrets \
+  --secret-id iviss/prod/app-secrets \
   --region eu-west-1 \
   --query SecretString --output text | python3 -m json.tool
 ```
 
-#### Secret 2: `iviss/production/provider-keys`
+#### Secret 2: `iviss/prod/provider-keys`
 
 ```json
 {
@@ -91,18 +91,18 @@ aws secretsmanager get-secret-value \
 Verify:
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id iviss/production/provider-keys \
+  --secret-id iviss/prod/provider-keys \
   --region eu-west-1 \
   --query SecretString --output text | python3 -m json.tool
 ```
 
-#### Secret 3: `iviss/production/cloudfront-origin-secret`
+#### Secret 3: `iviss/prod/cloudfront-origin-secret`
 
 This is a plain string (not JSON) — the random 32-char password that CloudFront sends as the `X-Origin-Verify` header.
 
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id iviss/production/cloudfront-origin-secret \
+  --secret-id iviss/prod/cloudfront-origin-secret \
   --region eu-west-1 \
   --query SecretString --output text
 ```
@@ -110,9 +110,9 @@ aws secretsmanager get-secret-value \
 ### D. ClusterSecretStore — Connect ESO to AWS
 
 The ESO pods need an IAM user with `secretsmanager:GetSecretValue` on:
-- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/app-secrets-*`
-- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/provider-keys-*`
-- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/cloudfront-origin-secret-*`
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/app-secrets-*`
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/provider-keys-*`
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/cloudfront-origin-secret-*`
 
 ```yaml
 apiVersion: v1
@@ -166,7 +166,7 @@ metadata:
 
 ### 2. ExternalSecret — App Secrets
 
-Pulls from AWS `iviss/production/app-secrets` → creates K8s Secret `iviss-secrets` (with Owner policy).
+Pulls from AWS `iviss/prod/app-secrets` → creates K8s Secret `iviss-secrets` (with Owner policy).
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -189,13 +189,13 @@ spec:
       data:
   data:
     - remoteRef:
-        key: iviss/production/app-secrets
+        key: iviss/prod/app-secrets
     - remoteRef:
-        key: iviss/production/app-secrets
+        key: iviss/prod/app-secrets
     - remoteRef:
-        key: iviss/production/app-secrets
+        key: iviss/prod/app-secrets
     - remoteRef:
-        key: iviss/production/app-secrets
+        key: iviss/prod/app-secrets
 ```
 
 **Resulting keys in `iviss-secrets`:**
@@ -206,7 +206,7 @@ spec:
 
 ### 3. ExternalSecret — Provider Keys
 
-Pulls from AWS `iviss/production/provider-keys` → merges into K8s Secret `iviss-secrets` (with Merge policy).
+Pulls from AWS `iviss/prod/provider-keys` → merges into K8s Secret `iviss-secrets` (with Merge policy).
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -239,43 +239,43 @@ spec:
         SMTP_PASSWORD: "{{ .smtp_password }}"
   data:
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: vonage_api_key
       secretKey: vonage_api_key
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: vonage_api_secret
       secretKey: vonage_api_secret
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: twilio_account_sid
       secretKey: twilio_account_sid
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: twilio_auth_token
       secretKey: twilio_auth_token
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: twilio_from_number
       secretKey: twilio_from_number
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: orange_client_id
       secretKey: orange_client_id
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: orange_client_secret
       secretKey: orange_client_secret
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: orange_sender_number
       secretKey: orange_sender_number
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: resend_api_key
       secretKey: resend_api_key
     - remoteRef:
-        key: iviss/production/provider-keys
+        key: iviss/prod/provider-keys
         property: smtp_password
       secretKey: smtp_password
 ```
@@ -298,7 +298,7 @@ spec:
 
 ### 4. ExternalSecret — CloudFront Origin Secret
 
-Pulls from `iviss/production/cloudfront-origin-secret` → creates K8s Secret `iviss-cloudfront-origin`.
+Pulls from `iviss/prod/cloudfront-origin-secret` → creates K8s Secret `iviss-cloudfront-origin`.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -318,7 +318,7 @@ spec:
     creationPolicy: Owner
   data:
     - remoteRef:
-        key: iviss/production/cloudfront-origin-secret
+        key: iviss/prod/cloudfront-origin-secret
       secretKey: origin-secret
 ```
 
