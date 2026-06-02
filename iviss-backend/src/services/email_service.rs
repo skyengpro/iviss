@@ -13,9 +13,9 @@ impl EmailService {
         Self { email }
     }
 
-    pub async fn send_email(&self, to: &str, password: &str) -> Result<()> {
+    pub async fn send_email(&self, to: &str, user_role: &str, password: &str) -> Result<()> {
         self.email
-            .send_email(to, password)
+            .send_email(to, user_role, password)
             .await
             .map_err(AppError::Internal)?;
 
