@@ -24,7 +24,6 @@ resource "aws_secretsmanager_secret" "app_secrets" {
 
 resource "aws_secretsmanager_secret_version" "app_secrets" {
   secret_id = aws_secretsmanager_secret.app_secrets.id
-  # Initialize with empty schema — seed manually using AWS Console or CLI
   secret_string = jsonencode({
     jwt_private_key_pem      = ""
     jwt_public_key_pem       = ""
@@ -35,7 +34,6 @@ resource "aws_secretsmanager_secret_version" "app_secrets" {
   })
 
   lifecycle {
-    # CRITICAL: Prevent terraform from overwriting manually seeded secrets
     ignore_changes = [secret_string]
   }
 }
@@ -57,7 +55,6 @@ resource "aws_secretsmanager_secret" "provider_keys" {
 
 resource "aws_secretsmanager_secret_version" "provider_keys" {
   secret_id = aws_secretsmanager_secret.provider_keys.id
-  # Initialize with empty schema including ORANGE credentials
   secret_string = jsonencode({
     twilio_account_sid   = ""
     twilio_auth_token    = ""

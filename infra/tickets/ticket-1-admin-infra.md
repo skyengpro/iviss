@@ -96,23 +96,11 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text | python3 -m json.tool
 ```
 
-#### Secret 3: `iviss/prod/cloudfront-origin-secret`
-
-This is a plain string (not JSON) — the random 32-char password that CloudFront sends as the `X-Origin-Verify` header.
-
-```bash
-aws secretsmanager get-secret-value \
-  --secret-id iviss/prod/cloudfront-origin-secret \
-  --region eu-west-1 \
-  --query SecretString --output text
-```
-
 ### D. ClusterSecretStore — Connect ESO to AWS
 
 The ESO pods need an IAM user with `secretsmanager:GetSecretValue` on:
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/app-secrets-*`
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/provider-keys-*`
-- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/cloudfront-origin-secret-*`
 
 ```yaml
 apiVersion: v1
@@ -296,35 +284,7 @@ spec:
 
 ---
 
-### 4. ExternalSecret — CloudFront Origin Secret
-
-Pulls from `iviss/prod/cloudfront-origin-secret` → creates K8s Secret `iviss-cloudfront-origin`.
-
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: iviss-cloudfront-origin-secret
-  namespace: iviss
-  labels:
-    app.kubernetes.io/part-of: iviss
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: aws-secretsmanager
-    kind: ClusterSecretStore
-  target:
-    name: iviss-cloudfront-origin
-    creationPolicy: Owner
-  data:
-    - remoteRef:
-        key: iviss/prod/cloudfront-origin-secret
-      secretKey: origin-secret
-```
-
----
-
-### 5. CNPG Database Secrets
+### 4. CNPG Database Secrets
 
 Not from AWS — generated locally:
 
@@ -371,7 +331,7 @@ stringData:
 
 ---
 
-### 6. CNPG Cluster
+### 5. CNPG Cluster
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -409,7 +369,7 @@ spec:
 
 ---
 
-### 7. ConfigMap — Non-sensitive App Config
+### 6. ConfigMap — Non-sensitive App Config
 
 > This will be managed by ArgoCD via the Helm chart once it's running.  
 > Shown here for reference if you need to bootstrap before ArgoCD is configured.
@@ -441,7 +401,7 @@ data:
 
 ---
 
-### 8. Static Secrets — Admin Bootstrap & External API
+### 7. Static Secrets — Admin Bootstrap & External API
 
 These are values that are not stored in AWS Secrets Manager. Seed them once:
 
@@ -508,7 +468,6 @@ This table shows exactly where every env var the backend reads comes from:
 | `EXTERNAL_API_CTR` | `iviss-static-secrets` | `EXTERNAL_API_CTR` | — |
 | `EXTERNAL_API_TLS_CERT_B64` | `iviss-static-secrets` | `EXTERNAL_API_TLS_CERT_B64` | — |
 | `DATABASE_URL` | — | Constructed by Helm | `postgres://iviss_user:<password>@iviss-postgres-rw:5432/iviss_dev` |
-| CloudFront origin | `iviss-cloudfront-origin` | `origin-secret` | `cloudfront-origin-secret` |
 
 ---
 
@@ -523,7 +482,6 @@ kubectl get namespace iviss
 # 2. External Secrets are synced (all should show Ready=True)
 kubectl get externalsecrets -n iviss
 kubectl get secret iviss-secrets -n iviss -o jsonpath='{.data}' | jq 'keys'
-kubectl get secret iviss-cloudfront-origin -n iviss
 
 # 3. CNPG cluster is ready
 kubectl get cluster -n iviss iviss-postgres

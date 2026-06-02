@@ -13,7 +13,6 @@ Before deploying, confirm the admin has completed:
 - [ ] ESO is syncing: `kubectl get externalsecrets -n iviss` shows `Ready`
 - [ ] Secret `iviss-secrets` exists (ESO-pulled from AWS)
 - [ ] Secret `iviss-static-secrets` exists (admin-created)
-- [ ] Secret `iviss-cloudfront-origin` exists (ESO-pulled from AWS)
 - [ ] ServiceAccount `iviss` exists
 - [ ] Nginx Ingress Controller is running
 - [ ] CNPG operator is installed
@@ -39,8 +38,8 @@ All resources in `charts/iviss/templates/`:
 - Namespace `iviss`
 - CNPG Cluster `iviss-postgres`
 - Secrets: `iviss-postgres-superuser`, `iviss-postgres-app`
-- ExternalSecrets: `iviss-app-secrets`, `iviss-provider-keys`, `iviss-cloudfront-origin-secret`
-- K8s Secrets: `iviss-secrets` (ESO-managed), `iviss-static-secrets`, `iviss-cloudfront-origin`
+- ExternalSecrets: `iviss-app-secrets`, `iviss-provider-keys`
+- K8s Secrets: `iviss-secrets` (ESO-managed), `iviss-static-secrets`
 - ServiceAccount `iviss`
 
 ## Secret Flow
@@ -49,7 +48,7 @@ All resources in `charts/iviss/templates/`:
 AWS Secrets Manager
   ├── iviss/production/app-secrets       ──ESO──▶  iviss-secrets (JWT, pepper, admin pw)
   ├── iviss/production/provider-keys     ──ESO──▶  iviss-secrets (SMS, email, API keys)
-  └── iviss/production/cloudfront-origin ──ESO──▶  iviss-cloudfront-origin
+  └── iviss/prod/provider-keys     ──ESO──▶  iviss-secrets (SMS, email, API keys)
 
 Admin-created (static):
   └── iviss-static-secrets (bootstrap, external API, SMS/EMAIL provider choice)
