@@ -7,16 +7,8 @@ metadata:
     {{- include "iviss.labels" . | nindent 4 }}
   annotations:
     {{- range $key, $value := .Values.ingress.annotations }}
-    {{- if not (hasSuffix "server-snippet" $key) }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
-    {{- end }}
-{{- if and .Values.cloudfrontOriginSecret .Values.ingress.annotations }}
-    nginx.ingress.kubernetes.io/server-snippet: |
-      if ($http_x_origin_verify != "{{ .Values.cloudfrontOriginSecret }}") {
-        return 403;
-      }
-{{- end }}
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: {{ .Values.ingress.className }}

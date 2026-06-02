@@ -52,7 +52,7 @@ resource "hcloud_firewall" "k3s" {
   rule {
     direction = "in"
     protocol  = "tcp"
-    source_ips = var.cloudfront_cidrs != null ? var.cloudfront_cidrs : ["0.0.0.0/0"]
+    source_ips = ["0.0.0.0/0", "::/0"]
     port       = "443"
     description = "HTTPS (Ingress)"
   }

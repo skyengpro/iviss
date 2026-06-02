@@ -57,9 +57,3 @@ variable "additional_tls_sans" {
   type        = list(string)
   default     = []
 }
-
-variable "cloudfront_cidrs" {
-  description = "CloudFront origin-facing CIDR blocks to restrict ingress to. If null, allows all."
-  type        = list(string)
-  default     = null
-}
