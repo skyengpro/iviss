@@ -54,6 +54,8 @@ spec:
                 name: {{ include "iviss.fullname" . }}-config
             - secretRef:
                 name: iviss-secrets
+            - secretRef:
+                name: iviss-static-secrets
           env:
             - name: DATABASE_URL
               value: {{ include "iviss.databaseUrl" . | quote }}
@@ -70,6 +72,8 @@ spec:
                 name: {{ include "iviss.fullname" . }}-config
             - secretRef:
                 name: iviss-secrets
+            - secretRef:
+                name: iviss-static-secrets
           env:
             - name: DATABASE_URL
               value: {{ include "iviss.databaseUrl" . | quote }}
