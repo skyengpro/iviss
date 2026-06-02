@@ -19,24 +19,6 @@ data:
   SMTP_PORT: {{ .Values.backend.config.smtpPort | quote }}
   SMTP_USERNAME: {{ .Values.backend.config.smtpUsername | quote }}
   SQLX_OFFLINE: "true"
-{{- if .Values.backend.config.externalApiBaseUrl }}
-  EXTERNAL_API_BASE_URL: {{ .Values.backend.config.externalApiBaseUrl | quote }}
-{{- end }}
-{{- if .Values.backend.config.externalApiLockNdia }}
-  EXTERNAL_API_LOCK_NDIA: {{ .Values.backend.config.externalApiLockNdia | quote }}
-{{- end }}
-{{- if .Values.backend.config.externalApiKindia }}
-  EXTERNAL_API_KINDIA: {{ .Values.backend.config.externalApiKindia | quote }}
-{{- end }}
-{{- if .Values.backend.config.externalApiUser }}
-  EXTERNAL_API_USER: {{ .Values.backend.config.externalApiUser | quote }}
-{{- end }}
-{{- if .Values.backend.config.externalApiClient }}
-  EXTERNAL_API_CLIENT: {{ .Values.backend.config.externalApiClient | quote }}
-{{- end }}
-{{- if .Values.backend.config.externalApiCtr }}
-  EXTERNAL_API_CTR: {{ .Values.backend.config.externalApiCtr | quote }}
-{{- end }}
 {{- if .Values.frontend.config.viteApiUrl }}
   VITE_API_URL: {{ .Values.frontend.config.viteApiUrl | quote }}
 {{- end }}

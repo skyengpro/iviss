@@ -66,6 +66,42 @@ resource "aws_secretsmanager_secret_version" "provider_keys" {
     orange_sender_number = ""
     resend_api_key       = ""
     smtp_password        = ""
+    smtp_from_email      = ""
+    resend_from_email    = ""
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
+# -------------------------
+# Group 3: Vehicle API Keys
+# -------------------------
+resource "aws_secretsmanager_secret" "vehicle_api_keys" {
+  name                    = "${var.project_name}/${var.environment}/vehicle-api-keys"
+  description             = "Vehicle identification API credentials and endpoint configuration"
+  recovery_window_in_days = 7
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Group       = "vehicle-api"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "vehicle_api_keys" {
+  secret_id = aws_secretsmanager_secret.vehicle_api_keys.id
+  secret_string = jsonencode({
+    external_api_base_url    = ""
+    external_api_username    = ""
+    external_api_password    = ""
+    external_api_lock_ndia  = ""
+    external_api_kindia     = ""
+    external_api_user       = ""
+    external_api_client    = ""
+    external_api_ctr        = ""
+    external_api_tls_cert_b64 = ""
   })
 
   lifecycle {

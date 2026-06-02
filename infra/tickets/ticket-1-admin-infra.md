@@ -53,7 +53,7 @@ helm upgrade --install cert-manager cert-manager \
 
 ### C. AWS Secrets Manager — Exact Content Required
 
-These three secrets already exist in AWS Secrets Manager (managed by Terraform with `ignore_changes`).  
+These secrets already exist in AWS Secrets Manager (managed by Terraform with `ignore_changes`).  
 **Verify each one has the correct keys populated.** If any value is empty, seed it using the AWS Console or CLI.
 
 #### Secret 1: `iviss/prod/app-secrets`
@@ -84,7 +84,9 @@ aws secretsmanager get-secret-value \
   "orange_client_secret": "xxxxxxxxxxxxxxxxxxxxxxxx",
   "orange_sender_number": "+237000000000",
   "resend_api_key": "re_xxxxxxxxxxxxxxxxxxxxxxxx",
-  "smtp_password": "your_smtp_app_password_here"
+  "smtp_password": "your_smtp_app_password_here",
+  "smtp_from_email": "noreply@iviss.cloud",
+  "resend_from_email": "noreply@iviss.cloud"
 }
 ```
 
@@ -96,11 +98,36 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text | python3 -m json.tool
 ```
 
+#### Secret 3: `iviss/prod/vehicle-api-keys`
+
+```json
+{
+  "external_api_base_url": "https://api.example.com",
+  "external_api_username": "auth_api_username",
+  "external_api_password": "auth_api_password",
+  "external_api_lock_ndia": "header_lock_ndia",
+  "external_api_kindia": "header_kindia",
+  "external_api_user": "header_user",
+  "external_api_client": "header_client",
+  "external_api_ctr": "header_ctr",
+  "external_api_tls_cert_b64": "base64-encoded-pem-certificate"
+}
+```
+
+Verify:
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id iviss/prod/vehicle-api-keys \
+  --region eu-west-1 \
+  --query SecretString --output text | python3 -m json.tool
+```
+
 ### D. ClusterSecretStore — Connect ESO to AWS
 
 The ESO pods need an IAM user with `secretsmanager:GetSecretValue` on:
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/app-secrets-*`
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/provider-keys-*`
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/vehicle-api-keys-*`
 
 ```yaml
 apiVersion: v1
@@ -225,6 +252,8 @@ spec:
         ORANGE_SENDER_NUMBER: "{{ .orange_sender_number }}"
         RESEND_API_KEY: "{{ .resend_api_key }}"
         SMTP_PASSWORD: "{{ .smtp_password }}"
+        SMTP_FROM_EMAIL: "{{ .smtp_from_email }}"
+        RESEND_FROM_EMAIL: "{{ .resend_from_email }}"
   data:
     - remoteRef:
         key: iviss/prod/provider-keys
@@ -266,6 +295,14 @@ spec:
         key: iviss/prod/provider-keys
         property: smtp_password
       secretKey: smtp_password
+    - remoteRef:
+        key: iviss/prod/provider-keys
+        property: smtp_from_email
+      secretKey: smtp_from_email
+    - remoteRef:
+        key: iviss/prod/provider-keys
+        property: resend_from_email
+      secretKey: resend_from_email
 ```
 
 **Resulting keys added to `iviss-secrets`:**
@@ -281,6 +318,94 @@ spec:
 | `ORANGE_SENDER_NUMBER` | AWS `provider-keys.orange_sender_number` |
 | `RESEND_API_KEY` | AWS `provider-keys.resend_api_key` |
 | `SMTP_PASSWORD` | AWS `provider-keys.smtp_password` |
+| `SMTP_FROM_EMAIL` | AWS `provider-keys.smtp_from_email` |
+| `RESEND_FROM_EMAIL` | AWS `provider-keys.resend_from_email` |
+
+---
+
+### 3b. ExternalSecret — Vehicle API Keys
+
+Pulls from AWS `iviss/prod/vehicle-api-keys` → merges into K8s Secret `iviss-secrets` (with Merge policy).
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: iviss-vehicle-api-keys
+  namespace: iviss
+  labels:
+    app.kubernetes.io/part-of: iviss
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: iviss-secrets
+    creationPolicy: Merge
+    template:
+      type: Opaque
+      data:
+        EXTERNAL_API_BASE_URL: "{{ .external_api_base_url }}"
+        EXTERNAL_API_USERNAME: "{{ .external_api_username }}"
+        EXTERNAL_API_PASSWORD: "{{ .external_api_password }}"
+        EXTERNAL_API_LOCK_NDIA: "{{ .external_api_lock_ndia }}"
+        EXTERNAL_API_KINDIA: "{{ .external_api_kindia }}"
+        EXTERNAL_API_USER: "{{ .external_api_user }}"
+        EXTERNAL_API_CLIENT: "{{ .external_api_client }}"
+        EXTERNAL_API_CTR: "{{ .external_api_ctr }}"
+        EXTERNAL_API_TLS_CERT_B64: "{{ .external_api_tls_cert_b64 }}"
+  data:
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_base_url
+      secretKey: external_api_base_url
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_username
+      secretKey: external_api_username
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_password
+      secretKey: external_api_password
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_lock_ndia
+      secretKey: external_api_lock_ndia
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_kindia
+      secretKey: external_api_kindia
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_user
+      secretKey: external_api_user
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_client
+      secretKey: external_api_client
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_ctr
+      secretKey: external_api_ctr
+    - remoteRef:
+        key: iviss/prod/vehicle-api-keys
+        property: external_api_tls_cert_b64
+      secretKey: external_api_tls_cert_b64
+```
+
+**Resulting keys added to `iviss-secrets`:**
+| Key | Source |
+|---|---|
+| `EXTERNAL_API_BASE_URL` | AWS `vehicle-api-keys.external_api_base_url` |
+| `EXTERNAL_API_USERNAME` | AWS `vehicle-api-keys.external_api_username` |
+| `EXTERNAL_API_PASSWORD` | AWS `vehicle-api-keys.external_api_password` |
+| `EXTERNAL_API_LOCK_NDIA` | AWS `vehicle-api-keys.external_api_lock_ndia` |
+| `EXTERNAL_API_KINDIA` | AWS `vehicle-api-keys.external_api_kindia` |
+| `EXTERNAL_API_USER` | AWS `vehicle-api-keys.external_api_user` |
+| `EXTERNAL_API_CLIENT` | AWS `vehicle-api-keys.external_api_client` |
+| `EXTERNAL_API_CTR` | AWS `vehicle-api-keys.external_api_ctr` |
+| `EXTERNAL_API_TLS_CERT_B64` | AWS `vehicle-api-keys.external_api_tls_cert_b64` |
 
 ---
 
@@ -421,18 +546,9 @@ stringData:
   SMS_PROVIDER: "vonage"
   EMAIL_PROVIDER: "mock"
   OTP_VIA_EMAIL: "true"
-  EXTERNAL_API_BASE_URL: "REPLACE_ME"
-  EXTERNAL_API_USERNAME: "REPLACE_ME"
-  EXTERNAL_API_PASSWORD: "REPLACE_ME"
-  EXTERNAL_API_LOCK_NDIA: "REPLACE_ME"
-  EXTERNAL_API_KINDIA: "REPLACE_ME"
-  EXTERNAL_API_USER: "REPLACE_ME"
-  EXTERNAL_API_CLIENT: "REPLACE_ME"
-  EXTERNAL_API_CTR: "REPLACE_ME"
-  EXTERNAL_API_TLS_CERT_B64: "REPLACE_ME"
 ```
 
-> **Only `EXTERNAL_API_*` fields need actual values.** Everything else has defaults set.
+> **All fields have production defaults.** No `REPLACE_ME` values needed — vehicle API credentials are now pulled from AWS Secrets Manager via ESO.
 
 ---
 
@@ -452,21 +568,23 @@ This table shows exactly where every env var the backend reads comes from:
 | `ORANGE_SENDER_NUMBER` | `iviss-secrets` | `ORANGE_SENDER_NUMBER` | `provider-keys.orange_sender_number` |
 | `RESEND_API_KEY` | `iviss-secrets` | `RESEND_API_KEY` | `provider-keys.resend_api_key` |
 | `SMTP_PASSWORD` | `iviss-secrets` | `SMTP_PASSWORD` | `provider-keys.smtp_password` |
+| `SMTP_FROM_EMAIL` | `iviss-secrets` | `SMTP_FROM_EMAIL` | `provider-keys.smtp_from_email` |
+| `RESEND_FROM_EMAIL` | `iviss-secrets` | `RESEND_FROM_EMAIL` | `provider-keys.resend_from_email` |
+| `EXTERNAL_API_BASE_URL` | `iviss-secrets` | `EXTERNAL_API_BASE_URL` | `vehicle-api-keys.external_api_base_url` |
+| `EXTERNAL_API_USERNAME` | `iviss-secrets` | `EXTERNAL_API_USERNAME` | `vehicle-api-keys.external_api_username` |
+| `EXTERNAL_API_PASSWORD` | `iviss-secrets` | `EXTERNAL_API_PASSWORD` | `vehicle-api-keys.external_api_password` |
+| `EXTERNAL_API_LOCK_NDIA` | `iviss-secrets` | `EXTERNAL_API_LOCK_NDIA` | `vehicle-api-keys.external_api_lock_ndia` |
+| `EXTERNAL_API_KINDIA` | `iviss-secrets` | `EXTERNAL_API_KINDIA` | `vehicle-api-keys.external_api_kindia` |
+| `EXTERNAL_API_USER` | `iviss-secrets` | `EXTERNAL_API_USER` | `vehicle-api-keys.external_api_user` |
+| `EXTERNAL_API_CLIENT` | `iviss-secrets` | `EXTERNAL_API_CLIENT` | `vehicle-api-keys.external_api_client` |
+| `EXTERNAL_API_CTR` | `iviss-secrets` | `EXTERNAL_API_CTR` | `vehicle-api-keys.external_api_ctr` |
+| `EXTERNAL_API_TLS_CERT_B64` | `iviss-secrets` | `EXTERNAL_API_TLS_CERT_B64` | `vehicle-api-keys.external_api_tls_cert_b64` |
 | `ADMIN_BOOTSTRAP_EMAIL` | `iviss-static-secrets` | `ADMIN_BOOTSTRAP_EMAIL` | — |
 | `ADMIN_BOOTSTRAP_PHONE` | `iviss-static-secrets` | `ADMIN_BOOTSTRAP_PHONE` | — |
 | `ADMIN_BOOTSTRAP_USERNAME` | `iviss-static-secrets` | `ADMIN_BOOTSTRAP_USERNAME` | — |
 | `SMS_PROVIDER` | `iviss-static-secrets` | `SMS_PROVIDER` | — |
 | `EMAIL_PROVIDER` | `iviss-static-secrets` | `EMAIL_PROVIDER` | — |
 | `OTP_VIA_EMAIL` | `iviss-static-secrets` | `OTP_VIA_EMAIL` | — |
-| `EXTERNAL_API_BASE_URL` | `iviss-static-secrets` | `EXTERNAL_API_BASE_URL` | — |
-| `EXTERNAL_API_USERNAME` | `iviss-static-secrets` | `EXTERNAL_API_USERNAME` | — |
-| `EXTERNAL_API_PASSWORD` | `iviss-static-secrets` | `EXTERNAL_API_PASSWORD` | — |
-| `EXTERNAL_API_LOCK_NDIA` | `iviss-static-secrets` | `EXTERNAL_API_LOCK_NDIA` | — |
-| `EXTERNAL_API_KINDIA` | `iviss-static-secrets` | `EXTERNAL_API_KINDIA` | — |
-| `EXTERNAL_API_USER` | `iviss-static-secrets` | `EXTERNAL_API_USER` | — |
-| `EXTERNAL_API_CLIENT` | `iviss-static-secrets` | `EXTERNAL_API_CLIENT` | — |
-| `EXTERNAL_API_CTR` | `iviss-static-secrets` | `EXTERNAL_API_CTR` | — |
-| `EXTERNAL_API_TLS_CERT_B64` | `iviss-static-secrets` | `EXTERNAL_API_TLS_CERT_B64` | — |
 | `DATABASE_URL` | — | Constructed by Helm | `postgres://iviss_user:<password>@iviss-postgres-rw:5432/iviss_dev` |
 
 ---
