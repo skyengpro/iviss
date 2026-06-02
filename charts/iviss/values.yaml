@@ -41,12 +41,6 @@ backend:
     smtpHost: localhost
     smtpPort: 587
     smtpUsername: user
-    externalApiBaseUrl: ""
-    externalApiLockNdia: ""
-    externalApiKindia: ""
-    externalApiUser: ""
-    externalApiClient: ""
-    externalApiCtr: ""
 
 frontend:
   image:

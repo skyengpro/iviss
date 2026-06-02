@@ -38,7 +38,7 @@ All resources in `charts/iviss/templates/`:
 - Namespace `iviss`
 - CNPG Cluster `iviss-postgres`
 - Secrets: `iviss-postgres-superuser`, `iviss-postgres-app`
-- ExternalSecrets: `iviss-app-secrets`, `iviss-provider-keys`
+- ExternalSecrets: `iviss-app-secrets`, `iviss-provider-keys`, `iviss-vehicle-api-keys`
 - K8s Secrets: `iviss-secrets` (ESO-managed), `iviss-static-secrets`
 - ServiceAccount `iviss`
 
@@ -46,12 +46,12 @@ All resources in `charts/iviss/templates/`:
 
 ```
 AWS Secrets Manager
-  ├── iviss/production/app-secrets       ──ESO──▶  iviss-secrets (JWT, pepper, admin pw)
-  ├── iviss/production/provider-keys     ──ESO──▶  iviss-secrets (SMS, email, API keys)
-  └── iviss/prod/provider-keys     ──ESO──▶  iviss-secrets (SMS, email, API keys)
+  ├── iviss/prod/app-secrets         ──ESO──▶  iviss-secrets (JWT, pepper, admin pw)
+  ├── iviss/prod/provider-keys       ──ESO──▶  iviss-secrets (SMS, email, API keys)
+  └── iviss/prod/vehicle-api-keys    ──ESO──▶  iviss-secrets (vehicle API credentials)
 
 Admin-created (static):
-  └── iviss-static-secrets (bootstrap, external API, SMS/EMAIL provider choice)
+  └── iviss-static-secrets (bootstrap, SMS/EMAIL provider choice)
 
 CNPG-managed:
   ├── iviss-postgres-superuser
@@ -96,7 +96,7 @@ Sensitive values are managed in:
 1. Update in AWS Secrets Manager console or CLI
 2. ESO syncs every 1 hour — or force: `kubectl annotate externalsecret iviss-app-secrets -n iviss force-sync=$(date +%s) --overwrite`
 
-**Static secrets (external API, admin bootstrap):**
+**Static secrets (admin bootstrap, provider choices):**
 1. `kubectl edit secret iviss-static-secrets -n iviss`
 2. Pods restart automatically (checksum annotation in deployment)
 
