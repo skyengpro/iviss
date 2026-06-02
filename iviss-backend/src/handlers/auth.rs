@@ -62,7 +62,7 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
 
-    if user.status != UserStatus::Active {
+    if user.status != UserStatus::Active && !user.must_change_password {
         tracing::warn!(
             email = %payload.email,
             status = %user.status.as_str(),
@@ -550,7 +550,19 @@ pub async fn request_daily_login(
 
     let otp_svc = &state.otp_svc;
 
-    otp_svc.request_otp(&user.id, &user.phone_number).await?;
+    // Determine contact (email or phone) based on AppState setting
+    let contact = if state.otp_via_email {
+        // Fetch full profile to obtain email if configured to use email
+        let profile = crate::queries::user_queries::get_user_by_id(&state.db, user.id).await?;
+        profile
+            .email
+            .clone()
+            .unwrap_or_else(|| profile.phone_number.clone().unwrap_or_default())
+    } else {
+        user.phone_number.clone()
+    };
+
+    otp_svc.request_otp(&user.id, &contact).await?;
 
     tracing::info!(
         target: "daily_login",
@@ -1302,7 +1314,7 @@ pub async fn change_password(
     sqlx::query(
         r#"
         UPDATE users
-        SET password_hash = $1, must_change_password = FALSE
+        SET password_hash = $1, must_change_password = FALSE, status = 'ACTIVE'::user_status
         WHERE id = $2
         "#,
     )

@@ -79,11 +79,13 @@ async fn setup_admin_logout_test() -> (
         environment: crate::config::Environment::Local,
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
+        otp_via_email: false,
         activation_code_pepper: TEST_PEPPER.to_string(),
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),
         admin_bootstrap_phone: Some("+237600000000".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
+        vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
     };
 
     let state = AppState::new(
@@ -92,7 +94,8 @@ async fn setup_admin_logout_test() -> (
         Arc::new(crate::services::sms_provider::MockSmsProvider),
         Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
-    );
+    )
+    .expect("failed to initialize test app state");
 
     let app = routes::assembly(state);
 

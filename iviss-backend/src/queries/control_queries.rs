@@ -231,19 +231,16 @@ pub async fn get_control_records(
             vehicle: row.get::<Option<String>, _>("brand").map(|brand| {
                 use crate::dto::search_vehicle::{OwnerInfo, VehicleInfo};
                 VehicleInfo {
-                    brand,
-                    model: row.get::<Option<String>, _>("model").unwrap_or_default(),
-                    year: row.get::<Option<i32>, _>("year").unwrap_or_default(),
+                    brand: Some(brand),
+                    model: row.get::<Option<String>, _>("model"),
+                    year: row.get::<Option<i32>, _>("year"),
                     color: row.get("color"),
                     engine_power: row.get("engine_power"),
                     fuel_type: row.get("fuel_type"),
-                    chassis_number: row
-                        .get::<Option<String>, _>("chassis_number")
-                        .unwrap_or_default(),
+                    chassis_number: row.get::<Option<String>, _>("chassis_number"),
+                    customs_status: None,
                     owner: OwnerInfo {
-                        name: row
-                            .get::<Option<String>, _>("owner_name")
-                            .unwrap_or_default(),
+                        name: row.get::<Option<String>, _>("owner_name"),
                         address: row.get("owner_address"),
                         national_id: row.get("owner_national_id"),
                     },
@@ -437,19 +434,16 @@ pub async fn get_paged_control_records(
             vehicle: row.get::<Option<String>, _>("brand").map(|brand| {
                 use crate::dto::search_vehicle::{OwnerInfo, VehicleInfo};
                 VehicleInfo {
-                    brand,
-                    model: row.get::<Option<String>, _>("model").unwrap_or_default(),
-                    year: row.get::<Option<i32>, _>("year").unwrap_or_default(),
+                    brand: Some(brand),
+                    model: row.get::<Option<String>, _>("model"),
+                    year: row.get::<Option<i32>, _>("year"),
                     color: row.get("color"),
                     engine_power: row.get("engine_power"),
                     fuel_type: row.get("fuel_type"),
-                    chassis_number: row
-                        .get::<Option<String>, _>("chassis_number")
-                        .unwrap_or_default(),
+                    chassis_number: row.get::<Option<String>, _>("chassis_number"),
+                    customs_status: None,
                     owner: OwnerInfo {
-                        name: row
-                            .get::<Option<String>, _>("owner_name")
-                            .unwrap_or_default(),
+                        name: row.get::<Option<String>, _>("owner_name"),
                         address: row.get("owner_address"),
                         national_id: row.get("owner_national_id"),
                     },
