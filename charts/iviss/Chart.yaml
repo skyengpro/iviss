@@ -1,0 +1,15 @@
+apiVersion: v2
+name: iviss
+description: IVISS — Vehicle Identification, Carte Grise submissions and back-office dashboard
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+icon: https://iviss.cloud/favicon.ico
+keywords:
+  - iviss
+  - vehicle
+  - identification
+  - rust
+  - react
+sources:
+  - https://github.com/skyengpro/iviss

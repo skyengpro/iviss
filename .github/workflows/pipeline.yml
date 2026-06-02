@@ -46,7 +46,6 @@ jobs:
   docker:
     name: Build & Push Docker Images
     needs: release
-    # Run if a new release was published OR triggered manually OR on our test branch
     if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch') || (github.ref == 'refs/heads/aws-dev-test')
     runs-on: ubuntu-latest
     permissions:
@@ -97,8 +96,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    name: Deploy to AWS
+  deploy-edge:
+    name: Deploy CloudFront Edge (Terraform)
     needs: [release, docker]
     if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch') || (github.ref == 'refs/heads/aws-dev-test')
     runs-on: ubuntu-latest
@@ -124,47 +123,37 @@ jobs:
           terraform_version: "1.10.0"
           terraform_wrapper: false
 
-      - name: Setup Ansible
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ansible
-
-      - name: Deploy via Script
+      - name: Terraform Apply (AWS Edge)
+        working-directory: ./infra/terraform
         env:
-          USE_SECRETS_MANAGER: "true"
-          DOCKER_ORG: ${{ github.repository_owner }}
-          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || 'donemmanuelo' }}
-          DOMAIN_NAME: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
-          ROUTE53_ZONE_ID: ${{ vars.ROUTE53_ZONE_ID || secrets.ROUTE53_ZONE_ID || '' }}
-          EDGE_LOCKDOWN_ENABLED: ${{ vars.EDGE_LOCKDOWN_ENABLED || 'true' }}
-          CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
-          IMAGE_TAG: ${{ needs.release.outputs.new_release_version || 'latest' }}
-          ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
-          AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-1' }}
-          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'iviss_user' }}
-          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'iviss_dev' }}
-          # Admin Bootstrap
-          ADMIN_BOOTSTRAP_EMAIL: ${{ vars.ADMIN_BOOTSTRAP_EMAIL || secrets.ADMIN_BOOTSTRAP_EMAIL }}
-          ADMIN_BOOTSTRAP_PASSWORD: ${{ vars.ADMIN_BOOTSTRAP_PASSWORD || secrets.ADMIN_BOOTSTRAP_PASSWORD }}
-          ADMIN_BOOTSTRAP_PHONE: ${{ vars.ADMIN_BOOTSTRAP_PHONE || secrets.ADMIN_BOOTSTRAP_PHONE }}
-          ADMIN_BOOTSTRAP_USERNAME: ${{ vars.ADMIN_BOOTSTRAP_USERNAME || secrets.ADMIN_BOOTSTRAP_USERNAME }}
-          # Shift configuration
-          SHIFT_START_HOUR: ${{ vars.SHIFT_START_HOUR || '6' }}
-          SHIFT_END_HOUR: ${{ vars.SHIFT_END_HOUR || '18' }}
-          # Provider overrides
-          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL || secrets.RESEND_FROM_EMAIL }}
-          SMTP_HOST: ${{ vars.SMTP_HOST || secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT }}
-          SMTP_FROM_EMAIL: ${{ vars.SMTP_FROM_EMAIL || secrets.SMTP_FROM_EMAIL }}
-          SMTP_USERNAME: ${{ vars.SMTP_USERNAME || secrets.SMTP_USERNAME }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          SMS_PROVIDER: ${{ vars.SMS_PROVIDER || 'mock' }}
-          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'mock' }}
+          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
+          TF_VAR_route53_zone_id: ${{ vars.ROUTE53_ZONE_ID || secrets.ROUTE53_ZONE_ID || '' }}
+          TF_VAR_k8s_origin_hostname: ${{ vars.K8S_ORIGIN_HOSTNAME || secrets.K8S_ORIGIN_HOSTNAME || '' }}
+          TF_VAR_certbot_email: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
         run: |
-          if [ -n "${DOMAIN_NAME}" ] && [ -z "${ROUTE53_ZONE_ID}" ]; then
-            echo "❌ DOMAIN_NAME is set but ROUTE53_ZONE_ID is empty."
-            echo "Set ROUTE53_ZONE_ID in GitHub Variables or Secrets to avoid DNS/ACM teardown."
-            exit 1
-          fi
-          chmod +x ./infra/scripts/deploy.sh
-          ./infra/scripts/deploy.sh
+          terraform init
+          terraform apply -auto-approve
+
+  update-helm-values:
+    name: Update Helm Chart Version
+    needs: [release, docker]
+    if: (needs.release.outputs.new_release_published == 'true') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Update Helm values with new release version
+        env:
+          RELEASE_VERSION: ${{ needs.release.outputs.new_release_version }}
+        run: |
+          sed -i "s/^  imageTag:.*/  imageTag: \"${RELEASE_VERSION}\"/" charts/iviss/values-production.yaml
+          git config user.name "iviss-bot"
+          git config user.email "bot@iviss.cloud"
+          git add charts/iviss/values-production.yaml
+          git commit -m "chore: update Helm chart image tag to ${RELEASE_VERSION}"
+          git push
