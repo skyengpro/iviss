@@ -36,7 +36,7 @@ backend:
     shiftEndHour: 18
     smsProvider: mock
     emailProvider: mock
-    otpViaEmail: false
+    otpViaEmail: true
     resendFromEmail: noreply@iviss.cloud
     smtpHost: localhost
     smtpPort: 587

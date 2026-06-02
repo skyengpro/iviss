@@ -19,7 +19,7 @@ metadata:
     app.kubernetes.io/part-of: iviss
 ```
 
-### B. Operators (must be installed before anything else)
+### B. Operators (install in this order)
 
 ```bash
 # 1. Cloud Native PG operator
@@ -51,12 +51,80 @@ helm upgrade --install cert-manager cert-manager \
   --wait
 ```
 
-### C. IAM Role for External Secrets
+### C. AWS Secrets Manager — Exact Content Required
 
-The ESO pods need permission to read from AWS Secrets Manager. Create an IAM role that the ESO service account can assume (via IRSA if using EKS, or via access keys for Hetzner):
+These three secrets already exist in AWS Secrets Manager (managed by Terraform with `ignore_changes`).  
+**Verify each one has the correct keys populated.** If any value is empty, seed it using the AWS Console or CLI.
+
+#### Secret 1: `iviss/production/app-secrets`
+
+```json
+{
+}
+```
+
+Verify:
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id iviss/production/app-secrets \
+  --region eu-west-1 \
+  --query SecretString --output text | python3 -m json.tool
+```
+
+#### Secret 2: `iviss/production/provider-keys`
+
+```json
+{
+  "twilio_account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "twilio_auth_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "twilio_from_number": "+1234567890",
+  "vonage_api_key": "xxxxxxxx",
+  "vonage_api_secret": "xxxxxxxxxxxxxxxxxxxxxxxx",
+  "orange_client_id": "xxxxxxxxxxxxxxxxxxxxxxxx",
+  "orange_client_secret": "xxxxxxxxxxxxxxxxxxxxxxxx",
+  "orange_sender_number": "+237000000000",
+  "resend_api_key": "re_xxxxxxxxxxxxxxxxxxxxxxxx",
+  "smtp_password": "your_smtp_app_password_here"
+}
+```
+
+Verify:
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id iviss/production/provider-keys \
+  --region eu-west-1 \
+  --query SecretString --output text | python3 -m json.tool
+```
+
+#### Secret 3: `iviss/production/cloudfront-origin-secret`
+
+This is a plain string (not JSON) — the random 32-char password that CloudFront sends as the `X-Origin-Verify` header.
+
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id iviss/production/cloudfront-origin-secret \
+  --region eu-west-1 \
+  --query SecretString --output text
+```
+
+### D. ClusterSecretStore — Connect ESO to AWS
+
+The ESO pods need an IAM user with `secretsmanager:GetSecretValue` on:
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/app-secrets-*`
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/provider-keys-*`
+- `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/cloudfront-origin-secret-*`
 
 ```yaml
-# ClusterSecretStore — connects ESO to AWS Secrets Manager
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-eso-credentials
+  namespace: external-secrets-system
+type: Opaque
+stringData:
+  access-key-id: REPLACE_ME          # AWS IAM access key with SecretsManager read access
+  secret-access-key: REPLACE_ME      # corresponding secret key
+---
 apiVersion: external-secrets.io/v1beta1
 kind: ClusterSecretStore
 metadata:
@@ -78,25 +146,6 @@ spec:
             key: secret-access-key
 ```
 
-The `aws-eso-credentials` secret in `external-secrets-system` namespace:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aws-eso-credentials
-  namespace: external-secrets-system
-type: Opaque
-stringData:
-  access-key-id: REPLACE_ME        # AWS IAM user with SecretsManager read access
-  secret-access-key: REPLACE_ME    # corresponding secret key
-```
-
-> **The IAM user needs `secretsmanager:GetSecretValue` on the two ARNs:**
-> - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/app-secrets-*`
-> - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/provider-keys-*`
-> - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/production/cloudfront-origin-secret-*`
-
 ---
 
 ## Resources to Create
@@ -117,18 +166,7 @@ metadata:
 
 ### 2. ExternalSecret — App Secrets
 
-Pulls from AWS Secrets Manager secret `iviss/production/app-secrets` and creates K8s Secret `iviss-secrets`.
-
-The AWS secret has this JSON shape (already seeded in AWS):
-```json
-{
-  "jwt_private_key_pem": "...",
-  "jwt_public_key_pem": "...",
-  "activation_code_pepper": "...",
-  "db_password": "...",
-  "admin_bootstrap_password": "..."
-}
-```
+Pulls from AWS `iviss/production/app-secrets` → creates K8s Secret `iviss-secrets` (with Owner policy).
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -149,58 +187,26 @@ spec:
     template:
       type: Opaque
       data:
-        JWT_PRIVATE_KEY_PEM: "{{ .jwt_private_key_pem }}"
-        JWT_PUBLIC_KEY_PEM: "{{ .jwt_public_key_pem }}"
-        ACTIVATION_CODE_PEPPER: "{{ .activation_code_pepper }}"
-        ADMIN_BOOTSTRAP_PASSWORD: "{{ .admin_bootstrap_password }}"
   data:
     - remoteRef:
         key: iviss/production/app-secrets
-        property: jwt_private_key_pem
-      secretKey: jwt_private_key_pem
     - remoteRef:
         key: iviss/production/app-secrets
-        property: jwt_public_key_pem
-      secretKey: jwt_public_key_pem
     - remoteRef:
         key: iviss/production/app-secrets
-        property: activation_code_pepper
-      secretKey: activation_code_pepper
     - remoteRef:
         key: iviss/production/app-secrets
-        property: admin_bootstrap_password
-      secretKey: admin_bootstrap_password
 ```
 
-**Resulting K8s Secret `iviss-secrets`** (auto-created by ESO):
-```
-JWT_PRIVATE_KEY_PEM     ← from AWS iviss/production/app-secrets.jwt_private_key_pem
-JWT_PUBLIC_KEY_PEM      ← from AWS iviss/production/app-secrets.jwt_public_key_pem
-ACTIVATION_CODE_PEPPER  ← from AWS iviss/production/app-secrets.activation_code_pepper
-ADMIN_BOOTSTRAP_PASSWORD← from AWS iviss/production/app-secrets.admin_bootstrap_password
-```
+**Resulting keys in `iviss-secrets`:**
+| Key | Source |
+|---|---|
 
 ---
 
 ### 3. ExternalSecret — Provider Keys
 
-Pulls from AWS Secrets Manager secret `iviss/production/provider-keys` and merges into the same `iviss-secrets` K8s Secret.
-
-The AWS secret has this JSON shape:
-```json
-{
-  "twilio_account_sid": "...",
-  "twilio_auth_token": "...",
-  "twilio_from_number": "...",
-  "vonage_api_key": "...",
-  "vonage_api_secret": "...",
-  "orange_client_id": "...",
-  "orange_client_secret": "...",
-  "orange_sender_number": "...",
-  "resend_api_key": "...",
-  "smtp_password": "..."
-}
-```
+Pulls from AWS `iviss/production/provider-keys` → merges into K8s Secret `iviss-secrets` (with Merge policy).
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -274,11 +280,25 @@ spec:
       secretKey: smtp_password
 ```
 
+**Resulting keys added to `iviss-secrets`:**
+| Key | Source |
+|---|---|
+| `VONAGE_API_KEY` | AWS `provider-keys.vonage_api_key` |
+| `VONAGE_API_SECRET` | AWS `provider-keys.vonage_api_secret` |
+| `TWILIO_ACCOUNT_SID` | AWS `provider-keys.twilio_account_sid` |
+| `TWILIO_AUTH_TOKEN` | AWS `provider-keys.twilio_auth_token` |
+| `TWILIO_FROM_NUMBER` | AWS `provider-keys.twilio_from_number` |
+| `ORANGE_CLIENT_ID` | AWS `provider-keys.orange_client_id` |
+| `ORANGE_CLIENT_SECRET` | AWS `provider-keys.orange_client_secret` |
+| `ORANGE_SENDER_NUMBER` | AWS `provider-keys.orange_sender_number` |
+| `RESEND_API_KEY` | AWS `provider-keys.resend_api_key` |
+| `SMTP_PASSWORD` | AWS `provider-keys.smtp_password` |
+
 ---
 
-### 4. ExternalSecret — Cloudfront Origin Secret
+### 4. ExternalSecret — CloudFront Origin Secret
 
-Pulls from `iviss/production/cloudfront-origin-secret` (already in AWS). The Nginx Ingress uses this to validate the `X-Origin-Verify` header from CloudFront.
+Pulls from `iviss/production/cloudfront-origin-secret` → creates K8s Secret `iviss-cloudfront-origin`.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -306,7 +326,18 @@ spec:
 
 ### 5. CNPG Database Secrets
 
-These are **not** pulled from AWS — the DB credentials are generated and managed by CNPG. Create them directly:
+Not from AWS — generated locally:
+
+```bash
+# Generate passwords
+POSTGRES_SUPER_PASSWORD=$(openssl rand -base64 32)
+POSTGRES_APP_PASSWORD=$(openssl rand -base64 32)
+
+echo "Generated passwords:"
+echo "  POSTGRES_SUPER_PASSWORD: ${POSTGRES_SUPER_PASSWORD}"
+echo "  POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD}"
+echo "  SAVE THESE — they won't be shown again."
+```
 
 ```yaml
 apiVersion: v1
@@ -321,7 +352,7 @@ metadata:
 type: kubernetes.io/basic-auth
 stringData:
   username: postgres
-  password: REPLACE_ME    # generate: openssl rand -base64 32
+  password: PASTE_GENERATED_POSTGRES_SUPER_PASSWORD_HERE
 ---
 apiVersion: v1
 kind: Secret
@@ -335,7 +366,7 @@ metadata:
 type: kubernetes.io/basic-auth
 stringData:
   username: iviss_user
-  password: REPLACE_ME    # generate: openssl rand -base64 32
+  password: PASTE_GENERATED_POSTGRES_APP_PASSWORD_HERE
 ```
 
 ---
@@ -380,7 +411,8 @@ spec:
 
 ### 7. ConfigMap — Non-sensitive App Config
 
-These values are not secrets and are managed directly in the cluster. The dev team will update them via the Helm chart, but if you need a base ConfigMap before ArgoCD is set up:
+> This will be managed by ArgoCD via the Helm chart once it's running.  
+> Shown here for reference if you need to bootstrap before ArgoCD is configured.
 
 ```yaml
 apiVersion: v1
@@ -399,7 +431,7 @@ data:
   SHIFT_END_HOUR: "18"
   SMS_PROVIDER: "vonage"
   EMAIL_PROVIDER: "mock"
-  OTP_VIA_EMAIL: "false"
+  OTP_VIA_EMAIL: "true"
   RESEND_FROM_EMAIL: "noreply@iviss.cloud"
   SMTP_HOST: "localhost"
   SMTP_PORT: "587"
@@ -407,14 +439,11 @@ data:
   SQLX_OFFLINE: "true"
 ```
 
-> **Note:** Once ArgoCD is running, this ConfigMap will be managed by the Helm chart.
-> The values above are a baseline — the dev team can override them in `values-production.yaml`.
-
 ---
 
 ### 8. Static Secrets — Admin Bootstrap & External API
 
-These contain non-cloud secrets that aren't in AWS Secrets Manager. Create them once:
+These are values that are not stored in AWS Secrets Manager. Seed them once:
 
 ```yaml
 apiVersion: v1
@@ -431,18 +460,55 @@ stringData:
   ADMIN_BOOTSTRAP_USERNAME: "admin"
   SMS_PROVIDER: "vonage"
   EMAIL_PROVIDER: "mock"
-  EXTERNAL_API_BASE_URL: REPLACE_ME
-  EXTERNAL_API_USERNAME: REPLACE_ME
-  EXTERNAL_API_PASSWORD: REPLACE_ME
-  EXTERNAL_API_LOCK_NDIA: REPLACE_ME
-  EXTERNAL_API_KINDIA: REPLACE_ME
-  EXTERNAL_API_USER: REPLACE_ME
-  EXTERNAL_API_CLIENT: REPLACE_ME
-  EXTERNAL_API_CTR: REPLACE_ME
-  EXTERNAL_API_TLS_CERT_B64: REPLACE_ME
+  OTP_VIA_EMAIL: "true"
+  EXTERNAL_API_BASE_URL: "REPLACE_ME"
+  EXTERNAL_API_USERNAME: "REPLACE_ME"
+  EXTERNAL_API_PASSWORD: "REPLACE_ME"
+  EXTERNAL_API_LOCK_NDIA: "REPLACE_ME"
+  EXTERNAL_API_KINDIA: "REPLACE_ME"
+  EXTERNAL_API_USER: "REPLACE_ME"
+  EXTERNAL_API_CLIENT: "REPLACE_ME"
+  EXTERNAL_API_CTR: "REPLACE_ME"
+  EXTERNAL_API_TLS_CERT_B64: "REPLACE_ME"
 ```
 
-> **Note:** The dev team's backend Deployment references `iviss-secrets` for AWS-pulled secrets. These static values will be merged into the same secret or referenced separately depending on preference. The dev team will confirm.
+> **Only `EXTERNAL_API_*` fields need actual values.** Everything else has defaults set.
+
+---
+
+### Complete Secret Mapping Reference
+
+This table shows exactly where every env var the backend reads comes from:
+
+| Backend Env Var | K8s Secret | Key | AWS Source |
+|---|---|---|---|
+| `VONAGE_API_KEY` | `iviss-secrets` | `VONAGE_API_KEY` | `provider-keys.vonage_api_key` |
+| `VONAGE_API_SECRET` | `iviss-secrets` | `VONAGE_API_SECRET` | `provider-keys.vonage_api_secret` |
+| `TWILIO_ACCOUNT_SID` | `iviss-secrets` | `TWILIO_ACCOUNT_SID` | `provider-keys.twilio_account_sid` |
+| `TWILIO_AUTH_TOKEN` | `iviss-secrets` | `TWILIO_AUTH_TOKEN` | `provider-keys.twilio_auth_token` |
+| `TWILIO_FROM_NUMBER` | `iviss-secrets` | `TWILIO_FROM_NUMBER` | `provider-keys.twilio_from_number` |
+| `ORANGE_CLIENT_ID` | `iviss-secrets` | `ORANGE_CLIENT_ID` | `provider-keys.orange_client_id` |
+| `ORANGE_CLIENT_SECRET` | `iviss-secrets` | `ORANGE_CLIENT_SECRET` | `provider-keys.orange_client_secret` |
+| `ORANGE_SENDER_NUMBER` | `iviss-secrets` | `ORANGE_SENDER_NUMBER` | `provider-keys.orange_sender_number` |
+| `RESEND_API_KEY` | `iviss-secrets` | `RESEND_API_KEY` | `provider-keys.resend_api_key` |
+| `SMTP_PASSWORD` | `iviss-secrets` | `SMTP_PASSWORD` | `provider-keys.smtp_password` |
+| `ADMIN_BOOTSTRAP_EMAIL` | `iviss-static-secrets` | `ADMIN_BOOTSTRAP_EMAIL` | — |
+| `ADMIN_BOOTSTRAP_PHONE` | `iviss-static-secrets` | `ADMIN_BOOTSTRAP_PHONE` | — |
+| `ADMIN_BOOTSTRAP_USERNAME` | `iviss-static-secrets` | `ADMIN_BOOTSTRAP_USERNAME` | — |
+| `SMS_PROVIDER` | `iviss-static-secrets` | `SMS_PROVIDER` | — |
+| `EMAIL_PROVIDER` | `iviss-static-secrets` | `EMAIL_PROVIDER` | — |
+| `OTP_VIA_EMAIL` | `iviss-static-secrets` | `OTP_VIA_EMAIL` | — |
+| `EXTERNAL_API_BASE_URL` | `iviss-static-secrets` | `EXTERNAL_API_BASE_URL` | — |
+| `EXTERNAL_API_USERNAME` | `iviss-static-secrets` | `EXTERNAL_API_USERNAME` | — |
+| `EXTERNAL_API_PASSWORD` | `iviss-static-secrets` | `EXTERNAL_API_PASSWORD` | — |
+| `EXTERNAL_API_LOCK_NDIA` | `iviss-static-secrets` | `EXTERNAL_API_LOCK_NDIA` | — |
+| `EXTERNAL_API_KINDIA` | `iviss-static-secrets` | `EXTERNAL_API_KINDIA` | — |
+| `EXTERNAL_API_USER` | `iviss-static-secrets` | `EXTERNAL_API_USER` | — |
+| `EXTERNAL_API_CLIENT` | `iviss-static-secrets` | `EXTERNAL_API_CLIENT` | — |
+| `EXTERNAL_API_CTR` | `iviss-static-secrets` | `EXTERNAL_API_CTR` | — |
+| `EXTERNAL_API_TLS_CERT_B64` | `iviss-static-secrets` | `EXTERNAL_API_TLS_CERT_B64` | — |
+| `DATABASE_URL` | — | Constructed by Helm | `postgres://iviss_user:<password>@iviss-postgres-rw:5432/iviss_dev` |
+| CloudFront origin | `iviss-cloudfront-origin` | `origin-secret` | `cloudfront-origin-secret` |
 
 ---
 
@@ -454,9 +520,9 @@ After applying **all** resources above, verify everything is ready:
 # 1. Namespace exists
 kubectl get namespace iviss
 
-# 2. External Secrets are synced
+# 2. External Secrets are synced (all should show Ready=True)
 kubectl get externalsecrets -n iviss
-kubectl get secret iviss-secrets -n iviss -o yaml  # should show all keys populated
+kubectl get secret iviss-secrets -n iviss -o jsonpath='{.data}' | jq 'keys'
 kubectl get secret iviss-cloudfront-origin -n iviss
 
 # 3. CNPG cluster is ready
@@ -464,17 +530,20 @@ kubectl get cluster -n iviss iviss-postgres
 kubectl wait cluster/iviss-postgres -n iviss --for=condition=Ready --timeout=300s
 kubectl get pods -n iviss -l cnpg.io/cluster=iviss-postgres
 
-# 4. Database is accessible (use password from iviss-postgres-app secret)
+# 4. Database is accessible
 DB_PASS=$(kubectl get secret iviss-postgres-app -n iviss -o jsonpath='{.data.password}' | base64 -d)
 kubectl exec -n iviss iviss-postgres-1 -- psql "postgresql://iviss_user:${DB_PASS}@localhost:5432/iviss_dev" -c "SELECT 1"
 
 # 5. ServiceAccount exists
 kubectl get sa iviss -n iviss
 
-# 6. Nginx Ingress Controller is running
+# 6. Static secrets exist
+kubectl get secret iviss-static-secrets -n iviss
+
+# 7. Nginx Ingress Controller is running
 kubectl get pods -n ingress-nginx
 
-# 7. ESO is syncing
+# 8. ESO ClusterSecretStore is ready
 kubectl get clustersecretstore aws-secretsmanager
 ```
 
@@ -482,12 +551,4 @@ kubectl get clustersecretstore aws-secretsmanager
 
 ## What This Enables
 
-Once all resources above are created, the dev team can deploy **Wave 2** (the application) via ArgoCD without any admin permissions. The application pods will:
-
-1. Read config from ConfigMap `iviss-config` (ArgoCD-managed)
-2. Read secrets from `iviss-secrets` (ESO-pulled from AWS Secrets Manager)
-3. Read static config from `iviss-static-secrets` (admin-created)
-4. Connect to `iviss-postgres-rw:5432` (CNPG-managed)
-5. Validate CloudFront origin via `iviss-cloudfront-origin` secret
-
-Secret rotation is automatic — ESO refreshes every hour from AWS Secrets Manager.
+Once all resources above are created, the dev team can deploy **Wave 2** (the application) via ArgoCD. Secret rotation is automatic — ESO refreshes every hour from AWS Secrets Manager.
