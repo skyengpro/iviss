@@ -1,4 +1,5 @@
 use crate::app_cache::AppCache;
+use crate::services::email_provider::MockEmailProvider;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::MockSmsProvider;
 use std::sync::Arc;
@@ -12,10 +13,14 @@ async fn setup_otp_service() -> OtpService {
     let cache = Arc::new(AppCache::new());
     let sms_provider = Arc::new(MockSmsProvider);
 
+    let email_provider = Arc::new(MockEmailProvider);
+
     OtpService::new(
         cache,
         sms_provider,
+        email_provider,
         "test-pepper-that-is-at-least-32-chars!!".to_string(),
+        false,
     )
 }
 
