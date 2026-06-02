@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "iviss.frontend.fullname" . }}
+  labels:
+    {{- include "iviss.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "iviss.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "iviss.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: frontend
+          image: {{ include "iviss.frontend.image" . | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+          env:
+            - name: VITE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "iviss.fullname" . }}-config
+                  key: VITE_API_URL
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3

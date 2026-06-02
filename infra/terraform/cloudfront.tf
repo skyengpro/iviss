@@ -1,6 +1,7 @@
 locals {
   cloudfront_custom_domain_enabled = var.domain_name != "" && var.route53_zone_id != ""
-  lightsail_origin_domain_name     = "${replace(aws_lightsail_static_ip.iviss_ip.ip_address, ".", "-")}.sslip.io"
+  # Origin hostname pointing to the Hetzner K8s Nginx Ingress LoadBalancer
+  k8s_origin_hostname              = var.k8s_origin_hostname != "" ? var.k8s_origin_hostname : "placeholder.sslip.io"
 }
 
 resource "random_password" "cloudfront_origin_secret" {
@@ -138,8 +139,8 @@ resource "aws_cloudfront_distribution" "iviss" {
   web_acl_id          = aws_wafv2_web_acl.cloudfront.arn
 
   origin {
-    domain_name = local.lightsail_origin_domain_name
-    origin_id   = "lightsail-origin"
+    domain_name = local.k8s_origin_hostname
+    origin_id   = "k8s-origin"
 
     custom_header {
       name  = "X-Origin-Verify"
@@ -149,7 +150,7 @@ resource "aws_cloudfront_distribution" "iviss" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "http-only"
+      origin_protocol_policy = "https-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -157,7 +158,7 @@ resource "aws_cloudfront_distribution" "iviss" {
   default_cache_behavior {
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "lightsail-origin"
+    target_origin_id       = "k8s-origin"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
 

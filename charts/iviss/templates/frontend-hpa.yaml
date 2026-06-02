@@ -1,0 +1,29 @@
+{{- if .Values.frontend.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "iviss.frontend.fullname" . }}
+  labels:
+    {{- include "iviss.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "iviss.frontend.fullname" . }}
+  minReplicas: {{ .Values.frontend.hpa.minReplicas }}
+  maxReplicas: {{ .Values.frontend.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.frontend.hpa.cpuUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.frontend.hpa.memoryUtilization }}
+{{- end }}

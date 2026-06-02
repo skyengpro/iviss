@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "iviss.backend.fullname" . }}
+  labels:
+    {{- include "iviss.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "iviss.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "iviss.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: iviss
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        - name: wait-postgres
+          image: postgres:15-alpine
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h iviss-postgres-rw -U iviss_user -d iviss_dev; do
+                echo "waiting for postgres..."
+                sleep 2
+              done
+          env:
+            - name: PGUSER
+              value: "iviss_user"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: iviss-postgres-app
+                  key: password
+        - name: run-migrations
+          image: {{ include "iviss.backend.image" . | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command:
+            - /iviss-backend
+            - --migrate
+          envFrom:
+            - configMapRef:
+                name: {{ include "iviss.fullname" . }}-config
+            - secretRef:
+                name: iviss-secrets
+          env:
+            - name: DATABASE_URL
+              value: {{ include "iviss.databaseUrl" . | quote }}
+      containers:
+        - name: backend
+          image: {{ include "iviss.backend.image" . | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.config.serverPort }}
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "iviss.fullname" . }}-config
+            - secretRef:
+                name: iviss-secrets
+          env:
+            - name: DATABASE_URL
+              value: {{ include "iviss.databaseUrl" . | quote }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3

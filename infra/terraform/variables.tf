@@ -16,22 +16,10 @@ variable "environment" {
   default     = "production"
 }
 
-variable "lightsail_blueprint_id" {
-  description = "Lightsail blueprint ID (OS)"
+variable "k8s_origin_hostname" {
+  description = "Hostname of the Hetzner K8s Nginx Ingress LoadBalancer (e.g. k8s.iviss.cloud)"
   type        = string
-  default     = "ubuntu_22_04"
-}
-
-variable "lightsail_bundle_id" {
-  description = "Lightsail bundle ID (Instance size)"
-  type        = string
-  default     = "small_3_0" # 2 GB RAM, 2 vCPUs, 60 GB SSD
-}
-
-variable "auto_deploy" {
-  description = "Whether to automatically trigger Ansible deployment after provisioning"
-  type        = bool
-  default     = false
+  default     = ""
 }
 
 variable "image_tag" {
