@@ -514,9 +514,7 @@ pub async fn request_daily_login(
 
     // Shift window: stored as minutes since midnight (inclusive start, exclusive end)
     if current_minute_of_day < shift_start_minutes || current_minute_of_day >= shift_end_minutes {
-        let fmt_time = |mins: u32| -> String {
-            format!("{:02}:{:02}", mins / 60, mins % 60)
-        };
+        let fmt_time = |mins: u32| -> String { format!("{:02}:{:02}", mins / 60, mins % 60) };
         return Err(AppError::unauthorized(format!(
             "Outside shift hours — login is available from {} to {} local time",
             fmt_time(shift_start_minutes),
