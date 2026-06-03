@@ -1,6 +1,6 @@
 global:
   environment: production
-  domainName: iviss.example.com
+  domainName: dev.iviss.skyengpro.app
   imageTag: ""
   imagePullPolicy: Always
 
@@ -29,7 +29,7 @@ hpa:
   memoryUtilization: 80
 
 config:
-  viteApiUrl: ""
+  viteApiUrl: "https://dev.iviss.skyengpro.app"
 
 ingress:
   enabled: true
