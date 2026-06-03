@@ -1,0 +1,31 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: iviss-postgres
+  namespace: iviss
+  labels:
+    app.kubernetes.io/part-of: iviss
+    app.kubernetes.io/component: database
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+  primaryUpdateStrategy: supervised
+  superuserSecret:
+    name: iviss-postgres-superuser
+  bootstrap:
+    initdb:
+      database: iviss_dev
+      owner: iviss_user
+      secret:
+        name: iviss-postgres-app
+  storage:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  monitoring:
+    enablePodMonitor: false
