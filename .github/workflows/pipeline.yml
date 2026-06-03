@@ -1,9 +1,6 @@
 name: Unified Release & Docker Pipeline
 
 on:
-  push:
-    branches:
-      - aws-dev-test
   pull_request:
     branches:
       - main
@@ -15,7 +12,6 @@ jobs:
   release:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      github.ref == 'refs/heads/aws-dev-test' ||
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
     name: Determine Release Version
     runs-on: ubuntu-latest
@@ -41,12 +37,12 @@ jobs:
           extra_plugins: |
             @semantic-release/changelog
             @semantic-release/git
-          branch: ${{ github.event_name == 'pull_request' && 'main' || github.ref_name }}
+          branch: main
 
   docker:
     name: Build & Push Docker Images
     needs: release
-    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch') || (github.ref == 'refs/heads/aws-dev-test')
+    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
