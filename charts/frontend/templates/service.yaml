@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "iviss.frontend.fullname" . }}
+  name: iviss-frontend
   labels:
-    {{- include "iviss.labels" . | nindent 4 }}
+    {{- include "frontend.labels" . | nindent 4 }}
     app.kubernetes.io/component: frontend
 spec:
   type: ClusterIP
@@ -13,5 +13,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "iviss.selectorLabels" . | nindent 4 }}
+    {{- include "frontend.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: frontend

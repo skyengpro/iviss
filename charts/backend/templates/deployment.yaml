@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "iviss.backend.fullname" . }}
+  name: {{ include "backend.fullname" . }}
   labels:
-    {{- include "iviss.labels" . | nindent 4 }}
+    {{- include "backend.labels" . | nindent 4 }}
     app.kubernetes.io/component: backend
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  replicas: {{ .Values.backend.replicas }}
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      {{- include "iviss.selectorLabels" . | nindent 6 }}
+      {{- include "backend.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: backend
   template:
     metadata:
       labels:
-        {{- include "iviss.selectorLabels" . | nindent 8 }}
+        {{- include "backend.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: backend
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
@@ -44,41 +44,41 @@ spec:
                   name: iviss-postgres-app
                   key: password
         - name: run-migrations
-          image: {{ include "iviss.backend.image" . | quote }}
+          image: {{ include "backend.image" . | quote }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           command:
             - /iviss-backend
             - --migrate
           envFrom:
             - configMapRef:
-                name: {{ include "iviss.fullname" . }}-config
+                name: {{ include "backend.fullname" . }}-config
             - secretRef:
                 name: iviss-secrets
             - secretRef:
                 name: iviss-static-secrets
           env:
             - name: DATABASE_URL
-              value: {{ include "iviss.databaseUrl" . | quote }}
+              value: {{ include "backend.databaseUrl" . | quote }}
       containers:
         - name: backend
-          image: {{ include "iviss.backend.image" . | quote }}
+          image: {{ include "backend.image" . | quote }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
-            - containerPort: {{ .Values.backend.config.serverPort }}
+            - containerPort: {{ .Values.config.serverPort }}
               name: http
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ include "iviss.fullname" . }}-config
+                name: {{ include "backend.fullname" . }}-config
             - secretRef:
                 name: iviss-secrets
             - secretRef:
                 name: iviss-static-secrets
           env:
             - name: DATABASE_URL
-              value: {{ include "iviss.databaseUrl" . | quote }}
+              value: {{ include "backend.databaseUrl" . | quote }}
           resources:
-            {{- toYaml .Values.backend.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /api/v1/health

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: backend
+description: IVISS Backend — Rust API server for vehicle identification and carte grise
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+icon: https://iviss.cloud/favicon.ico
+keywords:
+  - iviss
+  - backend
+  - rust
+  - api
+sources:
+  - https://github.com/skyengpro/iviss

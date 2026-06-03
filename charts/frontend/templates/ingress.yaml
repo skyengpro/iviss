@@ -2,14 +2,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "iviss.fullname" . }}-api
+  name: iviss-frontend
   labels:
-    {{- include "iviss.labels" . | nindent 4 }}
+    {{- include "frontend.labels" . | nindent 4 }}
   annotations:
     {{- range $key, $value := .Values.ingress.annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
-    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
@@ -17,20 +16,15 @@ spec:
     - host: {{ .host | quote }}
       http:
         paths:
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
+          {{- range .paths }}
+          - path: {{ . }}
+            pathType: Prefix
             backend:
               service:
-                name: {{ include "iviss.backend.fullname" $ }}
+                name: iviss-frontend
                 port:
-                  number: {{ $.Values.backend.config.serverPort }}
-          - path: /api-doc(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: {{ include "iviss.backend.fullname" $ }}
-                port:
-                  number: {{ $.Values.backend.config.serverPort }}
+                  number: 80
+          {{- end }}
     {{- end }}
   {{- if .Values.ingress.tls }}
   tls:

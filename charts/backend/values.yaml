@@ -1,0 +1,62 @@
+global:
+  environment: production
+  domainName: iviss.example.com
+  imageTag: ""
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: "iviss-backend"
+
+databasePassword: changeme
+
+replicas: 2
+
+image:
+  repository: ghcr.io/skyengpro/iviss/backend
+  tag: ""
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 750m
+    memory: 1Gi
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 70
+  memoryUtilization: 80
+
+config:
+  serverHost: 0.0.0.0
+  serverPort: 3000
+  logLevel: info
+  environment: production
+  shiftStartHour: 6
+  shiftEndHour: 18
+  smsProvider: mock
+  emailProvider: mock
+  otpViaEmail: true
+  resendFromEmail: noreply@iviss.cloud
+  smtpHost: localhost
+  smtpPort: 587
+  smtpUsername: user
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+  hosts:
+    - host: iviss.example.com
+      paths:
+        - /api(/|$)(.*)
+        - /api-doc(/|$)(.*)
+  tls:
+    - hosts:
+        - iviss.example.com
+      secretName: iviss-tls
