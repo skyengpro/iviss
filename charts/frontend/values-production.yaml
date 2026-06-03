@@ -1,5 +1,5 @@
 global:
-  environment: production
+  domainName: prod.iviss.skyengpro.app
   imageTag: latest
 
 replicas: 3
@@ -7,6 +7,9 @@ replicas: 3
 hpa:
   minReplicas: 3
   maxReplicas: 10
+
+config:
+  viteApiUrl: "https://prod.iviss.skyengpro.app"
 
 ingress:
   hosts:

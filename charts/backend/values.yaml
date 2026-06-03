@@ -1,6 +1,6 @@
 global:
   environment: production
-  domainName: iviss.example.com
+  domainName: dev.iviss.skyengpro.app
   imageTag: ""
   imagePullPolicy: Always
 

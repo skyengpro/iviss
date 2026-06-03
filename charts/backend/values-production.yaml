@@ -1,5 +1,6 @@
 global:
   environment: production
+  domainName: prod.iviss.skyengpro.app
   imageTag: latest
 
 replicas: 3
