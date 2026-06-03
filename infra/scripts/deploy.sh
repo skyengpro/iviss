@@ -2,57 +2,35 @@
 set -euo pipefail
 
 # ============================================================
-# IVISS Deploy Script (K8s + ArgoCD version)
+# IVISS Deploy Script
 #
-# Manages the AWS edge layer (CloudFront, WAF, ACM, Route53).
-# Application deployment is handled by ArgoCD via GitOps.
+# Deploys (or re-syncs) the IVISS ArgoCD applications.
+# Infrastructure (CNPG, secrets, etc.) is managed by ArgoCD
+# GitOps — push to main and ArgoCD auto-syncs.
 #
 # Prerequisites:
 #   - K8s cluster provisioned on Hetzner (infra/terraform/hetzner/)
-#   - ArgoCD installed on the cluster
-#   - Nginx Ingress Controller running with a LoadBalancer IP
-#   - DNS record pointing to the LoadBalancer IP (K8S_ORIGIN_HOSTNAME)
+#   - Operators installed (bootstrap-k8s.sh)
+#   - kubectl connected to the cluster
+#   - ArgoCD CLI installed (optional, for manual sync)
 # ============================================================
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TERRAFORM_DIR="$SCRIPT_DIR/../terraform"
-
-# --- Load .env if present ---
-if [ -f "$SCRIPT_DIR/../../.env" ]; then
-  set -a
-  source "$SCRIPT_DIR/../../.env"
-  set +a
-fi
-
-# --- Required vars ---
-: "${DOMAIN_NAME:=}"
-: "${ROUTE53_ZONE_ID:=}"
-: "${K8S_ORIGIN_HOSTNAME:=}"
-: "${CERTBOT_EMAIL:=admin@iviss.local}"
-: "${AWS_REGION:=eu-west-1}"
-
-# --- Safety guard ---
-if [ -n "$DOMAIN_NAME" ] && [ -z "${ROUTE53_ZONE_ID:-}" ]; then
-  echo "ERROR: DOMAIN_NAME is set but ROUTE53_ZONE_ID is empty."
-  echo "Set ROUTE53_ZONE_ID to avoid accidental DNS/ACM teardown."
-  exit 1
-fi
-
-# --- Terraform Apply (AWS Edge Layer) ---
-echo "==> Deploying AWS Edge layer (CloudFront + WAF + ACM + Route53)..."
-cd "$TERRAFORM_DIR"
-terraform init
-terraform apply \
-  -auto-approve \
-  -var="domain_name=$DOMAIN_NAME" \
-  -var="route53_zone_id=$ROUTE53_ZONE_ID" \
-  -var="k8s_origin_hostname=$K8S_ORIGIN_HOSTNAME" \
-  -var="certbot_email=$CERTBOT_EMAIL" \
-  -var="aws_region=$AWS_REGION"
+echo "==> Deploying IVISS ArgoCD applications..."
+kubectl apply -k argocd/
 
 echo ""
-echo "==> Deployment complete!"
-echo "    CloudFront: $(terraform output -raw cloudfront_distribution_domain_name 2>/dev/null || echo 'N/A')"
+echo "==> Waiting for ArgoCD to sync..."
+sleep 5
+
 echo ""
-echo "Note: Application rollout is handled by ArgoCD."
-echo "Push to the main branch to trigger a new sync."
+echo "==> Application status:"
+kubectl get applications -n argocd
+
+echo ""
+echo "================================================"
+echo "Deploy complete!"
+echo ""
+echo "ArgoCD will auto-sync on every push to main."
+echo "Manual sync:  argocd app sync iviss-database && argocd app sync iviss-backend && argocd app sync iviss-frontend"
+echo "Check status: argocd app get iviss-backend"
+echo "================================================"

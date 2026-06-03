@@ -51,12 +51,13 @@ ingress:
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/limit-rps: "100"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: iviss.example.com
+    - host: dev.iviss.skyengpro.app
       paths:
         - /api(/|$)(.*)
         - /api-doc(/|$)(.*)
   tls:
     - hosts:
-        - iviss.example.com
-      secretName: iviss-tls
+        - dev.iviss.skyengpro.app
+      secretName: iviss-api-tls

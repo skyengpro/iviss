@@ -15,4 +15,13 @@ config:
   emailProvider: resend
   otpViaEmail: true
 
-ingress: {}
+ingress:
+  hosts:
+    - host: prod.iviss.skyengpro.app
+      paths:
+        - /api(/|$)(.*)
+        - /api-doc(/|$)(.*)
+  tls:
+    - hosts:
+        - prod.iviss.skyengpro.app
+      secretName: iviss-api-tls
