@@ -1,0 +1,32 @@
+global:
+  environment: production
+  domainName: iviss.example.com
+
+nameOverride: ""
+fullnameOverride: "iviss-database"
+
+cnpg:
+  instances: 3
+  image: ghcr.io/cloudnative-pg/postgresql:15
+  storageSize: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  database: iviss_dev
+  owner: iviss_user
+
+secrets:
+  adminBootstrap:
+    email: admin@iviss.cloud
+    phone: "+237600000000"
+    username: admin
+  smsProvider: vonage
+  emailProvider: mock
+  otpViaEmail: "true"
+
+externalSecrets:
+  refreshInterval: 1h

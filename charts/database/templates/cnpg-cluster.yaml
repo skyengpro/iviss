@@ -1,0 +1,28 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: iviss-postgres
+  namespace: iviss
+  labels:
+    {{- include "database.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  instances: {{ .Values.cnpg.instances }}
+  imageName: {{ .Values.cnpg.image | quote }}
+  primaryUpdateStrategy: supervised
+  superuserSecret:
+    name: iviss-postgres-superuser
+  bootstrap:
+    initdb:
+      database: {{ .Values.cnpg.database | quote }}
+      owner: {{ .Values.cnpg.owner | quote }}
+      secret:
+        name: iviss-postgres-app
+  storage:
+    size: {{ .Values.cnpg.storageSize | quote }}
+  resources:
+    {{- toYaml .Values.cnpg.resources | nindent 4 }}
+  monitoring:
+    enablePodMonitor: false
