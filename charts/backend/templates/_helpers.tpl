@@ -1,8 +1,8 @@
-{{- define "iviss.name" -}}
+{{- define "backend.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "iviss.fullname" -}}
+{{- define "backend.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -15,13 +15,13 @@
 {{- end }}
 {{- end }}
 
-{{- define "iviss.chart" -}}
+{{- define "backend.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "iviss.labels" -}}
-helm.sh/chart: {{ include "iviss.chart" . }}
-{{ include "iviss.selectorLabels" . }}
+{{- define "backend.labels" -}}
+helm.sh/chart: {{ include "backend.chart" . }}
+{{ include "backend.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -29,35 +29,19 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/part-of: iviss
 {{- end }}
 
-{{- define "iviss.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "iviss.name" . }}
+{{- define "backend.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "backend.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
-{{- define "iviss.backend.fullname" -}}
-{{ include "iviss.fullname" . }}-backend
-{{- end }}
-
-{{- define "iviss.frontend.fullname" -}}
-{{ include "iviss.fullname" . }}-frontend
-{{- end }}
-
-{{- define "iviss.postgres.fullname" -}}
-iviss-postgres
-{{- end }}
-
-{{- define "iviss.imageTag" -}}
+{{- define "backend.imageTag" -}}
 {{- .Values.global.imageTag | default .Chart.AppVersion }}
 {{- end }}
 
-{{- define "iviss.backend.image" -}}
-{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default (include "iviss.imageTag" .) }}
+{{- define "backend.image" -}}
+{{ .Values.image.repository }}:{{ .Values.image.tag | default (include "backend.imageTag" .) }}
 {{- end }}
 
-{{- define "iviss.frontend.image" -}}
-{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default (include "iviss.imageTag" .) }}
-{{- end }}
-
-{{- define "iviss.databaseUrl" -}}
+{{- define "backend.databaseUrl" -}}
 postgres://iviss_user:{{ .Values.databasePassword }}@iviss-postgres-rw:5432/iviss_dev
 {{- end }}

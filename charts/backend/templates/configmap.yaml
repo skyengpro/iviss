@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "backend.fullname" . }}-config
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+data:
+  SERVER_HOST: {{ .Values.config.serverHost | quote }}
+  SERVER_PORT: {{ .Values.config.serverPort | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  ENVIRONMENT: {{ .Values.config.environment | quote }}
+  SHIFT_START_HOUR: {{ .Values.config.shiftStartHour | quote }}
+  SHIFT_END_HOUR: {{ .Values.config.shiftEndHour | quote }}
+  SMS_PROVIDER: {{ .Values.config.smsProvider | quote }}
+  EMAIL_PROVIDER: {{ .Values.config.emailProvider | quote }}
+  OTP_VIA_EMAIL: {{ .Values.config.otpViaEmail | quote }}
+  RESEND_FROM_EMAIL: {{ .Values.config.resendFromEmail | quote }}
+  SMTP_HOST: {{ .Values.config.smtpHost | quote }}
+  SMTP_PORT: {{ .Values.config.smtpPort | quote }}
+  SMTP_USERNAME: {{ .Values.config.smtpUsername | quote }}
+  SQLX_OFFLINE: "true"

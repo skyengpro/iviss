@@ -1,0 +1,18 @@
+global:
+  environment: production
+  imageTag: latest
+
+replicas: 3
+
+hpa:
+  minReplicas: 3
+  maxReplicas: 10
+
+config:
+  environment: production
+  logLevel: info
+  smsProvider: vonage
+  emailProvider: resend
+  otpViaEmail: true
+
+ingress: {}

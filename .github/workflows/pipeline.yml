@@ -96,44 +96,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-edge:
-    name: Deploy CloudFront Edge (Terraform)
-    needs: [release, docker]
-    if: (needs.release.outputs.new_release_published == 'true') || (github.event_name == 'workflow_dispatch') || (github.ref == 'refs/heads/aws-dev-test')
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
-          role-session-name: iviss-deploy-${{ github.run_id }}
-          aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.10.0"
-          terraform_wrapper: false
-
-      - name: Terraform Apply (AWS Edge)
-        working-directory: ./infra/terraform
-        env:
-          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME || secrets.DOMAIN_NAME }}
-          TF_VAR_route53_zone_id: ${{ vars.ROUTE53_ZONE_ID || secrets.ROUTE53_ZONE_ID || '' }}
-          TF_VAR_k8s_origin_hostname: ${{ vars.K8S_ORIGIN_HOSTNAME || secrets.K8S_ORIGIN_HOSTNAME || '' }}
-          TF_VAR_certbot_email: ${{ vars.CERTBOT_EMAIL || secrets.CERTBOT_EMAIL }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
-
   update-helm-values:
     name: Update Helm Chart Version
     needs: [release, docker]
@@ -151,9 +113,10 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.release.outputs.new_release_version }}
         run: |
-          sed -i "s/^  imageTag:.*/  imageTag: \"${RELEASE_VERSION}\"/" charts/iviss/values-production.yaml
+          sed -i "s/^  imageTag:.*/  imageTag: \"${RELEASE_VERSION}\"/" charts/backend/values-production.yaml
+          sed -i "s/^  imageTag:.*/  imageTag: \"${RELEASE_VERSION}\"/" charts/frontend/values-production.yaml
           git config user.name "iviss-bot"
           git config user.email "bot@iviss.cloud"
-          git add charts/iviss/values-production.yaml
-          git commit -m "chore: update Helm chart image tag to ${RELEASE_VERSION}"
+          git add charts/backend/values-production.yaml charts/frontend/values-production.yaml
+          git commit -m "chore: update Helm chart image tags to ${RELEASE_VERSION}"
           git push

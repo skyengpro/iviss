@@ -1,0 +1,11 @@
+global:
+  environment: production
+  imageTag: latest
+
+replicas: 3
+
+hpa:
+  minReplicas: 3
+  maxReplicas: 10
+
+ingress: {}

@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: iviss
+  name: iviss-backend
   namespace: argocd
 spec:
   project: iviss
   source:
     repoURL: https://github.com/skyengpro/iviss
-    targetBranch: main
-    path: charts/iviss
+    targetRevision: main
+    path: charts/backend
     helm:
       valueFiles:
         - values.yaml
