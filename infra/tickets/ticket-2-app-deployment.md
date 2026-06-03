@@ -6,7 +6,8 @@
 ## Prerequisites (from Ticket 1)
 
 - [ ] Namespace `iviss` exists
-- [ ] CNPG cluster `iviss-postgres` is running and Ready
+- [ ] CNPG cluster `iviss-db` is running and Ready
+- [ ] ExternalSecret `iviss-db-app` exists (ESO-pulled from AWS)
 - [ ] ESO + ClusterSecretStore `aws-secretsmanager` are installed and ready
 - [ ] Nginx Ingress Controller is running
 - [ ] cert-manager + ClusterIssuer installed
@@ -38,8 +39,8 @@ kubectl apply -k argocd/
 
 | Resource | File |
 |---|---|
-| CNPG Secrets `iviss-postgres-superuser`, `iviss-postgres-app` | `infra/manifests/cnpg-secrets.yaml` |
-| CNPG Cluster `iviss-postgres` | `infra/manifests/cnpg-cluster.yaml` |
+| ExternalSecret `iviss-db-app` | `infra/manifests/cnpg-external-secret.yaml` |
+| CNPG Cluster `iviss-db` + ConfigMap + NetworkPolicy | `infra/manifests/cnpg-cluster.yaml` |
 
 ## Secret Flow
 
@@ -47,14 +48,14 @@ kubectl apply -k argocd/
 AWS Secrets Manager (admin populates these)
   ├── iviss/prod/app-secrets         ──ESO──▶  iviss-secrets (JWT, pepper, admin pw)
   ├── iviss/prod/provider-keys       ──ESO──▶  iviss-secrets (SMS, email, API keys)
-  └── iviss/prod/vehicle-api-keys    ──ESO──▶  iviss-secrets (vehicle API credentials)
+  ├── iviss/prod/vehicle-api-keys    ──ESO──▶  iviss-secrets (vehicle API credentials)
+  └── iviss/prod/app-secrets         ──ESO──▶  iviss-db-app (db_password for CNPG)
 
 ArgoCD-managed (iviss-infra chart):
   └── iviss-static-secrets (bootstrap, SMS/EMAIL provider choice)
 
 Admin-created (manual):
-  ├── iviss-postgres-superuser
-  └── iviss-postgres-app
+  └── CNPG Cluster iviss-db (auto-creates superuser secret)
 ```
 
 ## Deployment Flow
@@ -89,8 +90,8 @@ argocd app sync iviss-frontend
 2. Commit and push — ArgoCD applies the change
 
 **Database password:**
-1. Admin manages `iviss-postgres-app` secret directly
-2. CNPG handles rotation
+1. Update `db_password` in AWS Secrets Manager (`iviss/prod/app-secrets`)
+2. ESO syncs `iviss-db-app` secret → CNPG runs ALTER ROLE automatically
 
 ## Verification
 
@@ -103,6 +104,9 @@ argocd app get iviss-frontend
 # External Secrets synced
 kubectl get externalsecrets -n iviss
 kubectl get secret iviss-secrets -n iviss -o jsonpath='{.data}' | jq 'keys'
+
+# CNPG database
+kubectl get cluster -n iviss iviss-db
 
 # Pods running
 kubectl get pods -n iviss

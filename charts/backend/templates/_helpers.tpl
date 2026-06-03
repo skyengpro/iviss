@@ -43,5 +43,5 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "backend.databaseUrl" -}}
-postgres://iviss_user:{{ .Values.databasePassword }}@iviss-postgres-rw:5432/iviss_dev
+postgres://iviss:{{ .Values.databasePassword }}@iviss-db-rw:5432/iviss
 {{- end }}
