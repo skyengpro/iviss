@@ -31,17 +31,17 @@ spec:
             - sh
             - -c
             - |
-              until pg_isready -h iviss-postgres-rw -U iviss_user -d iviss_dev; do
+              until pg_isready -h iviss-db-rw -U iviss -d iviss; do
                 echo "waiting for postgres..."
                 sleep 2
               done
           env:
             - name: PGUSER
-              value: "iviss_user"
+              value: "iviss"
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: iviss-postgres-app
+                  name: iviss-db-app
                   key: password
         - name: run-migrations
           image: {{ include "backend.image" . | quote }}
