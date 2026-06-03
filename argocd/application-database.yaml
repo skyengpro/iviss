@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: iviss-database
+  namespace: argocd
+spec:
+  project: iviss
+  source:
+    repoURL: https://github.com/skyengpro/iviss
+    targetRevision: main
+    path: charts/database
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-production.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: iviss
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
