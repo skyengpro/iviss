@@ -47,7 +47,7 @@ echo "Ingress LoadBalancer IP: ${LB_IP}"
 echo ""
 echo "==> Create DNS records pointing to ${LB_IP}:"
 echo "    dev.iviss.skyengpro.app  → A record → ${LB_IP}"
-echo "    prod.iviss.skyengpro.app → A record → ${LB_IP}"
+echo "    dev.iviss.skyengpro.app  → A record → ${LB_IP}"
 echo ""
 read -p "Have you created the DNS A records? (y/n) " -n 1 -r
 echo
