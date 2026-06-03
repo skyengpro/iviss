@@ -36,11 +36,12 @@ ingress:
   className: nginx
   annotations:
     nginx.ingress.kubernetes.io/limit-rps: "100"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: iviss.example.com
+    - host: dev.iviss.skyengpro.app
       paths:
         - /
   tls:
     - hosts:
-        - iviss.example.com
-      secretName: iviss-tls
+        - dev.iviss.skyengpro.app
+      secretName: iviss-frontend-tls
