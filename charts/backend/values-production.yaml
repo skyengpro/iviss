@@ -18,11 +18,11 @@ config:
 
 ingress:
   hosts:
-    - host: prod.iviss.skyengpro.app
+    - host: dev.iviss.skyengpro.app
       paths:
         - /api(/|$)(.*)
         - /api-doc(/|$)(.*)
   tls:
     - hosts:
-        - prod.iviss.skyengpro.app
+        - dev.iviss.skyengpro.app
       secretName: iviss-api-tls
