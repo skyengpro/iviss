@@ -97,14 +97,14 @@ async fn setup_test_infrastructure() -> (
 
     let cache = std::sync::Arc::new(crate::app_cache::AppCache::new());
 
-    // Create organization
+    // Create organization with shift hours covering full day (0-1440) so tests pass regardless of CI runner time
     let org_id = Uuid::new_v4();
     sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
-        .bind(360i32)
-        .bind(1080i32)
+        .bind(0i32)
+        .bind(1440i32)
         .execute(&db)
         .await
         .unwrap();
