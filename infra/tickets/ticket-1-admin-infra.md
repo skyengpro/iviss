@@ -4,39 +4,35 @@
 **Cluster:** Hetzner K8s (k3s)  
 **Namespace:** `iviss`  
 
-> **After completing this ticket, the admin deploys the `iviss-database` ArgoCD app, which creates all secrets, ExternalSecrets, CNPG Cluster, and ServiceAccount automatically.**  
-> **The dev then deploys `iviss-backend` and `iviss-frontend`.**
+> **The admin creates all infrastructure manually. The dev team only manages the application via ArgoCD (`iviss-backend` + `iviss-frontend`).**
 
 ---
 
-## Prerequisites — Manual Steps (One-Time)
+## Step 1 — Prerequisites (Operators)
 
-### A. Namespace
-
-```yaml
+```bash
+# 1. Namespace
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
   name: iviss
   labels:
     app.kubernetes.io/part-of: iviss
-```
+EOF
 
-### B. Operators (install in this order)
-
-```bash
-# 1. Cloud Native PG operator
+# 2. Cloud Native PG operator
 kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/releases/cnpg-1.24.0.yaml
 kubectl wait deployment -n cnpg-system cnpg-controller-manager --for=condition=Available --timeout=120s
 
-# 2. External Secrets Operator
+# 3. External Secrets Operator
 helm upgrade --install external-secrets external-secrets \
   --repo https://charts.external-secrets.io \
   --version 0.12.1 \
   --namespace external-secrets-system --create-namespace \
   --wait
 
-# 3. Nginx Ingress Controller
+# 4. Nginx Ingress Controller
 helm upgrade --install ingress-nginx ingress-nginx \
   --repo https://kubernetes.github.io/ingress-nginx \
   --version 1.12.1 \
@@ -45,7 +41,7 @@ helm upgrade --install ingress-nginx ingress-nginx \
   --set controller.config.use-forwarded-headers=true \
   --wait
 
-# 4. cert-manager
+# 5. cert-manager + ClusterIssuer
 helm upgrade --install cert-manager cert-manager \
   --repo https://charts.jetstack.io \
   --version 1.17.1 \
@@ -53,7 +49,9 @@ helm upgrade --install cert-manager cert-manager \
   --set crds.enabled=true \
   --wait
 
-# 5. ArgoCD
+kubectl apply -f infra/scripts/cluster-issuer.yaml
+
+# 6. ArgoCD
 helm upgrade --install argocd argo-cd \
   --repo https://argoproj.github.io/argo-helm \
   --version 7.8.0 \
@@ -62,19 +60,14 @@ helm upgrade --install argocd argo-cd \
   --wait
 ```
 
-### C. AWS Secrets Manager — Verify Content
+---
 
-These secrets already exist in AWS Secrets Manager (managed by Terraform with `ignore_changes`).  
-**Verify each one has the correct keys populated.** If any value is empty, seed it using the AWS Console or CLI.
+## Step 2 — AWS Secrets Manager — Verify Content
 
-#### Secret 1: `iviss/prod/app-secrets`
+These secrets exist in AWS (created by Terraform). **Verify they have the correct keys populated.**
 
-```json
-{
-}
-```
+### Secret 1: `iviss/prod/app-secrets`
 
-Verify:
 ```bash
 aws secretsmanager get-secret-value \
   --secret-id iviss/prod/app-secrets \
@@ -82,26 +75,9 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text | python3 -m json.tool
 ```
 
-#### Secret 2: `iviss/prod/provider-keys`
 
-```json
-{
-  "twilio_account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "twilio_auth_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "twilio_from_number": "+1234567890",
-  "vonage_api_key": "xxxxxxxx",
-  "vonage_api_secret": "xxxxxxxxxxxxxxxxxxxxxxxx",
-  "orange_client_id": "xxxxxxxxxxxxxxxxxxxxxxxx",
-  "orange_client_secret": "xxxxxxxxxxxxxxxxxxxxxxxx",
-  "orange_sender_number": "+237000000000",
-  "resend_api_key": "re_xxxxxxxxxxxxxxxxxxxxxxxx",
-  "smtp_password": "your_smtp_app_password_here",
-  "smtp_from_email": "noreply@iviss.cloud",
-  "resend_from_email": "noreply@iviss.cloud"
-}
-```
+### Secret 2: `iviss/prod/provider-keys`
 
-Verify:
 ```bash
 aws secretsmanager get-secret-value \
   --secret-id iviss/prod/provider-keys \
@@ -109,23 +85,10 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text | python3 -m json.tool
 ```
 
-#### Secret 3: `iviss/prod/vehicle-api-keys`
+Expected keys: `twilio_account_sid`, `twilio_auth_token`, `twilio_from_number`, `vonage_api_key`, `vonage_api_secret`, `orange_client_id`, `orange_client_secret`, `orange_sender_number`, `resend_api_key`, `smtp_password`, `smtp_from_email`, `resend_from_email`
 
-```json
-{
-  "external_api_base_url": "https://api.example.com",
-  "external_api_username": "auth_api_username",
-  "external_api_password": "auth_api_password",
-  "external_api_lock_ndia": "header_lock_ndia",
-  "external_api_kindia": "header_kindia",
-  "external_api_user": "header_user",
-  "external_api_client": "header_client",
-  "external_api_ctr": "header_ctr",
-  "external_api_tls_cert_b64": "base64-encoded-pem-certificate"
-}
-```
+### Secret 3: `iviss/prod/vehicle-api-keys`
 
-Verify:
 ```bash
 aws secretsmanager get-secret-value \
   --secret-id iviss/prod/vehicle-api-keys \
@@ -133,69 +96,75 @@ aws secretsmanager get-secret-value \
   --query SecretString --output text | python3 -m json.tool
 ```
 
-### D. ClusterSecretStore — Connect ESO to AWS
+Expected keys: `external_api_base_url`, `external_api_username`, `external_api_password`, `external_api_lock_ndia`, `external_api_kindia`, `external_api_user`, `external_api_client`, `external_api_ctr`, `external_api_tls_cert_b64`
 
-The ESO pods need an IAM user with `secretsmanager:GetSecretValue` on:
+---
+
+## Step 3 — ClusterSecretStore (connect ESO to AWS)
+
+The ESO needs IAM credentials with `secretsmanager:GetSecretValue` on:
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/app-secrets-*`
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/provider-keys-*`
 - `arn:aws:secretsmanager:eu-west-1:577638362880:secret:iviss/prod/vehicle-api-keys-*`
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aws-eso-credentials
-  namespace: external-secrets-system
-type: Opaque
-stringData:
-  access-key-id: REPLACE_ME          # AWS IAM access key with SecretsManager read access
-  secret-access-key: REPLACE_ME      # corresponding secret key
----
-apiVersion: external-secrets.io/v1beta1
-kind: ClusterSecretStore
-metadata:
-  name: aws-secretsmanager
-spec:
-  provider:
-    aws:
-      service: SecretsManager
-      region: eu-west-1
-      auth:
-        secretRef:
-          accessKeyIDSecretRef:
-            name: aws-eso-credentials
-            namespace: external-secrets-system
-            key: access-key-id
-          secretAccessKeySecretRef:
-            name: aws-eso-credentials
-            namespace: external-secrets-system
-            key: secret-access-key
+```bash
+kubectl apply -f infra/manifests/cluster-secret-store.yaml
 ```
 
-### E. Generate CNPG Passwords
+---
 
-The `iviss-database` Helm chart uses `randAlphaNum` to auto-generate passwords, but if you want to set specific values, override them in `values-production.yaml`:
+## Step 4 — Apply Infrastructure Manifests
+
+All files are in `infra/manifests/`. Apply them in order:
 
 ```bash
-# Optional: generate and note passwords for CNPG
-POSTGRES_SUPER_PASSWORD=$(openssl rand -base64 32)
-POSTGRES_APP_PASSWORD=$(openssl rand -base64 32)
-echo "superuser: ${POSTGRES_SUPER_PASSWORD}"
-echo "app: ${POSTGRES_APP_PASSWORD}"
-```
+# 1. ServiceAccount
+kubectl apply -f infra/manifests/serviceaccount.yaml
 
-Set them via Helm values:
-```yaml
-cnpg:
-  superuserPassword: "<your-super-password>"
-  appPassword: "<your-app-password>"
+# 2. CNPG passwords (edit first — set real passwords!)
+#    Generate: openssl rand -base64 32
+#    Replace REPLACE_ME_GENERATED_SUPERUSER_PASSWORD and REPLACE_ME_GENERATED_APP_PASSWORD
+kubectl apply -f infra/manifests/cnpg-secrets.yaml
+
+# 3. CNPG Cluster (depends on secrets above)
+kubectl apply -f infra/manifests/cnpg-cluster.yaml
+
+# 4. ExternalSecrets (depends on ClusterSecretStore)
+kubectl apply -f infra/manifests/externalsecret-app.yaml
+kubectl apply -f infra/manifests/externalsecret-provider.yaml
+kubectl apply -f infra/manifests/externalsecret-vehicle-api.yaml
+
+# 5. Static secrets
+kubectl apply -f infra/manifests/static-secrets.yaml
 ```
 
 ---
 
-## Deploy ArgoCD Apps
+## Step 5 — Verify
 
-### 1. Register the project and apps
+```bash
+# CNPG cluster ready
+kubectl get cluster -n iviss iviss-postgres
+kubectl wait cluster/iviss-postgres -n iviss --for=condition=Ready --timeout=300s
+
+# External Secrets synced
+kubectl get externalsecrets -n iviss                 # all should show Ready=True
+kubectl get secret iviss-secrets -n iviss -o jsonpath='{.data}' | jq 'keys'
+
+# Static secrets exist
+kubectl get secret iviss-static-secrets -n iviss
+
+# ServiceAccount exists
+kubectl get sa iviss -n iviss
+
+# Database accessible
+DB_PASS=$(kubectl get secret iviss-postgres-app -n iviss -o jsonpath='{.data.password}' | base64 -d)
+kubectl exec -n iviss iviss-postgres-1 -- psql "postgresql://iviss_user:${DB_PASS}@localhost:5432/iviss_dev" -c "SELECT 1"
+```
+
+---
+
+## Step 6 — Register ArgoCD Apps
 
 ```bash
 kubectl apply -k argocd/
@@ -203,35 +172,10 @@ kubectl apply -k argocd/
 
 This creates:
 - **AppProject** `iviss`
-- **Application** `iviss-database` (sync-wave 0) — CNPG, secrets, ExternalSecrets
-- **Application** `iviss-backend` (sync-wave 1) — API server, ConfigMap, Ingress
-- **Application** `iviss-frontend` (sync-wave 1) — Dashboard, Ingress
+- **Application** `iviss-backend` (sync-wave 1)
+- **Application** `iviss-frontend` (sync-wave 1)
 
-### 2. Verify sync
-
-```bash
-argocd app sync iviss-database
-argocd app sync iviss-backend
-argocd app sync iviss-frontend
-```
-
-Or let ArgoCD auto-sync (prune + self-heal enabled).
-
----
-
-## What the `iviss-database` ArgoCD App Creates
-
-All resources below are in `charts/database/templates/` and managed by ArgoCD:
-
-| Resource | File | Notes |
-|---|---|---|
-| ServiceAccount `iviss` | `serviceaccount.yaml` | sync-wave 0 |
-| CNPG Secrets | `cnpg-secrets.yaml` | superuser + app passwords (auto-generated) |
-| CNPG Cluster `iviss-postgres` | `cnpg-cluster.yaml` | 3 instances, 10Gi storage |
-| ExternalSecret `iviss-app-secrets` | `externalsecret-app.yaml` | → `iviss-secrets` (Owner) |
-| ExternalSecret `iviss-provider-keys` | `externalsecret-provider.yaml` | → `iviss-secrets` (Merge) |
-| ExternalSecret `iviss-vehicle-api-keys` | `externalsecret-vehicle-api.yaml` | → `iviss-secrets` (Merge) |
-| Secret `iviss-static-secrets` | `static-secrets.yaml` | admin bootstrap, provider choices |
+ArgoCD will auto-sync the application deployments.
 
 ---
 
@@ -267,37 +211,3 @@ All resources below are in `charts/database/templates/` and managed by ArgoCD:
 | `EMAIL_PROVIDER` | `iviss-static-secrets` | `EMAIL_PROVIDER` | — |
 | `OTP_VIA_EMAIL` | `iviss-static-secrets` | `OTP_VIA_EMAIL` | — |
 | `DATABASE_URL` | — | Constructed by Helm | `postgres://iviss_user:<password>@iviss-postgres-rw:5432/iviss_dev` |
-
----
-
-## Verification
-
-```bash
-# 1. Namespace exists
-kubectl get namespace iviss
-
-# 2. ArgoCD apps are synced
-argocd app get iviss-database
-argocd app get iviss-backend
-argocd app get iviss-frontend
-
-# 3. External Secrets are synced
-kubectl get externalsecrets -n iviss
-kubectl get secret iviss-secrets -n iviss -o jsonpath='{.data}' | jq 'keys'
-
-# 4. CNPG cluster is ready
-kubectl get cluster -n iviss iviss-postgres
-kubectl wait cluster/iviss-postgres -n iviss --for=condition=Ready --timeout=300s
-
-# 5. ServiceAccount exists
-kubectl get sa iviss -n iviss
-
-# 6. Static secrets exist
-kubectl get secret iviss-static-secrets -n iviss
-
-# 7. Nginx Ingress Controller is running
-kubectl get pods -n ingress-nginx
-
-# 8. ESO ClusterSecretStore is ready
-kubectl get clustersecretstore aws-secretsmanager
-```
