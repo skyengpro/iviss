@@ -1,47 +1,58 @@
 # Ticket 2 — Application Deployment (Dev Team via ArgoCD)
 
 **Deployer:** IVISS Dev Team  
-**Namespace:** `iviss` (created by admin in Ticket 1)  
-**Method:** ArgoCD auto-sync from `charts/` in the `main` branch
+**Namespace:** `iviss` (created by admin in Ticket 1)
 
 ## Prerequisites (from Ticket 1)
 
-Before deploying, confirm the admin has completed:
-
 - [ ] Namespace `iviss` exists
-- [ ] CNPG operator, ESO, Nginx Ingress, cert-manager, ArgoCD are installed
 - [ ] CNPG cluster `iviss-postgres` is running and Ready
-- [ ] ESO is syncing: `kubectl get externalsecrets -n iviss` shows `Ready`
-- [ ] Secret `iviss-secrets` exists (ESO-pulled from AWS)
-- [ ] Secret `iviss-static-secrets` exists (admin-created)
-- [ ] ServiceAccount `iviss` exists
+- [ ] ESO + ClusterSecretStore `aws-secretsmanager` are installed and ready
+- [ ] Nginx Ingress Controller is running
+- [ ] cert-manager + ClusterIssuer installed
+- [ ] ArgoCD is installed
 
-## ArgoCD Applications
+## ArgoCD Applications (3 apps)
 
-Two applications (admin creates the project + apps):
-
-| App | Chart Path | What it deploys |
-|---|---|---|
-| `iviss-backend` | `charts/backend/` | API Deployment, Service, HPA, ConfigMap, API Ingress |
-| `iviss-frontend` | `charts/frontend/` | Dashboard Deployment, Service, HPA, ConfigMap, Frontend Ingress |
-
-Register them:
-```bash
+```
 kubectl apply -k argocd/
 ```
+
+| App | Chart Path | Sync Wave | What it manages |
+|---|---|---|---|
+| `iviss-infra` | `charts/infra/` | 0 | ServiceAccount, 3 ExternalSecrets, static secrets |
+| `iviss-backend` | `charts/backend/` | 1 | API Deployment, Service, HPA, ConfigMap, API Ingress |
+| `iviss-frontend` | `charts/frontend/` | 1 | Dashboard Deployment, Service, HPA, ConfigMap, Frontend Ingress |
+
+### What `iviss-infra` creates (sync-wave 0)
+
+| Resource | File |
+|---|---|
+| ServiceAccount `iviss` | `serviceaccount.yaml` |
+| ExternalSecret `iviss-app-secrets` | `externalsecret-app.yaml` |
+| ExternalSecret `iviss-provider-keys` | `externalsecret-provider.yaml` |
+| ExternalSecret `iviss-vehicle-api-keys` | `externalsecret-vehicle-api.yaml` |
+| Secret `iviss-static-secrets` | `static-secrets.yaml` |
+
+### What the admin creates (manual, NOT in ArgoCD)
+
+| Resource | File |
+|---|---|
+| CNPG Secrets `iviss-postgres-superuser`, `iviss-postgres-app` | `infra/manifests/cnpg-secrets.yaml` |
+| CNPG Cluster `iviss-postgres` | `infra/manifests/cnpg-cluster.yaml` |
 
 ## Secret Flow
 
 ```
-AWS Secrets Manager (admin creates these)
+AWS Secrets Manager (admin populates these)
   ├── iviss/prod/app-secrets         ──ESO──▶  iviss-secrets (JWT, pepper, admin pw)
   ├── iviss/prod/provider-keys       ──ESO──▶  iviss-secrets (SMS, email, API keys)
   └── iviss/prod/vehicle-api-keys    ──ESO──▶  iviss-secrets (vehicle API credentials)
 
-Admin-created (static):
+ArgoCD-managed (iviss-infra chart):
   └── iviss-static-secrets (bootstrap, SMS/EMAIL provider choice)
 
-CNPG-managed (auto-created):
+Admin-created (manual):
   ├── iviss-postgres-superuser
   └── iviss-postgres-app
 ```
@@ -58,52 +69,42 @@ Push to main branch
 ## How to Deploy
 
 **Auto-sync (recommended):**
-ArgoCD watches the `main` branch and auto-syncs on every push.
+ArgoCD watches `main` and auto-syncs.
 
 **Manual sync:**
 ```bash
+argocd app sync iviss-infra
 argocd app sync iviss-backend
 argocd app sync iviss-frontend
 ```
 
-**Force image tag:**
-```bash
-argocd app set iviss-backend -p global.imageTag=v1.2.3
-argocd app set iviss-frontend -p global.imageTag=v1.2.3
-```
-
-## Updating Config
-
-Non-sensitive config is in Helm values:
-- `charts/backend/values-production.yaml` (shift hours, SMS provider, etc.)
-- `charts/frontend/values-production.yaml` (API URL, etc.)
-
-Sensitive values are managed in:
-- **AWS Secrets Manager** → ESO syncs them into `iviss-secrets` automatically
-- **`iviss-static-secrets`** → admin updates directly: `kubectl apply -f infra/manifests/static-secrets.yaml`
-
 ## Updating Secrets
 
 **AWS-managed secrets (JWT, API keys, vehicle API):**
-1. Update in AWS Secrets Manager console or CLI
-2. ESO syncs every 1 hour — or force: `kubectl annotate externalsecret iviss-app-secrets -n iviss force-sync=$(date +%s) --overwrite`
+1. Update in AWS Secrets Manager
+2. ESO syncs every 1h — or force: `kubectl annotate externalsecret iviss-app-secrets -n iviss force-sync=$(date +%s) --overwrite`
 
 **Static secrets (admin bootstrap, provider choices):**
-1. Edit `infra/manifests/static-secrets.yaml`
-2. `kubectl apply -f infra/manifests/static-secrets.yaml`
+1. Edit `charts/infra/values.yaml`
+2. Commit and push — ArgoCD applies the change
 
 **Database password:**
-1. CNPG manages it via `iviss-postgres-app` secret
-2. To rotate: update the secret, CNPG reloads automatically
+1. Admin manages `iviss-postgres-app` secret directly
+2. CNPG handles rotation
 
 ## Verification
 
 ```bash
 # ArgoCD app status
+argocd app get iviss-infra
 argocd app get iviss-backend
 argocd app get iviss-frontend
 
-# Pod status
+# External Secrets synced
+kubectl get externalsecrets -n iviss
+kubectl get secret iviss-secrets -n iviss -o jsonpath='{.data}' | jq 'keys'
+
+# Pods running
 kubectl get pods -n iviss
 
 # Backend health
@@ -112,7 +113,4 @@ curl http://localhost:3000/api/v1/health
 
 # Database connectivity
 kubectl exec -n iviss deploy/iviss-backend -- env | grep DATABASE_URL
-
-# CNPG cluster
-kubectl get cluster -n iviss iviss-postgres
 ```
