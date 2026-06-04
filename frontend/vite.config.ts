@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
         '.vpn.kivoyo.com',
         'prod.iviss.skyengpro.app',
         'dev.iviss.skyengpro.app',
+        'api.iviss.skyengpro.app',
       ],
       host: '::',
       port: 8080,

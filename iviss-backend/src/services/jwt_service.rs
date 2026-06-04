@@ -33,10 +33,7 @@ impl JwtService {
                 &base64::prelude::BASE64_STANDARD,
                 cleaned.replace("\\n", "").replace("\n", "").trim(),
             ) {
-                Ok(decoded) => {
-                    let s = String::from_utf8(decoded).unwrap_or_else(|_| cleaned.to_string());
-                    s.replace("\\n", "\n")
-                }
+                Ok(decoded) => String::from_utf8(decoded).unwrap_or_else(|_| cleaned.to_string()),
                 Err(_) => cleaned.to_string(),
             }
         } else {
