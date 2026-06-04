@@ -44,11 +44,6 @@ pub enum EmailProviderCredentials {
 }
 
 impl EmailProviderCredentials {
-    /// Check if credentials are mock/empty
-    pub fn is_mock(&self) -> bool {
-        matches!(self, Self::Mock)
-    }
-
     /// Get the provider name
     pub fn provider_name(&self) -> &'static str {
         match self {
