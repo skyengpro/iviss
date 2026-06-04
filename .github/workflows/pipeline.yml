@@ -107,7 +107,7 @@ jobs:
         with:
           repository: skyengpro/om
           ref: feat/iviss-deployment
-          token: ${{ secrets.OM_PAT }}
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Update backend image tag
         env:
