@@ -119,7 +119,7 @@ export default function UserManagement() {
     isDeleting,
   } = useUsers();
 
-  const { data: orgUsers = [], isLoading: isLoadingOrg } = useOrgUsers();
+  const { data: orgUsers = [], isLoading: isLoadingOrg } = useOrgUsers(!isSuperAdmin);
 
   const users: UserProfile[] = isSuperAdmin
     ? (allUsers as UserProfile[])

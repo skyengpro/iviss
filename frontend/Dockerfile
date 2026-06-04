@@ -18,6 +18,8 @@ CMD ["npm", "run", "dev", "--", "--host"]
 
 # Build stage
 FROM base AS builder
+ARG VITE_API_URL=https://api.iviss.skyengpro.app
+ENV VITE_API_URL=${VITE_API_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run codegen

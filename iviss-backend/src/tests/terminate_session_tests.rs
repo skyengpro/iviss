@@ -101,8 +101,8 @@ async fn seed_users_with_active_session(
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
-        .bind(360i32)
-        .bind(1080i32)
+        .bind(0i32)
+        .bind(1440i32)
         .execute(db)
         .await
         .unwrap();

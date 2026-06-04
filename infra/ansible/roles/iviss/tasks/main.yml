@@ -1,5 +1,0 @@
----
-- include_tasks: setup.yml
-- include_tasks: ssl.yml
-  when: domain_name is defined and certbot_email is defined
-- include_tasks: deploy.yml
