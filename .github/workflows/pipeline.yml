@@ -91,28 +91,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  update-helm-values:
-    name: Update Helm Chart Version
-    needs: [release, docker]
-    if: (needs.release.outputs.new_release_published == 'true') && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-
-      - name: Update Helm values with new release version
-        env:
-          RELEASE_VERSION: ${{ needs.release.outputs.new_release_version }}
-        run: |
-          sed -i "s/^  imageTag:.*/  imageTag: \"${RELEASE_VERSION}\"/" charts/backend/values-production.yaml
-          sed -i "s/^  imageTag:.*/  imageTag: \"${RELEASE_VERSION}\"/" charts/frontend/values-production.yaml
-          git config user.name "iviss-bot"
-          git config user.email "bot@iviss.cloud"
-          git add charts/backend/values-production.yaml charts/frontend/values-production.yaml
-          git commit -m "chore: update Helm chart image tags to ${RELEASE_VERSION}"
-          git push
+          build-args: |
+            VITE_API_URL=https://api.iviss.skyengpro.app
