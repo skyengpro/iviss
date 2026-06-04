@@ -197,12 +197,9 @@ pub fn decode_access_token_rs256(
     let raw_pem = if !cleaned.starts_with("-----") {
         match base64::Engine::decode(
             &base64::prelude::BASE64_STANDARD,
-            cleaned.replace("\\n", "").replace("\n", "").trim(),
+            cleaned.replace("\\n", "").replace("\n", "").trim()
         ) {
-            Ok(decoded) => {
-                let s = String::from_utf8(decoded).unwrap_or_else(|_| cleaned.to_string());
-                s.replace("\\n", "\n")
-            }
+            Ok(decoded) => String::from_utf8(decoded).unwrap_or_else(|_| cleaned.to_string()),
             Err(_) => cleaned.to_string(),
         }
     } else {
