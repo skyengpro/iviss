@@ -1547,7 +1547,7 @@
             }
           },
           "400": {
-            "description": "Bad request — missing or invalid fields",
+            "description": "Bad request \u2014 missing or invalid fields",
             "content": {
               "application/json": {
                 "schema": {
@@ -1615,7 +1615,7 @@
             }
           },
           "400": {
-            "description": "Bad request — missing or invalid fields",
+            "description": "Bad request \u2014 missing or invalid fields",
             "content": {
               "application/json": {
                 "schema": {
@@ -3122,6 +3122,10 @@
           "confirmPassword": {
             "type": "string"
           },
+          "currentPassword": {
+            "type": "string",
+            "nullable": true
+          },
           "newPassword": {
             "type": "string"
           }
@@ -3599,7 +3603,7 @@
       },
       "OrgDashboardStats": {
         "type": "object",
-        "description": "Org-scoped dashboard stats — returned for org_admin users.",
+        "description": "Org-scoped dashboard stats \u2014 returned for org_admin users.",
         "required": [
           "organizationName",
           "todayControls",
@@ -3743,14 +3747,15 @@
       },
       "OwnerInfo": {
         "type": "object",
-        "required": ["name"],
+
         "properties": {
           "address": {
             "type": "string",
             "nullable": true
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "national_id": {
             "type": "string",
@@ -4122,7 +4127,7 @@
           "confidence": {
             "type": "number",
             "format": "float",
-            "description": "Tesseract confidence score (0.0 – 1.0)."
+            "description": "Tesseract confidence score (0.0 \u2013 1.0)."
           },
           "format_valid": {
             "type": "boolean",
@@ -4554,15 +4559,21 @@
       },
       "VehicleInfo": {
         "type": "object",
-        "required": ["brand", "model", "year", "chassis_number", "owner"],
+        "required": ["owner"],
         "properties": {
           "brand": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "chassis_number": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "customs_status": {
             "type": "string",
             "nullable": true
           },
@@ -4575,14 +4586,16 @@
             "nullable": true
           },
           "model": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "owner": {
             "$ref": "#/components/schemas/OwnerInfo"
           },
           "year": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           }
         }
       },

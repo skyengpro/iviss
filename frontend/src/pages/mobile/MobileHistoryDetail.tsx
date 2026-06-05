@@ -70,6 +70,16 @@ export default function MobileHistoryDetail() {
     }
   };
 
+  const display = (value?: string | number | null) => {
+    if (value === undefined || value === null || value === '') return '-';
+    return String(value);
+  };
+
+  const formatBrandModel = (brand?: string | null, model?: string | null) => {
+    const value = [brand, model].filter(Boolean).join(' ');
+    return value || '-';
+  };
+
   return (
     <MobileLayout title={t('mobileHistory.detailTitle', 'Control Detail')} hideNavigation>
       <div className="p-4 space-y-6 pb-20">
@@ -123,22 +133,22 @@ export default function MobileHistoryDetail() {
                 <InfoRow
                   icon={Car}
                   label={t('mobileHistory.brandModel', 'Brand & Model')}
-                  value={`${control.vehicle.brand} ${control.vehicle.model}`}
+                  value={formatBrandModel(control.vehicle.brand, control.vehicle.model)}
                 />
                 <InfoRow
                   icon={Calendar}
                   label={t('mobileHistory.year', 'Year')}
-                  value={String(control.vehicle.year)}
+                  value={display(control.vehicle.year)}
                 />
                 <InfoRow
                   icon={Info}
                   label={t('mobileHistory.color', 'Color')}
-                  value={control.vehicle.color || '-'}
+                  value={display(control.vehicle.color)}
                 />
                 <InfoRow
                   icon={FileText}
                   label={t('mobileHistory.chassisNumber', 'Chassis')}
-                  value={control.vehicle.chassis_number}
+                  value={display(control.vehicle.chassis_number)}
                 />
               </div>
 
@@ -150,7 +160,7 @@ export default function MobileHistoryDetail() {
                   </span>
                 </div>
                 <div className="bg-muted/30 rounded-xl p-3">
-                  <p className="font-semibold text-sm">{control.vehicle.owner.name}</p>
+                  <p className="font-semibold text-sm">{display(control.vehicle.owner.name)}</p>
                 </div>
               </div>
             </div>
