@@ -1,61 +1,100 @@
-# Dockerfile for IVISS Rust Backend
-# Multi-stage build for development with live reloading
+ARG RUST_VERSION=1.89
+ARG DEBIAN_CODENAME=bookworm
 
-# Development Stage - with cargo-watch for auto-reload
-FROM rust:latest AS development
+FROM rust:${RUST_VERSION}-slim-${DEBIAN_CODENAME} AS base
 
-# Install cargo-watch for live reloading
-RUN cargo install cargo-watch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libtesseract-dev \
+    libleptonica-dev \
+    tesseract-ocr-eng \
+    clang \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
 WORKDIR /app
 
-# Copy dependency manifests
+ENV SQLX_OFFLINE=true \
+    CARGO_TERM_COLOR=always
+
+
+FROM base AS development
+
+# cargo-watch is used only in local development.
+RUN cargo install cargo-watch --locked
+
 COPY Cargo.toml Cargo.lock ./
 
-# Create a dummy main.rs to cache dependencies
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
+# Warm the debug cache to speed up the first local run.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    mkdir -p src && \
+    printf 'fn main() {}\n' > src/main.rs && \
+    cargo build --locked && \
     rm -rf src
 
-# Copy source code (will be overridden by volume mount in docker-compose)
+COPY .sqlx ./.sqlx
+COPY migrations ./migrations
+COPY seeds ./seeds
 COPY src ./src
 
-# Expose backend port
 EXPOSE 3000
 
-# Use cargo-watch to auto-rebuild on file changes
-# -x run: execute 'cargo run' on changes
-# -w src: watch the src directory
-CMD ["cargo", "watch", "-x", "run", "-w", "src"]
+CMD ["cargo", "watch", "-w", "src", "-w", "migrations", "-x", "run"]
 
-# ============================================
-# Production Stage (optional - for future use)
-# ============================================
-FROM rust:latest AS builder
 
-WORKDIR /app
+FROM base AS builder
 
 COPY Cargo.toml Cargo.lock ./
+
+# Build dependencies first so source-only changes reuse the cache.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/cargo-target \
+    mkdir -p src && \
+    printf 'fn main() {}\n' > src/main.rs && \
+    CARGO_TARGET_DIR=/cargo-target cargo build --release --locked --bin iviss-backend && \
+    rm -rf src
+
+COPY .sqlx ./.sqlx
+COPY migrations ./migrations
+COPY seeds ./seeds
 COPY src ./src
 
-# Build release binary
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/cargo-target \
+    CARGO_TARGET_DIR=/cargo-target cargo build --release --locked --bin iviss-backend && \
+    install -D /cargo-target/release/iviss-backend /out/iviss-backend
 
-# Runtime stage
-FROM debian:bookworm-slim AS production
 
-# Install runtime dependencies
-RUN apt-get update && \
-    apt-get install -y libpq5 ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+FROM debian:${DEBIAN_CODENAME}-slim AS production
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libtesseract5 \
+    liblept5 \
+    tesseract-ocr-eng \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/* && \
+    groupadd --system iviss && \
+    useradd --system --gid iviss --home-dir /app --create-home iviss
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/target/release/iviss-backend /app/iviss-backend
+COPY --from=builder --chown=iviss:iviss /out/iviss-backend /app/iviss-backend
+
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata \
+    SERVER_HOST=0.0.0.0 \
+    SERVER_PORT=3000
+
+USER iviss
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl --fail --silent http://127.0.0.1:3000/api/v1/health || exit 1
 
 CMD ["/app/iviss-backend"]

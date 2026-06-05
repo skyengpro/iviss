@@ -1,6 +1,5 @@
-import { Bell, Search, ChevronDown, Globe } from 'lucide-react';
+import { ChevronDown, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import {
@@ -19,32 +18,29 @@ interface BackOfficeHeaderProps {
 
 export function BackOfficeHeader({ title, subtitle, actions, className }: BackOfficeHeaderProps) {
   const { t, i18n } = useTranslation();
+
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur-sm',
+        'sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-card/95 px-5 backdrop-blur-sm',
         className
       )}
     >
       {/* Left: Title */}
-      <div>
-        {title && <h1 className="text-xl font-semibold text-foreground">{title}</h1>}
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+      <div className="min-w-0 flex-1">
+        {title && (
+          <h1 className="truncate text-base font-semibold leading-none text-foreground">{title}</h1>
+        )}
+        {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
-      {/* Right: Search and actions */}
-      <div className="flex items-center gap-4">
-        {/* Global search */}
-        <div className="relative hidden lg:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder={t('backOfficeHeader.searchPlaceholder')} className="w-80 pl-9" />
-        </div>
-
-        {/* Language Switcher */}
+      {/* Right: compact action zone */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        {/* Language */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Globe className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+              <Globe className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -53,20 +49,27 @@ export function BackOfficeHeader({ title, subtitle, actions, className }: BackOf
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-status-critical" />
-        </Button>
+        {/* Custom page actions */}
+        {actions && <div className="ml-1 flex items-center gap-1.5">{actions}</div>}
 
-        {/* Custom actions */}
-        {actions}
-
-        {/* Organization selector */}
-        <Button variant="outline" className="hidden md:flex gap-2">
-          <span className="max-w-32 truncate">{t('backOfficeHeader.nationalPoliceHQ')}</span>
-          <ChevronDown className="h-4 w-4" />
-        </Button>
+        {/* Org selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden h-8 gap-1.5 rounded-lg text-xs md:flex"
+            >
+              <span className="max-w-[120px] truncate">
+                {t('backOfficeHeader.nationalPoliceHQ')}
+              </span>
+              <ChevronDown className="h-3 w-3 shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>National Police HQ</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

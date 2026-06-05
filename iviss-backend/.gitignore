@@ -1,0 +1,24 @@
+# Rust build artifacts
+/target/
+
+# SQLx offline query cache (commit .sqlx/ for offline builds, ignore if online)
+# /.sqlx/
+
+# Environment variables (contains secrets)
+.env
+
+# Test coverage output
+/coverage/
+*.profraw
+*.profdata
+
+# Editor / OS
+.DS_Store
+*.swp
+
+
+docs/redis-to-moka-migration.md
+docs/bug_fixing.md
+docs/postman_environment.json
+docs/postman_testing_guide.md
+docs/postman_collection_iviss_backend.json

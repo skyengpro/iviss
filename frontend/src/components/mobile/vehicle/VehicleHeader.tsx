@@ -2,24 +2,34 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Car, FileText, User } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Vehicle } from '@/services/mockVehicles';
+import { VehicleInfo, Status } from '@/openapi-rq/requests/types.gen';
 
 interface VehicleHeaderProps {
-  vehicle: Vehicle;
-  overallStatus: 'valid' | 'warning' | 'critical';
+  plateNumber: string;
+  vehicle: VehicleInfo;
+  overallStatus: Status;
 }
 
-export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallStatus }) => {
+export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
+  plateNumber,
+  vehicle,
+  overallStatus,
+}) => {
   const { t } = useTranslation();
+  const display = (value?: string | number | null) => {
+    if (value === undefined || value === null || value === '') return '-';
+    return String(value);
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden animate-slide-up">
       <div className="bg-primary p-4 text-primary-foreground">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs opacity-70">{t('vehicleResult.plateNumber')}</p>
-            <p className="text-2xl font-bold tracking-widest font-mono">{vehicle.plateNumber}</p>
+            <p className="text-2xl font-bold tracking-widest font-mono">{plateNumber}</p>
           </div>
-          <StatusBadge variant={overallStatus} size="lg">
+          <StatusBadge variant={overallStatus === 'pending' ? 'warning' : overallStatus} size="lg">
             {t(`mobileHistory.${overallStatus}`)}
           </StatusBadge>
         </div>
@@ -28,17 +38,17 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallSt
       <div className="p-4 space-y-4">
         {/* Vehicle Details */}
         <div className="grid grid-cols-2 gap-4">
-          <DetailItem icon={Car} label={t('vehicleResult.brand')} value={vehicle.brand} />
-          <DetailItem icon={Car} label={t('vehicleResult.model')} value={vehicle.model} />
+          <DetailItem icon={Car} label={t('vehicleResult.brand')} value={display(vehicle.brand)} />
+          <DetailItem icon={Car} label={t('vehicleResult.model')} value={display(vehicle.model)} />
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.year')}
-            value={String(vehicle.year)}
+            value={display(vehicle.year)}
           />
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.power')}
-            value={vehicle.enginePower}
+            value={display(vehicle.engine_power)}
           />
         </div>
 
@@ -46,7 +56,7 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallSt
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.chassisNumber')}
-            value={vehicle.chassisNumber}
+            value={display(vehicle.chassis_number)}
             fullWidth
           />
         </div>
@@ -55,10 +65,10 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({ vehicle, overallSt
           <DetailItem
             icon={User}
             label={t('vehicleResult.owner')}
-            value={vehicle.owner.name}
+            value={display(vehicle.owner.name)}
             fullWidth
           />
-          <p className="text-sm text-muted-foreground mt-1 ml-8">{vehicle.owner.address}</p>
+          <p className="text-sm text-muted-foreground mt-1 ml-8">{vehicle.owner.address || ''}</p>
         </div>
       </div>
     </div>
