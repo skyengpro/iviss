@@ -1,14 +1,14 @@
 import { ReactNode, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { UserRole } from '@/services/mockAuth';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { getAccessToken, getRefreshToken } from '@/services/auth/tokenManager';
 
 export function RequireAuth({
   children,
   allowedRoles,
 }: {
   children: ReactNode;
-  allowedRoles?: UserRole[];
+  allowedRoles?: string[];
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -17,12 +17,37 @@ export function RequireAuth({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        navigate('/login', { state: { from: location.pathname } });
-      } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        if (user.role === 'admin') {
-          navigate('/backoffice');
+        const accessToken = getAccessToken();
+        const refreshToken = getRefreshToken();
+        const deviceActivated = localStorage.getItem('iviss_device_activated') === 'true';
+
+        if (!refreshToken && !accessToken) {
+          if (deviceActivated) {
+            navigate('/daily-login', { state: { from: location.pathname } });
+          } else {
+            navigate('/activate', { state: { from: location.pathname } });
+          }
+        } else if (refreshToken && !accessToken) {
+          navigate('/daily-login', { state: { from: location.pathname } });
         } else {
-          navigate('/mobile');
+          // If we have an accessToken but aren't authenticated, the token is likely invalid/expired.
+          // Send activated devices to daily-login, otherwise to activate.
+          if (deviceActivated) {
+            navigate('/daily-login', { state: { from: location.pathname } });
+          } else {
+            navigate('/activate', { state: { from: location.pathname } });
+          }
+        }
+      } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+        // Prevent infinite redirect loop if we are already at the target
+        if (user.role === 'admin' || user.role === 'manager' || user.role === 'org_admin') {
+          if (location.pathname !== '/backoffice') {
+            navigate('/backoffice');
+          }
+        } else {
+          if (location.pathname !== '/mobile') {
+            navigate('/mobile');
+          }
         }
       }
     }
@@ -32,7 +57,10 @@ export function RequireAuth({
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <div className="relative flex items-center justify-center">
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-muted border-t-primary" />
+            <img src="/pwa-64x64.png" alt="IVISS" className="absolute h-8 w-8 rounded-full" />
+          </div>
           <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>

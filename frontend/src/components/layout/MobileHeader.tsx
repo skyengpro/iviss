@@ -1,4 +1,4 @@
-import { Menu, Bell, User, Shield, Globe } from 'lucide-react';
+import { Menu, User, Shield, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -17,6 +18,7 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileHeaderProps>) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -65,15 +67,8 @@ export function MobileHeader({ onMenuClick, title, className }: Readonly<MobileH
           <Button
             variant="ghost"
             size="icon"
-            className="touch-target relative text-primary-foreground hover:bg-white/10"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-status-critical" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             className="touch-target text-primary-foreground hover:bg-white/10"
+            onClick={() => navigate('/mobile/profile')}
           >
             <User className="h-5 w-5" />
           </Button>

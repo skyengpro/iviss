@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import { fr as frLocale } from 'date-fns/locale';
 import { BackOfficeLayout } from '@/components/layout/BackOfficeLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -19,80 +27,363 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Search,
   Filter,
-  Download,
   Eye,
   Calendar,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
+  SlidersHorizontal,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 import { useQuery } from '@tanstack/react-query';
-import { mockControlService, ControlStatus } from '@/services/mockControls';
+import { fetchWithAuth } from '@/services/api/backendFetch';
+import { useOrganizations } from '@/hooks/api/useOrganizations';
+import type {
+  ListControlResponse,
+  PagedControlsResponse,
+  Status,
+} from '@/openapi-rq/requests/types.gen';
 
 export default function ControlHistory() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'fr' ? frLocale : undefined;
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [organizationFilter, setOrganizationFilter] = useState('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const [selectedControl, setSelectedControl] = useState<ListControlResponse | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const pageSize = 10;
 
-  const { data: controls = [], isLoading } = useQuery({
-    queryKey: ['controls', 'all', statusFilter, organizationFilter],
-    queryFn: () =>
-      mockControlService.getAllControls({
-        status: statusFilter !== 'all' ? (statusFilter as ControlStatus) : undefined,
-        organizationId: organizationFilter !== 'all' ? organizationFilter : undefined,
-      }),
+  const { organizations } = useOrganizations();
+
+  const orgNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (organizations ?? []).forEach((o) => map.set(o.id, o.name));
+    return map;
+  }, [organizations]);
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status === 'alerts') {
+      setStatusFilter('all');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, organizationFilter, startDate, endDate]);
+
+  const statusParam: Status | undefined = useMemo(() => {
+    if (statusFilter === 'all') return;
+    if (statusFilter === 'valid') return 'valid' as Status;
+    if (statusFilter === 'warning') return 'warning' as Status;
+    if (statusFilter === 'critical') return 'critical' as Status;
+    return;
+  }, [statusFilter]);
+
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: [
+      'controls-paged',
+      page,
+      pageSize,
+      statusFilter,
+      organizationFilter,
+      searchQuery,
+      startDate,
+      endDate,
+    ],
+    queryFn: async (): Promise<PagedControlsResponse> => {
+      const qs = new URLSearchParams();
+      qs.set('page', String(page));
+      qs.set('page_size', String(pageSize));
+
+      if (organizationFilter !== 'all') {
+        qs.set('organization_id', organizationFilter);
+      }
+
+      if (statusParam) {
+        qs.set('status', String(statusParam));
+      }
+
+      if (searchQuery.trim()) {
+        qs.set('q', searchQuery.trim());
+      }
+
+      if (startDate) {
+        qs.set('start_date', `${startDate} 00:00:00`);
+      }
+
+      if (endDate) {
+        qs.set('end_date', `${endDate} 23:59:59`);
+      }
+
+      const res = await fetchWithAuth(`/api/v1/admin/controls/paged?${qs.toString()}`);
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body || `Failed to fetch controls: ${res.status}`);
+      }
+      return (await res.json()) as PagedControlsResponse;
+    },
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
-  const filteredControls = controls.filter((control) => {
-    return (
-      control.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      control.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      control.location.address.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  const controls: ListControlResponse[] = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const showingTo = Math.min(total, page * pageSize);
+
+  const isAnyFilterActive =
+    searchQuery.trim() ||
+    statusFilter !== 'all' ||
+    organizationFilter !== 'all' ||
+    startDate ||
+    endDate;
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setOrganizationFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  };
+
+  const validCount = controls.filter((c) => c.status === 'valid').length;
+  const warningCount = controls.filter((c) => c.status === 'warning').length;
+  const criticalCount = controls.filter((c) => c.status === 'critical').length;
+
+  const openView = (control: ListControlResponse) => {
+    setSelectedControl(control);
+    setIsViewOpen(true);
+  };
 
   return (
     <BackOfficeLayout
       title={t('backOfficeControlHistory.title')}
       subtitle={t('backOfficeControlHistory.subtitle')}
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            {t('backOfficeControlHistory.refresh')}
-          </Button>
-          <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-            <Download className="h-4 w-4" />
-            {t('backOfficeControlHistory.export')}
-          </Button>
-        </div>
-      }
     >
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <Dialog
+        open={isViewOpen}
+        onOpenChange={(open) => {
+          setIsViewOpen(open);
+          if (!open) setSelectedControl(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl rounded-2xl p-0">
+          <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/20">
+            <div className="border-b border-border/60 px-6 py-5">
+              <DialogHeader className="space-y-2">
+                <DialogTitle className="flex flex-wrap items-center gap-3">
+                  <span className="font-mono text-xl font-bold tracking-widest">
+                    {selectedControl?.plate_number ?? ''}
+                  </span>
+                  {selectedControl ? (
+                    <StatusBadge variant={selectedControl.status} size="sm">
+                      {t(`backOfficeControlHistory.${selectedControl.status}`)}
+                    </StatusBadge>
+                  ) : null}
+                </DialogTitle>
+                <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span>
+                    {selectedControl?.timestamp
+                      ? format(new Date(selectedControl.timestamp), 'd MMM yyyy, HH:mm', {
+                          locale: dateLocale,
+                        })
+                      : ''}
+                  </span>
+                  {selectedControl?.agent_name ? (
+                    <span className="text-muted-foreground">• {selectedControl.agent_name}</span>
+                  ) : null}
+                  {selectedControl ? (
+                    <span className="text-muted-foreground">
+                      •{' '}
+                      {orgNameById.get(selectedControl.organization_id) ??
+                        selectedControl.organization_id}
+                    </span>
+                  ) : null}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            {selectedControl ? (
+              <div className="max-h-[70vh] overflow-auto px-6 py-5">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      {t('backOfficeControlDetail.title')}
+                    </h3>
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlHistory.status')}
+                        </span>
+                        <span className="font-medium">{selectedControl.identification_mode}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlDetail.confidence')}
+                        </span>
+                        <span className="font-medium">
+                          {typeof selectedControl.confidence === 'number'
+                            ? `${Math.round(selectedControl.confidence * 100)}%`
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlDetail.agentNotes')}
+                        </span>
+                        <span className="max-w-[220px] truncate font-medium">
+                          {selectedControl.notes ?? '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      {t('backOfficeControlDetail.location')}
+                    </h3>
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground">
+                          {t('backOfficeControlHistory.location')}
+                        </span>
+                        <span className="max-w-[260px] text-right font-medium">
+                          {selectedControl.location?.address ?? '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">Lat / Lng</span>
+                        <span className="font-medium">
+                          {selectedControl.location?.latitude ?? '—'}
+                          {selectedControl.location?.longitude
+                            ? `, ${selectedControl.location.longitude}`
+                            : ''}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/60 bg-background/70 p-4 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {t('backOfficeControlDetail.verificationResults')}
+                      </h3>
+                      <StatusBadge variant={selectedControl.status} size="sm" showIcon={false}>
+                        {selectedControl.status}
+                      </StatusBadge>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                      <div className="rounded-xl border border-border/60 bg-card p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {t('backOfficeControlDetail.registration')}
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge variant={selectedControl.results.registration} size="sm">
+                            {selectedControl.results.registration}
+                          </StatusBadge>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-card p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {t('backOfficeControlDetail.insurance')}
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge variant={selectedControl.results.insurance} size="sm">
+                            {selectedControl.results.insurance}
+                          </StatusBadge>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-card p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {t('backOfficeControlDetail.technicalInspection')}
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge
+                            variant={selectedControl.results.technical_inspection}
+                            size="sm"
+                          >
+                            {selectedControl.results.technical_inspection}
+                          </StatusBadge>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-card p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {t('backOfficeControlDetail.wantedStatus')}
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge variant={selectedControl.results.wanted_status} size="sm">
+                            {selectedControl.results.wanted_status}
+                          </StatusBadge>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-card p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {t('backOfficeControlDetail.customs')}
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge variant={selectedControl.results.customs_status} size="sm">
+                            {selectedControl.results.customs_status}
+                          </StatusBadge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedControl.notes ? (
+                      <div className="mt-4 rounded-xl border border-border/60 bg-card p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {t('backOfficeControlDetail.agentNotes')}
+                        </p>
+                        <p className="mt-2 text-sm leading-relaxed">{selectedControl.notes}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-6">
+        {/* ── Toolbar ── */}
+        <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-md">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* Search */}
-            <div className="relative w-full lg:w-96">
+            <div className="relative w-full lg:w-[420px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+              <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('backOfficeControlHistory.searchPlaceholder')}
-                className="pl-9"
+                className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder={t('backOfficeControlHistory.status')} />
+                <SelectTrigger className="h-10 w-[140px] rounded-xl text-sm">
+                  <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('backOfficeControlHistory.allStatus')}</SelectItem>
@@ -103,152 +394,244 @@ export default function ControlHistory() {
               </Select>
 
               <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder={t('backOfficeControlHistory.organization')} />
+                <SelectTrigger className="h-10 w-[190px] rounded-xl text-sm">
+                  <SelectValue placeholder="Organization" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">
                     {t('backOfficeControlHistory.allOrganizations')}
                   </SelectItem>
-                  <SelectItem value="alpha">
-                    {t('backOfficeControlHistory.brigadeAlpha')}
-                  </SelectItem>
-                  <SelectItem value="beta">{t('backOfficeControlHistory.brigadeBeta')}</SelectItem>
-                  <SelectItem value="gamma">
-                    {t('backOfficeControlHistory.brigadeGamma')}
-                  </SelectItem>
+                  {(organizations ?? []).map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                {t('backOfficeControlHistory.dateRange')}
-              </Button>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{t('common.from')}</span>
+                <input
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  type="date"
+                  className="h-6 bg-transparent text-sm text-foreground outline-none"
+                />
+                <span className="text-sm text-muted-foreground">-</span>
+                <span className="text-xs text-muted-foreground">{t('common.to')}</span>
+                <input
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  type="date"
+                  className="h-6 bg-transparent text-sm text-foreground outline-none"
+                />
+              </div>
 
-              <Button variant="outline" className="gap-2">
-                <Filter className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="h-10 gap-1.5 rounded-xl text-sm">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
                 {t('backOfficeControlHistory.moreFilters')}
               </Button>
+
+              {isAnyFilterActive ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-10 rounded-xl text-sm"
+                >
+                  {t('common.clear')}
+                </Button>
+              ) : null}
             </div>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent>
-          {/* Results summary */}
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {t('backOfficeControlHistory.showingControls', { count: filteredControls.length })}
-            </p>
-            <div className="flex gap-2">
+        {/* ── Summary pills ── */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            {t('backOfficeControlHistory.showingControls', {
+              count: total,
+            })}
+            {total > 0 ? <span className="ml-2">{`${showingFrom}-${showingTo}`}</span> : null}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={statusFilter === 'valid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('valid')}
+              className="h-8 rounded-full px-3 text-xs"
+            >
               <StatusBadge variant="valid" size="sm">
-                {t('backOfficeControlHistory.validCount', {
-                  count: filteredControls.filter((c) => c.status === 'valid').length,
-                })}
+                {t('backOfficeControlHistory.validCount', { count: validCount })}
               </StatusBadge>
+            </Button>
+            <Button
+              variant={statusFilter === 'warning' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('warning')}
+              className="h-8 rounded-full px-3 text-xs"
+            >
               <StatusBadge variant="warning" size="sm">
-                {t('backOfficeControlHistory.warningCount', {
-                  count: filteredControls.filter((c) => c.status === 'warning').length,
-                })}
+                {t('backOfficeControlHistory.warningCount', { count: warningCount })}
               </StatusBadge>
+            </Button>
+            <Button
+              variant={statusFilter === 'critical' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('critical')}
+              className="h-8 rounded-full px-3 text-xs"
+            >
               <StatusBadge variant="critical" size="sm">
-                {t('backOfficeControlHistory.criticalCount', {
-                  count: filteredControls.filter((c) => c.status === 'critical').length,
-                })}
+                {t('backOfficeControlHistory.criticalCount', { count: criticalCount })}
               </StatusBadge>
-            </div>
+            </Button>
+            {statusFilter !== 'all' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setStatusFilter('all')}
+                className="h-8 rounded-full px-3 text-xs text-muted-foreground"
+              >
+                {t('common.resetStatus')}
+              </Button>
+            ) : null}
           </div>
+        </div>
 
-          {/* Table */}
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[100px]">{t('backOfficeControlHistory.id')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.plateNumber')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.vehicle')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.status')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.agent')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.organization')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.location')}</TableHead>
-                  <TableHead>{t('backOfficeControlHistory.dateTime')}</TableHead>
-                  <TableHead className="w-[80px]">
-                    {t('backOfficeControlHistory.actions')}
-                  </TableHead>
+        {/* ── Table ── */}
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/60 bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-[60px] text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  #
+                </TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {t('backOfficeControlHistory.plateNumber')}
+                </TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {t('backOfficeControlHistory.status')}
+                </TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {t('backOfficeControlHistory.agent')}
+                </TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {t('backOfficeControlHistory.organization')}
+                </TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {t('backOfficeControlHistory.location')}
+                </TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {t('backOfficeControlHistory.dateTime')}
+                </TableHead>
+                <TableHead className="w-[60px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {error ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                    {t('backOfficeControlHistory.noControlsFound')}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        {t('backOfficeControlHistory.loadingControls')}
-                      </div>
+              ) : isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="border-border/40">
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <div className="h-4 animate-pulse rounded-lg bg-muted" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : controls.length > 0 ? (
+                controls.map((control, idx) => (
+                  <TableRow
+                    key={control.id}
+                    className="group cursor-pointer border-border/40 transition-colors hover:bg-muted/40"
+                  >
+                    <TableCell>
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {(page - 1) * pageSize + idx + 1}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm font-bold tracking-widest">
+                        {control.plate_number}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge variant={control.status} size="sm">
+                        {t(`backOfficeControlHistory.${control.status}`)}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">{control.agent_name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {orgNameById.get(control.organization_id) ?? control.organization_id}
+                    </TableCell>
+                    <TableCell className="max-w-[180px] truncate text-sm text-muted-foreground">
+                      {control.location?.address
+                        ? control.location.address
+                        : control.location?.latitude != null && control.location?.longitude != null
+                          ? `${control.location.latitude.toFixed(5)}, ${control.location.longitude.toFixed(5)}`
+                          : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(control.timestamp), 'd MMM, HH:mm', { locale: dateLocale })}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                        onClick={() => openView(control)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ) : filteredControls.length > 0 ? (
-                  filteredControls.map((control) => (
-                    <TableRow key={control.id} className="group">
-                      <TableCell className="font-mono text-sm">{control.id}</TableCell>
-                      <TableCell>
-                        <span className="font-mono font-semibold tracking-wider">
-                          {control.plateNumber}
-                        </span>
-                      </TableCell>
-                      <TableCell>{t('backOfficeControlHistory.vehicle')}</TableCell>
-                      <TableCell>
-                        <StatusBadge variant={control.status} size="sm">
-                          {t(`backOfficeControlHistory.${control.status}`)}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>{control.agentName}</TableCell>
-                      <TableCell>{control.organizationName}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {control.location.address}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {control.timestamp.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      {t('backOfficeControlHistory.noControlsFound')}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                    {t('backOfficeControlHistory.noControlsFound')}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-          {/* Pagination */}
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {t('backOfficeControlHistory.pageOf', { currentPage: 1, totalPages: 129 })}
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled>
-                <ChevronLeft className="h-4 w-4" />
-                {t('backOfficeControlHistory.previous')}
-              </Button>
-              <Button variant="outline" size="sm">
-                {t('backOfficeControlHistory.next')}
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* ── Pagination ── */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {t('backOfficeControlHistory.pageOf', { currentPage: page, totalPages })}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="h-8 gap-1.5 rounded-xl text-xs"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              {t('backOfficeControlHistory.previous')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="h-8 gap-1.5 rounded-xl text-xs"
+            >
+              {t('backOfficeControlHistory.next')}
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </BackOfficeLayout>
   );
 }

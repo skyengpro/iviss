@@ -1,0 +1,209 @@
+use axum::{extract::State, http::StatusCode, routing::get, routing::post, Json, Router};
+use backend_core::config::{self, SmsProviderType};
+use backend_core::NotificationJob;
+use clap::Parser;
+use mimalloc::MiMalloc;
+use sms_provider::{
+    is_permanent_error, process_notification_job, ApiSmsProvider, AvlytextSmsProvider,
+    ConsoleSmsProvider, OrangeSmsProvider, SnsSmsProvider,
+};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tracing::{info, warn};
+
+mod sms_provider;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about = "SMS Gateway Service", long_about = None)]
+struct Args {
+    /// Path to configuration file
+    #[arg(short, long, default_value = "config/local.yaml")]
+    config: String,
+
+    /// Bind host for the HTTP server
+    #[arg(long, default_value = "0.0.0.0")]
+    host: String,
+
+    /// Bind port for the HTTP server (defaults to config server.port)
+    #[arg(long)]
+    port: Option<u16>,
+}
+
+#[derive(Clone)]
+struct GatewayState {
+    provider: Arc<dyn sms_provider::SmsProvider>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct SendOtpRequest {
+    #[serde(default)]
+    phone: Option<String>,
+    #[serde(default)]
+    msisdn: Option<String>,
+    otp: String,
+    #[serde(default)]
+    step_id: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct SendOtpResponse {
+    delivered: bool,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ErrorResponse {
+    error_key: String,
+    message: String,
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // Initialize tracing
+    tracing_subscriber::fmt::init();
+
+    let args = Args::parse();
+
+    // Load configuration
+    info!("Loading configuration from: {}", args.config);
+    let config = config::load_from_path(&args.config)?;
+
+    // Ensure SMS configuration is present
+    let sms_config = config.sms.as_ref().ok_or_else(|| {
+        anyhow::anyhow!("SMS configuration is required but not found in config file")
+    })?;
+
+    // Create SMS provider based on configuration
+    let provider = create_sms_provider(sms_config).await?;
+    let port = args.port.unwrap_or(config.server.port as u16);
+    let addr: SocketAddr = format!("{}:{}", args.host, port).parse()?;
+
+    info!("Starting SMS gateway HTTP server");
+    info!("Provider: {:?}", sms_config.provider);
+    info!("Listening on {}", addr);
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .route("/otp", post(send_otp))
+        .with_state(GatewayState { provider });
+
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+/// Create the appropriate SMS provider based on configuration
+async fn create_sms_provider(
+    config: &backend_core::config::SmsConfig,
+) -> anyhow::Result<Arc<dyn sms_provider::SmsProvider>> {
+    match config.provider {
+        SmsProviderType::Console => {
+            info!("Using Console SMS provider (development mode)");
+            Ok(Arc::new(ConsoleSmsProvider))
+        }
+        SmsProviderType::Sns => {
+            info!("Using AWS SNS SMS provider");
+            let aws_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+                .load()
+                .await;
+            Ok(Arc::new(SnsSmsProvider::from_config(&aws_config).await))
+        }
+        SmsProviderType::Api => {
+            let api_config = config.api.as_ref().ok_or_else(|| {
+                anyhow::anyhow!("SMS API configuration is required when provider is 'api'")
+            })?;
+            info!("Using API SMS provider: {}", api_config.base_url);
+            let client = reqwest::Client::new();
+            Ok(Arc::new(ApiSmsProvider::new(
+                client,
+                api_config.base_url.clone(),
+                api_config.auth_token.clone(),
+            )))
+        }
+        SmsProviderType::Avlytext => {
+            let avlytext_config = config.avlytext.as_ref().ok_or_else(|| {
+                anyhow::anyhow!("Avlytext configuration is required when provider is 'avlytext'")
+            })?;
+            info!("Using Avlytext SMS provider: {}", avlytext_config.base_url);
+            let client = reqwest::Client::new();
+            Ok(Arc::new(AvlytextSmsProvider::new(
+                client,
+                avlytext_config.base_url.clone(),
+                avlytext_config.api_key.clone(),
+                avlytext_config.sender_id.clone(),
+            )))
+        }
+        SmsProviderType::Orange => {
+            let orange_config = config.orange.as_ref().ok_or_else(|| {
+                anyhow::anyhow!("Orange configuration is required when provider is 'orange'")
+            })?;
+            info!("Using Orange SMS provider: {}", orange_config.sms_base_url);
+            let client = reqwest::Client::new();
+            Ok(Arc::new(OrangeSmsProvider::new(
+                client,
+                orange_config.clone(),
+            )))
+        }
+    }
+}
+
+async fn health() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "ok": true }))
+}
+
+async fn send_otp(
+    State(state): State<GatewayState>,
+    Json(payload): Json<SendOtpRequest>,
+) -> Result<Json<SendOtpResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let msisdn = payload
+        .msisdn
+        .or(payload.phone)
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
+
+    let otp = payload.otp.trim().to_owned();
+    if msisdn.is_none() || otp.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error_key: "INVALID_REQUEST".to_owned(),
+                message: "phone/msisdn and otp are required".to_owned(),
+            }),
+        ));
+    }
+
+    let step_id = payload.step_id.unwrap_or_else(|| "direct-http".to_owned());
+    let job = NotificationJob::Otp {
+        step_id,
+        msisdn: msisdn.unwrap_or_default(),
+        otp,
+    };
+
+    match process_notification_job(state.provider.clone(), job).await {
+        Ok(()) => Ok(Json(SendOtpResponse { delivered: true })),
+        Err(error) => {
+            let meta = error.meta();
+            let status = if is_permanent_error(&error) {
+                StatusCode::BAD_REQUEST
+            } else {
+                StatusCode::BAD_GATEWAY
+            };
+            warn!(
+                status = status.as_u16(),
+                error_key = meta.error_key,
+                message = meta.message,
+                "Failed to send OTP"
+            );
+            Err((
+                status,
+                Json(ErrorResponse {
+                    error_key: meta.error_key.to_owned(),
+                    message: meta.message,
+                }),
+            ))
+        }
+    }
+}

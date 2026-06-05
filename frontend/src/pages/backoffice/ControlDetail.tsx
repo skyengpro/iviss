@@ -18,7 +18,7 @@ import {
   AlertCircle,
   Download,
 } from 'lucide-react';
-import { mockControlService, ControlRecord, Translatable } from '@/services/mockControls';
+import { mockControlService, ControlRecord, Translatable } from '@/services/mock/mockControls';
 
 export default function ControlDetail() {
   const { controlId } = useParams<{ controlId: string }>();
@@ -156,7 +156,7 @@ export default function ControlDetail() {
               <InfoRow
                 icon={Clock}
                 label={t('backOfficeControlDetail.dateTime')}
-                value={control.timestamp.toLocaleString()}
+                value={new Date(control.timestamp).toLocaleString()}
               />
               <InfoRow
                 icon={MapPin}
@@ -232,7 +232,7 @@ export default function ControlDetail() {
                     <p className="font-medium capitalize">{action.type}</p>
                     <p className="text-sm text-muted-foreground">{action.description}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {action.timestamp.toLocaleString()}
+                      {new Date(action.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>

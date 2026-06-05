@@ -2,16 +2,62 @@
 name = "iviss-backend"
 version = "0.1.0"
 edition = "2021"
+default-run = "iviss-backend"
+
+[profile.release]
+opt-level = "z"     # Optimise pour la taille (ou "s" pour un compromis)
+lto = true          # Link Time Optimization : analyse tout le graphe de dépendances
+codegen-units = 1   # Réduit le parallélisme à la compilation pour mieux optimiser
+strip = true        # Retire les symboles de debug du binaire final
 
 [dependencies]
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.7", features = ["macros", "multipart"] }
 tokio = { version = "1.43", features = ["full"] }
-sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "time"] }
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "time", "migrate"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dotenvy = "0.15"
+config = "0.14"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout"] }
 anyhow = "1.0"
 thiserror = "1.0"
+
+utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
+utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
+time = { version = "0.3.36", features = ["serde", "macros"] }
+uuid = { version = "1.20.0", features = ["v4", "serde",]}
+regex = "1.12.3"
+once_cell = "1.21.3"
+leptess = "0.14"
+image = "0.25"
+imageproc = "0.25"
+
+async-trait = "0.1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+urlencoding = "2.1"
+
+sha2 = "0.10"
+hmac = "0.12"
+rand = "0.8"
+argon2 = "0.5"
+jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
+rsa = { version = "0.9", features = ["pem"] }
+base64 = "0.22.1"
+
+
+p256 = { version = "0.13", features = ["ecdsa", "jwk"] }
+ecdsa = { version = "0.16", features = ["verifying"] }
+moka = { version = "0.12.15", features = ["future"] }
+# Force rustls-webpki to a patched version to fix RUSTSEC-2026-0098, RUSTSEC-2026-0099, and RUSTSEC-2026-0104
+rustls-webpki = "0.103.13"
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1-rustls-tls", "builder", "pool"] }
+
+[dev-dependencies]
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+mockito = "1.4"
+tokio-test = "0.4"
+tower = "0.5"
+

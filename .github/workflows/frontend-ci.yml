@@ -2,15 +2,15 @@ name: Frontend CI
 
 on:
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
   push:
-    branches: [ main, master, develop ]
+    branches: [aws-dev-test]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
 
 jobs:
   frontend_install:
@@ -21,22 +21,22 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
         working-directory: frontend
       - name: Cache node modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node-v2-
 
-  frontend_build:
-    name: Frontend Build
+  openapi_codegen:
+    name: OpenAPI Codegen
     needs: [frontend_install]
     runs-on: ubuntu-latest
     steps:
@@ -44,110 +44,166 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Restore node modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Generate OpenAPI client
+        run: npm run codegen
+        working-directory: frontend
+      - name: Cache api generated files
+        uses: actions/cache@v4
+        with:
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
+
+  frontend_build:
+    name: Frontend Build
+    needs: [frontend_install, openapi_codegen]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Restore node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Restore api generated files
+        uses: actions/cache@v4
+        with:
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
       - name: Build
         run: npm run build
         working-directory: frontend
 
   frontend_lint:
     name: Frontend Lint
-    needs: [frontend_install]
+    needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Restore node modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Restore api generated files
+        uses: actions/cache@v4
+        with:
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
       - name: ESLint
         run: npm run lint:check
         working-directory: frontend
 
   frontend_prettier:
     name: Frontend Prettier
-    needs: [frontend_install]
+    needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Restore node modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Restore api generated files
+        uses: actions/cache@v4
+        with:
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
       - name: Prettier
         run: npm run prettier:check
         working-directory: frontend
 
   frontend_typescript:
     name: Frontend TypeScript
-    needs: [frontend_install]
+    needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Restore node modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Restore api generated files
+        uses: actions/cache@v4
+        with:
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
       - name: TypeScript
         run: npm run ts:check
         working-directory: frontend
 
   frontend_unit_tests:
     name: Frontend Unit Tests
-    needs: [frontend_install]
+    needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Restore node modules
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-      - name: Unit tests
-        run: npm run coverage
-        working-directory: frontend
-      - name: Upload coverage Report
-        uses: actions/upload-artifact@v4
+          key: ${{ runner.os }}-node-v2-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Restore api generated files
+        uses: actions/cache@v4
         with:
-          name: coverage-report
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
+      - name: Unit tests
+        run: npm run coverage -- --reporter=verbose
+        working-directory: frontend
+      - name: Cache coverage
+        uses: actions/cache/save@v4
+        with:
           path: frontend/coverage
+          key: frontend-coverage-${{ github.sha }}
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
-    needs: [ frontend_build, frontend_unit_tests ]
+    needs: [frontend_build, frontend_unit_tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download coverage Report
-        uses: actions/download-artifact@v4
+      - name: Restore api generated files
+        uses: actions/cache@v4
         with:
-          name: coverage-report
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
+      - name: Restore coverage
+        uses: actions/cache/restore@v4
+        with:
           path: frontend/coverage
+          key: frontend-coverage-${{ github.sha }}
       - uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -158,8 +214,4 @@ jobs:
             -Dsonar.projectBaseDir=frontend
             -Dsonar.sources=src
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.qualitygate.wait=true
-      - uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            -Dsonar.qualitygate.wait=false

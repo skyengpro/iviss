@@ -1,0 +1,13 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Only install prod dependencies for the metrics server
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --legacy-peer-deps 2>/dev/null || npm install --production --ignore-scripts --legacy-peer-deps
+
+COPY metrics-server.js ./
+
+EXPOSE 9091
+
+CMD ["node", "metrics-server.js"]

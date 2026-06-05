@@ -4,7 +4,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { Controller, ControllerProps, FieldPath, FieldValues, FormProvider } from 'react-hook-form';
 
 import { cn } from '@/lib/utils';
-import { FormFieldContext, FormItemContext, useFormField } from '@/hooks/use-form-field';
+import { FormFieldContext, FormItemContext, useFormField } from '@/hooks/ui/use-form-field';
 import { Label } from '@/components/ui/label';
 
 const Form = FormProvider;
@@ -92,7 +92,7 @@ const FormMessage = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message) : children;
+  const body = error ? children || String(error?.message) : children;
 
   if (!body) {
     return null;

@@ -2,15 +2,15 @@ name: Backend CI
 
 on:
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main]
     paths:
-      - 'iviss-backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - "iviss-backend/**"
+      - ".github/workflows/backend-ci.yml"
   push:
-    branches: [ main, master, develop ]
+    branches: [aws-dev-test]
     paths:
-      - 'iviss-backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - "iviss-backend/**"
+      - ".github/workflows/backend-ci.yml"
 
 jobs:
   gitleaks:
@@ -21,30 +21,66 @@ jobs:
         with:
           fetch-depth: 0
       - name: Gitleaks Scan
-        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact
+        run: docker run --rm -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v --redact --config=/path/.gitleaks.toml
 
   backend_build:
     name: Backend Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang mold pkg-config libssl-dev libleptonica-dev libtesseract-dev tesseract-ocr
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Build
         run: cargo build --verbose
         working-directory: iviss-backend
 
-  backend_test:
-    name: Backend Test
+  backend_coverage:
+    name: Backend Test and Coverage
     runs-on: ubuntu-latest
     needs: [backend_build]
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang mold pkg-config libssl-dev libleptonica-dev libtesseract-dev tesseract-ocr
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
-      - name: Test
-        run: cargo test --verbose
+      - name: Cache cargo-llvm-cov
+        id: cache-cargo-llvm-cov
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-llvm-cov
+          key: ${{ runner.os }}-cargo-llvm-cov-v2
+      - name: Install cargo-llvm-cov
+        if: steps.cache-cargo-llvm-cov.outputs.cache-hit != 'true'
+        run: cargo install cargo-llvm-cov
+      - name: Install cargo-nextest
+        run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+      - name: Clean coverage artifacts
+        run: cargo llvm-cov clean --workspace
         working-directory: iviss-backend
+      - name: Test with nextest and coverage instrumentation
+        run: cargo llvm-cov --no-report nextest --verbose
+        working-directory: iviss-backend
+      - name: Doc Test
+        run: cargo test --doc --verbose
+        working-directory: iviss-backend
+      - name: Generate coverage report
+        run: cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 50
+        working-directory: iviss-backend
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-backend
+          path: |
+            iviss-backend/target/coverage/html/**/*.html
+            iviss-backend/target/coverage/html/**/*.css
+            iviss-backend/target/coverage/html/**/*.js
+            iviss-backend/target/coverage/html/index.html
+          retention-days: 2
 
   backend_fmt:
     name: Backend Format
@@ -52,11 +88,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - name: Check Format
-        run: cargo fmt -- --check
+        run: cargo fmt --all -- --check
         working-directory: iviss-backend
 
   backend_clippy:
@@ -64,6 +100,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang mold pkg-config libssl-dev libleptonica-dev libtesseract-dev tesseract-ocr
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -77,6 +115,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Cache cargo-audit
         id: cache-cargo-audit
         uses: actions/cache@v4
@@ -89,7 +129,11 @@ jobs:
       - name: Security audit
         # Ignore RUSTSEC-2023-0071 (rsa Marvin Attack) as it is in an unused transitive dependency (sqlx-mysql)
         # and no fixed upgrade is available for this version chain.
-        run: cargo audit --ignore RUSTSEC-2023-0071
+        # Ignore RUSTSEC-2025-0111 (tokio-tar) because it is in testcontainers (dev/test tree),
+        # and currently no fixed upgrade is available upstream.
+        # Ignore RUSTSEC-2026-0097 (rand unsoundness) — transitive dep, no fix available in this version chain.
+        # Ignore RUSTSEC-2024-0436, RUSTSEC-2024-0370, RUSTSEC-2025-0134 — unmaintained transitive deps with no direct fix.
+        run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0111 --ignore RUSTSEC-2026-0097 --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2024-0370 --ignore RUSTSEC-2025-0134
         working-directory: iviss-backend
 
   backend_doc:
@@ -97,8 +141,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang mold pkg-config libssl-dev libleptonica-dev libtesseract-dev tesseract-ocr
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build documentation
         run: cargo doc --no-deps --verbose
         working-directory: iviss-backend
