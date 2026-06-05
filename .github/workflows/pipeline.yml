@@ -1,6 +1,7 @@
 name: Unified Release & Docker Pipeline
 
 on:
+  # Triggered when a PR targeting main is closed (merged or declined)
   pull_request:
     branches:
       - main
