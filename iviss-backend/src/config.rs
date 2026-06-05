@@ -334,20 +334,6 @@ impl Config {
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<()> {
-        // Additional validation can be added here
-        if self.server_port == 0 {
-            // return Err(anyhow!("SERVER_PORT cannot be 0"));
-        }
-
-        // Reject Mock SMS provider in production
-        if self.environment == Environment::Production
-            && matches!(&self.sms_credentials, SmsProviderCredentials::Mock)
-        {
-            return Err(anyhow!(
-                "Mock SMS provider is not allowed in production environment"
-            ));
-        }
-
         // Validate SMS provider config in production
         if self.environment == Environment::Production {
             // Mock SMS provider is not allowed in production
@@ -411,21 +397,6 @@ impl Config {
         }
 
         Ok(())
-    }
-
-    /// Check if running in production environment
-    pub fn is_production(&self) -> bool {
-        self.environment == Environment::Production
-    }
-
-    /// Check if running in local environment
-    pub fn is_local(&self) -> bool {
-        self.environment == Environment::Local
-    }
-
-    /// Check if we should use the mock SMS provider
-    pub fn use_mock_sms(&self) -> bool {
-        self.sms_credentials.is_mock()
     }
 }
 
@@ -513,15 +484,10 @@ mod tests {
             admin_bootstrap_username: Some("admin".into()),
             vehicle_api_credentials: mock_vehicle_api_credentials(),
         };
-
-        assert!(config.is_local());
-        assert!(!config.is_production());
         assert!(config.validate().is_ok());
 
         let mut prod_config = config.clone();
         prod_config.environment = Environment::Production;
-        assert!(prod_config.is_production());
-        assert!(!prod_config.is_local());
 
         // Mock credentials should fail validation in production
         prod_config.sms_credentials = SmsProviderCredentials::Mock;
