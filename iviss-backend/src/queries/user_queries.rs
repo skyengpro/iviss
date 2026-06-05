@@ -129,7 +129,7 @@ pub async fn create_org_admin_user_with_temp_password(
             $1, $2, $3, $4, $5, TRUE,
             'org_admin'::user_role,
             $6, $7, $8,
-            'ACTIVE'::user_status
+            'PENDING_ACTIVATION'::user_status
         )
         "#,
     )

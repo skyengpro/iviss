@@ -6,7 +6,15 @@ x-default-logging: &default-logging
 
 x-backend-environment: &backend-environment
   DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
-  EXTERNAL_DATABASE_URL: postgres://${EXTERNAL_POSTGRES_USER:-external_user}:${EXTERNAL_POSTGRES_PASSWORD:?EXTERNAL_POSTGRES_PASSWORD must be set}@${EXTERNAL_POSTGRES_HOST:-localhost}:${EXTERNAL_POSTGRES_PORT:-5432}/${EXTERNAL_POSTGRES_DB:-external_db}
+  EXTERNAL_API_BASE_URL: ${EXTERNAL_API_BASE_URL:?EXTERNAL_API_BASE_URL must be set}
+  EXTERNAL_API_USERNAME: ${EXTERNAL_API_USERNAME:?EXTERNAL_API_USERNAME must be set}
+  EXTERNAL_API_PASSWORD: ${EXTERNAL_API_PASSWORD:?EXTERNAL_API_PASSWORD must be set}
+  EXTERNAL_API_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA:?EXTERNAL_API_LOCK_NDIA must be set}
+  EXTERNAL_API_KINDIA: ${EXTERNAL_API_KINDIA:?EXTERNAL_API_KINDIA must be set}
+  EXTERNAL_API_USER: ${EXTERNAL_API_USER:?EXTERNAL_API_USER must be set}
+  EXTERNAL_API_CLIENT: ${EXTERNAL_API_CLIENT:?EXTERNAL_API_CLIENT must be set}
+  EXTERNAL_API_CTR: ${EXTERNAL_API_CTR:?EXTERNAL_API_CTR must be set}
+  EXTERNAL_API_TLS_CERT_B64: ${EXTERNAL_API_TLS_CERT_B64:?EXTERNAL_API_TLS_CERT_B64 must be set}
   SQLX_OFFLINE: "true"
   JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
   JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
@@ -23,7 +31,11 @@ x-backend-environment: &backend-environment
   TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
   TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
   TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
+  ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID:-mock}
+  ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET:-mock}
+  ORANGE_SENDER_NUMBER: ${ORANGE_SENDER_NUMBER:-mock}
   EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+  OTP_VIA_EMAIL: ${OTP_VIA_EMAIL:-false}
   RESEND_API_KEY: ${RESEND_API_KEY:-mock}
   RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-mock@example.com}
   SMTP_HOST: ${SMTP_HOST:-localhost}
@@ -35,7 +47,7 @@ x-backend-environment: &backend-environment
   ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
   ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
   ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
-  SEED_DATA: ${SEED_DATA:-true}
+  # SEED_DATA: ${SEED_DATA:-true}
 
 services:
   # PostgreSQL service shared by dev and prod-style local runs
@@ -105,17 +117,6 @@ services:
         condition: service_healthy
     environment:
       <<: *backend-environment
-      ENVIRONMENT: ${ENVIRONMENT:-local}
-      SMS_PROVIDER: ${SMS_PROVIDER:?SMS_PROVIDER must be set for backend}
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
-      ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID}
-      ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET}
-      ORANGE_SENDER_NUMBER: ${ORANGE_SENDER_NUMBER}
-      VONAGE_API_KEY: ${VONAGE_API_KEY}
-      VONAGE_API_SECRET: ${VONAGE_API_SECRET}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
     ports:
       - "3000:3000"
     volumes:
@@ -141,7 +142,7 @@ services:
   # Production-like backend, opt-in with: docker compose --profile prod up backend-prod
   backend-prod:
     profiles: ["prod"]
-    image: ghcr.io/skyengpro/iviss/backend:latest
+    image: ghcr.io/${DOCKER_ORG:?DOCKER_ORG must be set}/iviss/backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     dns:
       - 1.1.1.1
@@ -151,24 +152,6 @@ services:
         condition: service_healthy
     environment:
       <<: *backend-environment
-      ENVIRONMENT: ${ENVIRONMENT:-production}
-      SMS_PROVIDER: ${SMS_PROVIDER:?SMS_PROVIDER must be set for backend-prod}
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set for backend-prod}
-      ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID}
-      ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET}
-      ORANGE_SENDER_NUMBER: ${ORANGE_SENDER_NUMBER}
-      VONAGE_API_KEY: ${VONAGE_API_KEY}
-      VONAGE_API_SECRET: ${VONAGE_API_SECRET}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
-      RESEND_API_KEY: ${RESEND_API_KEY}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
     ports:
       - "3000:3000"
     healthcheck:
@@ -176,8 +159,8 @@ services:
         ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 12
+      start_period: 180s
     logging: *default-logging
     deploy:
       resources:
@@ -206,7 +189,7 @@ services:
       - "8080:8080"
     environment:
       NODE_ENV: development
-      VITE_API_URL: ""
+      VITE_API_URL: https://${DOMAIN_NAME:-localhost}
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app
@@ -233,7 +216,7 @@ services:
   # Production-like frontend, opt-in with: docker compose --profile prod up frontend-prod
   frontend-prod:
     profiles: ["prod"]
-    image: ghcr.io/skyengpro/iviss/frontend:latest
+    image: ghcr.io/${DOCKER_ORG:?DOCKER_ORG must be set}/iviss/frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       - VITE_API_URL=https://${DOMAIN_NAME:-localhost}
@@ -297,3 +280,4 @@ volumes:
     driver: local
   target_cache:
     driver: local
+

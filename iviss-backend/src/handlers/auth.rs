@@ -62,7 +62,7 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
 
-    if user.status != UserStatus::Active {
+    if user.status != UserStatus::Active && !user.must_change_password {
         tracing::warn!(
             email = %payload.email,
             status = %user.status.as_str(),
@@ -500,7 +500,7 @@ pub async fn request_daily_login(
         AppError::forbidden("Agent must belong to an organization to request daily login")
     })?;
 
-    let (shift_start_hour, shift_end_hour) =
+    let (shift_start_minutes, shift_end_minutes) =
         crate::queries::organization_queries::get_organization_work_time_cached(
             &state.db,
             &state.app_cache,
@@ -512,12 +512,13 @@ pub async fn request_daily_login(
     let now_local = time::OffsetDateTime::now_utc().to_offset(local_offset);
     let current_minute_of_day = (now_local.hour() as u32) * 60 + (now_local.minute() as u32);
 
-    // Shift window: shift_start_hour/shift_end_hour are stored as minutes since midnight
-    // (inclusive start, exclusive end)
-    if current_minute_of_day < shift_start_hour || current_minute_of_day >= shift_end_hour {
+    // Shift window: stored as minutes since midnight (inclusive start, exclusive end)
+    if current_minute_of_day < shift_start_minutes || current_minute_of_day >= shift_end_minutes {
+        let fmt_time = |mins: u32| -> String { format!("{:02}:{:02}", mins / 60, mins % 60) };
         return Err(AppError::unauthorized(format!(
             "Outside shift hours — login is available from {} to {} local time",
-            shift_start_hour, shift_end_hour
+            fmt_time(shift_start_minutes),
+            fmt_time(shift_end_minutes)
         )));
     }
 
@@ -550,7 +551,19 @@ pub async fn request_daily_login(
 
     let otp_svc = &state.otp_svc;
 
-    otp_svc.request_otp(&user.id, &user.phone_number).await?;
+    // Determine contact (email or phone) based on AppState setting
+    let contact = if state.otp_via_email {
+        // Fetch full profile to obtain email if configured to use email
+        let profile = crate::queries::user_queries::get_user_by_id(&state.db, user.id).await?;
+        profile
+            .email
+            .clone()
+            .unwrap_or_else(|| profile.phone_number.clone().unwrap_or_default())
+    } else {
+        user.phone_number.clone()
+    };
+
+    otp_svc.request_otp(&user.id, &contact).await?;
 
     tracing::info!(
         target: "daily_login",
@@ -1302,7 +1315,7 @@ pub async fn change_password(
     sqlx::query(
         r#"
         UPDATE users
-        SET password_hash = $1, must_change_password = FALSE
+        SET password_hash = $1, must_change_password = FALSE, status = 'ACTIVE'::user_status
         WHERE id = $2
         "#,
     )

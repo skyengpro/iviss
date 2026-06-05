@@ -19,8 +19,9 @@ dev-dist
 *.tfstate.*
 .terraform.lock.hcl
 
-# Infrastructure Keys
+# Infrastructure Keys & Secrets
 *.pem
+infra/ansible/.deploy-vars.json
 
 # Editor directories and files
 .vscode/*
