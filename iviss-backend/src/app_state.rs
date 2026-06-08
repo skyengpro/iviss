@@ -7,6 +7,7 @@ use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::SmsProvider;
 use crate::services::vehicle_client_service::VehicleApiService;
+use crate::services::vehicle_data_cache::VehicleDataCache;
 use anyhow::Context;
 use std::sync::Arc;
 #[derive(Clone)]
@@ -19,6 +20,7 @@ pub struct AppState {
     pub jwt_public_key_pem: String,
     pub otp_via_email: bool,
     pub vehicle_api_svc: Arc<VehicleApiService>,
+    pub vehicle_data_cache: Option<Arc<dyn VehicleDataCache>>,
 }
 
 impl AppState {
@@ -28,6 +30,17 @@ impl AppState {
         sms_pvd: Arc<dyn SmsProvider>,
         email_pvd: Arc<dyn EmailProvider>,
         config: &Config,
+    ) -> anyhow::Result<Self> {
+        Self::new_with_vehicle_data_cache(db_pool, app_cache, sms_pvd, email_pvd, config, None)
+    }
+
+    pub fn new_with_vehicle_data_cache(
+        db_pool: DbPool,
+        app_cache: Arc<AppCache>,
+        sms_pvd: Arc<dyn SmsProvider>,
+        email_pvd: Arc<dyn EmailProvider>,
+        config: &Config,
+        vehicle_data_cache: Option<Arc<dyn VehicleDataCache>>,
     ) -> anyhow::Result<Self> {
         let jwt_svc = JwtService::new(&config.jwt_private_key_pem)
             .context("failed to parse JWT private key PEM at startup")?;
@@ -52,6 +65,7 @@ impl AppState {
             jwt_public_key_pem: config.jwt_public_key_pem.clone(),
             otp_via_email: config.otp_via_email,
             vehicle_api_svc: Arc::new(vehicle_api_svc),
+            vehicle_data_cache,
         })
     }
 }

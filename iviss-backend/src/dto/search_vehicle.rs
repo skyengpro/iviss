@@ -17,14 +17,14 @@ pub struct VehicleSearchRequest {
 
 // Sub-objects
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct OwnerInfo {
     pub name: Option<String>,
     pub address: Option<String>,
     pub national_id: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct VehicleInfo {
     pub brand: Option<String>,
     pub model: Option<String>,
@@ -37,7 +37,7 @@ pub struct VehicleInfo {
     pub owner: OwnerInfo,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct InsuranceStatus {
     pub status: Status,
     pub provider: Option<String>,
@@ -47,7 +47,7 @@ pub struct InsuranceStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct PoliceStatus {
     pub status: Status,
     pub is_wanted: bool,
@@ -57,7 +57,7 @@ pub struct PoliceStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CustomsStatus {
     pub status: Status,
     pub is_cleared: bool,
@@ -66,7 +66,7 @@ pub struct CustomsStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TechnicalStatus {
     pub status: Status,
     pub last_inspection_date: Option<String>,
@@ -76,7 +76,7 @@ pub struct TechnicalStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct StatusResults {
     pub overall_status: Status,
     pub insurance: InsuranceStatus,
@@ -88,7 +88,7 @@ pub struct StatusResults {
 
 //  Response
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct VehicleSearchResult {
     pub plate_number: String,
     pub confidence: Option<f64>,
