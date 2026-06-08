@@ -58,8 +58,7 @@ export default function DailyLogin() {
       const result = await dailyLoginRequest({ badgeId: badgeId.trim() });
       if (!result.success) {
         setError(result.error || 'Failed to request OTP');
-        // If the context cleared the device flag (e.g., deleted device), redirect to activation
-        if (localStorage.getItem('iviss_device_activated') !== 'true') {
+        if (result.requiresActivation) {
           setTimeout(() => navigate('/activate'), 2500);
         }
       } else {
@@ -97,8 +96,7 @@ export default function DailyLogin() {
 
       if (!result.success) {
         setError(result.error || 'Verification failed');
-        // If the context cleared the device flag (e.g., deleted device), redirect to activation
-        if (localStorage.getItem('iviss_device_activated') !== 'true') {
+        if (result.requiresActivation) {
           setTimeout(() => navigate('/activate'), 2500);
         }
       }

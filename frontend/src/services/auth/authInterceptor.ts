@@ -26,6 +26,22 @@ const REFRESH_PATHS = [
 let refreshPromise: Promise<string | null> | null = null;
 const REFRESH_TIMEOUT_MS = 15_000;
 
+function isDeviceReactivationMessage(message: string): boolean {
+  return (
+    message.includes('device is not active') ||
+    message.includes('device is not registered') ||
+    message.includes('device not found or revoked') ||
+    message.includes('device suspended') ||
+    message.includes('device status: suspended') ||
+    message.includes('device status: revoked')
+  );
+}
+
+function markDeviceReactivationRequired() {
+  localStorage.removeItem('iviss_device_activated');
+  localStorage.setItem('iviss_forced_logout_reason', 'DEVICE_REACTIVATION_REQUIRED');
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = window.setTimeout(() => reject(new Error('Refresh timed out')), ms);
@@ -166,6 +182,12 @@ export function setupAuthInterceptors(
         try {
           const body = await response.clone().json();
           const msg = body?.message?.toLowerCase() || '';
+          if (isDeviceReactivationMessage(msg)) {
+            console.warn('[AuthInterceptor] Device reactivation required:', body.message);
+            markDeviceReactivationRequired();
+            options.onSessionExpired?.();
+            return response;
+          }
           if (msg.includes('invalid') || msg.includes('expired') || msg.includes('revoked')) {
             console.warn('[AuthInterceptor] Refresh token rejected — session revoked by admin');
             options.onSessionExpired?.();
@@ -193,11 +215,16 @@ export function setupAuthInterceptors(
       try {
         const body = await response.clone().json();
         const msg = body?.message?.toLowerCase() || '';
+        if (isDeviceReactivationMessage(msg)) {
+          console.warn('[AuthInterceptor] Device reactivation required:', body.message);
+          markDeviceReactivationRequired();
+          options.onSessionExpired?.();
+          return response;
+        }
         // Only logout on explicit session termination signals
         if (
           msg.includes('shift ended') ||
-          msg.includes('session terminated') ||
-          msg.includes('device is not active')
+          msg.includes('session terminated')
         ) {
           console.warn('[AuthInterceptor] Session terminated:', body.message);
           options.onSessionExpired?.();
