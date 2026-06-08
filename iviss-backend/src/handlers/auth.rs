@@ -365,6 +365,22 @@ pub async fn activate(
 
     sqlx::query(
         r#"
+        UPDATE devices
+        SET status = 'SUSPENDED'::device_status,
+            revoked_at = NOW()
+        WHERE user_id = $1
+          AND id <> $2
+          AND status != 'SUSPENDED'::device_status
+        "#,
+    )
+    .bind(user_id)
+    .bind(payload.device_id)
+    .execute(&mut *tx)
+    .await
+    .map_err(AppError::Database)?;
+
+    sqlx::query(
+        r#"
         INSERT INTO devices (id, user_id, public_key, status, metadata)
         VALUES (
             $1,

@@ -83,6 +83,15 @@ const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destruct
     agent: 'outline',
   };
 
+function canResendActivationCode(user: UserProfile) {
+  return (
+    user.role === 'agent' &&
+    (user.status === 'PENDING_ACTIVATION' ||
+      user.sessionStatus === 'SUSPENDED' ||
+      user.sessionStatus === 'REVOKED')
+  );
+}
+
 export default function UserManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -714,11 +723,7 @@ export default function UserManagement() {
                             <DropdownMenuItem
                               disabled={
                                 resendLoadingUserId === user.id ||
-                                user.role !== 'agent' ||
-                                !(
-                                  user.status === 'PENDING_ACTIVATION' ||
-                                  user.status === 'SUSPENDED'
-                                )
+                                !canResendActivationCode(user)
                               }
                               onClick={() => handleResendActivationCode(user)}
                             >
@@ -735,6 +740,7 @@ export default function UserManagement() {
                               className={
                                 user.isActive ? 'text-status-warning' : 'text-status-valid'
                               }
+                              disabled={user.status === 'PENDING_ACTIVATION'}
                             >
                               {user.isActive ? (
                                 <>

@@ -325,18 +325,27 @@ pub async fn restart_session(
 )]
 pub async fn resend_activation_code(
     State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
     Json(payload): Json<ResendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
     let user_raw = sqlx::query(
         r#"
-        SELECT id,
-               phone_number,
-               role,
-               status
-        FROM users
-        WHERE id = $1
-        AND deleted_at IS NULL
+        SELECT u.id,
+               u.phone_number,
+               u.role,
+               u.status,
+               u.organization_id,
+               d.status AS device_status
+        FROM users u
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
+        WHERE u.id = $1
+          AND u.deleted_at IS NULL
         "#,
     )
     .bind(payload.user_id)
@@ -349,6 +358,14 @@ pub async fn resend_activation_code(
     let phone_number: String = user_raw.get("phone_number");
     let role: UserRole = user_raw.get("role");
     let status: UserStatus = user_raw.get("status");
+    let organization_id: Option<Uuid> = user_raw.get("organization_id");
+    let device_status: Option<crate::dto::users::DeviceStatus> = user_raw.get("device_status");
+
+    if requester.role == "org_admin" && requester.organization_id != organization_id {
+        return Err(AppError::forbidden(
+            "Org admin can only resend activation codes for users in their organization",
+        ));
+    }
 
     // Only agents can receive an activation code
     if role != UserRole::Agent {
@@ -357,12 +374,51 @@ pub async fn resend_activation_code(
         ));
     }
 
-    // Agent must be in PENDING_ACTIVATION status
-    if status != UserStatus::PendingActivation {
+    let device_requires_reactivation = matches!(
+        device_status,
+        Some(crate::dto::users::DeviceStatus::Suspended)
+            | Some(crate::dto::users::DeviceStatus::Revoked)
+    );
+
+    if status != UserStatus::PendingActivation && !device_requires_reactivation {
         return Err(AppError::BadRequest(format!(
-            "User is not pending activation — current status: {}",
-            status.as_str()
+            "Activation code can only be resent for pending agents or agents whose device requires reactivation — current user status: {}, device status: {}",
+            status.as_str(),
+            device_status.map(|s| s.as_str()).unwrap_or("NONE")
         )));
+    }
+
+    if status != UserStatus::PendingActivation {
+        let mut tx = state.db.begin().await.map_err(AppError::Database)?;
+
+        sqlx::query(
+            r#"
+            UPDATE users
+            SET status = 'PENDING_ACTIVATION'::user_status
+            WHERE id = $1
+              AND deleted_at IS NULL
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(AppError::Database)?;
+
+        sqlx::query(
+            r#"
+            UPDATE refresh_tokens
+            SET revoked = TRUE,
+                revoked_at = NOW()
+            WHERE user_id = $1
+              AND revoked = FALSE
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(AppError::Database)?;
+
+        tx.commit().await.map_err(AppError::Database)?;
     }
 
     // Build OtpService from shared state resources

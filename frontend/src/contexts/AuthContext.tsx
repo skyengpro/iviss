@@ -64,8 +64,21 @@ function humanizeActivationError(payload: unknown): string | undefined {
   return message;
 }
 
-function hasErrorCode(value: unknown): value is { code: unknown } {
-  return typeof value === 'object' && value !== null && 'code' in value;
+function requiresDeviceReactivation(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+
+  const maybe = value as { message?: unknown };
+  if (typeof maybe.message !== 'string') return false;
+
+  const message = maybe.message.toLowerCase();
+  return (
+    message.includes('device is not active') ||
+    message.includes('device is not registered') ||
+    message.includes('device suspended') ||
+    message.includes('device status: suspended') ||
+    message.includes('device status: revoked') ||
+    message.includes('device not found or revoked')
+  );
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -104,10 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Session termination only revokes auth state, not device identity.
 
     if (forced) {
-      // Set a flag so the login page can show the toast after the full-page redirect
-      localStorage.setItem('iviss_forced_logout_reason', 'TERMINATED');
-      // Force redirect to the daily login flow.
-      window.location.href = '/daily-login';
+      // Preserve a more specific reason set by the interceptor, when present.
+      const reason = localStorage.getItem('iviss_forced_logout_reason') || 'TERMINATED';
+      localStorage.setItem('iviss_forced_logout_reason', reason);
+      window.location.href =
+        reason === 'DEVICE_REACTIVATION_REQUIRED' ? '/activate' : '/daily-login';
     }
   };
 
@@ -355,12 +369,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (res.error) {
-        // Handle case where device is deleted from backend but flag exists on frontend
-        if (hasErrorCode(res.error) && res.error.code === 'NOT_FOUND') {
+        const requiresActivation = requiresDeviceReactivation(res.error);
+        // Only clear the device activation flag when the backend explicitly
+        // says the device must be re-activated. A missing badge also returns
+        // NOT_FOUND and must keep the agent on Daily Login.
+        if (requiresActivation) {
           localStorage.removeItem('iviss_device_activated');
         }
         const friendly = humanizeActivationError(res.error);
-        return { success: false, error: friendly || 'Failed to request OTP' };
+        return {
+          success: false,
+          error: friendly || 'Failed to request OTP',
+          requiresActivation,
+        };
       }
       return { success: true };
     } catch (err) {
@@ -380,12 +401,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (res.error) {
-        // Handle case where device is deleted from backend but flag exists on frontend
-        if (hasErrorCode(res.error) && res.error.code === 'NOT_FOUND') {
+        const requiresActivation = requiresDeviceReactivation(res.error);
+        if (requiresActivation) {
           localStorage.removeItem('iviss_device_activated');
         }
         const friendly = humanizeActivationError(res.error);
-        return { success: false, error: friendly || 'Verification failed' };
+        return {
+          success: false,
+          error: friendly || 'Verification failed',
+          requiresActivation,
+        };
       }
 
       const data = res.data;
