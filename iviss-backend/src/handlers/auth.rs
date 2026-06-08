@@ -10,6 +10,7 @@ use axum::extract::{Extension, State};
 use axum::http::header::AUTHORIZATION;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use base64::Engine;
+use tracing::instrument;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
@@ -50,6 +51,7 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     tag = "auth",
     operation_id = "loginUser"
 )]
+#[instrument(name = "auth.login", skip(state, payload), fields(email = %payload.email))]
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
@@ -285,6 +287,7 @@ async fn revoke_all_user_refresh_tokens(
     tag = "auth",
     operation_id = "activateDevice"
 )]
+#[instrument(name = "auth.activate", skip(state, payload), fields(badge_id = %payload.badge_id))]
 pub async fn activate(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ActivateRequest>,
