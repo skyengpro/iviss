@@ -1,4 +1,5 @@
 use axum::{extract::Multipart, http::StatusCode, response::IntoResponse, Json};
+use tracing::instrument;
 
 #[allow(unused_imports)]
 use crate::dto::scan::ImageUploadRequest;
@@ -33,6 +34,7 @@ const OCR_TIMEOUT_MS: u64 = 9000;
         (status = 500, description = "Internal OCR error",                  body = ScanPlateResponse),
     ),
 )]
+#[instrument(name = "scan.plate", skip(multipart))]
 pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
     // ── 1. Extract the `image` field from the multipart body ─────────────────
     let (content_type, image_bytes) = match extract_image_field(&mut multipart).await {

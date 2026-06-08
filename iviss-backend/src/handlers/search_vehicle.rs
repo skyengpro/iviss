@@ -16,6 +16,7 @@ use axum::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::sync::Arc;
+use tracing::instrument;
 use uuid::Uuid;
 
 // ── POST /api/v1/vehicles/search ──────────────────────────────────────────────
@@ -39,6 +40,7 @@ use uuid::Uuid;
     ),
     security(("bearer_auth" = []))
 )]
+#[instrument(name = "vehicle.search", skip(state, payload), fields(plate = %payload.plate))]
 pub async fn search_vehicle(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,
@@ -154,6 +156,7 @@ pub async fn search_vehicle(
     ),
     security(("bearer_auth" = []))
 )]
+#[instrument(name = "vehicle.search_v1", skip(state, payload), fields(plate = %payload.plate))]
 pub async fn search_vehicle_v1(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,
