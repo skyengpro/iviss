@@ -17,11 +17,16 @@ impl TelemetryHandle {
         self.metrics_recorder.render()
     }
 
-    pub fn shutdown(&self) {
+    pub async fn shutdown(&self) {
         if let Some(tp) = &self.tracer_provider {
-            if let Err(e) = tp.shutdown() {
-                tracing::error!("error shutting down tracer provider: {e}");
-            }
+            let tp = tp.clone();
+            tokio::task::spawn_blocking(move || {
+                if let Err(e) = tp.shutdown() {
+                    eprintln!("OTel shutdown error: {e}");
+                }
+            })
+            .await
+            .ok();
         }
     }
 }

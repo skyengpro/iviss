@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     // Flush telemetry while the Tokio runtime is still active.
-    telemetry_handle.shutdown();
+    telemetry_handle.shutdown().await;
     info!("Telemetry flushed. Goodbye.");
 
     Ok(())
