@@ -59,13 +59,21 @@ async fn main() -> anyhow::Result<()> {
     )
     .context("Failed to initialize application state")?;
 
-    let app = routes::assembly(state)
+    let shared_state = Arc::new(state);
+
+    let app = routes::assembly((*shared_state).clone())
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
+
+    let metrics_app = routes::metrics_router(shared_state.clone());
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
     info!("Listening on {}", addr);
 
+    let metrics_addr: SocketAddr = format!("{}:9091", config.server_host).parse()?;
+    info!("Metrics listening on {}", metrics_addr);
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
+    let metrics_listener = tokio::net::TcpListener::bind(metrics_addr).await?;
 
     let shutdown = async {
         tokio::signal::ctrl_c()
@@ -74,9 +82,11 @@ async fn main() -> anyhow::Result<()> {
         info!("Shutdown signal received, draining...");
     };
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown)
-        .await?;
+    // Run both servers concurrently; either shutdown or error stops both.
+    tokio::select! {
+        r = axum::serve(listener, app).with_graceful_shutdown(shutdown) => r?,
+        r = axum::serve(metrics_listener, metrics_app) => r?,
+    };
 
     // Flush telemetry while the Tokio runtime is still active.
     telemetry_handle.shutdown().await;
