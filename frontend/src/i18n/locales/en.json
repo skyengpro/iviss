@@ -431,6 +431,7 @@
     "deleteSuccess": "User deleted successfully",
     "deleteError": "Failed to delete user",
     "terminateSession": "Terminate Session",
+    "userDevice": "User Device",
     "terminateSessionDescription": "Are you sure you want to terminate all active sessions for this agent? This will immediately log them out of all devices.",
     "terminateSuccess": "Agent sessions terminated successfully",
     "terminateError": "Failed to terminate agent sessions",

@@ -582,7 +582,7 @@ export default function UserManagement() {
                   <TableHead>{t('backOfficeUserManagement.role')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.organization')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.status')}</TableHead>
-                  <TableHead>{t('backOfficeUserManagement.terminateSession')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.userDevice')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.lastActive')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.controlsToday')}</TableHead>
                   <TableHead className="w-[80px]">

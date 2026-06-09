@@ -403,6 +403,7 @@
     "deactivate": "Désactiver",
     "activate": "Activer",
     "terminateSession": "Terminer la session",
+    "userDevice": "Appareil de l'utilisateur",
     "terminateSessionDescription": "Êtes-vous sûr de vouloir terminer toutes les sessions actives de cet agent ? Cela le déconnectera immédiatement de tous les appareils.",
     "terminateSuccess": "Les sessions de l'agent ont été terminées avec succès",
     "terminateError": "Échec de la résiliation des sessions de l'agent",

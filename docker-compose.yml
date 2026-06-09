@@ -189,7 +189,7 @@ services:
       - "8080:8080"
     environment:
       NODE_ENV: development
-      VITE_API_URL: http://${DOMAIN_NAME:-localhost:3000}
+      VITE_API_URL: ""
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app

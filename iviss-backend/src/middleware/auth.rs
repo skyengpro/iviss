@@ -75,6 +75,7 @@ pub async fn require_auth(
         .try_into()
         .unwrap_or(0usize);
 
+    println!("Shift ended ICI {}, and now {}", claims.shift_end, &now);
     if now > claims.shift_end {
         return Err(crate::handlers::auth::on_shift_ended(&state.db, claims.device_id).await);
     }
