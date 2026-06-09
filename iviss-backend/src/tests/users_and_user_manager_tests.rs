@@ -19,6 +19,7 @@ use crate::{
     routes,
     services::jwt_service::JwtService,
     services::otp_service::OTP_TTL_SECS,
+    telemetry::TelemetryHandle,
 };
 
 use testcontainers_modules::{postgres::Postgres, testcontainers::runners::AsyncRunner};
@@ -152,6 +153,7 @@ async fn setup_test_app() -> (
         sms_provider,
         email_provider,
         &config,
+        Arc::new(TelemetryHandle::noop()),
     )
     .expect("failed to initialize test app state");
 
