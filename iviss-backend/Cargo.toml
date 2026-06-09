@@ -33,7 +33,6 @@ opentelemetry = "0.27"
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.27", features = ["http-proto", "reqwest-client"] }
 tracing-opentelemetry = "0.28"
-opentelemetry-semantic-conventions = "0.27"
 
 utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
 utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }

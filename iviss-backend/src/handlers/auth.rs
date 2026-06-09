@@ -56,13 +56,21 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    metrics::counter!("iviss_auth_attempts_total", "method" => "login").increment(1);
+
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
+        metrics::counter!("iviss_auth_failures_total", "reason" => "empty_credentials")
+            .increment(1);
         return Err(AppError::bad_request("Email and password are required"));
     }
 
     let user = auth_queries::find_admin_by_identity(&state.db, &payload.email)
         .await?
-        .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
+        .ok_or_else(|| {
+            metrics::counter!("iviss_auth_failures_total", "reason" => "user_not_found")
+                .increment(1);
+            AppError::unauthorized("Invalid credentials")
+        })?;
 
     if user.status != UserStatus::Active && !user.must_change_password {
         tracing::warn!(
@@ -70,6 +78,8 @@ pub async fn login(
             status = %user.status.as_str(),
             "login: rejected — account not active"
         );
+        metrics::counter!("iviss_auth_failures_total", "reason" => "account_not_active")
+            .increment(1);
         return Err(AppError::unauthorized("Account is not active"));
     }
 
@@ -82,6 +92,7 @@ pub async fn login(
 
     if !matches {
         tracing::warn!(email = %payload.email, "login: rejected — wrong password");
+        metrics::counter!("iviss_auth_failures_total", "reason" => "wrong_password").increment(1);
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -91,6 +102,7 @@ pub async fn login(
         && user.role != UserRole::Manager
         && user.role != UserRole::OrgAdmin
     {
+        metrics::counter!("iviss_auth_failures_total", "reason" => "invalid_role").increment(1);
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 

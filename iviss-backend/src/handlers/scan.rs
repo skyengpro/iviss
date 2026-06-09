@@ -67,6 +67,7 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
     // ── 4. Run OCR pipeline ──────────────────────────────────────────────────
     // Offload the CPU-heavy work to a blocking thread so we don't starve
     // the async Tokio runtime.
+    let plate_len = image_bytes.len();
     let mut handle = tokio::task::spawn_blocking(move || ocr_service::scan_plate(&image_bytes));
     let result = tokio::time::timeout(
         std::time::Duration::from_millis(OCR_TIMEOUT_MS),
@@ -76,9 +77,15 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
 
     match result {
         Ok(joined) => match joined {
-            Ok(Ok(scan_data)) => success_response(scan_data),
+            Ok(Ok(scan_data)) => {
+                metrics::counter!("iviss_scans_total", "plate_length" => plate_len.to_string())
+                    .increment(1);
+                success_response(scan_data)
+            }
             Ok(Err(app_err)) => {
                 tracing::warn!("OCR processing error: {app_err}");
+                metrics::counter!("iviss_scan_errors_total", "error_type" => "ocr_error")
+                    .increment(1);
                 error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "OCR_ERROR",
@@ -87,6 +94,7 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
             }
             Err(join_err) => {
                 tracing::error!("OCR task panicked: {join_err}");
+                metrics::counter!("iviss_scan_errors_total", "error_type" => "panic").increment(1);
                 error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "OCR_ERROR",
@@ -96,6 +104,7 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
         },
         Err(_) => {
             handle.abort();
+            metrics::counter!("iviss_scan_errors_total", "error_type" => "timeout").increment(1);
             error_response(
                 StatusCode::GATEWAY_TIMEOUT,
                 "OCR_TIMEOUT",

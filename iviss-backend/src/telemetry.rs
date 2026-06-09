@@ -116,14 +116,3 @@ fn init_metrics() -> Result<metrics_exporter_prometheus::PrometheusHandle> {
 
     Ok(handle)
 }
-
-pub async fn metrics_handler(handle: Arc<TelemetryHandle>) -> impl axum::response::IntoResponse {
-    (
-        axum::http::StatusCode::OK,
-        [(
-            axum::http::header::CONTENT_TYPE,
-            "text/plain; version=0.0.4; charset=utf-8",
-        )],
-        handle.metrics_output(),
-    )
-}

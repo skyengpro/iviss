@@ -49,37 +49,37 @@ async fn main() -> anyhow::Result<()> {
     info!("Caching necessary data from database...");
     cache.cache_necessary_data_from_database(&db_pool).await?;
 
-    let state = AppState::new(db_pool, cache, sms_provider, email_provider, &config)
-        .context("Failed to initialize application state")?;
-
-    let metrics_handle = telemetry_handle.clone();
+    let state = AppState::new(
+        db_pool,
+        cache,
+        sms_provider,
+        email_provider,
+        &config,
+        telemetry_handle.clone(),
+    )
+    .context("Failed to initialize application state")?;
 
     let app = routes::assembly(state)
-        .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()))
-        .route(
-            "/metrics",
-            axum::routing::get(move || telemetry::metrics_handler(metrics_handle)),
-        );
+        .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
     info!("Listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
-    let shutdown_handle = telemetry_handle.clone();
     let shutdown = async {
         tokio::signal::ctrl_c()
             .await
             .expect("failed to install CTRL+C handler");
-        info!("Shutdown signal received, flushing telemetry...");
+        info!("Shutdown signal received, draining...");
     };
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown)
         .await?;
 
-    info!("Shutting down...");
-    shutdown_handle.shutdown();
+    // Flush telemetry while the Tokio runtime is still active.
+    telemetry_handle.shutdown();
     info!("Telemetry flushed. Goodbye.");
 
     Ok(())
