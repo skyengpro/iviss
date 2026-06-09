@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
-
+import basicSsl from "@vitejs/plugin-basic-ssl";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   return {
@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
         'dev.iviss.skyengpro.app',
         'api.iviss.skyengpro.app',
       ],
-      host: '::',
+      host: "0.0.0.0",
       port: 8080,
       hmr: {
         overlay: false,
@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     plugins: [
+      basicSsl(),
       react(),
       VitePWA({
         registerType: 'autoUpdate',
