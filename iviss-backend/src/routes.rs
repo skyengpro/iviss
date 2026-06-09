@@ -193,10 +193,18 @@ pub fn assembly(state: AppState) -> Router {
         .merge(org_admin_routes)
         .merge(web_auth_routes)
         .merge(protected_routes)
-        .route("/metrics", get(crate::handlers::health::metrics_export))
         .layer(axum::middleware::from_fn(metrics::track_metrics))
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(cors::cors_layer())
+        .with_state(state)
+}
+
+/// Internal metrics server — served on a separate port (9091) so that
+/// /metrics is only accessible from within the cluster (Prometheus
+/// ServiceMonitor), NOT through the public ingress.
+pub fn metrics_router(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/metrics", get(crate::handlers::health::metrics_export))
         .with_state(state)
 }
