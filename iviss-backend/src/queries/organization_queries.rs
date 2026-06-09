@@ -468,3 +468,32 @@ pub async fn delete_organization(pool: &PgPool, id: Uuid) -> Result<(), AppError
 
     Ok(())
 }
+
+pub async fn update_agents_shift_end_for_org(
+    pool: &PgPool,
+    org_id: Uuid,
+    new_shift_end: i64,
+) -> Result<(), AppError> {
+    sqlx::query(
+        r#"
+        UPDATE devices
+        SET metadata = jsonb_set(
+            COALESCE(metadata, '{}'::jsonb),
+            '{shift_end}',
+            to_jsonb($1::bigint)
+        )
+        WHERE user_id IN (
+            SELECT id FROM users
+            WHERE organization_id = $2
+              AND deleted_at IS NULL
+        )
+          AND status = 'ACTIVE'::device_status
+        "#,
+    )
+    .bind(new_shift_end)
+    .bind(org_id)
+    .execute(pool)
+    .await
+    .map(|_| ())
+    .map_err(AppError::database)
+}

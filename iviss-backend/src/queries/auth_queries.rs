@@ -69,8 +69,7 @@ pub async fn mark_device_inactive(pool: &PgPool, device_id: Uuid) -> Result<(), 
     sqlx::query(
         r#"
         UPDATE devices
-        SET status = 'INACTIVE'::device_status,
-            revoked_at = NOW()
+        SET status = 'INACTIVE'::device_status
         WHERE id = $1
           AND status = 'ACTIVE'::device_status
         "#,
