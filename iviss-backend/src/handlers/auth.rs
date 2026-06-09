@@ -10,6 +10,7 @@ use axum::extract::{Extension, State};
 use axum::http::header::AUTHORIZATION;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use base64::Engine;
+use tracing::instrument;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
@@ -50,17 +51,26 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     tag = "auth",
     operation_id = "loginUser"
 )]
+#[instrument(name = "auth.login", skip(state, payload), fields(email = %payload.email))]
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    metrics::counter!("iviss_auth_attempts_total", "method" => "login").increment(1);
+
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
+        metrics::counter!("iviss_auth_failures_total", "reason" => "empty_credentials")
+            .increment(1);
         return Err(AppError::bad_request("Email and password are required"));
     }
 
     let user = auth_queries::find_admin_by_identity(&state.db, &payload.email)
         .await?
-        .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
+        .ok_or_else(|| {
+            metrics::counter!("iviss_auth_failures_total", "reason" => "user_not_found")
+                .increment(1);
+            AppError::unauthorized("Invalid credentials")
+        })?;
 
     if user.status != UserStatus::Active && !user.must_change_password {
         tracing::warn!(
@@ -68,6 +78,8 @@ pub async fn login(
             status = %user.status.as_str(),
             "login: rejected — account not active"
         );
+        metrics::counter!("iviss_auth_failures_total", "reason" => "account_not_active")
+            .increment(1);
         return Err(AppError::unauthorized("Account is not active"));
     }
 
@@ -80,6 +92,7 @@ pub async fn login(
 
     if !matches {
         tracing::warn!(email = %payload.email, "login: rejected — wrong password");
+        metrics::counter!("iviss_auth_failures_total", "reason" => "wrong_password").increment(1);
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -89,6 +102,7 @@ pub async fn login(
         && user.role != UserRole::Manager
         && user.role != UserRole::OrgAdmin
     {
+        metrics::counter!("iviss_auth_failures_total", "reason" => "invalid_role").increment(1);
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -285,6 +299,7 @@ async fn revoke_all_user_refresh_tokens(
     tag = "auth",
     operation_id = "activateDevice"
 )]
+#[instrument(name = "auth.activate", skip(state, payload), fields(badge_id = %payload.badge_id))]
 pub async fn activate(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ActivateRequest>,

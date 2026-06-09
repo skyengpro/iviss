@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::handlers::list_control::{get_list_control, get_list_control_paged};
-use crate::middleware::{auth, cors, rbac};
+use crate::middleware::{auth, cors, metrics, rbac};
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
@@ -193,8 +193,18 @@ pub fn assembly(state: AppState) -> Router {
         .merge(org_admin_routes)
         .merge(web_auth_routes)
         .merge(protected_routes)
+        .layer(axum::middleware::from_fn(metrics::track_metrics))
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(cors::cors_layer())
+        .with_state(state)
+}
+
+/// Internal metrics server — served on a separate port (9091) so that
+/// /metrics is only accessible from within the cluster (Prometheus
+/// ServiceMonitor), NOT through the public ingress.
+pub fn metrics_router(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/metrics", get(crate::handlers::health::metrics_export))
         .with_state(state)
 }

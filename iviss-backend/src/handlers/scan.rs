@@ -1,4 +1,5 @@
 use axum::{extract::Multipart, http::StatusCode, response::IntoResponse, Json};
+use tracing::instrument;
 
 #[allow(unused_imports)]
 use crate::dto::scan::ImageUploadRequest;
@@ -33,6 +34,7 @@ const OCR_TIMEOUT_MS: u64 = 9000;
         (status = 500, description = "Internal OCR error",                  body = ScanPlateResponse),
     ),
 )]
+#[instrument(name = "scan.plate", skip(multipart))]
 pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
     // ── 1. Extract the `image` field from the multipart body ─────────────────
     let (content_type, image_bytes) = match extract_image_field(&mut multipart).await {
@@ -65,6 +67,7 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
     // ── 4. Run OCR pipeline ──────────────────────────────────────────────────
     // Offload the CPU-heavy work to a blocking thread so we don't starve
     // the async Tokio runtime.
+    let plate_len = image_bytes.len();
     let mut handle = tokio::task::spawn_blocking(move || ocr_service::scan_plate(&image_bytes));
     let result = tokio::time::timeout(
         std::time::Duration::from_millis(OCR_TIMEOUT_MS),
@@ -74,9 +77,15 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
 
     match result {
         Ok(joined) => match joined {
-            Ok(Ok(scan_data)) => success_response(scan_data),
+            Ok(Ok(scan_data)) => {
+                metrics::counter!("iviss_scans_total", "plate_length" => plate_len.to_string())
+                    .increment(1);
+                success_response(scan_data)
+            }
             Ok(Err(app_err)) => {
                 tracing::warn!("OCR processing error: {app_err}");
+                metrics::counter!("iviss_scan_errors_total", "error_type" => "ocr_error")
+                    .increment(1);
                 error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "OCR_ERROR",
@@ -85,6 +94,7 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
             }
             Err(join_err) => {
                 tracing::error!("OCR task panicked: {join_err}");
+                metrics::counter!("iviss_scan_errors_total", "error_type" => "panic").increment(1);
                 error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "OCR_ERROR",
@@ -94,6 +104,7 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
         },
         Err(_) => {
             handle.abort();
+            metrics::counter!("iviss_scan_errors_total", "error_type" => "timeout").increment(1);
             error_response(
                 StatusCode::GATEWAY_TIMEOUT,
                 "OCR_TIMEOUT",
