@@ -1,131 +1,131 @@
-# IVISS Monitoring Stack
+# IVISS Observability
 
-Prometheus + Grafana observability for the IVISS frontend.
+Prometheus metrics, OpenTelemetry distributed tracing, and structured logging.
 
 ## Architecture
 
 ```
-Browser (React SPA)
+iviss-api pod
     │
-    │  POST /api/metrics (every 10s)
-    ▼
-┌─────────────────────┐
-│  Metrics Server     │ :9091
-│  (Node.js/Express)  │
-│  GET /metrics       │
-└────────┬────────────┘
-         │  Scrape (every 10s)
-         ▼
-┌─────────────────────┐
-│    Prometheus       │ :9090
-│  (Time-series DB)   │
-└────────┬────────────┘
-         │  Query
-         ▼
-┌─────────────────────┐
-│     Grafana         │ :3001
-│   (Dashboards)      │
-└─────────────────────┘
+    ├── /metrics  (Prometheus exporter, port 3000)
+    │       │
+    │       ▼
+    │   kube-prometheus-stack ServiceMonitor
+    │       │
+    │       ▼
+    │   Prometheus  ──►  Grafana dashboards + alert rules
+    │
+    └── OTLP/HTTP (port 4318)
+            │
+            ▼
+        Alloy (logging ns)  ──►  Tempo  ──►  Grafana (traces → logs → metrics correlation)
 ```
 
-## Quick Start
+## Backend Telemetry (`src/telemetry.rs`)
 
-```bash
-# From the project root — starts everything (including monitoring)
-docker compose up -d
+The backend initializes two telemetry subsystems at startup:
 
-# Check all services are running
-docker compose ps
+### Prometheus Metrics
+
+Exposed at `GET /metrics` via `metrics-exporter-prometheus` (port 3000, same as the API server).
+
+**Custom metrics registered in `init_metrics()`:**
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `iviss_http_requests_total` | Counter | `method`, `path`, `status` | Total HTTP requests |
+| `iviss_http_request_duration_seconds` | Histogram | `method`, `path` | Request latency buckets |
+| `iviss_auth_attempts_total` | Counter | `method` | Login/activation attempts |
+| `iviss_auth_failures_total` | Counter | `reason` | Authentication failures |
+| `iviss_scans_total` | Counter | `plate_length` | Successful plate scans |
+| `iviss_scan_errors_total` | Counter | `error_type` | Scan/OCR failures |
+| `iviss_active_sessions` | Gauge | — | Current authenticated sessions |
+
+### Distributed Tracing
+
+OpenTelemetry traces are exported via OTLP/HTTP to Grafana Alloy:
+
+- **Endpoint**: `OTEL_EXPORTER_OTLP_ENDPOINT` (default: `http://alloy.logging.svc.cluster.local:4318`)
+- **Service name**: `OTEL_SERVICE_NAME` (default: `iviss-backend`)
+- **Transport**: HTTP (matches Alloy's `otelcol.receiver.otlp` HTTP receiver)
+
+Instrumented handlers (via `#[instrument]`):
+
+| Handler | Span name |
+|---------|-----------|
+| `auth.login` | `auth::login` |
+| `auth.activate` | `auth::activate` |
+| `scan.plate` | `scan::plate` |
+| `photo.plate` | `photo::plate` |
+| `vehicle.search` | `vehicle::search` |
+| `vehicle.search_v1` | `vehicle::search_v1` |
+| `control.create` | `control::create` |
+| `health.check` | `health::check` |
+
+### Structured Logging
+
+Uses `tracing_subscriber` with a layered format:
+- **Layer 1**: `fmt` (stdout, for `kubectl logs`)
+- **Layer 2**: OpenTelemetry (for Tempo)
+
+Both layers are initialized at startup. If OTel provider init fails, the app still starts with just fmt logging (graceful degradation).
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Not set (tracing disabled) | Alloy OTLP HTTP endpoint |
+| `OTEL_SERVICE_NAME` | `iviss-backend` | Service name in traces |
+| `LOG_LEVEL` | `info` | Log level for fmt subscriber |
+
+## Graceful Shutdown
+
+`TelemetryHandle::shutdown()` is called on SIGTERM/SIGINT:
+1. Flushes all pending OTel spans to Alloy (via `tracer_provider.shutdown()`)
+2. Drops the Prometheus exporter
+
+## Adding New Metrics
+
+1. Register the metric in `src/telemetry.rs::init_metrics()`
+2. Use it in handlers via `metrics::counter!()`, `metrics::histogram!()`, or `metrics::gauge!()`
+3. Add panels to the Grafana dashboard (`monitoring/grafana/dashboards/iviss-backend-dashboard.yaml` in the OM repo)
+
+## Adding Tracing to a Handler
+
+```rust
+#[tracing::instrument]
+async fn my_handler(State(state): State<AppState>) -> impl IntoResponse {
+    // ...
+}
 ```
 
-## Access
+No additional imports needed — `tracing::instrument` is already in scope.
 
-| Service            | Precise URL                                                                | Credentials       |
-| ------------------ | -------------------------------------------------------------------------- | ----------------- |
-| **Frontend**       | [http://localhost:8080/](http://localhost:8080/)                           | —                 |
-| **Grafana**        | [http://localhost:3001/login](http://localhost:3001/login)                 | `admin` / `admin` |
-| **Prometheus**     | [http://localhost:9090/targets](http://localhost:9090/targets)             | —                 |
-| **Metrics Data**   | [http://localhost:9091/metrics](http://localhost:9091/metrics)             | —                 |
-| **Backend Health** | [http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health) | —                 |
+## Scrape Configuration
 
-## Verification Steps
+The backend is scraped by `kube-prometheus-stack` via a `ServiceMonitor` (enabled in Helm values):
 
-1. **Start the stack:**
+```yaml
+metrics:
+  enabled: true
+  port: 3000
+  path: /metrics
 
-   ```bash
-   docker compose up -d
-   ```
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+```
 
-2. **Generate Traffic:**
-   - Open **Frontend** at [http://localhost:8080/](http://localhost:8080/)
-   - Navigate to different pages to generate data.
+This is configured in `helm/values/iviss/api.yaml` in the OM repo.
 
-3. **Check Status:**
-   - **Prometheus**: Go to [http://localhost:9090/targets](http://localhost:9090/targets) -> Ensure `frontend-metrics` is **UP**.
-   - **Grafana**: Go to [http://localhost:3001/](http://localhost:3001/) -> `admin`/`admin` -> **Dashboards** -> **IVISS Frontend Monitoring**.
-   - **Metrics**: Go to [http://localhost:9091/metrics](http://localhost:9091/metrics) -> Should see raw text data.
+## Correlation
 
-A pre-built **"IVISS Frontend Monitoring"** dashboard is auto-provisioned with:
+In Grafana, traces are correlated to logs and metrics:
+- **Traces → Logs**: Trace ID injected into log lines, searchable in Loki
+- **Traces → Metrics**: Span metrics generated by Tempo
+- **Logs → Traces**: `trace_id` label extracted by Alloy's `loki.process` stage
 
-| Panel                    | Description                          |
-| ------------------------ | ------------------------------------ |
-| Frontend Availability    | UP/DOWN heartbeat status             |
-| Active Sessions          | Concurrent browser sessions          |
-| Total Errors             | Cumulative JS error count            |
-| Route Navigations        | Client-side navigation count         |
-| Page Load Duration       | Load time over time                  |
-| Errors Over Time         | Error rate (per minute)              |
-| LCP Gauge                | Largest Contentful Paint (Web Vital) |
-| FID Gauge                | First Input Delay (Web Vital)        |
-| CLS Gauge                | Cumulative Layout Shift (Web Vital)  |
-| Route Navigations / Time | Navigation rate over time            |
-| Active Sessions / Time   | Session count over time              |
-
-## Collected Metrics
-
-| Metric                             | Type      | Source                                  |
-| ---------------------------------- | --------- | --------------------------------------- |
-| `frontend_up`                      | Gauge     | Heartbeat from active sessions          |
-| `frontend_active_sessions`         | Gauge     | Concurrent browser sessions             |
-| `frontend_page_load_duration_ms`   | Histogram | Navigation Timing API                   |
-| `frontend_lcp_ms`                  | Gauge     | PerformanceObserver                     |
-| `frontend_fid_ms`                  | Gauge     | PerformanceObserver                     |
-| `frontend_cls`                     | Gauge     | PerformanceObserver                     |
-| `frontend_route_navigations_total` | Counter   | React Router location changes           |
-| `frontend_errors_total`            | Counter   | `window.onerror` + `unhandledrejection` |
-
-## Configuration
-
-### Environment Variables
-
-**Root `.env`:**
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GRAFANA_ADMIN_USER` | `admin` | Grafana login username |
-| `GRAFANA_ADMIN_PASSWORD` | `admin` | Grafana login password |
-| `PROMETHEUS_RETENTION` | `15d` | How long Prometheus keeps metrics |
-
-**Frontend `.env`:**
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VITE_METRICS_ENABLED` | `true` | Enable/disable browser metrics collection |
-| `VITE_METRICS_URL` | `http://localhost:9091/api/metrics` | Metrics server endpoint |
-
-### Disabling Metrics
-
-Set `VITE_METRICS_ENABLED=false` in `frontend/.env` to disable browser-side metrics collection without removing any code.
-
-## Adding Custom Metrics
-
-1. Define new metrics in `frontend/metrics-server.js` using `prom-client`
-2. Send them from the browser via `frontend/src/services/metricsCollector.ts`
-3. Add panels to the Grafana dashboard in `monitoring/grafana/dashboards/frontend-dashboard.json`
-
-## Troubleshooting
-
-| Issue                           | Solution                                                                         |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| Prometheus shows target as DOWN | Check `docker compose logs metrics-server`                                       |
-| No data in Grafana              | Open the frontend in a browser and wait ~15s                                     |
-| Grafana can't reach Prometheus  | Ensure both are on `iviss-network`: `docker network inspect iviss_iviss-network` |
-| Metrics not updating            | Check browser console for fetch errors to `/api/metrics`                         |
+Query example in Grafana Explore:
+- Search logs for a trace: `{app="iviss-backend"} |= "trace_id=abc123"`
+- Jump from a trace span to related logs via the "Logs for this span" link

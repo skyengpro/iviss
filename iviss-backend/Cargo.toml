@@ -19,10 +19,20 @@ serde_json = "1"
 dotenvy = "0.15"
 config = "0.14"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout"] }
 anyhow = "1.0"
 thiserror = "1.0"
+
+# Observability - Metrics (Prometheus)
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+# Observability - Distributed Tracing (OpenTelemetry)
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["http-proto", "reqwest-client"] }
+tracing-opentelemetry = "0.28"
 
 utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
 utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
