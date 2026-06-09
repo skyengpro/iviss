@@ -13,6 +13,16 @@ pub struct TelemetryHandle {
 }
 
 impl TelemetryHandle {
+    pub fn noop() -> Self {
+        let recorder = PrometheusBuilder::new()
+            .install_recorder()
+            .expect("failed to install noop metrics recorder");
+        Self {
+            metrics_recorder: Arc::new(recorder),
+            tracer_provider: None,
+        }
+    }
+
     pub fn metrics_output(&self) -> String {
         self.metrics_recorder.render()
     }
