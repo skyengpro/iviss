@@ -7,13 +7,17 @@ Prometheus metrics, OpenTelemetry distributed tracing, and structured logging.
 ```
 iviss-api pod
     │
-    ├── /metrics  (Prometheus exporter, port 3000)
-    │       │
-    │       ▼
-    │   kube-prometheus-stack ServiceMonitor
-    │       │
-    │       ▼
-    │   Prometheus  ──►  Grafana dashboards + alert rules
+    ├── :3000  (API server — public, via ingress)
+    │       └── metrics middleware records iviss_http_requests_total/duration on every request
+    │
+    ├── :9091  (metrics server — internal-only, NOT exposed via ingress)
+    │       └── GET /metrics → Prometheus scrape endpoint
+    │               │
+    │               ▼
+    │           kube-prometheus-stack ServiceMonitor
+    │               │
+    │               ▼
+    │           Prometheus  ──►  Grafana dashboards + alert rules
     │
     └── OTLP/HTTP (port 4318)
             │
@@ -27,7 +31,10 @@ The backend initializes two telemetry subsystems at startup:
 
 ### Prometheus Metrics
 
-Exposed at `GET /metrics` via `metrics-exporter-prometheus` (port 3000, same as the API server).
+Served on a **separate internal port (9091)** so that `/metrics` is only accessible
+from within the cluster (via ServiceMonitor), **not** through the public ingress.
+The metrics middleware (`src/middleware/metrics.rs`) records `iviss_http_requests_total`
+and `iviss_http_request_duration_seconds` on every HTTP request on the main API port (3000).
 
 **Custom metrics registered in `init_metrics()`:**
 
@@ -103,12 +110,15 @@ No additional imports needed — `tracing::instrument` is already in scope.
 
 ## Scrape Configuration
 
-The backend is scraped by `kube-prometheus-stack` via a `ServiceMonitor` (enabled in Helm values):
+The backend exposes `/metrics` on port **9091** (separate from the API on port 3000).
+This ensures metrics are only accessible from within the cluster, not through the public ingress.
+
+The ServiceMonitor scrapes on port 9091:
 
 ```yaml
 metrics:
   enabled: true
-  port: 3000
+  port: 9091
   path: /metrics
 
 serviceMonitor:
