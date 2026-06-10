@@ -178,7 +178,10 @@ async fn test_mark_device_inactive_success() {
             .await
             .expect("Failed to fetch device after update");
     assert_eq!(device_after.0, "INACTIVE");
-    assert!(device_after.1.is_none(), "revoked_at should NOT be set when shift ends naturally");
+    assert!(
+        device_after.1.is_none(),
+        "revoked_at should NOT be set when shift ends naturally"
+    );
 }
 
 #[tokio::test]
