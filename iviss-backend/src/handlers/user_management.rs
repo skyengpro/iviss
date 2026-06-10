@@ -1,8 +1,8 @@
 use crate::app_state::AppState;
 use crate::dto::users::{
     ProvisionUserRequest, ProvisionUserResponse, ResendActivationRequest, ResendActivationResponse,
-    RestartSessionRequest, RestartSessionResponse, TerminateSessionRequest,
-    TerminateSessionResponse, UpdateUserRequest,
+    ResendOrgAdminPasswordRequest, ResendOrgAdminPasswordResponse, RestartSessionRequest,
+    RestartSessionResponse, TerminateSessionRequest, TerminateSessionResponse, UpdateUserRequest,
 };
 use crate::dto::users::{UserRole, UserStatus};
 use crate::errors::AppError;
@@ -442,6 +442,111 @@ pub async fn resend_activation_code(
         StatusCode::CREATED,
         Json(ResendActivationResponse {
             message: "Activation code sent successfully".into(),
+        }),
+    ))
+}
+
+/// Resend temporary password to a pending org admin
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/resend-org-admin-password",
+    request_body = ResendOrgAdminPasswordRequest,
+    responses(
+        (status = 201, description = "Password sent successfully", body = ResendOrgAdminPasswordResponse),
+        (status = 404, description = "User not found", body = AppErrorResponse),
+        (status = 400, description = "Bad request", body = AppErrorResponse),
+        (status = 403, description = "Forbidden", body = AppErrorResponse)
+    ),
+    tag = "admin",
+    operation_id = "resendOrgAdminPassword",
+    security(("bearer_auth" = []))
+)]
+pub async fn resend_org_admin_password(
+    State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
+    Json(payload): Json<ResendOrgAdminPasswordRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // Only superadmin can resend org admin passwords
+    if requester.role != "admin" {
+        return Err(AppError::forbidden(
+            "Only superadmin can resend org admin passwords",
+        ));
+    }
+
+    // Fetch org admin from DB
+    let user_raw = sqlx::query(
+        r#"
+        SELECT id, email, role, status
+        FROM users
+        WHERE id = $1
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(payload.user_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    let user_id: Uuid = user_raw.get("id");
+    let email: Option<String> = user_raw.get("email");
+    let role: UserRole = user_raw.get("role");
+    let status: UserStatus = user_raw.get("status");
+
+    // Only org admins can receive a password resend
+    if role != UserRole::OrgAdmin {
+        return Err(AppError::BadRequest(
+            "Password resend is only available for org admins".into(),
+        ));
+    }
+
+    // Only pending activation org admins can receive a password resend
+    if status != UserStatus::PendingActivation {
+        return Err(AppError::BadRequest(format!(
+            "Password can only be resent for org admins with pending activation status — current status: {}",
+            status.as_str()
+        )));
+    }
+
+    let email = email.ok_or_else(|| AppError::bad_request("User must have an email"))?;
+
+    // Generate new temporary password
+    let temp_password =
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(uuid::Uuid::new_v4().as_bytes());
+    let password_hash = crate::utils::password::hash_password(&temp_password).await?;
+
+    // Update password hash in database
+    sqlx::query(
+        r#"
+        UPDATE users
+        SET password_hash = $1,
+            must_change_password = TRUE
+        WHERE id = $2
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(password_hash)
+    .bind(user_id)
+    .execute(&state.db)
+    .await
+    .map_err(AppError::Database)?;
+
+    tracing::info!(
+        user_id = %user_id,
+        email = %email,
+        "Org admin password resent successfully"
+    );
+
+    // Send the password to the user's email
+    state
+        .email_svc
+        .send_email(&email, "org_admin", &temp_password)
+        .await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(ResendOrgAdminPasswordResponse {
+            message: "Password sent successfully".into(),
         }),
     ))
 }

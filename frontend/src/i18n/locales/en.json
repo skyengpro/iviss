@@ -29,7 +29,7 @@
     "username": "Username",
     "password": "Password",
     "forgotPassword": "Forgot your password?",
-    "securityNotice": "Secured government system. Unauthorized access prohibited.",
+    "securityNotice": "Secured system. Unauthorized access prohibited.",
     "footer": "© 2024 IVISS - National Vehicle Control System",
     "loginFailed": "Login failed"
   },
@@ -159,7 +159,7 @@
     "recentActivity": "Recent Activity",
     "tapToSearch": "Tap to search",
     "noRecentActivity": "No recent activity found.",
-    "helpText": "Enter at least 4 characters of the plate number to search. The system will query all national databases.",
+    "helpText": "Enter at least 6 characters of the plate number to search.",
     "helpTextShort": "Enter at least {{count}} characters"
   },
   "vehicleResult": {
@@ -442,6 +442,7 @@
     "resendActivationCode": "Resend activation code",
     "resendSuccess": "Activation code sent",
     "resendError": "Failed to resend activation code",
+    "resendOrgAdminPassword": "Resend password",
     "sessionActive": "Active",
     "sessionTerminated": "Terminated",
     "sessionInactive": "Inactive",

@@ -92,6 +92,10 @@ function canResendActivationCode(user: UserProfile) {
   );
 }
 
+function canResendOrgAdminPassword(user: UserProfile) {
+  return user.role === 'org_admin' && user.status === 'PENDING_ACTIVATION';
+}
+
 export default function UserManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -270,6 +274,32 @@ export default function UserManagement() {
       toast.success(res.data?.message || 'Activation code sent');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to resend activation code');
+    } finally {
+      setResendLoadingUserId(null);
+    }
+  };
+
+  const handleResendOrgAdminPassword = async (user: UserProfile) => {
+    setResendLoadingUserId(user.id);
+    try {
+      const response = await fetchWithAuth('/api/v1/admin/resend-org-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to resend org admin password');
+      }
+
+      const data = await response.json();
+      toast.success(data.message || 'Password sent successfully');
+    } catch (error) {
+      console.error('Resend password error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to resend org admin password');
     } finally {
       setResendLoadingUserId(null);
     }
@@ -733,6 +763,20 @@ export default function UserManagement() {
                                 <RefreshCw className="mr-2 h-4 w-4" />
                               )}
                               {t('backOfficeUserManagement.resendActivationCode')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                resendLoadingUserId === user.id ||
+                                !canResendOrgAdminPassword(user)
+                              }
+                              onClick={() => handleResendOrgAdminPassword(user)}
+                            >
+                              {resendLoadingUserId === user.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Key className="mr-2 h-4 w-4" />
+                              )}
+                              {t('backOfficeUserManagement.resendOrgAdminPassword')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

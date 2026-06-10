@@ -29,8 +29,8 @@
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
     "forgotPassword": "Mot de passe oublié ?",
-    "securityNotice": "Système gouvernemental sécurisé. Accès non autorisé interdit.",
-    "footer": "© 2024 IVISS - Système National de Contrôle des Véhicules",
+    "securityNotice": "Système sécurisé. Accès non autorisé interdit.",
+    "footer": "© 2024 Système National de Contrôle des Véhicules",
     "loginFailed": "Échec de la connexion"
   },
   "mobileDashboard": {
@@ -159,7 +159,7 @@
     "recentActivity": "Activité récente",
     "tapToSearch": "Appuyez pour rechercher",
     "noRecentActivity": "Aucune activité récente trouvée.",
-    "helpText": "Saisissez au moins 4 caractères du numéro de plaque pour lancer la recherche. Le système interrogera toutes les bases de données nationales.",
+    "helpText": "Saisissez au moins 6 caractères du numéro de plaque pour lancer la recherche.",
     "helpTextShort": "Saisissez au moins {{count}} caractères"
   },
   "vehicleResult": {
@@ -444,6 +444,7 @@
     "resendActivationCode": "Renvoyer le code d'activation",
     "resendSuccess": "Code d'activation envoyé",
     "resendError": "Échec de l'envoi du code d'activation",
+    "resendOrgAdminPassword": "Renvoyer le mot de passe",
     "sessionActive": "Actif",
     "sessionTerminated": "Terminé",
     "sessionInactive": "Inactif",
