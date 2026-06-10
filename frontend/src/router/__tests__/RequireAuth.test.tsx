@@ -124,7 +124,7 @@ describe('RequireAuth', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/daily-login', expect.any(Object));
   });
 
-  it('navigates to /daily-login when refresh token exists but no access token', () => {
+  it('does not navigate when refresh token exists but no access token', () => {
     vi.mocked(useAuth).mockReturnValue({
       isLoading: false,
       isAuthenticated: false,
@@ -139,7 +139,7 @@ describe('RequireAuth', () => {
       </RequireAuth>
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith('/daily-login', expect.any(Object));
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('renders children when authenticated with no role restriction', () => {
