@@ -5,6 +5,7 @@ use axum::{
     Json,
 };
 use std::sync::Arc;
+use tracing::instrument;
 
 use crate::{
     app_state::AppState,
@@ -29,6 +30,7 @@ use crate::{
     ),
     security(("bearer_auth" = []))
 )]
+#[instrument(name = "control.create", skip(state, payload))]
 pub async fn create_control(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateControlRequest>,
