@@ -83,6 +83,10 @@ pub fn assembly(state: AppState) -> Router {
             "/api/v1/admin/resend-activation-code",
             post(crate::handlers::user_management::resend_activation_code),
         )
+        .route(
+            "/api/v1/admin/resend-org-admin-password",
+            post(crate::handlers::user_management::resend_org_admin_password),
+        )
         .route("/api/v1/admin/controls/paged", get(get_list_control_paged))
         .route(
             "/api/v1/admin/audit",
