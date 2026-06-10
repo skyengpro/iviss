@@ -582,9 +582,19 @@ pub async fn request_daily_login(
     let device_opt =
         auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
-    let device = device_opt.ok_or_else(|| {
-        AppError::NotFound("Device is not registered. Please re-activate.".into())
-    })?;
+    let device = match device_opt {
+        Some(d) => d,
+        None => {
+            let device_exists = auth_queries::check_device_exists(&state.db, payload.device_id).await?;
+            if device_exists {
+                return Err(AppError::bad_request(
+                    " Incompatible Badge ID for this device. Please check your Badge ID.",
+                ));
+            } else {
+                return Err(AppError::NotFound("Device is not registered. Please re-activate.".into()));
+            }
+        }
+    };
 
     if device.status == "SUSPENDED" {
         return Err(AppError::unauthorized(

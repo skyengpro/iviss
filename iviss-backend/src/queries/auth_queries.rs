@@ -132,6 +132,25 @@ pub async fn get_device_by_user_optional(
     .map_err(AppError::database)
 }
 
+pub async fn check_device_exists(
+    pool: &PgPool,
+    device_id: Uuid,
+) -> Result<bool, AppError> {
+    let exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1 FROM devices WHERE id = $1
+        )
+        "#,
+    )
+    .bind(device_id)
+    .fetch_one(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    Ok(exists)
+}
+
 pub async fn mark_device_active(
     pool: &PgPool,
     device_id: Uuid,
