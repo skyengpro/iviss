@@ -558,6 +558,117 @@ async fn test_delete_user_removes_user() {
     assert_eq!(count, 0, "User should be deleted from database");
 }
 
+#[tokio::test]
+async fn test_resend_activation_code_allows_pending_agent() {
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+    let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
+    let agent_id =
+        create_test_user(&db, org_id, UserRole::Agent, UserStatus::PendingActivation).await;
+    let admin_token = issue_admin_token(&jwt_private_key_pem, admin_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/admin/resend-activation-code")
+                .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", admin_token))
+                .body(Body::from(json!({ "userId": agent_id }).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[tokio::test]
+async fn test_resend_activation_code_allows_suspended_device_and_marks_user_pending() {
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+    let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
+    let agent_id = create_test_user(&db, org_id, UserRole::Agent, UserStatus::Active).await;
+    let admin_token = issue_admin_token(&jwt_private_key_pem, admin_id);
+    let device_id = Uuid::new_v4();
+
+    sqlx::query(
+        r#"
+        INSERT INTO devices (id, user_id, public_key, status, created_at)
+        VALUES ($1, $2, $3, 'SUSPENDED'::device_status, NOW())
+        "#,
+    )
+    .bind(device_id)
+    .bind(agent_id)
+    .bind(format!("public-key-{device_id}"))
+    .execute(&db)
+    .await
+    .unwrap();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/admin/resend-activation-code")
+                .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", admin_token))
+                .body(Body::from(json!({ "userId": agent_id }).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let status_after: String = sqlx::query_scalar("SELECT status::TEXT FROM users WHERE id = $1")
+        .bind(agent_id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(status_after, "PENDING_ACTIVATION");
+}
+
+#[tokio::test]
+async fn test_resend_activation_code_rejects_active_agent_with_active_device() {
+    let (db, _cache, app, jwt_private_key_pem, _jwt_public_key_pem, _pg) = setup_test_app().await;
+
+    let org_id = create_test_organization(&db).await;
+    let admin_id = create_test_user(&db, org_id, UserRole::Admin, UserStatus::Active).await;
+    let agent_id = create_test_user(&db, org_id, UserRole::Agent, UserStatus::Active).await;
+    let admin_token = issue_admin_token(&jwt_private_key_pem, admin_id);
+    let device_id = Uuid::new_v4();
+
+    sqlx::query(
+        r#"
+        INSERT INTO devices (id, user_id, public_key, status, created_at)
+        VALUES ($1, $2, $3, 'ACTIVE'::device_status, NOW())
+        "#,
+    )
+    .bind(device_id)
+    .bind(agent_id)
+    .bind(format!("public-key-{device_id}"))
+    .execute(&db)
+    .await
+    .unwrap();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/admin/resend-activation-code")
+                .header("content-type", "application/json")
+                .header("Authorization", format!("Bearer {}", admin_token))
+                .body(Body::from(json!({ "userId": agent_id }).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Reactivation Tests (via update_user with status change)
 // ─────────────────────────────────────────────────────────────────────────────

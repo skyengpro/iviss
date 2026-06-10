@@ -34,6 +34,12 @@ export default function Activate() {
         duration: 6000,
       });
       localStorage.removeItem('iviss_forced_logout_reason');
+    } else if (forcedReason === 'DEVICE_REACTIVATION_REQUIRED') {
+      toast.error('Device reactivation required', {
+        description: 'Your device must be reactivated before you can continue.',
+        duration: 6000,
+      });
+      localStorage.removeItem('iviss_forced_logout_reason');
     }
 
     // Already activated device — skip activation, go straight to daily login
