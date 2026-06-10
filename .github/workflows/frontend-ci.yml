@@ -204,9 +204,9 @@ jobs:
         with:
           path: frontend/coverage
           key: frontend-coverage-${{ github.sha }}
-      - uses: SonarSource/sonarcloud-github-action@v2
+      - uses: SonarSource/sonarqube-scan-action@v6
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_QUBE_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: |
