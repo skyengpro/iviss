@@ -154,8 +154,8 @@ export default function UserManagement() {
     try {
       const result = isSuperAdmin ? await provision(data) : await provisionOrg(data);
       setIsAddUserOpen(false);
-      if (result?.tempPassword && data.email) {
-        setTempPasswordInfo({ email: data.email, password: result.tempPassword });
+      if (result?.data?.tempPassword && data.email) {
+        setTempPasswordInfo({ email: data.email, password: result.data.tempPassword });
       } else {
         toast.success(t('backOfficeUserManagement.toastSuccess'));
       }
@@ -674,7 +674,7 @@ export default function UserManagement() {
                             {t('backOfficeUserManagement.sessionActive')}
                           </StatusBadge>
                         ) : user.sessionStatus === 'REVOKED' ? (
-                          <StatusBadge variant="destructive" size="sm">
+                          <StatusBadge variant="critical" size="sm">
                             {t('backOfficeUserManagement.sessionTerminated')}
                           </StatusBadge>
                         ) : (
