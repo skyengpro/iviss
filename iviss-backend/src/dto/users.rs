@@ -13,6 +13,18 @@ pub struct ResendActivationResponse {
     pub message: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ResendOrgAdminPasswordRequest {
+    pub user_id: uuid::Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ResendOrgAdminPasswordResponse {
+    pub message: String,
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminateSessionRequest {
