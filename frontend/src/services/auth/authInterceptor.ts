@@ -224,10 +224,7 @@ export function setupAuthInterceptors(
           return response;
         }
         // Only logout on explicit session termination signals
-        if (
-          msg.includes('shift ended') ||
-          msg.includes('session terminated')
-        ) {
+        if (msg.includes('shift ended') || msg.includes('session terminated')) {
           console.warn('[AuthInterceptor] Session terminated:', body.message);
           options.onSessionExpired?.();
         }
