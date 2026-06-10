@@ -191,31 +191,27 @@ jobs:
     timeout-minutes: 15
     continue-on-error: true
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Restore api generated files
-      uses: actions/cache@v4
-      with:
-        path: frontend/src/openapi-rq
-        key: ${{ github.sha }}
-    - name: Restore coverage
-      uses: actions/cache/restore@v4
-      with:
-        path: frontend/coverage
-        key: frontend-coverage-${{ github.sha }}
-    - name: Debug - Check secrets
-      run: |
-        echo "SONAR_HOST_URL is set: ${{ secrets.SONAR_HOST_URL != '' }}"
-        echo "SONAR_TOKEN is set: ${{ secrets.SONAR_TOKEN != '' }}"
-    - uses: SonarSource/sonarqube-scan-action@v6
-      with:
-        args: |
-          -Dsonar.projectKey=IVISS
-          -Dsonar.projectBaseDir=frontend
-          -Dsonar.sources=src
-          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-          -Dsonar.qualitygate.wait=false
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-      env:
-        SONAR_LOGIN: ${{ secrets.SONAR_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore api generated files
+        uses: actions/cache@v4
+        with:
+          path: frontend/src/openapi-rq
+          key: ${{ github.sha }}
+      - name: Restore coverage
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/coverage
+          key: frontend-coverage-${{ github.sha }}
+      - uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: |
+            -Dsonar.projectKey=IVISS
+            -Dsonar.projectBaseDir=frontend
+            -Dsonar.sources=src
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.qualitygate.wait=false
