@@ -56,8 +56,10 @@ async function performTokenRefresh(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
 
   const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    console.warn('[AuthInterceptor] No refresh token available');
+  // Guard against null or the literal string "null" which could be stored
+  // when a prior version of the code did localStorage.setItem(key, null).
+  if (!refreshToken || refreshToken === 'null') {
+    console.warn('[AuthInterceptor] No valid refresh token available');
     return null;
   }
 

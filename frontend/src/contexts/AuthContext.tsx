@@ -232,18 +232,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (sessionData.accessToken && !getAccessToken()) {
               setAccessToken(sessionData.accessToken, false);
             }
-            // Always restore refresh token so the interceptor can refresh expired access tokens
-            if (sessionData.refreshToken) {
-              setRefreshToken(sessionData.refreshToken);
+            // Always restore refresh token so the interceptor can refresh expired access tokens.
+            // sessionData.refreshToken may be null (device already had a refresh token when
+            // daily login was performed). Fall back to the separately stored key in that case.
+            const rtFromSession = sessionData.refreshToken;
+            const rtFromStorage = localStorage.getItem(REFRESH_TOKEN_KEY);
+            const effectiveRT =
+              rtFromSession && rtFromSession !== 'null'
+                ? rtFromSession
+                : rtFromStorage && rtFromStorage !== 'null'
+                ? rtFromStorage
+                : null;
+            if (effectiveRT) {
+              setRefreshToken(effectiveRT);
             }
           } else {
             // Access token is expired but we may still have a valid refresh token.
             // Restore the session state so the interceptor can attempt a refresh
             // on the next API call rather than clearing everything immediately.
-            if (sessionData.refreshToken && sessionData.accessToken) {
-              setRefreshToken(sessionData.refreshToken);
+            const rtFromSession = sessionData.refreshToken;
+            const rtFromStorage = localStorage.getItem(REFRESH_TOKEN_KEY);
+            const effectiveRT =
+              rtFromSession && rtFromSession !== 'null'
+                ? rtFromSession
+                : rtFromStorage && rtFromStorage !== 'null'
+                ? rtFromStorage
+                : null;
+
+            if (effectiveRT && sessionData.accessToken) {
+              setRefreshToken(effectiveRT);
               setAccessToken(sessionData.accessToken, false); // Always set, even if expired
-              setSession(sessionData);
+              // Patch the session object with the resolved refresh token so the stored
+              // session stays consistent after this recovery.
+              const patchedSession = { ...sessionData, refreshToken: effectiveRT };
+              setSession(patchedSession as AuthResponse);
               setUser(sessionData.user);
             } else {
               // No refresh token or no access token — truly expired, clear everything
@@ -431,18 +453,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ignore profile refresh errors
       }
 
+      // The backend omits refresh_token when the device already has a valid one in DB
+      // (only the client knows the raw token — the backend stores only the hash).
+      // Preserve the existing stored refresh token instead of overwriting with null.
+      const existingRefreshToken = getRefreshToken();
+      const isExistingTokenValid =
+        existingRefreshToken !== null && existingRefreshToken !== 'null';
+      const effectiveRefreshToken = data.refreshToken ?? (isExistingTokenValid ? existingRefreshToken : null);
+
       const newSession = {
         accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
+        refreshToken: effectiveRefreshToken,
         user: resolvedUser,
       } as unknown as AuthResponse;
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
-      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
       localStorage.setItem('iviss_device_activated', 'true');
 
       setAccessToken(data.accessToken, false);
-      setRefreshToken(data.refreshToken);
+
+      // Only update stored refresh token if backend issued a new one or we have an existing valid one.
+      if (data.refreshToken) {
+        setRefreshToken(data.refreshToken);
+        localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      } else if (isExistingTokenValid && existingRefreshToken) {
+        // Keep the existing valid refresh token in sync with the new session object
+        setRefreshToken(existingRefreshToken);
+      }
 
       applyAuthTokenToApiClient(data.accessToken);
 
