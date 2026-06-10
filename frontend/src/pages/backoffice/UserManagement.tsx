@@ -752,8 +752,7 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               disabled={
-                                resendLoadingUserId === user.id ||
-                                !canResendActivationCode(user)
+                                resendLoadingUserId === user.id || !canResendActivationCode(user)
                               }
                               onClick={() => handleResendActivationCode(user)}
                             >
@@ -766,8 +765,7 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               disabled={
-                                resendLoadingUserId === user.id ||
-                                !canResendOrgAdminPassword(user)
+                                resendLoadingUserId === user.id || !canResendOrgAdminPassword(user)
                               }
                               onClick={() => handleResendOrgAdminPassword(user)}
                             >

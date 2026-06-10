@@ -21,11 +21,9 @@ export const AppRouter = () => {
   const hasValidRefreshToken = !!refreshToken && refreshToken !== 'null';
   // When a valid refresh token exists, navigate into the app (the interceptor will silently
   // refresh the access token). Only redirect to /daily-login when there is NO recovery path.
-  const entryRedirect = !hasValidRefreshToken && !accessToken
-    ? '/activate'
-    : accessToken
-    ? '/backoffice'
-    : '/mobile'; // valid refresh token exists — let the interceptor handle silent refresh
+  // valid refresh token exists — let the interceptor handle silent refresh
+  const entryRedirect =
+    !hasValidRefreshToken && !accessToken ? '/activate' : accessToken ? '/backoffice' : '/mobile';
 
   return (
     <Suspense fallback={<PageLoader />}>

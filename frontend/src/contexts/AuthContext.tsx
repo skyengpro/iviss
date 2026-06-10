@@ -242,8 +242,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               rtFromSession && rtFromSession !== 'null'
                 ? rtFromSession
                 : rtFromStorage && rtFromStorage !== 'null'
-                ? rtFromStorage
-                : null;
+                  ? rtFromStorage
+                  : null;
             if (effectiveRT) {
               setRefreshToken(effectiveRT);
             }
@@ -257,8 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               rtFromSession && rtFromSession !== 'null'
                 ? rtFromSession
                 : rtFromStorage && rtFromStorage !== 'null'
-                ? rtFromStorage
-                : null;
+                  ? rtFromStorage
+                  : null;
 
             if (effectiveRT && sessionData.accessToken) {
               setRefreshToken(effectiveRT);
@@ -458,9 +458,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // (only the client knows the raw token — the backend stores only the hash).
       // Preserve the existing stored refresh token instead of overwriting with null.
       const existingRefreshToken = getRefreshToken();
-      const isExistingTokenValid =
-        existingRefreshToken !== null && existingRefreshToken !== 'null';
-      const effectiveRefreshToken = data.refreshToken ?? (isExistingTokenValid ? existingRefreshToken : null);
+      const isExistingTokenValid = existingRefreshToken !== null && existingRefreshToken !== 'null';
+      const effectiveRefreshToken =
+        data.refreshToken ?? (isExistingTokenValid ? existingRefreshToken : null);
 
       const newSession = {
         accessToken: data.accessToken,

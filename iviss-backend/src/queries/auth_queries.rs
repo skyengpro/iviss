@@ -132,10 +132,7 @@ pub async fn get_device_by_user_optional(
     .map_err(AppError::database)
 }
 
-pub async fn check_device_exists(
-    pool: &PgPool,
-    device_id: Uuid,
-) -> Result<bool, AppError> {
+pub async fn check_device_exists(pool: &PgPool, device_id: Uuid) -> Result<bool, AppError> {
     let exists: bool = sqlx::query_scalar(
         r#"
         SELECT EXISTS (

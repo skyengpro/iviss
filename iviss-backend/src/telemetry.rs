@@ -83,8 +83,9 @@ pub fn init_telemetry(log_level: &crate::config::LogLevel) -> Result<TelemetryHa
 }
 
 fn init_tracer_provider() -> Result<TracerProvider> {
-    let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
-        .map_err(|_| anyhow::anyhow!("OTEL_EXPORTER_OTLP_ENDPOINT not set. OTLP tracing disabled."))?;
+    let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").map_err(|_| {
+        anyhow::anyhow!("OTEL_EXPORTER_OTLP_ENDPOINT not set. OTLP tracing disabled.")
+    })?;
 
     let service_name =
         std::env::var("OTEL_SERVICE_NAME").unwrap_or_else(|_| "iviss-backend".to_string());

@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
         'dev.iviss.skyengpro.app',
         'api.iviss.skyengpro.app',
       ],
-      host: "::",
+      host: '::',
       port: 8080,
       hmr: {
         overlay: false,
