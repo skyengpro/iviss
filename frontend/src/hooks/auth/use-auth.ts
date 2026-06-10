@@ -16,12 +16,14 @@ export interface AuthContextType {
     deviceId: string;
     publicKeyBase64: string;
   }) => Promise<{ success: boolean; error?: string }>;
-  dailyLoginRequest: (params: { badgeId: string }) => Promise<{ success: boolean; error?: string }>;
+  dailyLoginRequest: (params: {
+    badgeId: string;
+  }) => Promise<{ success: boolean; error?: string; requiresActivation?: boolean }>;
   dailyLoginVerify: (params: {
     badgeId: string;
     activationCode: string;
     deviceId: string;
-  }) => Promise<{ success: boolean; error?: string }>;
+  }) => Promise<{ success: boolean; error?: string; requiresActivation?: boolean }>;
   logout: () => Promise<void>;
 }
 
