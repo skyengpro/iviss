@@ -24,6 +24,7 @@ vi.mock('@/services/auth/tokenManager', () => ({
   setAccessToken: vi.fn(),
   setRefreshToken: vi.fn(),
   getAccessToken: vi.fn().mockReturnValue(null),
+  getRefreshToken: vi.fn().mockReturnValue(null),
   clearAccessToken: vi.fn(),
 }));
 
