@@ -44,6 +44,7 @@ export default function DailyLogin() {
     }
   }, [isAuthenticated, user, navigate, isLoading]);
 
+  
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
