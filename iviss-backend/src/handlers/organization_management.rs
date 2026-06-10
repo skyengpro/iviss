@@ -106,8 +106,7 @@ pub async fn update_organization(
         .await;
 
     // Propagate the new shift_end to all active agents of the organization
-    let local_offset = time::UtcOffset::from_hms(1, 0, 0)
-        .unwrap_or(time::UtcOffset::UTC);
+    let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
     let today_local = time::OffsetDateTime::now_utc()
         .to_offset(local_offset)
         .date();
@@ -116,13 +115,17 @@ pub async fn update_organization(
     let end_minute = (org.end_work_time % 60) as u8;
 
     if let Ok(end_time) = time::Time::from_hms(end_hour, end_minute, 0) {
-        let new_shift_end = time::OffsetDateTime::new_in_offset(
-            today_local, end_time, local_offset
-        ).unix_timestamp();
+        let new_shift_end =
+            time::OffsetDateTime::new_in_offset(today_local, end_time, local_offset)
+                .unix_timestamp();
 
         if let Err(e) = crate::queries::organization_queries::update_agents_shift_end_for_org(
-            &state.db, org.id, new_shift_end
-        ).await {
+            &state.db,
+            org.id,
+            new_shift_end,
+        )
+        .await
+        {
             tracing::error!(
                 org_id = %org.id,
                 error = %e,

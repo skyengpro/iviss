@@ -20,7 +20,7 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -354,9 +354,8 @@ pub async fn activate(
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    let org_id = user_org_id.ok_or_else(|| {
-        AppError::forbidden("Agent must belong to an organization to activate")
-    })?;
+    let org_id = user_org_id
+        .ok_or_else(|| AppError::forbidden("Agent must belong to an organization to activate"))?;
 
     let (shift_start_minutes, shift_end_minutes) =
         crate::queries::organization_queries::get_organization_work_time_cached(
@@ -602,7 +601,7 @@ pub async fn request_daily_login(
 
         if revoked_local.date() == now.date() {
             return Err(AppError::Forbidden(
-                format!("Session terminated by administrator. Please wait until your next shift (tomorrow at {}) to request a new code.", fmt_time(shift_start_minutes)).into()
+                format!("Session terminated by administrator. Please wait until your next shift (tomorrow at {}) to request a new code.", fmt_time(shift_start_minutes))
             ));
         }
     }
