@@ -277,6 +277,8 @@ pub async fn update_user(
     user_id: Uuid,
     req: crate::dto::users::UpdateUserRequest,
 ) -> Result<UserProfile, AppError> {
+    let mut tx = pool.begin().await.map_err(AppError::database)?;
+
     let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> =
         sqlx::QueryBuilder::new("UPDATE users SET ");
     let mut separated = query_builder.separated(", ");
@@ -315,6 +317,8 @@ pub async fn update_user(
             .push("badge_id = ")
             .push_bind_unseparated(badge_id);
     }
+    let is_suspended = req.status == Some(UserStatus::Suspended);
+    let is_pending = req.status == Some(UserStatus::PendingActivation);
     if let Some(status) = req.status {
         separated
             .push("status = ")
@@ -327,9 +331,59 @@ pub async fn update_user(
 
     query_builder
         .build()
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .map_err(AppError::database)?;
+
+    if is_pending {
+        // Set the user device pending
+        sqlx::query(
+            r#"
+            UPDATE devices
+            SET status = 'PENDING'::device_status
+            WHERE user_id = $1
+              AND status = 'SUSPENDED'::device_status
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(AppError::database)?;
+    }
+
+    if is_suspended {
+        // Suspend all active devices for this user
+        sqlx::query(
+            r#"
+            UPDATE devices
+            SET status = 'SUSPENDED'::device_status,
+                revoked_at = NOW()
+            WHERE user_id = $1
+              AND status = 'ACTIVE'::device_status
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(AppError::database)?;
+
+        // Revoke all active refresh tokens for this user
+        sqlx::query(
+            r#"
+            UPDATE refresh_tokens
+            SET revoked = TRUE,
+                revoked_at = NOW()
+            WHERE user_id = $1
+              AND revoked = FALSE
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(AppError::database)?;
+    }
+
+    tx.commit().await.map_err(AppError::database)?;
 
     get_user_by_id(pool, user_id).await
 }
