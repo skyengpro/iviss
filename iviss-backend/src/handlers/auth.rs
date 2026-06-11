@@ -19,6 +19,7 @@ use crate::queries::auth_queries;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
@@ -168,6 +169,9 @@ pub async fn login(
         is_active: true,
     };
 
+    state.active_sessions.fetch_add(1, Ordering::Relaxed);
+    metrics::gauge!("iviss_active_sessions").increment(1.0);
+
     tracing::info!(
         user_id = %user.id,
         email = %user.email,
@@ -250,6 +254,10 @@ pub async fn logout(
     }
 
     revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;
+
+    state.active_sessions.fetch_sub(1, Ordering::Relaxed);
+    let current = state.active_sessions.load(Ordering::Relaxed);
+    metrics::gauge!("iviss_active_sessions").set(current as f64);
 
     // Audit log
     tracing::info!(
