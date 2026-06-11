@@ -97,7 +97,7 @@ async fn setup_admin_logout_test() -> (
         &config,
         Arc::new(TelemetryHandle::noop()),
     )
-    .expect("failed to initialize test app state");
+    .await.expect("failed to initialize test app state");
 
     let app = routes::assembly(state);
 
