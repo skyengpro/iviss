@@ -9,7 +9,9 @@ use crate::services::sms_provider::SmsProvider;
 use crate::services::vehicle_client_service::VehicleApiService;
 use crate::telemetry::TelemetryHandle;
 use anyhow::Context;
+use std::sync::atomic::AtomicI64;
 use std::sync::Arc;
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: DbPool,
@@ -21,10 +23,11 @@ pub struct AppState {
     pub otp_via_email: bool,
     pub vehicle_api_svc: Arc<VehicleApiService>,
     pub telemetry: Arc<TelemetryHandle>,
+    pub active_sessions: Arc<AtomicI64>,
 }
 
 impl AppState {
-    pub fn new(
+    pub async fn new(
         db_pool: DbPool,
         app_cache: Arc<AppCache>,
         sms_pvd: Arc<dyn SmsProvider>,
@@ -46,6 +49,17 @@ impl AppState {
         let vehicle_api_svc = VehicleApiService::new(config.vehicle_api_credentials.clone())
             .context("failed to initialize vehicle API service")?;
 
+        // Count current active sessions from non-revoked, non-expired refresh tokens.
+        let active_count: i64 = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM refresh_tokens WHERE revoked = FALSE AND expires_at > NOW()",
+        )
+        .fetch_one(&db_pool)
+        .await
+        .unwrap_or(0);
+
+        let active_sessions = Arc::new(AtomicI64::new(active_count));
+        metrics::gauge!("iviss_active_sessions").set(active_count as f64);
+
         Ok(Self {
             db: db_pool,
             app_cache,
@@ -56,6 +70,7 @@ impl AppState {
             otp_via_email: config.otp_via_email,
             vehicle_api_svc: Arc::new(vehicle_api_svc),
             telemetry,
+            active_sessions,
         })
     }
 }

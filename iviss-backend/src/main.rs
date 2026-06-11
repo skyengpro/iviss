@@ -57,6 +57,7 @@ async fn main() -> anyhow::Result<()> {
         &config,
         telemetry_handle.clone(),
     )
+    .await
     .context("Failed to initialize application state")?;
 
     let shared_state = Arc::new(state);
