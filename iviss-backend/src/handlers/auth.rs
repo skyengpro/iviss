@@ -538,9 +538,7 @@ pub async fn request_daily_login(
     }
 
     if user.status == "PENDING_ACTIVATION" {
-        return Err(AppError::unauthorized(
-            "Account pending activation",
-        ));
+        return Err(AppError::unauthorized("Account pending activation"));
     }
 
     // Enforce shift hours per organization (Cameroon local time UTC+1)
@@ -614,17 +612,17 @@ pub async fn request_daily_login(
     // Check for administrative termination cooldown
     if let (Some(revoked_at), dev_status) = (device.revoked_at, device.status) {
         if dev_status != "PENDING" {
-        // Assume UTC for the stored TIMESTAMP (project convention)
-        let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
-        let revoked_local = revoked_at.to_offset(local_offset);
-        let now = OffsetDateTime::now_utc().to_offset(local_offset);
+            // Assume UTC for the stored TIMESTAMP (project convention)
+            let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+            let revoked_local = revoked_at.to_offset(local_offset);
+            let now = OffsetDateTime::now_utc().to_offset(local_offset);
 
-        if revoked_local.date() == now.date() {
-            return Err(AppError::Forbidden(
+            if revoked_local.date() == now.date() {
+                return Err(AppError::Forbidden(
                 format!("Session terminated by administrator. Please wait until your next shift (tomorrow at {}) to request a new code.", fmt_time(shift_start_minutes))
             ));
+            }
         }
-    }
     }
 
     let otp_svc = &state.otp_svc;

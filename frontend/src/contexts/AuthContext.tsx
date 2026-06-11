@@ -77,7 +77,7 @@ function requiresDeviceReactivation(value: unknown): boolean {
     message.includes('device suspended') ||
     message.includes('device status: suspended') ||
     message.includes('device not found or pending') ||
-    message.includes('pending activation') 
+    message.includes('pending activation')
   );
 }
 
