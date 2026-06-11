@@ -203,7 +203,7 @@ export default function UserManagement() {
   const renderUserRow = (user: UserProfile) => {
     const terminateDisabled =
       user.role !== 'agent' ||
-      user.sessionStatus !== 'ACTIVE' && user.sessionStatus !== 'PENDING';
+      (user.sessionStatus !== 'ACTIVE' && user.sessionStatus !== 'PENDING');
     const restartDisabled =
       user.role !== 'agent' ||
       user.sessionStatus === 'ACTIVE' ||
@@ -254,9 +254,7 @@ export default function UserManagement() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>
-                {t('backOfficeUserManagement.actions')}
-              </DropdownMenuLabel>
+              <DropdownMenuLabel>{t('backOfficeUserManagement.actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
@@ -299,9 +297,7 @@ export default function UserManagement() {
                 {t('backOfficeUserManagement.restartSession')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={
-                  resendLoadingUserId === user.id || !canResendActivationCode(user)
-                }
+                disabled={resendLoadingUserId === user.id || !canResendActivationCode(user)}
                 onClick={() => handleResendActivationCode(user)}
               >
                 {resendLoadingUserId === user.id ? (
@@ -312,9 +308,7 @@ export default function UserManagement() {
                 {t('backOfficeUserManagement.resendActivationCode')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={
-                  resendLoadingUserId === user.id || !canResendOrgAdminPassword(user)
-                }
+                disabled={resendLoadingUserId === user.id || !canResendOrgAdminPassword(user)}
                 onClick={() => handleResendOrgAdminPassword(user)}
               >
                 {resendLoadingUserId === user.id ? (
@@ -327,9 +321,7 @@ export default function UserManagement() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => toggleStatus(user)}
-                className={
-                  user.isActive ? 'text-status-warning' : 'text-status-valid'
-                }
+                className={user.isActive ? 'text-status-warning' : 'text-status-valid'}
                 disabled={user.status === 'PENDING_ACTIVATION'}
               >
                 {user.isActive ? (
