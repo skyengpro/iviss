@@ -1,5 +1,29 @@
 import { TFunction } from 'i18next';
 
+export interface CameroonPlateClassification {
+  plate: string;
+  formatted: string;
+  category: string;
+}
+
+const REGION = '(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)';
+const PLATE_PATTERNS: Array<{ category: string; regex: RegExp }> = [
+  { category: 'trailer', regex: new RegExp(`^${REGION}(?:RE|SR|SE|TR)\\d{2,3,4}[A-Z]{1,2}$`) },
+  { category: 'civil_cemac', regex: new RegExp(`^${REGION}\\d{3}[A-Z]{2}$`) },
+  { category: 'civil_legacy', regex: new RegExp(`^${REGION}\\d{4}[A-Z]{1,2}$`) },
+  { category: 'state', regex: /^(?:CA|AN)\d{4}[A-Z]{1,2}$/ },
+  { category: 'diplomatic', regex: /^(?:(?:CMD|CPC|CD|CC|PA)\d{2,3}RC\d{1,4}|CD\d{1,6})$/ },
+  { category: 'temporary', regex: /^IT\d{5}RC$/ },
+  { category: 'test_vehicle', regex: new RegExp(`^${REGION}\\d{4}WG$`) },
+  { category: 'transit', regex: /^WT\d{6,7}$/ },
+  { category: 'postal', regex: /^PT\d{5}$/ },
+  { category: 'special_investment', regex: /^IS\d{5,6}RC$/ },
+  { category: 'national_security', regex: /^SN\d{4}$/ },
+  { category: 'military', regex: /^\d{7}$/ },
+  { category: 'postal_telecom', regex: /^RT\d{6}$/ },
+  { category: 'government_legacy', regex: /^[A-Z]{2}\d{4}[A-Z]$/ },
+];
+
 /**
  * Image preprocessing utilities for license plate OCR
  * Optimized for Cameroon plates (orange background, black text)
@@ -446,24 +470,68 @@ export class ImageProcessor {
 
   /**
    * Validate Cameroon license plate format
-   * Format: XX ### XX (e.g., "CE 128 BC", "LT 390 HN")
    * @param text OCR extracted text
    * @returns Cleaned and validated plate number or null
    */
   static validateCameroonPlate(text: string): string | null {
-    // Remove all whitespace and special characters except letters and numbers
-    const cleaned = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return ImageProcessor.classifyCameroonPlate(text)?.formatted ?? null;
+  }
 
-    // Cameroon plate format: 2 letters + 3 digits + 2 letters
-    const regex = /^([A-Z]{2})(\d{3})([A-Z]{2})$/;
-    const match = cleaned.match(regex);
+  /**
+   * Classify a Cameroon license plate without changing the legacy validator return type.
+   */
+  static classifyCameroonPlate(text: string): CameroonPlateClassification | null {
+    const plate = ImageProcessor.normalizePlateText(text);
+    const match = PLATE_PATTERNS.find(({ regex }) => regex.test(plate));
 
-    if (match) {
-      // Format as: XX ### XX
-      return `${match[1]} ${match[2]} ${match[3]}`;
+    if (!match) return null;
+
+    return {
+      plate,
+      formatted: ImageProcessor.formatCameroonPlate(plate, match.category),
+      category: match.category,
+    };
+  }
+
+  private static normalizePlateText(text: string): string {
+    return text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  private static formatCameroonPlate(plate: string, category: string): string {
+    switch (category) {
+      case 'civil_cemac':
+        return `${plate.slice(0, 2)} ${plate.slice(2, 5)} ${plate.slice(5)}`;
+      case 'civil_legacy':
+      case 'state':
+      case 'government_legacy':
+        return `${plate.slice(0, 2)} ${plate.slice(2, 6)} ${plate.slice(6)}`;
+      case 'trailer':
+        return `${plate.slice(0, 2)} ${plate.slice(2, 4)} ${plate.slice(4, 8)} ${plate.slice(8)}`;
+      case 'diplomatic': {
+        const rcIndex = plate.indexOf('RC');
+        if (rcIndex > 0) {
+          const prefix = plate.startsWith('CMD') || plate.startsWith('CPC') ? plate.slice(0, 3) : plate.slice(0, 2);
+          return `${prefix} ${plate.slice(prefix.length, rcIndex)} RC ${plate.slice(rcIndex + 2)}`;
+        }
+        return `${plate.slice(0, 2)} ${plate.slice(2)}`;
+      }
+      case 'temporary':
+        return `IT ${plate.slice(2, 7)} RC`;
+      case 'test_vehicle':
+        return `${plate.slice(0, 2)} ${plate.slice(2, 6)} WG`;
+      case 'transit':
+        return `WT ${plate.slice(2)}`;
+      case 'postal':
+        return `PT ${plate.slice(2)}`;
+      case 'special_investment':
+        return `IS ${plate.slice(2, -2)} RC`;
+      case 'national_security':
+        return `SN ${plate.slice(2)}`;
+      case 'postal_telecom':
+        return `RT ${plate.slice(2)}`;
+      default:
+        return plate;
     }
-
-    return null;
   }
 
   /**
