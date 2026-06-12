@@ -8,14 +8,14 @@ use tracing::{info, warn};
 /// Email provider abstraction
 #[async_trait]
 pub trait EmailProvider: Send + Sync {
-    async fn send_email(&self, to: &str, password: &str) -> Result<()>;
+    async fn send_email(&self, to: &str, user_role: &str, password: &str) -> Result<()>;
 }
 
 pub struct MockEmailProvider;
 
 #[async_trait]
 impl EmailProvider for MockEmailProvider {
-    async fn send_email(&self, to: &str, password: &str) -> Result<()> {
+    async fn send_email(&self, to: &str, _user_role: &str, password: &str) -> Result<()> {
         warn!(
             target: "email",
             to = %to,
@@ -44,11 +44,6 @@ pub enum EmailProviderCredentials {
 }
 
 impl EmailProviderCredentials {
-    /// Check if credentials are mock/empty
-    pub fn is_mock(&self) -> bool {
-        matches!(self, Self::Mock)
-    }
-
     /// Get the provider name
     pub fn provider_name(&self) -> &'static str {
         match self {
@@ -117,18 +112,28 @@ impl ResendEmailProvider {
 
 #[async_trait]
 impl EmailProvider for ResendEmailProvider {
-    async fn send_email(&self, to: &str, password: &str) -> Result<()> {
+    async fn send_email(&self, to: &str, user_role: &str, password: &str) -> Result<()> {
         let url = "https://api.resend.com/emails";
 
-        // Send welcome email with verification link
-        let email_body = format!(
-            r#"<h1>Welcome to IVISS</h1>
+        // Compose email body based on role
+        let email_body = match user_role {
+            "org_admin" => format!(
+                r#"<h1>Welcome to IVISS</h1>
         <p>Your org admin account has been created.</p>
         <p><strong>Email:</strong> {}</p>
         <p><strong>Temporary Password:</strong> {}</p>
         <p>You must change your password on first login.</p>"#,
-            to, password,
-        );
+                to, password
+            ),
+            "agent" => format!(
+                r#"<h1>IVISS Authentication</h1>
+        <p>Your daily login code is:</p>
+        <p><strong>{}</strong></p>
+        <p>Valid for 5 minutes.</p>"#,
+                password
+            ),
+            _ => "<p>You are not identified.</p>".to_string(),
+        };
         let payload = serde_json::json!({
             "from": self.from_email,
             "to": to,
@@ -224,15 +229,25 @@ impl LettreEmailProvider {
 
 #[async_trait]
 impl EmailProvider for LettreEmailProvider {
-    async fn send_email(&self, to: &str, password: &str) -> Result<()> {
-        let email_body = format!(
-            r#"<h1>Welcome to IVISS</h1>
+    async fn send_email(&self, to: &str, user_role: &str, password: &str) -> Result<()> {
+        let email_body = match user_role {
+            "org_admin" => format!(
+                r#"<h1>Welcome to IVISS</h1>
         <p>Your org admin account has been created.</p>
         <p><strong>Email:</strong> {}</p>
         <p><strong>Temporary Password:</strong> {}</p>
         <p>You must change your password on first login.</p>"#,
-            to, password,
-        );
+                to, password
+            ),
+            "agent" => format!(
+                r#"<h1>IVISS Authentication</h1>
+        <p>Your daily login code is:</p>
+        <p><strong>{}</strong></p>
+        <p>Valid for 5 minutes.</p>"#,
+                password
+            ),
+            _ => "<p>You are not identified.</p>".to_string(),
+        };
 
         let email = Message::builder()
             .from(

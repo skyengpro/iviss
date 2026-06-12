@@ -1,5 +1,6 @@
 use crate::app_cache::{AppCache, OtpEntry};
 use crate::errors::AppError;
+use crate::services::email_provider::EmailProvider;
 use crate::services::sms_provider::SmsProvider;
 use hmac::{Hmac, Mac};
 use rand::Rng;
@@ -17,37 +18,47 @@ const RATE_LIMIT_MAX: u32 = 3; // max OTP requests per window
 pub struct OtpService {
     app_cache: Arc<AppCache>,
     sms: Arc<dyn SmsProvider>,
+    email: Arc<dyn EmailProvider>,
+    use_email: bool,
     pepper: String,
 }
 
 impl OtpService {
-    pub fn new(app_cache: Arc<AppCache>, sms: Arc<dyn SmsProvider>, pepper: String) -> Self {
+    pub fn new(
+        app_cache: Arc<AppCache>,
+        sms: Arc<dyn SmsProvider>,
+        email: Arc<dyn EmailProvider>,
+        pepper: String,
+        use_email: bool,
+    ) -> Self {
         Self {
             app_cache,
             sms,
+            email,
+            use_email,
             pepper,
         }
     }
 
-    /// Check rate limit, generate OTP, store in Moka cache and send via SMS
-    pub async fn request_otp(&self, user_id: &Uuid, phone: &str) -> Result<(), AppError> {
-        self.check_rate_limit(phone).await?;
+    /// Check rate limit, generate OTP, store in Moka cache and send via SMS or Email
+    pub async fn request_otp(&self, user_id: &Uuid, contact: &str) -> Result<(), AppError> {
+        self.check_rate_limit(contact).await?;
 
         let code = self.generate_code();
         let code_hash = self.hash_code(&code);
 
-        // Print OTP to console for development/debugging
-        println!(
-            "\n┌─────────────────────────────────────┐\
-             \n│  OTP CODE                           │\
-             \n│  User  : {:<28}│\
-             \n│  Phone : {:<28}│\
-             \n│  Code  : {:<28}│\
-             \n└─────────────────────────────────────┘\n",
-            user_id.to_string(),
-            phone,
-            code,
-        );
+        //        Print OTP to console for development/debugging
+        //        println!(
+        //           "\n┌─────────────────────────────────────┐\
+        //             \n│  OTP CODE                           │\
+        //             \n│  User  : {:<28}│\
+        //             \n│  Contact : {:<28}│\
+        //             \n│  Code  : {:<28}│\
+        //             \n└─────────────────────────────────────┘\n",
+        //            user_id.to_string(),
+        //            contact,
+        //            code,
+        //       );
 
         let entry = OtpEntry {
             code_hash,
@@ -58,11 +69,18 @@ impl OtpService {
         // Replaces any existing OTP — TTL is absolute from this point
         self.app_cache.otp_store.insert(*user_id, entry).await;
 
-        let message = format!("Your IVISS login code is: {code}. Valid for 5 minutes.");
-        self.sms
-            .send_sms(phone, &message)
-            .await
-            .map_err(AppError::Internal)?;
+        if self.use_email {
+            self.email
+                .send_email(contact, "agent", &code)
+                .await
+                .map_err(AppError::Internal)?;
+        } else {
+            let message = format!("Your IVISS login code is: {code}. Valid for 5 minutes.");
+            self.sms
+                .send_sms(contact, &message)
+                .await
+                .map_err(AppError::Internal)?;
+        }
 
         info!(target: "otp", user_id = %user_id, "OTP generated and sent");
         Ok(())

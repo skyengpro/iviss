@@ -1,468 +1,618 @@
-# IVISS Deployment & Infrastructure Guide
+# IVISS Master Deployment & Infrastructure Guide (v3.3)
 
-> **Who is this for?**
-> This document covers everything needed to deploy, configure, and maintain the IVISS platform in a production environment. It is written for both technical administrators and informed stakeholders who need to understand how the system is hosted and updated.
+This document provides a comprehensive, deep-dive guide for deploying and managing the IVISS platform. It covers **Infrastructure-as-Code (Terraform)**, **Configuration Management (Ansible)**, **Automated CI/CD (GitHub Actions)**, **AWS Secrets Manager**, and **OIDC Authentication**.
 
----
-
-## Table of Contents
-
-1. [System Overview](#1-system-overview)
-2. [How the Pipeline Works](#2-how-the-pipeline-works)
-3. [Infrastructure — What is Provisioned](#3-infrastructure--what-is-provisioned)
-4. [First-Time Setup](#4-first-time-setup)
-5. [GitHub Secrets — Configuration Reference](#5-github-secrets--configuration-reference)
-6. [Provider Configuration (SMS & Email)](#6-provider-configuration-sms--email)
-7. [DNS & SSL (HTTPS)](#7-dns--ssl-https)
-8. [Manual Operations on the Server](#8-manual-operations-on-the-server)
-9. [Security — Key Generation & Rotation](#9-security--key-generation--rotation)
-10. [Troubleshooting](#10-troubleshooting)
+**Latest Changes (v3.3 - 2026-04-30):**
+- Edge lockdown enabled by default for security-first deployments
+- CloudFront cache policy modernization (AWS-managed policies)
+- Conditional Certbot installation (only when CloudFront disabled)
+- Improved Nginx origin header validation
+- Relay/EICE access path removed
+- CloudFront origin lockdown now uses AWS-published `CLOUDFRONT_ORIGIN_FACING` ranges
+- Temporary debug mode opens SSH for validation/troubleshooting
 
 ---
 
-## 1. System Overview
+## 1. System Architecture Overview
 
-IVISS runs on **AWS Lightsail** — Amazon's simplified cloud hosting service. The entire application is packaged in **Docker containers**, which means it is self-contained, portable, and easy to update.
+IVISS follows a cost-aware edge-and-origin architecture on AWS:
 
-### Server Specifications
-
-| Resource | Value |
-|---|---|
-| Cloud Provider | AWS Lightsail |
-| Region | Europe (eu-west-1) |
-| Operating System | Ubuntu 22.04 LTS |
-| CPU | 2 vCPUs |
-| RAM | 2 GB |
-| Storage | 60 GB SSD |
-
-### What runs on the server
-
-The server runs three containers that work together:
-
-- **Backend** — The Rust API server that handles all business logic, authentication, and data
-- **Frontend** — The web application served via Nginx (the interface agents and admins use)
-- **Database** — PostgreSQL, storing all vehicle records, users, and control history
-
----
-
-## 2. How the Pipeline Works
-
-Every time a developer pushes code to GitHub, an automated pipeline runs. Here is what happens step by step:
-
+### Traffic Flow
 ```
-Developer pushes code
-        │
-        ▼
-┌─────────────────────┐
-│   CI Checks run     │  ← Tests, linting, type checks (backend & frontend)
-└─────────────────────┘
-        │ (if checks pass)
-        ▼
-┌─────────────────────┐
-│  Docker images      │  ← New versions of the app are packaged
-│  are built          │
-└─────────────────────┘
-        │ (push to main or dev)
-        ▼
-┌─────────────────────┐
-│  Deploy to AWS      │  ← Server is updated with the new version
-└─────────────────────┘
-        │ (push to main only)
-        ▼
-┌─────────────────────┐
-│  Release created    │  ← Version number assigned, changelog published
-└─────────────────────┘
+Internet → CloudFront (HTTPS + WAF) → Lightsail Origin (HTTP + Nginx) → App Containers
+                                                              ↓
+                                           Debug SSH (public) → Lightsail Public IP
 ```
 
-### Which branch triggers what
+### Components
+- **Edge Layer**: Amazon CloudFront + AWS WAF as the public HTTPS entrypoint
+  - TLS termination at CloudFront using ACM certificate (us-east-1)
+  - AWS WAF with managed rule groups (Common + KnownBadInputs)
+  - Custom origin verification header (`X-Origin-Verify`)
+  - Modern cache policies (CachingDisabled for dynamic content)
 
-| Action | `dev` branch | `main` branch |
-|---|---|---|
-| CI checks (tests, lint) | ✅ Yes | ✅ Yes |
-| Docker images built | ✅ Yes | ✅ Yes |
-| Deploy to AWS | ✅ Yes | ✅ Yes |
-| Release created | ❌ No | ✅ Yes (on `dev`) |
+- **Origin Layer**: Single Ubuntu 22.04 LTS Amazon Lightsail instance
+  - Nginx reverse proxy with origin header validation
+  - Docker Compose stack (Backend + Frontend + PostgreSQL)
+  - UFW host firewall (SSH open for debugging/testing mode)
+  - HTTP-only from CloudFront (Phase 1)
 
-> **In plain terms:** `dev` is both the testing environment and where releases are created. `main` is production. Merging into `dev` creates an official release and triggers a deploy.
+- **Access Layer**: Temporary debug administrative SSH path
+  - Deploy script opens Lightsail SSH (`22/tcp`) to `0.0.0.0/0` for setup/testing
+  - UFW currently allows SSH ingress for debugging/testing
+  - Revert to CIDR-restricted SSH after validation is complete
 
-### Triggering a deployment manually
+- **Application Stack**:
+  - **Backend**: Rust + Axum (port 3000)
+  - **Frontend**: React + Vite (port 8080)
+  - **Database**: PostgreSQL 15 (persistent Docker volume)
+  - **Cache**: Moka in-memory cache (Rust backend)
 
-If you need to trigger a deployment without pushing new code:
+- **Security**:
+  - CloudFront-origin CIDR restriction on Lightsail firewall
+  - Origin secret stored in AWS Secrets Manager
+  - OIDC-based GitHub Actions authentication (no static keys)
+  - Security-first defaults (edge lockdown enabled)
 
-1. Go to the GitHub repository
-2. Click **Actions** in the top menu
-3. Select **"Docker"** from the left list
-4. Click **"Run workflow"** → type `yes` → click the green button
-
----
-
-## 3. Infrastructure — What is Provisioned
-
-The server infrastructure is managed using **Terraform** — a tool that creates and configures cloud resources automatically from code. This means the entire server setup is reproducible and version-controlled.
-
-### What Terraform creates
-
-- An AWS Lightsail instance (the virtual server)
-- A static IP address (so the domain always points to the same address)
-- Firewall rules (only ports 22, 80, and 443 are open)
-
-### What Ansible configures
-
-Once the server exists, **Ansible** (a configuration tool) connects to it and:
-
-- Installs Docker
-- Copies the application configuration
-- Starts all containers
-- Configures Nginx as a reverse proxy
-- Sets up SSL certificates (HTTPS)
+- **API Connectivity**: Frontend uses relative paths (`/api`) proxied by Nginx
+- **Secrets**: All sensitive data stored in **AWS Secrets Manager**
 
 ---
 
-## 4. First-Time Setup
+## 2. Prerequisites
 
-This section covers what needs to be done once to get the system running from scratch.
+Before you begin, ensure you have:
+1.  **AWS CLI** configured with credentials that have:
+    - `AmazonLightsailFullAccess`
+    - `AmazonS3FullAccess` (for Terraform state)
+    - `AmazonDynamoDBFullAccess` (for state locking)
+    - `SecretsManagerReadWrite` (for secret management)
+2.  **Terraform** installed (v1.7+).
+3.  **Ansible** installed (for manual deployment fallback).
+4.  **GitHub PAT** with `write:packages` and `read:packages` permissions.
 
-### Step 1 — Prerequisites
+---
 
-Make sure the following tools are installed on your local machine:
+## 3. Infrastructure Layer (Terraform & Remote State)
 
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) — configured with an IAM user that has Lightsail, S3, and DynamoDB access
-- [Terraform](https://developer.hashicorp.com/terraform/install) (version 1.5 or higher)
-- [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/index.html)
-- A GitHub Personal Access Token (PAT) with `read:packages` and `write:packages` permissions
+### State Management (Remote Backend)
+We store our Terraform state in an **S3 Bucket** with **DynamoDB Locking** to prevent corruption during team deployments.
 
-### Step 2 — Set up remote state storage (one time only)
-
-Terraform needs a place to store its state file so the team can share it safely:
-
+#### A. Initial Setup (One-time only)
+Run this script to provision the S3 and DynamoDB storage:
 ```bash
 chmod +x ./infra/scripts/setup-remote-state.sh
 ./infra/scripts/setup-remote-state.sh
 ```
 
-This creates an S3 bucket and a DynamoDB table on AWS to store and lock the Terraform state.
-
-### Step 3 — Configure GitHub Secrets
-
-All sensitive configuration (passwords, API keys, etc.) must be added as **GitHub Secrets** in the repository settings. See [Section 5](#5-github-secrets--configuration-reference) for the full list.
-
-### Step 4 — Provision the server
-
+#### B. Provisioning the Instance
+To create the Lightsail instance and static IP:
 ```bash
 cd infra/terraform
 terraform init
 terraform apply -var="domain_name=yourdomain.com"
 ```
-
-Or use the all-in-one script:
-
+Or use the wrapper script:
 ```bash
-./infra/scripts/deploy.sh yourdomain.com admin@yourdomain.com
+cd infra/
+export ROUTE53_ZONE_ID=ZXXXXXXXXXXXXX
+export EDGE_LOCKDOWN_ENABLED=true
+export IMAGE_TAG=latest
+export USE_SECRETS_MANAGER=true
+./scripts/deploy.sh
 ```
 
-### Step 5 — Point your domain to the server
-
-After Terraform runs, it outputs a static IP address. Add an **A Record** in your DNS provider pointing your domain to that IP. SSL certificates will be issued automatically on the first deployment.
-
----
-
-## 5. GitHub Secrets — Configuration Reference
-
-These values must be added to the GitHub repository under **Settings → Secrets and variables → Actions**.
-
-> ⚠️ Never put these values in code files or share them in plain text. GitHub encrypts them and only exposes them during pipeline runs.
-
-### AWS & Infrastructure
-
-| Secret | Description | Example |
-|---|---|---|
-| `AWS_ACCESS_KEY_ID` | AWS IAM access key | `AKIAIOSFODNN7EXAMPLE` |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key | `wJalrXUtnFEMI/K7MDENG/...` |
-| `DOMAIN_NAME` | Your production domain | `iviss.youragency.gov` |
-| `CERTBOT_EMAIL` | Email for SSL certificate alerts | `admin@youragency.gov` |
-
-### Authentication & Security
-
-| Secret | Description | How to generate |
-|---|---|---|
-| `JWT_SECRET` | Secret key for token signing | `openssl rand -base64 48` |
-| `JWT_PRIVATE_KEY_PEM` | RSA private key (single line) | See [Section 9](#9-security--key-generation--rotation) |
-| `JWT_PUBLIC_KEY_PEM` | RSA public key (single line) | See [Section 9](#9-security--key-generation--rotation) |
-| `ACTIVATION_CODE_PEPPER` | Extra security for OTP codes | `openssl rand -base64 48` |
-
-### Application Configuration
-
-| Secret | Description | Example |
-|---|---|---|
-| `ENVIRONMENT` | Deployment environment | `production` |
-| `LOG_LEVEL` | How much detail to log | `info` |
-| `SHIFT_START_HOUR` | Hour agents can start logging in | `6` (for 6:00 AM) |
-| `SHIFT_END_HOUR` | Hour agents can no longer log in | `18` (for 6:00 PM) |
-
-### Admin Bootstrap (Initial Admin Account)
-
-These are used to create the first administrator account when the system starts for the first time.
-
-| Secret | Description | Example |
-|---|---|---|
-| `ADMIN_BOOTSTRAP_EMAIL` | Admin login email | `admin@youragency.gov` |
-| `ADMIN_BOOTSTRAP_PASSWORD` | Admin initial password | A strong password |
-| `ADMIN_BOOTSTRAP_PHONE` | Admin phone number | `+237600000000` |
-| `ADMIN_BOOTSTRAP_USERNAME` | Admin username | `admin` |
-
-### Database
-
-| Secret | Description | Example |
-|---|---|---|
-| `POSTGRES_USER` | Database username | `iviss_user` |
-| `POSTGRES_PASSWORD` | Database password | A strong random password |
-| `POSTGRES_DB` | Database name | `iviss_prod` |
-
-### Container Registry
-
-| Secret | Description |
-|---|---|
-| `REGISTRY_USERNAME` | Your GitHub username |
-| `REGISTRY_TOKEN` | GitHub PAT with `read:packages` permission |
-
-### SMS Provider
-
-| Secret | Required when |
-|---|---|
-| `SMS_PROVIDER` | Always — set to `mock`, `twilio`, `vonage`, or `orange` |
-| `VONAGE_API_KEY` | `SMS_PROVIDER=vonage` |
-| `VONAGE_API_SECRET` | `SMS_PROVIDER=vonage` |
-| `TWILIO_ACCOUNT_SID` | `SMS_PROVIDER=twilio` |
-| `TWILIO_AUTH_TOKEN` | `SMS_PROVIDER=twilio` |
-| `TWILIO_FROM_NUMBER` | `SMS_PROVIDER=twilio` |
-| `ORANGE_CLIENT_ID` | `SMS_PROVIDER=orange` |
-| `ORANGE_CLIENT_SECRET` | `SMS_PROVIDER=orange` |
-| `ORANGE_SENDER_NUMBER` | `SMS_PROVIDER=orange` |
-
-### Email Provider
-
-| Secret | Required when |
-|---|---|
-| `EMAIL_PROVIDER` | Always — set to `mock`, `resend`, or `smtp` |
-| `RESEND_API_KEY` | `EMAIL_PROVIDER=resend` |
-| `RESEND_FROM_EMAIL` | `EMAIL_PROVIDER=resend` |
-| `SMTP_HOST` | `EMAIL_PROVIDER=smtp` |
-| `SMTP_PORT` | `EMAIL_PROVIDER=smtp` |
-| `SMTP_USERNAME` | `EMAIL_PROVIDER=smtp` |
-| `SMTP_PASSWORD` | `EMAIL_PROVIDER=smtp` |
-| `SMTP_FROM_EMAIL` | `EMAIL_PROVIDER=smtp` |
-
----
-
-## 6. Provider Configuration (SMS & Email)
-
-IVISS supports multiple providers for sending SMS messages (OTP codes) and emails. You switch between them by changing the `SMS_PROVIDER` and `EMAIL_PROVIDER` secrets.
-
-### SMS Providers
-
-| Provider | Value | Description |
-|---|---|---|
-| Mock | `mock` | No SMS is sent. The OTP code appears in the server logs. Use this for development and testing. |
-| Twilio | `twilio` | International SMS provider. Reliable worldwide coverage. |
-| Vonage | `vonage` | International SMS provider (formerly Nexmo). |
-| Orange Cameroun | `orange` | Local Cameroonian carrier. Only works with `+237` numbers. |
-
-> **Recommendation for production in Cameroon:** Use `orange` for local numbers or `twilio` for international coverage.
-
-### Email Providers
-
-| Provider | Value | Description |
-|---|---|---|
-| Mock | `mock` | No email is sent. Content appears in server logs. Use for testing only. |
-| Resend | `resend` | Modern email API with high delivery rates. Recommended for production. |
-| SMTP | `smtp` | Standard email protocol. Works with Gmail, Outlook, or any custom mail server. |
-
----
-
-## 7. DNS & SSL (HTTPS)
-
-### Setting up your domain
-
-1. After the server is provisioned, find the static IP address in the AWS Lightsail console or from the Terraform output
-2. Log in to your DNS provider (the company where your domain is registered)
-3. Add an **A Record**:
-   - **Name:** `@` (or your subdomain, e.g. `iviss`)
-   - **Value:** the static IP address from step 1
-   - **TTL:** 300 (or the lowest available)
-4. Wait for DNS to propagate (usually 5–30 minutes)
-
-### SSL Certificate (HTTPS)
-
-SSL is handled automatically using **Let's Encrypt** — a free, trusted certificate authority. On the first deployment after DNS is configured:
-
-- The system requests a certificate for your domain
-- Nginx is configured to serve the application over HTTPS
-- The certificate renews automatically every 90 days
-
-> ⚠️ The `CERTBOT_EMAIL` secret must be a real, monitored email address. Let's Encrypt sends expiry warnings to this address if automatic renewal fails.
-
----
-
-## 8. Manual Operations on the Server
-
-If you need to connect to the server directly (for example, to check logs or restart the application), you can SSH into it.
-
-### Viewing live logs
+### C. Infrastructure Teardown
+To completely remove the provisioned infrastructure (Instance, Ports, Static IP attachment), use the destroy script:
 
 ```bash
+cd infra/
+./scripts/destroy.sh
+```
+
+> [!CAUTION]
+> This will permanently delete the Lightsail instance and its data. It will **not** delete the Static IP or the Terraform State bucket, allowing you to re-deploy to the same entry point later.
+
+---
+
+## 4. Secrets Management (AWS Secrets Manager)
+
+All sensitive data is stored in AWS Secrets Manager, organized into two groups:
+
+### Secret Groups
+
+| Secret Name | Contents | When to Rotate |
+| :--- | :--- | :--- |
+| `iviss/<env>/app-secrets` | JWT keys, DB password, admin password, activation pepper, GHCR token | On suspected compromise or every 90 days |
+| `iviss/<env>/provider-keys` | Twilio, Vonage, Resend, SMTP credentials | When rotating provider keys |
+| `iviss/<env>/cloudfront-origin-secret` | Shared `X-Origin-Verify` header value between CloudFront and Nginx | On suspected origin leak or every 90 days |
+
+### A. Initial Secret Seeding (One-time)
+
+After running `terraform apply` for the first time (which creates empty secrets), populate them:
+
+```bash
+# Group 1: App Secrets
+aws secretsmanager put-secret-value \
+  --region <AWS_REGION> \
+  --secret-id "iviss/production/app-secrets" \
+  --secret-string '{
+    "jwt_private_key_pem": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+    "jwt_public_key_pem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+    "activation_code_pepper": "your_64_char_pepper",
+    "db_password": "secure_postgres_pass",
+    "admin_bootstrap_password": "admin_portal_pass",
+    "docker_password": "your_github_pat"
+  }'
+
+# Group 2: Provider Keys (SMS & Email)
+aws secretsmanager put-secret-value \
+  --region <AWS_REGION> \
+  --secret-id "iviss/production/provider-keys" \
+  --secret-string '{
+    "twilio_account_sid": "AC...",
+    "twilio_auth_token": "...",
+    "twilio_from_number": "+1...",
+    "vonage_api_key": "...",
+    "vonage_api_secret": "...",
+    "orange_client_id": "...",
+    "orange_client_secret": "...",
+    "orange_sender_number": "...",
+    "resend_api_key": "re_...",
+    "smtp_password": "..."
+  }'
+```
+
+### B. Rotating a Secret
+
+```bash
+# Example: rotate the DB password
+aws secretsmanager get-secret-value \
+  --secret-id "iviss/production/app-secrets" \
+  --query SecretString --output text | \
+  python3 -c "
+import json, sys
+s = json.load(sys.stdin)
+s['db_password'] = 'new_secure_password_here'
+print(json.dumps(s))
+" | \
+  aws secretsmanager put-secret-value \
+    --secret-id "iviss/production/app-secrets" \
+    --secret-string file:///dev/stdin
+```
+
+### C. How Secrets Flow
+
+```
+AWS Secrets Manager
+       │
+       ▼ (fetched at deploy time by deploy.sh)
+  .deploy-vars.json  ← Temporary file, auto-deleted after deploy
+       │
+       ▼ (passed to Ansible via --extra-vars)
+  Ansible Playbook
+       │
+       ▼ (rendered into templates)
+  /opt/iviss/.env  ← On production server, mode 0600
+```
+
+---
+
+## 5. AWS Authentication (OIDC Assume Role)
+
+The CI/CD pipeline uses **GitHub Actions OIDC** to authenticate with AWS — no static access keys required.
+
+### How It Works
+1. GitHub Actions requests a short-lived OIDC token from GitHub's identity provider
+2. AWS STS validates the token against the configured OIDC provider
+3. AWS issues temporary credentials (1-hour TTL) scoped to the deploy IAM role
+4. The deploy script runs with these temporary credentials
+
+### IAM Role ARN
+```
+arn:aws:iam::<YOUR_ACCOUNT_ID>:role/iviss-github-actions-deploy
+```
+
+### Permissions Granted
+- **Lightsail**: Full access (instance management and firewall updates)
+- **CloudFront**: Distribution CRUD, cache invalidation
+- **WAFv2**: Web ACL management (CloudFront scope)
+- **ACM**: Certificate management (us-east-1)
+- **Route53**: DNS record management for CloudFront alias
+- **S3**: Read/write to the Terraform state bucket
+- **DynamoDB**: State locking operations
+- **Secrets Manager**: Read/write for app secrets and origin verification key
+
+### Branch Restrictions
+Only `main`, `dev`, `aws-dev-sync`, and `aws-dev-test` branches are authorized to assume the deployment role.
+
+---
+
+## 6. SSH & Key Management
+
+Administrative access now uses a temporary debug direct path:
+1.  **Admin Path**: `operator/GitHub Actions -> Lightsail public IP`.
+2.  **Key Files**: The deployment script materializes `iviss-key.pem` only, then removes it on exit.
+3.  **Public SSH**: Lightsail port `22` is opened to `0.0.0.0/0` during debugging/testing.
+4.  **Host Firewall**: UFW allows SSH ingress for debugging/testing.
+
+---
+
+## 7. Automated Deployment (GitHub Actions CI/CD)
+
+The automated pipeline builds the images, pushes them to GitHub Container Registry (GHCR), and triggers deployment using the same script flow.
+
+### GitHub Variables (Non-Secret Configuration)
+
+Set these in **GitHub Settings → Variables → Repository Variables**:
+
+| Variable Name | Example Value | Description |
+| :--- | :--- | :--- |
+| `DOMAIN_NAME` | `iviss.example.com` | Production domain |
+| `ROUTE53_ZONE_ID` | `Z0123456789ABCDEF` | Hosted zone used for ACM validation and CloudFront alias records |
+| `DOCKER_USERNAME` | `yourusername` | GHCR username (Required for image pulls) |
+| `AWS_ROLE_ARN` | `arn:aws:iam::<ID>:role/...` | OIDC Role ARN for AWS Auth |
+| `ENVIRONMENT` | `production` | Deployment environment |
+| `SMS_PROVIDER` | `orange` | `mock`, `twilio`, `vonage`, or `orange` |
+| `EMAIL_PROVIDER` | `lettre` | `mock`, `resend`, or `lettre` |
+| `SHIFT_START_HOUR` | `6` | Start of operations (UTC+1) |
+| `SHIFT_END_HOUR` | `18` | End of operations (UTC+1) |
+| `POSTGRES_USER` | `iviss_user` | Database username |
+| `POSTGRES_DB` | `iviss_dev` | Database name |
+| `ADMIN_BOOTSTRAP_EMAIL` | `admin@iviss.com` | Initial admin email |
+| `ADMIN_BOOTSTRAP_USERNAME` | `admin` | Initial admin username |
+| `SMTP_HOST` | `smtp.gmail.com` | SMTP server |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_FROM_EMAIL` | `noreply@iviss.cloud` | SMTP sender address |
+| `SMTP_USERNAME` | `user@gmail.com` | SMTP username |
+| `RESEND_FROM_EMAIL`| `onboarding@resend.dev`| Resend sender address |
+| `AWS_REGION` | `eu-west-1` | AWS deployment region |
+
+> **Note:** All actual secrets (passwords, API keys, tokens) are stored in AWS Secrets Manager, not GitHub Secrets.
+>
+> **Required for full custom-domain automation in CI/CD:** `DOMAIN_NAME`, `ROUTE53_ZONE_ID`, and `DOCKER_USERNAME`.
+
+### GitHub Environments
+
+| Environment | Branch | Protection |
+| :--- | :--- | :--- |
+| `production` | `main` | Required reviewers recommended |
+| `staging` | `dev` | No protection |
+
+---
+
+## 8. Provider Configuration
+
+IVISS supports multiple providers for SMS and Email. These are toggled via the `*_PROVIDER` GitHub Variables.
+
+### A. SMS Providers
+- **`mock`** (Default): Logs OTP codes directly to the backend console (no carrier fees).
+- **`twilio`**: Uses standard Twilio REST API. Requires Twilio secrets in Secrets Manager.
+- **`vonage`**: Uses Vonage/Nexmo API. Requires Vonage secrets in Secrets Manager.
+- **`orange`**: Uses Orange SMS API. Requires Orange secrets in Secrets Manager.
+
+### B. Email Providers
+- **`mock`**: Logs email content to the backend console.
+- **`resend`**: Uses Resend.com API (High delivery speed). Requires `resend_api_key` in Secrets Manager.
+- **`lettre`**: Uses standard SMTP protocol (for Outlook, Gmail, or custom relays). Requires `smtp_password` in Secrets Manager.
+
+---
+
+## 9. DNS & SSL Setup
+
+### TLS Architecture
+1.  **Viewer TLS terminates at CloudFront** using an ACM certificate in `us-east-1`
+2.  **DNS points to CloudFront**, not to the Lightsail static IP
+3.  **Route53 automation** is enabled when `ROUTE53_ZONE_ID` is provided; otherwise, use the CloudFront distribution domain until DNS is wired manually
+
+### Origin Protection (Two Layers)
+4.  **Network Layer**: Lightsail public firewall only permits CloudFront origin-facing IPv4 ranges on port `80`
+    - CloudFront CIDRs are synced from AWS-published IP ranges
+    - Updated automatically during Terraform apply
+    
+5.  **Application Layer**: Nginx validates `X-Origin-Verify` header
+    - Header value stored in AWS Secrets Manager
+    - Requests without valid header receive `403 Forbidden`
+    - Health check endpoint (`/__origin_check__`) exempt from validation
+
+### Origin Protocol
+6.  **HTTP-only from CloudFront to Lightsail (current mode)**
+    - Traffic encrypted from viewer to CloudFront
+    - CloudFront-to-origin stays HTTP in this setup
+    - `X-Origin-Verify` header validation remains enabled as an additional origin-auth layer
+
+### Edge Lockdown
+7.  **Security-first default**: `EDGE_LOCKDOWN_ENABLED=true` by default
+    - HTTP origin access remains restricted to CloudFront CIDRs
+    - Only CloudFront CIDRs allowed on port 80
+    - Current debug profile keeps SSH open during validation
+    - Warning displayed if explicitly disabled in production
+
+---
+
+## 10. Operational Manual
+
+### Deployment Commands
+
+#### Full Production Deployment
+```bash
+cd infra/
+# deploy.sh reads DOMAIN_NAME and other defaults from repository .env
+export USE_SECRETS_MANAGER=true
+export EDGE_LOCKDOWN_ENABLED=true  # Default, but explicit is better
+# Required when USE_SECRETS_MANAGER=true (password comes from AWS secret app-secrets.docker_password)
+# export DOCKER_USERNAME=your-ghcr-username
+# Optional overrides (only if you do NOT want .env values)
+# export DOMAIN_NAME=yourdomain.com
+# export ROUTE53_ZONE_ID=Z0123456789ABCDEF
+./scripts/deploy.sh
+```
+
+#### Pre-flight Checklist (`USE_SECRETS_MANAGER=true`)
+- AWS credentials are available (`aws sts get-caller-identity` works)
+- `DOCKER_USERNAME` is set (env var or `.env`)
+- Secret `iviss/<env>/app-secrets` contains `docker_password`, JWT keys, `db_password`, `admin_bootstrap_password`
+- Secret `iviss/<env>/provider-keys` contains provider secrets used by selected `SMS_PROVIDER` / `EMAIL_PROVIDER`
+- Secret `iviss/<env>/cloudfront-origin-secret` exists
+
+### Deployment Modes
+
+#### Mode A — Local deploy with `.env` only
+- `USE_SECRETS_MANAGER=false` (default)
+- Non-sensitive + sensitive values are read from local `.env` (and local key files for JWT fallback)
+- Best for local/dev or bootstrap testing
+
+#### Mode B — Local deploy with AWS Secrets Manager + `.env`
+- `USE_SECRETS_MANAGER=true`
+- Sensitive values come from AWS Secrets Manager:
+  - `iviss/<env>/app-secrets`
+  - `iviss/<env>/provider-keys`
+  - `iviss/<env>/cloudfront-origin-secret`
+- Non-sensitive values still come from `.env` / exported env vars (`DOMAIN_NAME`, `DOCKER_USERNAME`, `POSTGRES_USER`, `SMS_PROVIDER`, etc.)
+
+#### Mode C — Automated CI/CD deploy (OIDC + Secrets Manager)
+- GitHub Actions assumes AWS role using OIDC (`aws-actions/configure-aws-credentials`)
+- Runs the same `infra/scripts/deploy.sh`
+- `USE_SECRETS_MANAGER=true` in workflow env
+- Non-secret knobs from GitHub Variables; secrets remain in AWS Secrets Manager
+
+### Why `ROUTE53_ZONE_ID` matters
+- It enables Terraform to automatically:
+  - create ACM DNS validation records for your custom domain certificate (in `us-east-1`)
+  - create Route53 alias `A/AAAA` records pointing your domain to CloudFront
+- If not set:
+  - CloudFront still deploys
+  - custom-domain DNS automation is skipped
+  - you use CloudFront default domain or configure DNS records manually
+
+#### Development Deployment (Edge Lockdown Disabled)
+```bash
+export EDGE_LOCKDOWN_ENABLED=false  # WARNING: Not recommended for production
+./scripts/deploy.sh
+```
+
+### SSH Access
+
+#### During Active Deploy Window
+```bash
+# SSH config is generated during deployment
+ssh -F infra/ansible/ssh_config lightsail-public
+```
+
+> Current debug profile keeps SSH open; close it manually after validation.
+
+### Logs & Monitoring
+
+#### Application Logs
+```bash
+ssh -F infra/ansible/ssh_config lightsail-public
 cd /opt/iviss
 docker compose logs -f
+docker compose logs -f backend  # Backend only
+docker compose logs -f frontend  # Frontend only
 ```
 
-To see logs for a specific service only:
-
+#### Nginx Logs
 ```bash
-docker compose logs -f backend    # Backend API logs
-docker compose logs -f frontend   # Frontend/Nginx logs
+ssh -F infra/ansible/ssh_config lightsail-public
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
 ```
 
-### Restarting the application
-
+#### CloudFront Logs (if enabled)
 ```bash
+# Logs stored in S3 bucket (configure in CloudFront settings)
+aws s3 ls s3://your-cloudfront-logs-bucket/
+```
+
+#### WAF Logs
+```bash
+# CloudWatch Logs (configure in WAF settings)
+aws logs describe-log-groups --log-group-name-prefix aws-waf-logs
+```
+
+### Restarting the Stack
+
+#### Full Restart
+```bash
+ssh -F infra/ansible/ssh_config lightsail-public
 cd /opt/iviss
 docker compose down
 docker compose up -d
 ```
 
-### Checking the status of all services
-
+#### Service-Specific Restart
 ```bash
-docker compose ps
+# Restart backend only
+docker compose restart backend
+
+# Restart frontend only
+docker compose restart frontend
+
+# Restart PostgreSQL
+docker compose restart db
 ```
 
-All services should show status `Up`. If any show `Exit` or `Restarting`, check the logs for that service.
+### Health Checks
 
-### Pulling the latest version manually
-
-If you need to force an update without going through the CI/CD pipeline:
-
+#### CloudFront Endpoint
 ```bash
-cd /opt/iviss
-docker compose pull
-docker compose up -d
+curl -I https://yourdomain.com
+curl -I https://yourdomain.com/api/v1/health
+```
+
+#### Direct Origin (for debugging)
+```bash
+# From an IP in CloudFront CIDR range
+ORIGIN_SECRET=$(aws secretsmanager get-secret-value \
+  --secret-id iviss/production/cloudfront-origin-secret \
+  --query SecretString --output text)
+
+curl -H "X-Origin-Verify: $ORIGIN_SECRET" http://LIGHTSAIL_IP/api/v1/health
+```
+
+### Database Operations
+
+#### Connect to PostgreSQL
+```bash
+ssh -F infra/ansible/ssh_config lightsail-public
+docker compose exec db psql -U iviss_user -d iviss_dev
+```
+
+#### Database Backup
+```bash
+ssh -F infra/ansible/ssh_config lightsail-public
+docker compose exec db pg_dump -U iviss_user iviss_dev > /tmp/backup_$(date +%Y%m%d).sql
+```
+
+#### Database Restore
+```bash
+ssh -F infra/ansible/ssh_config lightsail-public
+docker compose exec -T db psql -U iviss_user iviss_dev < /tmp/backup.sql
 ```
 
 ---
 
-## 9. Security — Key Generation & Rotation
+## 11. Security: Manual Key Generation
 
-### Generating a JWT Secret
+If you need to rotate secrets or generate new keys for a fresh environment, use these commands:
 
+### A. JWT HMAC Secret
 ```bash
 openssl rand -base64 48
 ```
 
-Copy the output and save it as the `JWT_SECRET` GitHub secret.
-
-### Generating an RSA Key Pair (for JWT signing)
-
+### B. JWT RSA Key Pair (Private & Public)
 ```bash
-# Step 1 — Generate the private key
+# 1. Generate Private Key
 openssl genrsa -out jwt-private.pem 2048
 
-# Step 2 — Extract the public key from it
+# 2. Extract Public Key
 openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
 ```
 
-### Formatting keys for GitHub Secrets
-
-GitHub Secrets must be a single line. Use this command to convert the key file to the correct format:
-
+### C. Formatting for Secrets Manager
+To get the single-line string with `\n` needed for Secrets Manager JSON:
 ```bash
-# For the private key
 awk '{printf "%s\\n", $0}' jwt-private.pem
-
-# For the public key
-awk '{printf "%s\\n", $0}' jwt-public.pem
 ```
 
-Copy the entire output (including the `-----BEGIN...` and `-----END...` parts) and paste it as the secret value.
-
-> ⚠️ After rotating keys, all active agent sessions will be invalidated. Agents will need to log in again on their next shift.
-
-### Generating the Activation Code Pepper
-
+### D. Activation Code Pepper
 ```bash
-openssl rand -base64 48
+openssl rand -hex 32
 ```
 
-> ⚠️ If this value is changed after agents have been activated, all existing activation codes become invalid. Only rotate this during a planned maintenance window.
+---
+
+## 12. Troubleshooting
+
+### 1. Terraform State Checksum Mismatch
+- **Cause**: S3 state and DynamoDB lock are out of sync.
+- **Fix**: Clear the DynamoDB lock entry manually.
+  ```bash
+  aws dynamodb delete-item \
+      --table-name "iviss-terraform-lock" \
+      --key '{"LockID": {"S": "YOUR_BUCKET_NAME/production/terraform.tfstate-md5"}}' \
+      --region "<AWS_REGION>"
+  ```
+
+### 2. "Resource already exists" (Lightsail)
+- **Cause**: Existing resources found in AWS but missing from your current `.tfstate`.
+- **Fix**: Try to import them. If Terraform reports "resource doesn't support import", manually delete the resource in the AWS Console and rerun the deployment.
+  ```bash
+  cd infra/terraform
+  terraform import aws_lightsail_instance.iviss_app iviss-production-app
+  # For IP/Key - if import fails: Manually delete in Console, then 'terraform apply'
+  ```
+
+### 3. Secrets Manager "ResourceNotFoundException"
+- **Cause**: Secrets haven't been created yet (first deploy).
+- **Fix**: Run `terraform apply` first to create the secret resources, then seed them with the AWS CLI commands in Section 4.
+
+### 4. Frontend showing "403" / "White Screen"
+- **Cause**: CloudFront is not sending the correct origin secret header, or requests are bypassing CloudFront and hitting the origin directly
+- **Fix**: 
+  1. Ensure the `cloudfront-origin-secret` secret exists in AWS Secrets Manager
+  2. Verify CloudFront distribution has the custom header configured:
+     ```bash
+     aws cloudfront get-distribution --id DISTRIBUTION_ID \
+       --query 'Distribution.DistributionConfig.Origins.Items[0].CustomHeaders' 
+     ```
+  3. Confirm request is going through CloudFront domain, not direct IP
+  4. Check Nginx error logs on Lightsail:
+     ```bash
+     sudo tail -50 /var/log/nginx/error.log
+     ```
+
+### 5. SSH Connection Timeout
+- **Cause**: Lightsail/UFW SSH rule mismatch or host networking not ready
+- **Fix**: Verify Lightsail SSH port and UFW status, then retry:
+  ```bash
+  aws lightsail get-instance-public-ports --region eu-west-1 --instance-name iviss-production-app-v2
+  # On host:
+  sudo ufw status
+  ```
+
+### 6. Terraform Plan Shows CloudFront CIDR Changes
+- **Cause**: AWS updates CloudFront IP ranges periodically
+- **Fix**: This is expected. Apply the changes to update Lightsail firewall:
+  ```bash
+  cd infra/terraform
+  terraform apply -var="edge_lockdown_enabled=true"
+  ```
+
+### 7. WAF Blocking Legitimate Traffic
+- **Cause**: AWSManagedRules false positive
+- **Fix**: 
+  1. Check WAF logs in CloudWatch
+  2. Add exclusions in WAF Web ACL if needed
+  3. Test with WAF in "count" mode before "block"
+
+### 8. Certbot Installed Despite CloudFront Enabled
+- **Cause**: `cloudfront_enabled` variable not passed to Ansible
+- **Fix**: Ensure deploy.sh passes `cloudfront_enabled` based on `EDGE_LOCKDOWN_ENABLED`
 
 ---
 
-## 10. Troubleshooting
+## 13. Teardown & Maintenance
 
-### "Unauthorized" or 401 errors on the frontend
-
-**Cause:** The JWT keys in the GitHub Secrets do not match the keys the backend was started with, or a session has expired.
-
-**Fix:** Verify that `JWT_PRIVATE_KEY_PEM` and `JWT_PUBLIC_KEY_PEM` are correctly formatted (single line with `\n` separators) and re-deploy.
-
----
-
-### Deployment fails with "Conflict: Target already exists" (Terraform)
-
-**Cause:** Terraform is trying to create a resource that already exists on AWS.
-
-**Fix:** Either import the existing resource into Terraform state, or ensure you are using the correct remote state backend.
-
+### A. Partial Destruction (Instance only)
+To save costs while keeping your Static IP and DNS settings intact:
 ```bash
 cd infra/terraform
-terraform import aws_lightsail_instance.iviss <instance-name>
+terraform destroy -target=aws_lightsail_instance.iviss_app
 ```
 
----
-
-### Docker images fail to pull on the server
-
-**Cause:** The `REGISTRY_TOKEN` secret has expired or does not have the correct permissions.
-
-**Fix:** Generate a new GitHub Personal Access Token with `read:packages` permission and update the `REGISTRY_TOKEN` secret in GitHub.
+### B. Full Cleanup
+If you need to wipe everything including the remote state storage (S3/DynamoDB), you must manually delete the S3 bucket and DynamoDB table via the AWS CLI or Console, as these are "bootstrap" resources not managed by the main `iviss` Terraform module.
 
 ---
+**Version 3.3 | Last Updated: 2026-04-30**
 
-### SSL certificate not issued / site shows "Not Secure"
-
-**Cause:** DNS has not propagated yet, or the domain does not point to the correct IP.
-
-**Fix:**
-1. Verify the A Record is correct using [dnschecker.org](https://dnschecker.org)
-2. Wait for propagation (up to 30 minutes)
-3. Re-run the deployment once DNS resolves correctly
-
----
-
-### Application starts but shows a blank page
-
-**Cause:** The frontend container started before the backend was ready, or the OpenAPI client was not generated.
-
-**Fix:**
-```bash
-cd /opt/iviss
-docker compose restart frontend
-```
-
----
-
-### Database connection errors in backend logs
-
-**Cause:** The `POSTGRES_PASSWORD` in the secrets does not match what the database was initialized with, or the database container is not running.
-
-**Fix:**
-```bash
-cd /opt/iviss
-docker compose ps          # Check if db container is running
-docker compose logs db     # Check database logs for errors
-```
-
-If the password was changed after the database was already initialized, the database volume must be reset (this deletes all data — only do this on a fresh setup):
-
-```bash
-docker compose down -v     # ⚠️ Deletes all data
-docker compose up -d
-```
+### Version History
+- **v3.3 (2026-04-30)**: CloudFront origin-facing CIDR lockdown fix documented and CI/CD required variable notes clarified
+- **v3.2 (2026-04-30)**: Temporary debug SSH profile documented
+- **v3.1 (2026-04-30)**: Relay/EICE removed, temporary caller-scoped SSH deployment flow documented
+- **v3.0 (2026-04-30)**: Edge lockdown by default, CloudFront cache policy modernization, conditional Certbot, improved Nginx validation
+- **v2.3 (2026-04-29)**: Comprehensive architecture documentation
+- **v2.1**: Initial comprehensive guide with Secrets Manager and OIDC

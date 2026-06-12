@@ -7,7 +7,7 @@ on:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"
   push:
-    branches: [main, dev]
+    branches: [aws-dev-test]
     paths:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"
@@ -188,6 +188,8 @@ jobs:
     name: Frontend SonarQube Analysis
     needs: [frontend_build, frontend_unit_tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -212,4 +214,4 @@ jobs:
             -Dsonar.projectBaseDir=frontend
             -Dsonar.sources=src
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.wait=false

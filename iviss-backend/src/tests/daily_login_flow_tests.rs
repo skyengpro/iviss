@@ -2,6 +2,7 @@ use crate::app_state::AppState;
 use crate::routes;
 use crate::services::otp_service::OTP_TTL_SECS;
 use crate::services::sms_provider::MockSmsProvider;
+use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use hmac::Mac;
@@ -97,14 +98,14 @@ async fn setup_test_infrastructure() -> (
 
     let cache = std::sync::Arc::new(crate::app_cache::AppCache::new());
 
-    // Create organization
+    // Create organization with shift hours covering full day (0-1440) so tests pass regardless of CI runner time
     let org_id = Uuid::new_v4();
     sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
         .bind("Test Org")
         .bind("police")
-        .bind(360i32)
-        .bind(1080i32)
+        .bind(0i32)
+        .bind(1440i32)
         .execute(&db)
         .await
         .unwrap();
@@ -166,11 +167,13 @@ async fn setup_test_infrastructure() -> (
         environment: crate::config::Environment::Local,
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
+        otp_via_email: false,
         activation_code_pepper: TEST_PEPPER.to_string(),
         admin_bootstrap_email: Some("admin@example.com".to_string()),
         admin_bootstrap_password: Some("password".to_string()),
         admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
+        vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
     };
 
     let state = AppState::new(
@@ -179,7 +182,9 @@ async fn setup_test_infrastructure() -> (
         Arc::new(MockSmsProvider),
         Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
-    );
+        Arc::new(TelemetryHandle::noop()),
+    )
+    .expect("failed to initialize test app state");
 
     let app = routes::assembly(state);
 

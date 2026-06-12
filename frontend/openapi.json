@@ -3122,6 +3122,10 @@
           "confirmPassword": {
             "type": "string"
           },
+          "currentPassword": {
+            "type": "string",
+            "nullable": true
+          },
           "newPassword": {
             "type": "string"
           }
@@ -3743,14 +3747,14 @@
       },
       "OwnerInfo": {
         "type": "object",
-        "required": ["name"],
         "properties": {
           "address": {
             "type": "string",
             "nullable": true
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "national_id": {
             "type": "string",
@@ -4554,15 +4558,21 @@
       },
       "VehicleInfo": {
         "type": "object",
-        "required": ["brand", "model", "year", "chassis_number", "owner"],
+        "required": ["owner"],
         "properties": {
           "brand": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "chassis_number": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "customs_status": {
             "type": "string",
             "nullable": true
           },
@@ -4575,14 +4585,16 @@
             "nullable": true
           },
           "model": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "owner": {
             "$ref": "#/components/schemas/OwnerInfo"
           },
           "year": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           }
         }
       },

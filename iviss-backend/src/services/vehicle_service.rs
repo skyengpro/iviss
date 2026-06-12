@@ -39,15 +39,16 @@ impl VehicleService {
 
     pub fn build_vehicle_info(vehicle_row: &VehicleRow) -> VehicleInfo {
         VehicleInfo {
-            brand: vehicle_row.brand.clone(),
-            model: vehicle_row.model.clone(),
-            year: vehicle_row.year,
+            brand: Some(vehicle_row.brand.clone()),
+            model: Some(vehicle_row.model.clone()),
+            year: Some(vehicle_row.year),
             color: vehicle_row.color.clone(),
             engine_power: vehicle_row.engine_power.clone(),
             fuel_type: vehicle_row.fuel_type.clone(),
-            chassis_number: vehicle_row.chassis_number.clone(),
+            chassis_number: Some(vehicle_row.chassis_number.clone()),
+            customs_status: None,
             owner: OwnerInfo {
-                name: vehicle_row.owner_name.clone(),
+                name: Some(vehicle_row.owner_name.clone()),
                 address: vehicle_row.owner_address.clone(),
                 national_id: vehicle_row.owner_national_id.clone(),
             },

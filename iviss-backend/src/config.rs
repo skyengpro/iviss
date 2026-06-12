@@ -1,5 +1,8 @@
 pub use crate::services::email_provider::EmailProviderCredentials;
 pub use crate::services::sms_provider::SmsProviderCredentials;
+pub use crate::services::vehicle_client_service::{
+    ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
+};
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;
@@ -85,12 +88,15 @@ pub struct Config {
     pub sms_credentials: SmsProviderCredentials,
     // Email
     pub email_credentials: EmailProviderCredentials,
+    pub otp_via_email: bool,
     pub activation_code_pepper: String,
     // Bootstrap admin — used only at first startup if no admin exists
     pub admin_bootstrap_email: Option<String>,
     pub admin_bootstrap_password: Option<String>,
     pub admin_bootstrap_phone: Option<String>,
     pub admin_bootstrap_username: Option<String>,
+    // Vehicle API
+    pub vehicle_api_credentials: VehicleApiCredentials,
 }
 
 impl Config {
@@ -166,6 +172,19 @@ impl Config {
         let admin_bootstrap_phone = env::var("ADMIN_BOOTSTRAP_PHONE").ok();
         let admin_bootstrap_username = env::var("ADMIN_BOOTSTRAP_USERNAME").ok();
 
+        // Vehicle API credentials
+        let vehicle_api_credentials = Self::get_vehicle_api_credentials()
+            .context("Failed to configure Vehicle API credentials")?;
+
+        // OTP delivery via email toggle (default: false)
+        let otp_via_email = env::var("OTP_VIA_EMAIL")
+            .ok()
+            .map(|v| {
+                let v = v.trim().to_lowercase();
+                matches!(v.as_str(), "1" | "true" | "yes")
+            })
+            .unwrap_or(false);
+
         Ok(Self {
             database_url,
             server_host,
@@ -176,11 +195,13 @@ impl Config {
             environment,
             sms_credentials,
             email_credentials,
+            otp_via_email,
             activation_code_pepper,
             admin_bootstrap_email,
             admin_bootstrap_password,
             admin_bootstrap_phone,
             admin_bootstrap_username,
+            vehicle_api_credentials,
         })
     }
 
@@ -239,8 +260,9 @@ impl Config {
                     sender_number,
                 })
             }
+            "mock" | "none" => Ok(SmsProviderCredentials::Mock),
             other => Err(anyhow!(
-                "Invalid SMS_PROVIDER value: '{other}'. Must be one of: vonage, twilio, orange"
+                "Invalid SMS_PROVIDER value: '{other}'. Must be one of: vonage, twilio, orange, mock"
             )),
         }
     }
@@ -280,22 +302,38 @@ impl Config {
         }
     }
 
+    fn get_vehicle_api_credentials() -> Result<VehicleApiCredentials> {
+        let base_url =
+            env::var("EXTERNAL_API_BASE_URL").context("EXTERNAL_API_BASE_URL must be set")?;
+        let username =
+            env::var("EXTERNAL_API_USERNAME").context("EXTERNAL_API_USERNAME must be set")?;
+        let password =
+            env::var("EXTERNAL_API_PASSWORD").context("EXTERNAL_API_PASSWORD must be set")?;
+        let lock_ndia =
+            env::var("EXTERNAL_API_LOCK_NDIA").context("EXTERNAL_API_LOCK_NDIA must be set")?;
+        let kindia = env::var("EXTERNAL_API_KINDIA").context("EXTERNAL_API_KINDIA must be set")?;
+        let user = env::var("EXTERNAL_API_USER").context("EXTERNAL_API_USER must be set")?;
+        let client = env::var("EXTERNAL_API_CLIENT").context("EXTERNAL_API_CLIENT must be set")?;
+        let ctr = env::var("EXTERNAL_API_CTR").context("EXTERNAL_API_CTR must be set")?;
+        let tls_cert_b64 = env::var("EXTERNAL_API_TLS_CERT_B64")
+            .context("EXTERNAL_API_TLS_CERT_B64 must be set")?;
+
+        Ok(VehicleApiCredentials {
+            base_url,
+            user_auth: ApiUserAuth { username, password },
+            header_parms: ExternalApiHeaderParms {
+                user,
+                lock_ndia,
+                kindia,
+                client,
+                ctr,
+            },
+            tls_cert_b64,
+        })
+    }
+
     /// Validate the configuration
     pub fn validate(&self) -> Result<()> {
-        // Additional validation can be added here
-        if self.server_port == 0 {
-            // return Err(anyhow!("SERVER_PORT cannot be 0"));
-        }
-
-        // Reject Mock SMS provider in production
-        if self.environment == Environment::Production
-            && matches!(&self.sms_credentials, SmsProviderCredentials::Mock)
-        {
-            return Err(anyhow!(
-                "Mock SMS provider is not allowed in production environment"
-            ));
-        }
-
         // Validate SMS provider config in production
         if self.environment == Environment::Production {
             // Mock SMS provider is not allowed in production
@@ -360,20 +398,24 @@ impl Config {
 
         Ok(())
     }
+}
 
-    /// Check if running in production environment
-    pub fn is_production(&self) -> bool {
-        self.environment == Environment::Production
-    }
-
-    /// Check if running in local environment
-    pub fn is_local(&self) -> bool {
-        self.environment == Environment::Local
-    }
-
-    /// Check if we should use the mock SMS provider
-    pub fn use_mock_sms(&self) -> bool {
-        self.sms_credentials.is_mock()
+#[cfg(test)]
+pub fn mock_vehicle_api_credentials() -> VehicleApiCredentials {
+    VehicleApiCredentials {
+        base_url: "https://vehicle-api.test".into(),
+        user_auth: ApiUserAuth {
+            username: "test_username".into(),
+            password: "test_password".into(),
+        },
+        header_parms: ExternalApiHeaderParms {
+            user: "test_user".into(),
+            lock_ndia: "test_lock_ndia".into(),
+            kindia: "test_kindia".into(),
+            client: "test_client".into(),
+            ctr: "test_ctr".into(),
+        },
+        tls_cert_b64: "TiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZzRENDQTVp".into(),
     }
 }
 
@@ -434,21 +476,18 @@ mod tests {
                 api_secret: "secret".into(),
             },
             email_credentials: EmailProviderCredentials::Mock,
+            otp_via_email: false,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
             admin_bootstrap_email: Some("admin@iviss.local".into()),
             admin_bootstrap_password: Some("ChangeMe!2025".into()),
             admin_bootstrap_phone: Some("+237600000000".into()),
             admin_bootstrap_username: Some("admin".into()),
+            vehicle_api_credentials: mock_vehicle_api_credentials(),
         };
-
-        assert!(config.is_local());
-        assert!(!config.is_production());
         assert!(config.validate().is_ok());
 
         let mut prod_config = config.clone();
         prod_config.environment = Environment::Production;
-        assert!(prod_config.is_production());
-        assert!(!prod_config.is_local());
 
         // Mock credentials should fail validation in production
         prod_config.sms_credentials = SmsProviderCredentials::Mock;

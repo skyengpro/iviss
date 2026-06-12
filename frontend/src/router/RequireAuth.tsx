@@ -20,24 +20,32 @@ export function RequireAuth({
         const accessToken = getAccessToken();
         const refreshToken = getRefreshToken();
         const deviceActivated = localStorage.getItem('iviss_device_activated') === 'true';
+        // A valid refresh token means the session is recoverable — the interceptor will
+        // silently refresh the access token on the next API call. Never force daily-login
+        // while a valid refresh token exists, as that requires a new OTP.
+        const hasValidRefreshToken = !!refreshToken && refreshToken !== 'null';
 
-        if (!refreshToken && !accessToken) {
+        if (!hasValidRefreshToken && !accessToken) {
           if (deviceActivated) {
             navigate('/daily-login', { state: { from: location.pathname } });
           } else {
             navigate('/activate', { state: { from: location.pathname } });
           }
-        } else if (refreshToken && !accessToken) {
-          navigate('/daily-login', { state: { from: location.pathname } });
-        } else {
-          // If we have an accessToken but aren't authenticated, the token is likely invalid/expired.
-          // Send activated devices to daily-login, otherwise to activate.
+        } else if (hasValidRefreshToken && !accessToken) {
+          // Refresh token exists but no access token yet — do NOT redirect to daily-login.
+          // AuthContext.initIdentity will restore the session; on next API call the interceptor
+          // will use the refresh token to silently issue a new access token.
+          // No redirect needed here.
+        } else if (!hasValidRefreshToken && accessToken) {
+          // Access token present but no refresh token and not authenticated — token is invalid.
           if (deviceActivated) {
             navigate('/daily-login', { state: { from: location.pathname } });
           } else {
             navigate('/activate', { state: { from: location.pathname } });
           }
         }
+        // If both tokens exist but not authenticated yet — AuthContext is still initializing,
+        // the loader above will show. No redirect needed.
       } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
         // Prevent infinite redirect loop if we are already at the target
         if (user.role === 'admin' || user.role === 'manager' || user.role === 'org_admin') {

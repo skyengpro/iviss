@@ -1,3 +1,3 @@
 ALTER TABLE organizations
-    ADD COLUMN start_work_time INTEGER NOT NULL,
-    ADD COLUMN end_work_time INTEGER NOT NULL;
+    ADD COLUMN IF NOT EXISTS start_work_time INTEGER NOT NULL,
+    ADD COLUMN IF NOT EXISTS end_work_time INTEGER NOT NULL;

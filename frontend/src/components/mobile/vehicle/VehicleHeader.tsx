@@ -16,6 +16,11 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
   overallStatus,
 }) => {
   const { t } = useTranslation();
+  const display = (value?: string | number | null) => {
+    if (value === undefined || value === null || value === '') return '-';
+    return String(value);
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden animate-slide-up">
       <div className="bg-primary p-4 text-primary-foreground">
@@ -33,17 +38,17 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
       <div className="p-4 space-y-4">
         {/* Vehicle Details */}
         <div className="grid grid-cols-2 gap-4">
-          <DetailItem icon={Car} label={t('vehicleResult.brand')} value={vehicle.brand} />
-          <DetailItem icon={Car} label={t('vehicleResult.model')} value={vehicle.model} />
+          <DetailItem icon={Car} label={t('vehicleResult.brand')} value={display(vehicle.brand)} />
+          <DetailItem icon={Car} label={t('vehicleResult.model')} value={display(vehicle.model)} />
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.year')}
-            value={String(vehicle.year)}
+            value={display(vehicle.year)}
           />
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.power')}
-            value={vehicle.engine_power || '-'}
+            value={display(vehicle.engine_power)}
           />
         </div>
 
@@ -51,7 +56,7 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
           <DetailItem
             icon={FileText}
             label={t('vehicleResult.chassisNumber')}
-            value={vehicle.chassis_number}
+            value={display(vehicle.chassis_number)}
             fullWidth
           />
         </div>
@@ -60,7 +65,7 @@ export const VehicleHeader: React.FC<VehicleHeaderProps> = ({
           <DetailItem
             icon={User}
             label={t('vehicleResult.owner')}
-            value={vehicle.owner.name}
+            value={display(vehicle.owner.name)}
             fullWidth
           />
           <p className="text-sm text-muted-foreground mt-1 ml-8">{vehicle.owner.address || ''}</p>
