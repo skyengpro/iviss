@@ -17,4 +17,5 @@ paths = [
   '''^docs/deployment_guide\.md$''',
   '''^infra/scripts/debug_jwt\.py$''',
   '''^infra/scripts/test_rust_parsing\.rs$''',
+  '''^infra/tickets/ticket-1-admin-infra\.md$''',
 ]

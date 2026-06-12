@@ -14,19 +14,8 @@ pub trait SmsProvider: Send + Sync {
     async fn send_sms(&self, phone_number: &str, message: &str) -> Result<()>;
 }
 
-pub struct NoopSmsProvider;
-
-#[async_trait]
-impl SmsProvider for NoopSmsProvider {
-    async fn send_sms(&self, _phone_number: &str, _message: &str) -> Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(test)]
 pub struct MockSmsProvider;
 
-#[cfg(test)]
 #[async_trait]
 impl SmsProvider for MockSmsProvider {
     async fn send_sms(&self, _phone_number: &str, _message: &str) -> Result<()> {
@@ -364,10 +353,6 @@ impl SmsProvider for OrangeSmsProvider {
 }
 
 impl SmsProviderCredentials {
-    pub fn is_mock(&self) -> bool {
-        matches!(self, Self::Mock)
-    }
-
     /// Get the provider name
     pub fn provider_name(&self) -> &'static str {
         match self {
@@ -412,7 +397,7 @@ impl SmsProviderCredentials {
                     sender_number.clone(),
                 ))
             }
-            Self::Mock => Arc::new(NoopSmsProvider),
+            Self::Mock => Arc::new(MockSmsProvider),
         }
     }
 }

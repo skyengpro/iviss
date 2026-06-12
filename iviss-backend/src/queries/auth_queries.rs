@@ -69,8 +69,7 @@ pub async fn mark_device_inactive(pool: &PgPool, device_id: Uuid) -> Result<(), 
     sqlx::query(
         r#"
         UPDATE devices
-        SET status = 'INACTIVE'::device_status,
-            revoked_at = NOW()
+        SET status = 'INACTIVE'::device_status
         WHERE id = $1
           AND status = 'ACTIVE'::device_status
         "#,
@@ -131,6 +130,22 @@ pub async fn get_device_by_user_optional(
     .fetch_optional(pool)
     .await
     .map_err(AppError::database)
+}
+
+pub async fn check_device_exists(pool: &PgPool, device_id: Uuid) -> Result<bool, AppError> {
+    let exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS (
+            SELECT 1 FROM devices WHERE id = $1
+        )
+        "#,
+    )
+    .bind(device_id)
+    .fetch_one(pool)
+    .await
+    .map_err(AppError::database)?;
+
+    Ok(exists)
 }
 
 pub async fn mark_device_active(
