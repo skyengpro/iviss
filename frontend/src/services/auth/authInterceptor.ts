@@ -28,12 +28,11 @@ const REFRESH_TIMEOUT_MS = 15_000;
 
 function isDeviceReactivationMessage(message: string): boolean {
   return (
-    message.includes('device is not active') ||
     message.includes('device is not registered') ||
     message.includes('device not found or revoked') ||
     message.includes('device suspended') ||
     message.includes('device status: suspended') ||
-    message.includes('device status: revoked')
+    message.includes('pending activation')
   );
 }
 

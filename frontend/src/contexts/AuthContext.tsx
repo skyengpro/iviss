@@ -73,12 +73,11 @@ function requiresDeviceReactivation(value: unknown): boolean {
 
   const message = maybe.message.toLowerCase();
   return (
-    message.includes('device is not active') ||
     message.includes('device is not registered') ||
     message.includes('device suspended') ||
     message.includes('device status: suspended') ||
-    message.includes('device status: revoked') ||
-    message.includes('device not found or revoked')
+    message.includes('device not found or pending') ||
+    message.includes('pending activation')
   );
 }
 

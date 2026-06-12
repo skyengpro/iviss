@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 /// Terminates all sessions for a given user within a single transaction:
 /// 1. Revokes all refresh tokens.
-/// 2. Marks all devices as INACTIVE.
+/// 2. Marks all devices as REVOKED.
 ///
 /// The auth middleware already rejects requests when `device_is_active = false`,
 /// so the very next request from the terminated user will return 401.
@@ -27,11 +27,11 @@ pub async fn terminate_user_sessions(pool: &PgPool, user_id: Uuid) -> Result<(),
     .await
     .map_err(AppError::Database)?;
 
-    // 2. Mark all active devices as INACTIVE
+    // 2. Mark all active devices as REVOKED
     sqlx::query(
         r#"
         UPDATE devices
-        SET status = 'INACTIVE'::device_status,
+        SET status = 'REVOKED'::device_status,
             revoked_at = NOW()
         WHERE user_id = $1
           AND status = 'ACTIVE'::device_status
@@ -67,11 +67,11 @@ pub async fn restart_user_session(
         .try_into()
         .unwrap_or(0);
 
-    // Update the most recently updated device for this user
+    // Update the most recently updated device for this user to PENDING, clearing revoked_at
     sqlx::query(
         r#"
         UPDATE devices
-        SET status = 'ACTIVE'::device_status,
+        SET status = 'PENDING'::device_status,
             revoked_at = NULL,
             metadata = metadata || jsonb_build_object('shift_start', $2, 'shift_end', $3)
         WHERE id = (
