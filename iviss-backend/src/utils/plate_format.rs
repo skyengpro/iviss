@@ -14,7 +14,7 @@ static CIVIL_CEMAC_RE: Lazy<Regex> =
 static CIVIL_LEGACY_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)\d{4}[A-Z]{1,2}$").unwrap());
 static TRAILER_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)(?:RE|SR|SE|TR)\d{1,2,3,4}[A-Z]{1,2}$").unwrap()
+    Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)(?:RE|SR|SE|TR)\d{1,4}[A-Z]{1,2}$").unwrap()
 });
 static STATE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?:CA|AN)\d{4}[A-Z]{1,2}$").unwrap());
 static DIPLOMATIC_RE: Lazy<Regex> =

@@ -12,6 +12,14 @@ use std::collections::HashMap;
 use std::time::Duration;
 use tracing::debug;
 
+#[derive(Debug, thiserror::Error)]
+pub enum VehicleApiError {
+    #[error("Vehicle not found")]
+    NotFound,
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
 #[derive(Debug, Clone)]
 pub struct VehicleApiCredentials {
     pub base_url: String,
@@ -72,7 +80,7 @@ impl VehicleApiService {
         })
     }
 
-    pub async fn query_plate(&self, plate: &str) -> anyhow::Result<VehicleApiResponse> {
+    pub async fn query_plate(&self, plate: &str) -> Result<VehicleApiResponse, VehicleApiError> {
         debug!("Querying vehicle API for plate");
         let url = format!("{}/query", self.credentials.base_url.trim_end_matches('/'));
         let response = self
@@ -101,7 +109,11 @@ impl VehicleApiService {
             .context("failed to read vehicle API response")?;
         debug!("Received vehicle API response ({} bytes)", html.len());
 
-        self.parse_html_response(&html)
+        if is_vehicle_not_found_response(&html) {
+            return Err(VehicleApiError::NotFound);
+        }
+
+        self.parse_html_response(&html).map_err(Into::into)
     }
 
     fn parse_html_response(&self, html: &str) -> anyhow::Result<VehicleApiResponse> {
@@ -254,6 +266,15 @@ impl VehicleApiService {
     }
 }
 
+fn is_vehicle_not_found_response(body: &str) -> bool {
+    if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(body) {
+        if let Some(data_str) = json_val.get("data").and_then(|v| v.as_str()) {
+            return data_str.contains("Service indisponible");
+        }
+    }
+    false
+}
+
 fn html_to_text(html: &str) -> String {
     static BR_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)<br\s*/?>").unwrap());
     static TAG_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?s)<[^>]+>").unwrap());
@@ -318,4 +339,89 @@ fn decode_basic_html_entities(value: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_vehicle_not_found_response_with_not_found_json() {
+        let json_body = r#"{"data": "\n---------\nService distant:\n---------\nSN 49 02\n--> Service indisponible\n15-06-2026 09:33:09"}"#;
+        assert!(is_vehicle_not_found_response(json_body));
+    }
+
+    #[test]
+    fn test_is_vehicle_not_found_response_with_other_json() {
+        let json_body = r#"{"data": "Some other error message"}"#;
+        assert!(!is_vehicle_not_found_response(json_body));
+
+        let json_body_no_data = r#"{"status": "error"}"#;
+        assert!(!is_vehicle_not_found_response(json_body_no_data));
+    }
+
+    #[test]
+    fn test_is_vehicle_not_found_response_with_html() {
+        let html_body = "<html><body>IMMAT: SN 49 02</body></html>";
+        assert!(!is_vehicle_not_found_response(html_body));
+    }
+
+    #[test]
+    fn test_parse_html_response_success() {
+        let html_body = "<html><body>IMMAT: SN 49 02<br/>M&T: TOYOTA COROLLA<br/>CHASSIS: JT123456789<br/>PROP: JOHN DOE</body></html>";
+        let api_service = VehicleApiService {
+            credentials: VehicleApiCredentials {
+                base_url: "http://localhost".to_string(),
+                user_auth: ApiUserAuth {
+                    username: "user".to_string(),
+                    password: "pass".to_string(),
+                },
+                header_parms: ExternalApiHeaderParms {
+                    user: "u".to_string(),
+                    lock_ndia: "l".to_string(),
+                    kindia: "k".to_string(),
+                    client: "c".to_string(),
+                    ctr: "ctr".to_string(),
+                },
+                tls_cert_b64: "".to_string(),
+            },
+            client: reqwest::Client::new(),
+        };
+
+        let result = api_service.parse_html_response(html_body).unwrap();
+        assert_eq!(result.plate_number.as_deref(), Some("SN 49 02"));
+        assert_eq!(result.vehicle.brand.as_deref(), Some("TOYOTA"));
+        assert_eq!(result.vehicle.model.as_deref(), Some("COROLLA"));
+        assert_eq!(
+            result.vehicle.chassis_number.as_deref(),
+            Some("JT123456789")
+        );
+        assert_eq!(result.vehicle.owner.name.as_deref(), Some("JOHN DOE"));
+    }
+
+    #[test]
+    fn test_parse_html_response_missing_fields() {
+        let html_body = "<html><body>No fields here</body></html>";
+        let api_service = VehicleApiService {
+            credentials: VehicleApiCredentials {
+                base_url: "http://localhost".to_string(),
+                user_auth: ApiUserAuth {
+                    username: "user".to_string(),
+                    password: "pass".to_string(),
+                },
+                header_parms: ExternalApiHeaderParms {
+                    user: "u".to_string(),
+                    lock_ndia: "l".to_string(),
+                    kindia: "k".to_string(),
+                    client: "c".to_string(),
+                    ctr: "ctr".to_string(),
+                },
+                tls_cert_b64: "".to_string(),
+            },
+            client: reqwest::Client::new(),
+        };
+
+        let result = api_service.parse_html_response(html_body);
+        assert!(result.is_err());
+    }
 }

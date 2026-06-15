@@ -6,7 +6,7 @@ use crate::{
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    services::vehicle_client_service::VehicleApiService,
+    services::vehicle_client_service::{VehicleApiError, VehicleApiService},
     utils::plate_format,
 };
 use axum::{
@@ -36,7 +36,7 @@ use uuid::Uuid;
              example = json!({ "code": "NOT_FOUND", "message": "No vehicle found with the provided plate  number" })),
          (status = 500, description = "Internal server error",             body = AppErrorResponse, 
              example = json!({ "code": "INTERNAL_ERROR", "message": "Internal Server Error" })),
-    ),
+     ),
     security(("bearer_auth" = []))
 )]
 #[instrument(name = "vehicle.search", skip(state, payload), fields(plate = %payload.plate))]
@@ -47,14 +47,18 @@ pub async fn search_vehicle(
     // Validate plate format
     let plate = validate_plate_format(&payload.plate)?;
 
-    let api_response = state
-        .vehicle_api_svc
-        .query_plate(&plate)
-        .await
-        .map_err(|error| {
-            tracing::error!("Vehicle API lookup failed for plate {}: {}", plate, error);
-            AppError::external_api_failure("Vehicle registry lookup failed")
-        })?;
+    let api_response =
+        state
+            .vehicle_api_svc
+            .query_plate(&plate)
+            .await
+            .map_err(|error| match error {
+                VehicleApiError::NotFound => AppError::not_found("Vehicle not found"),
+                _ => {
+                    tracing::error!("Vehicle API lookup failed for plate {}: {}", plate, error);
+                    AppError::external_api_failure("Vehicle registry lookup failed")
+                }
+            })?;
 
     let vehicle_info = api_response.vehicle;
     let status_results = VehicleApiService::build_status_results_from_api(&vehicle_info);
