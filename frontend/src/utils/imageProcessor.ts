@@ -11,6 +11,7 @@ const PLATE_PATTERNS: Array<{ category: string; regex: RegExp }> = [
   { category: 'trailer', regex: new RegExp(`^${REGION}(?:RE|SR|SE|TR)\\d{1,4}[A-Z]{1,2}$`) },
   { category: 'civil_cemac', regex: new RegExp(`^${REGION}\\d{3}[A-Z]{2}$`) },
   { category: 'civil_legacy', regex: new RegExp(`^${REGION}\\d{4}[A-Z]{1,2}$`) },
+  { category: 'bike', regex: new RegExp(`^${REGION}MT\\d{3}[A-Z]{2}$`) },
   { category: 'state', regex: /^(?:CA|AN)\d{4}[A-Z]{1,2}$/ },
   { category: 'diplomatic', regex: /^(?:(?:CMD|CPC|CD|CC|PA)\d{2,3}RC\d{1,4}|CD\d{1,6})$/ },
   { category: 'temporary', regex: /^IT\d{5}RC$/ },
