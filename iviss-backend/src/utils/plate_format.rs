@@ -11,6 +11,8 @@ const MAX_PLATE_LEN: usize = 12;
 
 static CIVIL_CEMAC_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)\d{3}[A-Z]{2}$").unwrap());
+static BIKE_CEMAC_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)MT\d{3}[A-Z]{2}$").unwrap());
 static CIVIL_LEGACY_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)\d{4}[A-Z]{1,2}$").unwrap());
 static TRAILER_RE: Lazy<Regex> = Lazy::new(|| {
@@ -73,6 +75,7 @@ pub enum PlateCategory {
     CivilCemac,
     CivilLegacy,
     Trailer,
+    BikeCemac,
     State,
     Diplomatic,
     Temporary,
@@ -92,6 +95,7 @@ impl PlateCategory {
             Self::CivilCemac => "civil_cemac",
             Self::CivilLegacy => "civil_legacy",
             Self::Trailer => "trailer",
+            Self::BikeCemac => "bike_cemac",
             Self::State => "state",
             Self::Diplomatic => "diplomatic",
             Self::Temporary => "temporary",
@@ -185,6 +189,9 @@ pub fn format_display(raw: &str) -> String {
         PlateCategory::CivilCemac => {
             format!("{} {} {}", &compact[0..2], &compact[2..5], &compact[5..7])
         }
+        PlateCategory::BikeCemac => {
+            format!("{} {} {}", &compact[0..2], &compact[2..5], &compact[5..7])
+        }
         PlateCategory::CivilLegacy => {
             format!("{} {} {}", &compact[0..2], &compact[2..6], &compact[6..])
         }
@@ -225,6 +232,7 @@ fn classify_compact(compact: &str) -> Option<PlateCategory> {
         (PlateCategory::Trailer, &TRAILER_RE),
         (PlateCategory::TestVehicle, &TEST_VEHICLE_RE),
         (PlateCategory::CivilCemac, &CIVIL_CEMAC_RE),
+        (PlateCategory::BikeCemac, &BIKE_CEMAC_RE),
         (PlateCategory::CivilLegacy, &CIVIL_LEGACY_RE),
         (PlateCategory::State, &STATE_RE),
         (PlateCategory::Diplomatic, &DIPLOMATIC_RE),
