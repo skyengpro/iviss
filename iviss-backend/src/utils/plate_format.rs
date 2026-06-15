@@ -65,7 +65,7 @@ static FUZZY_MASKS: Lazy<Vec<String>> = Lazy::new(|| {
         }
     }
 
-    masks.sort_by(|a, b| b.len().cmp(&a.len()));
+    masks.sort_by_key(|b| std::cmp::Reverse(b.len()));
     masks
 });
 
@@ -190,18 +190,31 @@ pub fn format_display(raw: &str) -> String {
             format!("{} {} {}", &compact[0..2], &compact[2..5], &compact[5..7])
         }
         PlateCategory::BikeCemac => {
-            format!("{} {} {}", &compact[0..2], &compact[2..5], &compact[5..7])
+            format!(
+                "{} {} {} {}",
+                &compact[0..2],
+                &compact[2..4],
+                &compact[4..7],
+                &compact[7..9]
+            )
         }
         PlateCategory::CivilLegacy => {
             format!("{} {} {}", &compact[0..2], &compact[2..6], &compact[6..])
         }
-        PlateCategory::Trailer => format!(
-            "{} {} {} {}",
-            &compact[0..2],
-            &compact[2..4],
-            &compact[4..8],
-            &compact[8..]
-        ),
+        PlateCategory::Trailer => {
+            // Format: region(2) + type(2) + digits(1-4) + letters(1-2)
+            let region = &compact[0..2];
+            let trailer_type = &compact[2..4];
+            // Find where letters start (after digits)
+            let digit_end = compact[4..]
+                .chars()
+                .take_while(|c| c.is_ascii_digit())
+                .count()
+                + 4;
+            let digits = &compact[4..digit_end];
+            let letters = &compact[digit_end..];
+            format!("{} {} {} {}", region, trailer_type, digits, letters)
+        }
         PlateCategory::State => format!("{} {} {}", &compact[0..2], &compact[2..6], &compact[6..]),
         PlateCategory::Diplomatic if compact.contains("RC") => {
             let rc = compact.find("RC").expect("contains checked above");

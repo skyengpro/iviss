@@ -17,13 +17,13 @@ vi.mock('react-i18next', () => ({
 
 // Mock ImageProcessor
 vi.mock('@/utils/imageProcessor', () => ({
-  ImageProcessor: {
-    preprocessForPhoto: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_photo'),
-    preprocessForPhotoCapture: vi
-      .fn()
-      .mockResolvedValue('data:image/jpeg;base64,processed_capture'),
-    assessImageQuality: vi.fn().mockResolvedValue({ isAcceptable: true, feedback: '' }),
-  },
+    ImageProcessor: {
+      preprocessForPhoto: vi.fn().mockResolvedValue('data:image/jpeg;base64,processed_photo'),
+      preprocessForPhotoCapture: vi
+        .fn()
+        .mockResolvedValue('data:image/jpeg;base64,processed_capture'),
+      assessImageQuality: vi.fn().mockResolvedValue({ isAcceptable: true, feedback: '' }),
+    },
 }));
 
 import { ImageProcessor } from '@/utils/imageProcessor';
