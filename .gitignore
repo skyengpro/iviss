@@ -51,12 +51,13 @@ iviss-backend/lcov.info
 /plans
 .codex
 iviss-backend/scripts/start-ngrok.sh
+docs/developer_documentation_guide.md
 
 # Environment variables
 .env
 .vscode/settings.json
 iviss-backend/docs/redis-to-moka-migration.md
-
+README.fr.md
 
 # Ignore Codacy instruction files
 .github/instructions/codacy.instructions.md
