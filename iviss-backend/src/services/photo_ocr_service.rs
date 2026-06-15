@@ -2,15 +2,11 @@ use std::io::Cursor;
 
 use image::imageops::FilterType;
 use image::GenericImageView;
-use once_cell::sync::Lazy;
-use regex::Regex;
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
 use crate::services::ocr_service;
-
-static PHOTO_PLATE_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"[A-Z]{2}[0-9]{3}[A-Z]{2}").unwrap());
+use crate::utils::plate_format;
 
 /// OCR pipeline for single-shot photo captures.
 ///
@@ -159,14 +155,21 @@ pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     // If the scan pipeline already extracted a plate, keep it (even if format is invalid).
     // Photo mode should still surface the best candidate to the client.
     if !r.plate.is_empty() {
+        if let Some(found) = plate_format::classify(&r.plate) {
+            r.plate = found.plate;
+            r.format_valid = true;
+            r.plate_type = Some(found.category.as_str().to_string());
+        }
         return r;
     }
 
     // If scan couldn't extract a plate, try a strict extraction from raw_text.
     // This mirrors the intent of the photo service without discarding useful OCR info.
     if let Some(p) = extract_plate_strict(&r.raw_text) {
+        let plate_match = plate_format::classify(&p);
         r.plate = p;
         r.format_valid = true;
+        r.plate_type = plate_match.map(|m| m.category.as_str().to_string());
         // Keep confidence semantics consistent with `ocr_service::finalize`, which
         // promotes valid-format plates to a high confidence score.
         if r.confidence < 0.90 {
@@ -178,15 +181,7 @@ pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
 }
 
 pub(crate) fn extract_plate_strict(raw: &str) -> Option<String> {
-    let cleaned: String = raw
-        .to_uppercase()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .collect();
-
-    PHOTO_PLATE_REGEX
-        .find(&cleaned)
-        .map(|m| m.as_str().to_string())
+    plate_format::extract_first(raw).map(|m| m.plate)
 }
 
 pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData {
@@ -220,8 +215,10 @@ pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData 
             b.clone()
         };
         res.plate = voted;
-        if PHOTO_PLATE_REGEX.is_match(&res.plate) {
+        if let Some(found) = plate_format::classify(&res.plate) {
+            res.plate = found.plate;
             res.format_valid = true;
+            res.plate_type = Some(found.category.as_str().to_string());
             res.confidence = 0.90;
         }
         return res;
