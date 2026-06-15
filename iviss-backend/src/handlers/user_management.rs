@@ -377,7 +377,6 @@ pub async fn resend_activation_code(
     let device_requires_reactivation = matches!(
         device_status,
         Some(crate::dto::users::DeviceStatus::Suspended)
-            | Some(crate::dto::users::DeviceStatus::Revoked)
     );
 
     if status != UserStatus::PendingActivation && !device_requires_reactivation {

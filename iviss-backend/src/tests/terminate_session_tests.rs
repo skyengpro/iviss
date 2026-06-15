@@ -290,14 +290,14 @@ async fn terminate_session_revokes_tokens_and_deactivates_devices() {
     .unwrap();
     assert_eq!(active_tokens, 0, "all refresh tokens should be revoked");
 
-    // Device should be INACTIVE
+    // Device should be REVOKED
     let device_status: String =
         sqlx::query_scalar("SELECT status::TEXT FROM devices WHERE id = $1")
             .bind(device_id)
             .fetch_one(&db)
             .await
             .unwrap();
-    assert_eq!(device_status, "INACTIVE", "device should be INACTIVE");
+    assert_eq!(device_status, "REVOKED", "device should be REVOKED");
 
     // ── 3. Verify that a subsequent authenticated request returns 401 ──
     let protected_response = app

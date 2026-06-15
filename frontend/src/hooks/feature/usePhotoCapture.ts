@@ -13,6 +13,21 @@ function normalizePlateCandidate(v: unknown): string {
     .trim();
 }
 
+function findPlateInText(text: string): string {
+  const cleaned = normalizePlateCandidate(text);
+  for (let len = 12; len >= 6; len -= 1) {
+    if (cleaned.length < len) continue;
+
+    for (let start = 0; start <= cleaned.length - len; start += 1) {
+      const candidate = cleaned.slice(start, start + len);
+      const classified = ImageProcessor.classifyCameroonPlate(candidate);
+      if (classified) return classified.plate;
+    }
+  }
+
+  return '';
+}
+
 function extractPlateFromAny(json: unknown): {
   plate: string;
   confidence?: number;
@@ -30,10 +45,7 @@ function extractPlateFromAny(json: unknown): {
   const plate = fromData || fromTop || fromAlt1 || fromAlt2;
 
   const rawText = typeof data?.raw_text === 'string' ? (data.raw_text as string) : '';
-  const cleanedRaw = rawText.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const match = cleanedRaw.match(/[A-Z]{2}\d{3}[A-Z]{2}/);
-
-  const finalPlate = plate || (match ? match[0] : '');
+  const finalPlate = plate || findPlateInText(rawText);
 
   const confRaw = (data?.confidence ?? obj?.confidence) as unknown;
   const confidence = typeof confRaw === 'number' ? confRaw : undefined;

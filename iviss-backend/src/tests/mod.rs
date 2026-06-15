@@ -12,6 +12,8 @@ pub mod ocr_service_tests;
 pub mod otp_service_tests;
 #[cfg(test)]
 pub mod photo_ocr_service_tests;
+#[cfg(test)]
+pub mod plate_format_tests;
 pub mod refresh_endpoint_tests;
 #[cfg(test)]
 pub mod sms_provider_tests;
