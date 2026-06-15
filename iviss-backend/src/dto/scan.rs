@@ -10,8 +10,11 @@ pub struct ScanResultData {
     pub raw_text: String,
     /// Tesseract confidence score (0.0 – 1.0).
     pub confidence: f32,
-    /// Whether the normalized plate matches the Cameroon format (XX###XX).
+    /// Whether the normalized plate matches a supported Cameroon plate format.
     pub format_valid: bool,
+    /// Classified Cameroon plate category when the format is recognized.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plate_type: Option<String>,
 }
 
 impl PartialEq for ScanResultData {
@@ -20,6 +23,7 @@ impl PartialEq for ScanResultData {
             && self.raw_text == other.raw_text
             && (self.confidence - other.confidence).abs() < f32::EPSILON
             && self.format_valid == other.format_valid
+            && self.plate_type == other.plate_type
     }
 }
 

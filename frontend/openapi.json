@@ -11,7 +11,9 @@
   "paths": {
     "/api/v1/admin/audit": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List general system audit logs (admin only)",
         "operationId": "listAuditLogs",
         "parameters": [
@@ -99,7 +101,9 @@
     },
     "/api/v1/admin/audit/export": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Export audit logs as CSV (admin only)",
         "operationId": "exportAuditLogs",
         "responses": {
@@ -143,7 +147,9 @@
     },
     "/api/v1/admin/controls/paged": {
       "get": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "getControlsPaged",
         "parameters": [
           {
@@ -287,7 +293,9 @@
     },
     "/api/v1/admin/organizations": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List all organizations (admin only)",
         "operationId": "listOrganizations",
         "responses": {
@@ -332,7 +340,9 @@
         ]
       },
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Create a new organization (admin only)",
         "operationId": "createOrganization",
         "requestBody": {
@@ -396,7 +406,9 @@
     },
     "/api/v1/admin/organizations/{id}": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Get organization details by ID (admin only)",
         "operationId": "getOrganization",
         "parameters": [
@@ -460,7 +472,9 @@
         ]
       },
       "put": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Update an existing organization (admin only)",
         "operationId": "updateOrganization",
         "parameters": [
@@ -544,7 +558,9 @@
         ]
       },
       "delete": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Delete an organization (admin only)",
         "operationId": "deleteOrganization",
         "parameters": [
@@ -613,7 +629,9 @@
     },
     "/api/v1/admin/resend-activation-code": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Resend activation code via SMS to a pending agent",
         "operationId": "resendActivationCode",
         "requestBody": {
@@ -662,7 +680,9 @@
     },
     "/api/v1/admin/restart-session": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Restarts/Extends a session for an agent",
         "operationId": "restartSession",
         "requestBody": {
@@ -716,7 +736,9 @@
     },
     "/api/v1/admin/stats": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getDashboardStats",
         "responses": {
           "200": {
@@ -759,7 +781,9 @@
     },
     "/api/v1/admin/submissions": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "List submissions for admin review, optionally filtered by status",
         "operationId": "listPendingSubmissions",
         "parameters": [
@@ -808,7 +832,9 @@
     },
     "/api/v1/admin/submissions/{id}": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "Get full details of a single submission",
         "operationId": "getPendingSubmission",
         "parameters": [
@@ -854,7 +880,9 @@
     },
     "/api/v1/admin/submissions/{id}/audit": {
       "get": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "summary": "Get the audit trail for a submission",
         "operationId": "getSubmissionAuditLog",
         "parameters": [
@@ -903,7 +931,9 @@
     },
     "/api/v1/admin/terminate-session": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Terminate all sessions for a user (admin only).",
         "description": "Revokes all refresh tokens, deactivates all devices, and suspends\nthe user account. The next request from that user will return 401.",
         "operationId": "terminateSession",
@@ -958,7 +988,9 @@
     },
     "/api/v1/admin/users": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "List all users (admin only)",
         "operationId": "listUsers",
         "responses": {
@@ -1003,7 +1035,9 @@
         ]
       },
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Provision a new user (admin only)",
         "operationId": "provisionUser",
         "requestBody": {
@@ -1067,7 +1101,9 @@
     },
     "/api/v1/admin/users/{id}": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Get a specific user by ID (admin only)",
         "operationId": "getUser",
         "parameters": [
@@ -1131,7 +1167,9 @@
         ]
       },
       "put": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Update a user (admin only)",
         "operationId": "updateUser",
         "parameters": [
@@ -1215,7 +1253,9 @@
         ]
       },
       "delete": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Delete a user (admin only)",
         "operationId": "deleteUser",
         "parameters": [
@@ -1274,7 +1314,9 @@
     },
     "/api/v1/auth/activate": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Activate an agent account by validating OTP and registering device public key",
         "operationId": "activateDevice",
         "requestBody": {
@@ -1323,7 +1365,9 @@
     },
     "/api/v1/auth/change-password": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Change password for admin/org_admin users (used for forced password change on first login)",
         "operationId": "changePassword",
         "requestBody": {
@@ -1367,7 +1411,9 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Login with email and password (admin / manager only)",
         "operationId": "loginUser",
         "requestBody": {
@@ -1406,7 +1452,9 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Logout and invalidate session",
         "operationId": "logoutUser",
         "parameters": [
@@ -1443,7 +1491,9 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Step 1 of the challenge-response refresh flow.",
         "description": "Validates the refresh token, generates a nonce, stores it in Moka cache,\nand returns it to the client for signing.",
         "operationId": "requestRefresh",
@@ -1483,7 +1533,9 @@
     },
     "/api/v1/auth/refresh/verify": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Step 2 of the challenge-response refresh flow.",
         "description": "Verifies the signed nonce against the device's registered public key,\nthen issues a new access token.",
         "operationId": "verifyRefresh",
@@ -1523,7 +1575,9 @@
     },
     "/api/v1/auth/request-daily-login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "operationId": "requestDailyLogin",
         "requestBody": {
           "content": {
@@ -1591,7 +1645,9 @@
     },
     "/api/v1/auth/verify-daily-login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "operationId": "verifyDailyLogin",
         "requestBody": {
           "content": {
@@ -1625,7 +1681,7 @@
             }
           },
           "401": {
-            "description": "Invalid OTP, expired, or device suspended",
+            "description": "Invalid OTP, expired, or device suspended or pending",
             "content": {
               "application/json": {
                 "schema": {
@@ -1649,7 +1705,9 @@
     },
     "/api/v1/controls": {
       "get": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "getControls",
         "parameters": [
           {
@@ -1772,7 +1830,9 @@
         ]
       },
       "post": {
-        "tags": ["controls"],
+        "tags": [
+          "controls"
+        ],
         "operationId": "createControl",
         "requestBody": {
           "content": {
@@ -1835,7 +1895,9 @@
     },
     "/api/v1/health": {
       "get": {
-        "tags": ["health"],
+        "tags": [
+          "health"
+        ],
         "operationId": "health",
         "responses": {
           "200": {
@@ -1853,7 +1915,9 @@
     },
     "/api/v1/org-admin/activity": {
       "get": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "operationId": "getOrgControlActivity",
         "parameters": [
           {
@@ -1921,7 +1985,9 @@
     },
     "/api/v1/org-admin/activity-feed": {
       "get": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "operationId": "getOrgActivityFeed",
         "parameters": [
           {
@@ -1986,7 +2052,9 @@
     },
     "/api/v1/org-admin/recent-alerts": {
       "get": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "operationId": "getOrgRecentAlerts",
         "parameters": [
           {
@@ -2051,7 +2119,9 @@
     },
     "/api/v1/org-admin/stats": {
       "get": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "operationId": "getOrgDashboardStats",
         "responses": {
           "200": {
@@ -2104,7 +2174,9 @@
     },
     "/api/v1/org-admin/top-agents": {
       "get": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "operationId": "getOrgTopAgents",
         "parameters": [
           {
@@ -2182,7 +2254,9 @@
     },
     "/api/v1/org-admin/users": {
       "get": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "summary": "List users scoped to the org admin's organization",
         "operationId": "listOrgUsers",
         "responses": {
@@ -2227,7 +2301,9 @@
         ]
       },
       "post": {
-        "tags": ["org-admin"],
+        "tags": [
+          "org-admin"
+        ],
         "summary": "Create an agent or supervisor within the org admin's organization",
         "operationId": "provisionOrgUser",
         "requestBody": {
@@ -2281,7 +2357,9 @@
     },
     "/api/v1/photo/plate": {
       "post": {
-        "tags": ["photo"],
+        "tags": [
+          "photo"
+        ],
         "operationId": "photoPlate",
         "requestBody": {
           "content": {
@@ -2339,7 +2417,9 @@
     },
     "/api/v1/scan/plate": {
       "post": {
-        "tags": ["scanning"],
+        "tags": [
+          "scanning"
+        ],
         "operationId": "scanPlate",
         "requestBody": {
           "content": {
@@ -2397,7 +2477,9 @@
     },
     "/api/v1/stats/activity": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getControlActivity",
         "parameters": [
           {
@@ -2455,7 +2537,9 @@
     },
     "/api/v1/stats/activity-feed": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getActivityFeed",
         "parameters": [
           {
@@ -2510,7 +2594,9 @@
     },
     "/api/v1/stats/recent-alerts": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getRecentAlerts",
         "parameters": [
           {
@@ -2565,7 +2651,9 @@
     },
     "/api/v1/stats/top-agents": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "operationId": "getTopAgents",
         "parameters": [
           {
@@ -2633,7 +2721,9 @@
     },
     "/api/v1/users/location": {
       "post": {
-        "tags": ["users"],
+        "tags": [
+          "users"
+        ],
         "operationId": "updateLocation",
         "requestBody": {
           "content": {
@@ -2681,7 +2771,9 @@
     },
     "/api/v1/users/me": {
       "get": {
-        "tags": ["users"],
+        "tags": [
+          "users"
+        ],
         "operationId": "getUserProfile",
         "responses": {
           "200": {
@@ -2732,7 +2824,9 @@
     },
     "/api/v1/vehicles/pending": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "submitVehicleV1",
         "requestBody": {
           "content": {
@@ -2807,7 +2901,9 @@
     },
     "/api/v1/vehicles/search": {
       "post": {
-        "tags": ["vehicles"],
+        "tags": [
+          "vehicles"
+        ],
         "operationId": "searchVehicleV1",
         "requestBody": {
           "content": {
@@ -2899,11 +2995,22 @@
     "schemas": {
       "ActionType": {
         "type": "string",
-        "enum": ["check", "flag", "citation", "impound", "release"]
+        "enum": [
+          "check",
+          "flag",
+          "citation",
+          "impound",
+          "release"
+        ]
       },
       "ActivateRequest": {
         "type": "object",
-        "required": ["badgeId", "activationCode", "deviceId", "publicKeyBase64"],
+        "required": [
+          "badgeId",
+          "activationCode",
+          "deviceId",
+          "publicKeyBase64"
+        ],
         "properties": {
           "activationCode": {
             "type": "string"
@@ -2922,7 +3029,11 @@
       },
       "ActivateResponse": {
         "type": "object",
-        "required": ["accessToken", "refreshToken", "user"],
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -2937,7 +3048,10 @@
       },
       "ActivityData": {
         "type": "object",
-        "required": ["hour", "count"],
+        "required": [
+          "hour",
+          "count"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -2950,7 +3064,13 @@
       },
       "ActivityFeedItemDto": {
         "type": "object",
-        "required": ["id", "plateNumber", "overallStatus", "createdAt", "agentName"],
+        "required": [
+          "id",
+          "plateNumber",
+          "overallStatus",
+          "createdAt",
+          "agentName"
+        ],
         "properties": {
           "agentName": {
             "type": "string"
@@ -2972,7 +3092,9 @@
       },
       "ActivityFeedResponse": {
         "type": "object",
-        "required": ["items"],
+        "required": [
+          "items"
+        ],
         "properties": {
           "items": {
             "type": "array",
@@ -2984,7 +3106,13 @@
       },
       "AgentLocationDto": {
         "type": "object",
-        "required": ["agentId", "agentName", "latitude", "longitude", "lastUpdated"],
+        "required": [
+          "agentId",
+          "agentName",
+          "latitude",
+          "longitude",
+          "lastUpdated"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -3008,7 +3136,10 @@
       },
       "AppErrorResponse": {
         "type": "object",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "$ref": "#/components/schemas/ErrorCode"
@@ -3043,7 +3174,12 @@
       "AuditLogEntry": {
         "type": "object",
         "description": "DTO for an audit log entry",
-        "required": ["id", "action", "metadata", "createdAt"],
+        "required": [
+          "id",
+          "action",
+          "metadata",
+          "createdAt"
+        ],
         "properties": {
           "action": {
             "$ref": "#/components/schemas/AuditAction"
@@ -3099,7 +3235,11 @@
       },
       "AuthResponse": {
         "type": "object",
-        "required": ["accessToken", "refreshToken", "user"],
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -3117,7 +3257,10 @@
       },
       "ChangePasswordRequest": {
         "type": "object",
-        "required": ["newPassword", "confirmPassword"],
+        "required": [
+          "newPassword",
+          "confirmPassword"
+        ],
         "properties": {
           "confirmPassword": {
             "type": "string"
@@ -3133,7 +3276,9 @@
       },
       "ChangePasswordResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -3142,7 +3287,10 @@
       },
       "ControlAction": {
         "type": "object",
-        "required": ["action_type", "timestamp"],
+        "required": [
+          "action_type",
+          "timestamp"
+        ],
         "properties": {
           "action_type": {
             "$ref": "#/components/schemas/ActionType"
@@ -3158,7 +3306,10 @@
       },
       "ControlActivityPoint": {
         "type": "object",
-        "required": ["label", "count"],
+        "required": [
+          "label",
+          "count"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -3171,7 +3322,10 @@
       },
       "ControlActivityResponse": {
         "type": "object",
-        "required": ["range", "series"],
+        "required": [
+          "range",
+          "series"
+        ],
         "properties": {
           "range": {
             "$ref": "#/components/schemas/DashboardRange"
@@ -3284,7 +3438,10 @@
       },
       "CreateControlResponse": {
         "type": "object",
-        "required": ["id", "message"],
+        "required": [
+          "id",
+          "message"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -3297,7 +3454,10 @@
       },
       "CreateOrganizationRequest": {
         "type": "object",
-        "required": ["name", "orgType"],
+        "required": [
+          "name",
+          "orgType"
+        ],
         "properties": {
           "endWorkTime": {
             "type": "integer",
@@ -3326,7 +3486,12 @@
       "CreatePendingSubmissionRequest": {
         "type": "object",
         "description": "Request payload for creating a new pending submission",
-        "required": ["plateNumber", "agentId", "frontImageUrl", "backImageUrl"],
+        "required": [
+          "plateNumber",
+          "agentId",
+          "frontImageUrl",
+          "backImageUrl"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -3359,7 +3524,10 @@
       },
       "CustomsStatus": {
         "type": "object",
-        "required": ["status", "is_cleared"],
+        "required": [
+          "status",
+          "is_cleared"
+        ],
         "properties": {
           "declaration_number": {
             "type": "string",
@@ -3383,7 +3551,11 @@
       },
       "DashboardRange": {
         "type": "string",
-        "enum": ["24h", "7d", "30d"]
+        "enum": [
+          "24h",
+          "7d",
+          "30d"
+        ]
       },
       "DashboardStats": {
         "type": "object",
@@ -3439,7 +3611,11 @@
       "DataEntryResponse": {
         "type": "object",
         "description": "Response after creating a pending submission",
-        "required": ["message", "submissionId", "plateNumber"],
+        "required": [
+          "message",
+          "submissionId",
+          "plateNumber"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -3456,7 +3632,13 @@
       },
       "DeviceStatus": {
         "type": "string",
-        "enum": ["PENDING", "ACTIVE", "INACTIVE", "REVOKED", "SUSPENDED"]
+        "enum": [
+          "PENDING",
+          "ACTIVE",
+          "INACTIVE",
+          "REVOKED",
+          "SUSPENDED"
+        ]
       },
       "ErrorCode": {
         "type": "string",
@@ -3474,11 +3656,17 @@
       "IdentificationMode": {
         "type": "string",
         "description": "How the plate was identified by the agent",
-        "enum": ["manual", "photo", "live"]
+        "enum": [
+          "manual",
+          "photo",
+          "live"
+        ]
       },
       "ImageUploadRequest": {
         "type": "object",
-        "required": ["image"],
+        "required": [
+          "image"
+        ],
         "properties": {
           "image": {
             "type": "string",
@@ -3488,7 +3676,9 @@
       },
       "InsuranceStatus": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "coverage_type": {
             "type": "string",
@@ -3591,7 +3781,10 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string"
@@ -3654,7 +3847,13 @@
       },
       "Organization": {
         "type": "object",
-        "required": ["id", "name", "orgType", "startWorkTime", "endWorkTime"],
+        "required": [
+          "id",
+          "name",
+          "orgType",
+          "startWorkTime",
+          "endWorkTime"
+        ],
         "properties": {
           "endWorkTime": {
             "type": "integer",
@@ -3743,7 +3942,12 @@
       },
       "OrganizationType": {
         "type": "string",
-        "enum": ["police", "customs", "border_control", "other"]
+        "enum": [
+          "police",
+          "customs",
+          "border_control",
+          "other"
+        ]
       },
       "OwnerInfo": {
         "type": "object",
@@ -3764,7 +3968,12 @@
       },
       "PagedControlsResponse": {
         "type": "object",
-        "required": ["items", "total", "page", "page_size"],
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
         "properties": {
           "items": {
             "type": "array",
@@ -3789,7 +3998,13 @@
       "PendingSubmissionDetail": {
         "type": "object",
         "description": "Detailed view of a pending submission (for admin review)",
-        "required": ["id", "plateNumber", "agentId", "status", "submittedAt"],
+        "required": [
+          "id",
+          "plateNumber",
+          "agentId",
+          "status",
+          "submittedAt"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -3864,7 +4079,12 @@
       "PendingSubmissionListItem": {
         "type": "object",
         "description": "Lightweight list item for admin dashboard",
-        "required": ["id", "plateNumber", "status", "submittedAt"],
+        "required": [
+          "id",
+          "plateNumber",
+          "status",
+          "submittedAt"
+        ],
         "properties": {
           "agentName": {
             "type": "string",
@@ -3887,7 +4107,11 @@
       },
       "PoliceStatus": {
         "type": "object",
-        "required": ["status", "is_wanted", "is_stolen"],
+        "required": [
+          "status",
+          "is_wanted",
+          "is_stolen"
+        ],
         "properties": {
           "is_stolen": {
             "type": "boolean"
@@ -3915,7 +4139,13 @@
       "ProvisionUserRequest": {
         "type": "object",
         "description": "Request for POST /admin/users (provisioning)",
-        "required": ["username", "phoneNumber", "fullName", "role", "organizationId"],
+        "required": [
+          "username",
+          "phoneNumber",
+          "fullName",
+          "role",
+          "organizationId"
+        ],
         "properties": {
           "badgeId": {
             "type": "string",
@@ -3945,7 +4175,9 @@
       },
       "ProvisionUserResponse": {
         "type": "object",
-        "required": ["user"],
+        "required": [
+          "user"
+        ],
         "properties": {
           "tempPassword": {
             "type": "string",
@@ -3958,7 +4190,13 @@
       },
       "RecentAlertItemDto": {
         "type": "object",
-        "required": ["id", "plateNumber", "overallStatus", "createdAt", "agentName"],
+        "required": [
+          "id",
+          "plateNumber",
+          "overallStatus",
+          "createdAt",
+          "agentName"
+        ],
         "properties": {
           "address": {
             "type": "string",
@@ -3984,7 +4222,9 @@
       },
       "RecentAlertsResponse": {
         "type": "object",
-        "required": ["items"],
+        "required": [
+          "items"
+        ],
         "properties": {
           "items": {
             "type": "array",
@@ -3996,7 +4236,9 @@
       },
       "RefreshChallengeResponse": {
         "type": "object",
-        "required": ["nonce"],
+        "required": [
+          "nonce"
+        ],
         "properties": {
           "nonce": {
             "type": "string"
@@ -4005,7 +4247,9 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": ["refreshToken"],
+        "required": [
+          "refreshToken"
+        ],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -4019,7 +4263,10 @@
       },
       "RequestDailyLoginRequest": {
         "type": "object",
-        "required": ["badgeId", "deviceId"],
+        "required": [
+          "badgeId",
+          "deviceId"
+        ],
         "properties": {
           "badgeId": {
             "type": "string"
@@ -4032,7 +4279,9 @@
       },
       "RequestDailyLoginResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -4041,7 +4290,9 @@
       },
       "ResendActivationRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -4051,7 +4302,9 @@
       },
       "ResendActivationResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -4060,7 +4313,9 @@
       },
       "RestartSessionRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -4070,7 +4325,9 @@
       },
       "RestartSessionResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -4080,7 +4337,10 @@
       "ScanErrorData": {
         "type": "object",
         "description": "Error detail returned inside the scan response envelope.",
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -4095,7 +4355,9 @@
       "ScanPlateResponse": {
         "type": "object",
         "description": "Envelope response for `POST /api/v1/scan/plate`.",
-        "required": ["success"],
+        "required": [
+          "success"
+        ],
         "properties": {
           "data": {
             "allOf": [
@@ -4121,7 +4383,12 @@
       "ScanResultData": {
         "type": "object",
         "description": "Successful OCR scan result data.",
-        "required": ["plate", "raw_text", "confidence", "format_valid"],
+        "required": [
+          "plate",
+          "raw_text",
+          "confidence",
+          "format_valid"
+        ],
         "properties": {
           "confidence": {
             "type": "number",
@@ -4130,11 +4397,16 @@
           },
           "format_valid": {
             "type": "boolean",
-            "description": "Whether the normalized plate matches the Cameroon format (XX###XX)."
+            "description": "Whether the normalized plate matches a supported Cameroon plate format."
           },
           "plate": {
             "type": "string",
             "description": "Normalized plate text (uppercase, no spaces). Empty if nothing detected."
+          },
+          "plate_type": {
+            "type": "string",
+            "description": "Classified Cameroon plate category when the format is recognized.",
+            "nullable": true
           },
           "raw_text": {
             "type": "string",
@@ -4145,11 +4417,22 @@
       "Status": {
         "type": "string",
         "description": "Shared status across all partner API responses",
-        "enum": ["valid", "warning", "critical", "pending"]
+        "enum": [
+          "valid",
+          "warning",
+          "critical",
+          "pending"
+        ]
       },
       "StatusResults": {
         "type": "object",
-        "required": ["overall_status", "insurance", "police", "customs", "technical"],
+        "required": [
+          "overall_status",
+          "insurance",
+          "police",
+          "customs",
+          "technical"
+        ],
         "properties": {
           "customs": {
             "$ref": "#/components/schemas/CustomsStatus"
@@ -4175,7 +4458,12 @@
       "SubmissionAuditLogEntry": {
         "type": "object",
         "description": "Audit log entry for a submission action",
-        "required": ["id", "action", "performedBy", "createdAt"],
+        "required": [
+          "id",
+          "action",
+          "performedBy",
+          "createdAt"
+        ],
         "properties": {
           "action": {
             "type": "string"
@@ -4235,11 +4523,18 @@
       },
       "SubmissionStatus": {
         "type": "string",
-        "enum": ["pending", "approved", "rejected"]
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
       },
       "TechnicalStatus": {
         "type": "object",
-        "required": ["status", "defects"],
+        "required": [
+          "status",
+          "defects"
+        ],
         "properties": {
           "defects": {
             "type": "array",
@@ -4271,7 +4566,9 @@
       },
       "TerminateSessionRequest": {
         "type": "object",
-        "required": ["userId"],
+        "required": [
+          "userId"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -4281,7 +4578,9 @@
       },
       "TerminateSessionResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -4290,7 +4589,13 @@
       },
       "TopAgentDto": {
         "type": "object",
-        "required": ["agentId", "agentName", "organizationName", "controlsCount", "isOnline"],
+        "required": [
+          "agentId",
+          "agentName",
+          "organizationName",
+          "controlsCount",
+          "isOnline"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -4313,7 +4618,10 @@
       },
       "TopAgentsResponse": {
         "type": "object",
-        "required": ["range", "agents"],
+        "required": [
+          "range",
+          "agents"
+        ],
         "properties": {
           "agents": {
             "type": "array",
@@ -4328,7 +4636,10 @@
       },
       "UpdateLocationRequest": {
         "type": "object",
-        "required": ["latitude", "longitude"],
+        "required": [
+          "latitude",
+          "longitude"
+        ],
         "properties": {
           "latitude": {
             "type": "number",
@@ -4342,7 +4653,9 @@
       },
       "UpdateLocationResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -4431,7 +4744,10 @@
       },
       "UploadResponse": {
         "type": "object",
-        "required": ["message", "submission_id"],
+        "required": [
+          "message",
+          "submission_id"
+        ],
         "properties": {
           "message": {
             "type": "string"
@@ -4444,7 +4760,14 @@
       "UserProfile": {
         "type": "object",
         "description": "Response for GET /users/me",
-        "required": ["id", "username", "name", "role", "status", "isActive"],
+        "required": [
+          "id",
+          "username",
+          "name",
+          "role",
+          "status",
+          "isActive"
+        ],
         "properties": {
           "avatarInitials": {
             "type": "string",
@@ -4507,16 +4830,31 @@
       },
       "UserRole": {
         "type": "string",
-        "enum": ["admin", "agent", "manager", "org_admin"]
+        "enum": [
+          "admin",
+          "agent",
+          "manager",
+          "org_admin"
+        ]
       },
       "UserStatus": {
         "type": "string",
-        "enum": ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"]
+        "enum": [
+          "PENDING_ACTIVATION",
+          "ACTIVE",
+          "SUSPENDED"
+        ]
       },
       "VehicleDataEntry": {
         "type": "object",
         "description": "Vehicle details entered by the admin during approval",
-        "required": ["chassisNumber", "brand", "model", "year", "ownerName"],
+        "required": [
+          "chassisNumber",
+          "brand",
+          "model",
+          "year",
+          "ownerName"
+        ],
         "properties": {
           "brand": {
             "type": "string"
@@ -4558,7 +4896,9 @@
       },
       "VehicleInfo": {
         "type": "object",
-        "required": ["owner"],
+        "required": [
+          "owner"
+        ],
         "properties": {
           "brand": {
             "type": "string",
@@ -4600,7 +4940,9 @@
       },
       "VehicleSearchRequest": {
         "type": "object",
-        "required": ["plate"],
+        "required": [
+          "plate"
+        ],
         "properties": {
           "address": {
             "type": "string",
@@ -4633,7 +4975,11 @@
       },
       "VehicleSearchResult": {
         "type": "object",
-        "required": ["plate_number", "vehicle", "status_results"],
+        "required": [
+          "plate_number",
+          "vehicle",
+          "status_results"
+        ],
         "properties": {
           "confidence": {
             "type": "number",
@@ -4661,7 +5007,11 @@
       },
       "VerifyDailyLoginRequest": {
         "type": "object",
-        "required": ["badgeId", "activationCode", "deviceId"],
+        "required": [
+          "badgeId",
+          "activationCode",
+          "deviceId"
+        ],
         "properties": {
           "activationCode": {
             "type": "string"
@@ -4677,7 +5027,10 @@
       },
       "VerifyDailyLoginResponse": {
         "type": "object",
-        "required": ["accessToken", "shiftEnd"],
+        "required": [
+          "accessToken",
+          "shiftEnd"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -4694,7 +5047,11 @@
       },
       "VerifyRefreshRequest": {
         "type": "object",
-        "required": ["refreshToken", "deviceId", "signedNonce"],
+        "required": [
+          "refreshToken",
+          "deviceId",
+          "signedNonce"
+        ],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -4710,7 +5067,9 @@
       },
       "VerifyRefreshResponse": {
         "type": "object",
-        "required": ["accessToken"],
+        "required": [
+          "accessToken"
+        ],
         "properties": {
           "accessToken": {
             "type": "string"

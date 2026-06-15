@@ -7,14 +7,13 @@ use crate::{
     },
     errors::AppError,
     services::vehicle_client_service::VehicleApiService,
+    utils::plate_format,
 };
 use axum::{
     extract::{Json, State},
     http::StatusCode,
     response::IntoResponse,
 };
-use once_cell::sync::Lazy;
-use regex::Regex;
 use std::sync::Arc;
 use tracing::instrument;
 use uuid::Uuid;
@@ -165,42 +164,25 @@ pub async fn search_vehicle_v1(
 }
 
 pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {
-    // Normalize: trim, uppercase, collapse multiple spaces/dashes to single space
-    let normalized = plate
-        .trim()
-        .to_uppercase()
-        .replace('-', " ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
+    let trimmed = plate.trim();
 
-    if normalized.is_empty() {
+    if trimmed.is_empty() {
         return Err(AppError::bad_request("Plate number cannot be empty"));
     }
 
-    // Compact form (no spaces) used for DB lookup
-    let compact = normalized.replace(' ', "");
-
-    // Supported Cameroon plate formats:
-    // 1. Standard short:  CE 128 BC  → [REGION] \d{3} [A-Z]{2}
-    // 2. Standard long:   LT 3334 W  → [REGION] \d{4} [A-Z]
-    // 3. Police/Security: SN 1234    → SN \d{4}
-    // 4. Military:        1234567    → \d{7}
-    // 5. State/Govt:      EN1234X    → [A-Z]{2}\d{4}[A-Z]
-    // 6. Postal:          RT123456   → RT\d{6}
-    // 7. Diplomatic:      CD 34 444  → CD \d{1,3} \d{1,3}
-    static PLATE_REGEX: Lazy<Regex> = Lazy::new(|| {
-        let region = "AD|CE|ES|EN|LT|NO|NW|OU|SU|SW";
-        Regex::new(&format!(
-            r"^(?:(?:{r})\d{{3}}[A-Z]{{2}}|(?:{r})\d{{4}}[A-Z]|SN\d{{4}}|\d{{7}}|[A-Z]{{2}}\d{{4}}[A-Z]|RT\d{{6}}|CD\d{{1,6}})$",
-            r = region
-        ))
-        .unwrap()
-    });
-
-    if !PLATE_REGEX.is_match(&compact) {
+    if !trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c.is_ascii_whitespace() || c == '-')
+    {
         return Err(AppError::bad_request(format!(
-            "Invalid plate format: '{plate}'. Supported formats: CE 128 BC, LT 3334 W, SN 1234, 1234567, EN1234X, RT123456, CD 34 444"
+            "Invalid plate format: '{plate}'. Only letters, digits, spaces and dashes are allowed"
+        )));
+    }
+
+    let compact = plate_format::normalise(trimmed);
+    if !plate_format::is_valid(&compact) {
+        return Err(AppError::bad_request(format!(
+            "Invalid plate format: '{plate}'. Supported formats include CE 128 BC, LT 3334 W, LT SR 9652 A, AN 9652 E, PA 02 RC 521, IT 21052 RC, CE 2456 WG, WT 1202082, PT 01200, IS 245642 RC, SN 1234, 1234567 and RT123456"
         )));
     }
 
