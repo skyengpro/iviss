@@ -8,7 +8,7 @@ export interface CameroonPlateClassification {
 
 const REGION = '(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)';
 const PLATE_PATTERNS: Array<{ category: string; regex: RegExp }> = [
-  { category: 'trailer', regex: new RegExp(`^${REGION}(?:RE|SR|SE|TR)\\d{2,3,4}[A-Z]{1,2}$`) },
+  { category: 'trailer', regex: new RegExp(`^${REGION}(?:RE|SR|SE|TR)\\d{1,4}[A-Z]{1,2}$`) },
   { category: 'civil_cemac', regex: new RegExp(`^${REGION}\\d{3}[A-Z]{2}$`) },
   { category: 'civil_legacy', regex: new RegExp(`^${REGION}\\d{4}[A-Z]{1,2}$`) },
   { category: 'state', regex: /^(?:CA|AN)\d{4}[A-Z]{1,2}$/ },
@@ -510,7 +510,10 @@ export class ImageProcessor {
       case 'diplomatic': {
         const rcIndex = plate.indexOf('RC');
         if (rcIndex > 0) {
-          const prefix = plate.startsWith('CMD') || plate.startsWith('CPC') ? plate.slice(0, 3) : plate.slice(0, 2);
+          const prefix =
+            plate.startsWith('CMD') || plate.startsWith('CPC')
+              ? plate.slice(0, 3)
+              : plate.slice(0, 2);
           return `${prefix} ${plate.slice(prefix.length, rcIndex)} RC ${plate.slice(rcIndex + 2)}`;
         }
         return `${plate.slice(0, 2)} ${plate.slice(2)}`;
