@@ -1,16 +1,12 @@
 use image::{GenericImageView, GrayImage};
 use leptess::{LepTess, Variable};
-use once_cell::sync::Lazy;
-use regex::Regex;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
-
-/// Cameroon plate format: 2 letters + 3 digits + 2 letters (e.g. CE128BC).
-static PLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Z]{2}[0-9]{3}[A-Z]{2}$").unwrap());
+use crate::utils::plate_format;
 
 /// Radius (in pixels) for the adaptive threshold sliding window.
 const ADAPTIVE_RADIUS: u32 = 40;
@@ -296,10 +292,9 @@ pub fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<S
     let trimmed = raw_text.trim();
     let confidence = tess.mean_text_conf() as f32 / 100.0;
     let extracted = extract_plate_fuzzy(trimmed);
-    let format_valid = extracted
-        .as_ref()
-        .map(|p| PLATE_REGEX.is_match(p))
-        .unwrap_or(false);
+    let plate_match = extracted.as_deref().and_then(plate_format::classify);
+    let format_valid = plate_match.is_some();
+    let plate_type = plate_match.map(|m| m.category.as_str().to_string());
 
     tracing::info!(
         "[{}] OCR raw: {:?} (conf: {:.2}), extracted: {:?}, valid: {}",
@@ -319,6 +314,7 @@ pub fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<S
         raw_text: trimmed.to_string(),
         confidence,
         format_valid,
+        plate_type,
     })
 }
 
@@ -344,6 +340,7 @@ pub fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResult
         raw_text: String::new(),
         confidence: 0.0,
         format_valid: false,
+        plate_type: None,
     })
 }
 
@@ -557,55 +554,13 @@ pub fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
     out
 }
 
-/// Cameroon plate: 2 letters + 3 digits + 2 letters.
-/// Apply position-aware correction for common OCR misreads.
+/// Extract and correct a Cameroon plate candidate from noisy OCR text.
 pub fn extract_plate_fuzzy(raw: &str) -> Option<String> {
+    if let Some(found) = plate_format::fuzzy_correct(raw) {
+        return Some(found.plate);
+    }
+
     let cleaned = normalise_plate(raw);
-
-    // 1. First priority: find a sequence that matches the Cameroon format exactly
-    if let Some(mat) = PLATE_REGEX.find(&cleaned) {
-        return Some(mat.as_str().to_string());
-    }
-
-    // 2. Second priority: find a 7-character sequence and try to correct it
-    // LL DDD LL
-    if cleaned.len() >= 7 {
-        // Find any 7-char block
-        for i in 0..=(cleaned.len() - 7) {
-            let candidate = &cleaned[i..i + 7];
-            let corrected: String = candidate
-                .chars()
-                .enumerate()
-                .map(|(j, c)| match j {
-                    0 | 1 | 5 | 6 => match c {
-                        '0' => 'O',
-                        '1' => 'I',
-                        '2' => 'Z',
-                        '5' => 'S',
-                        '6' => 'G',
-                        '8' => 'B',
-                        _ => c,
-                    },
-                    2..=4 => match c {
-                        'O' => '0',
-                        'I' => '1',
-                        'Z' => '2',
-                        'S' => '5',
-                        'G' => '6',
-                        'B' => '8',
-                        _ => c,
-                    },
-                    _ => c,
-                })
-                .collect();
-
-            if PLATE_REGEX.is_match(&corrected) {
-                return Some(corrected);
-            }
-        }
-    }
-
-    // Fallback: just return the cleaned string if it's potentially a plate
     if cleaned.len() >= 4 {
         return Some(cleaned);
     }
@@ -615,10 +570,7 @@ pub fn extract_plate_fuzzy(raw: &str) -> Option<String> {
 
 /// Uppercase, strip non-alphanumeric chars.
 pub fn normalise_plate(raw: &str) -> String {
-    raw.to_uppercase()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .collect()
+    plate_format::normalise(raw)
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
