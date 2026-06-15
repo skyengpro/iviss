@@ -85,7 +85,28 @@ describe('ImageProcessor', () => {
       expect(ImageProcessor.validateCameroonPlate('')).toBeNull();
       expect(ImageProcessor.validateCameroonPlate('CE12BC')).toBeNull();
       expect(ImageProcessor.validateCameroonPlate('CE12BCA')).toBeNull();
-      expect(ImageProcessor.validateCameroonPlate('1234567')).toBeNull();
+      expect(ImageProcessor.validateCameroonPlate('ABCDEFG')).toBeNull();
+    });
+
+    it('should keep the legacy return type while supporting multiple Cameroon formats', () => {
+      expect(ImageProcessor.validateCameroonPlate('LT4568A')).toBe('LT 4568 A');
+      expect(ImageProcessor.validateCameroonPlate('LTSR9652A')).toBe('LT SR 9652 A');
+      expect(ImageProcessor.validateCameroonPlate('PA02RC521')).toBe('PA 02 RC 521');
+      expect(ImageProcessor.validateCameroonPlate('SN1234')).toBe('SN 1234');
+      expect(ImageProcessor.validateCameroonPlate('1234567')).toBe('1234567');
+    });
+
+    it('should classify valid Cameroon plate categories', () => {
+      expect(ImageProcessor.classifyCameroonPlate('SO128BC')).toEqual({
+        plate: 'SO128BC',
+        formatted: 'SO 128 BC',
+        category: 'civil_cemac',
+      });
+      expect(ImageProcessor.classifyCameroonPlate('IS245642RC')).toEqual({
+        plate: 'IS245642RC',
+        formatted: 'IS 245642 RC',
+        category: 'special_investment',
+      });
     });
   });
 
