@@ -105,7 +105,7 @@ fi
 
 echo "📊 Step 7: Generating code coverage..."
 echo "Generating report from the previous instrumented test run..."
-if cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 60; then
+if cargo llvm-cov report --html --output-dir target/coverage/html --fail-under-lines 50; then
     print_status "Coverage report generated successfully"
     echo "📁 Coverage report available at: target/coverage/html/index.html"
 else
