@@ -159,7 +159,7 @@
     "recentActivity": "Activité récente",
     "tapToSearch": "Appuyez pour rechercher",
     "noRecentActivity": "Aucune activité récente trouvée.",
-    "helpText": "Saisissez au moins 6 caractères du numéro de plaque pour lancer la recherche.",
+    "helpText": "Saisissez au moins 7 caractères du numéro de plaque pour lancer la recherche.",
     "helpTextShort": "Saisissez au moins {{count}} caractères"
   },
   "vehicleResult": {
