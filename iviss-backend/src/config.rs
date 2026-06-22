@@ -3,6 +3,7 @@ pub use crate::services::sms_provider::SmsProviderCredentials;
 pub use crate::services::vehicle_client_service::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
 };
+pub use crate::services::vehicle_data_cache::S3CacheConfig;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;
@@ -99,16 +100,6 @@ pub struct Config {
     pub vehicle_api_credentials: VehicleApiCredentials,
     // S3-compatible vehicle data cache
     pub s3_cache: S3CacheConfig,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct S3CacheConfig {
-    pub enabled: bool,
-    pub bucket: Option<String>,
-    pub region: String,
-    pub prefix: String,
-    pub endpoint_url: Option<String>,
-    pub force_path_style: bool,
 }
 
 impl Config {
