@@ -1,4 +1,3 @@
-use crate::config::S3CacheConfig;
 use crate::dto::search_vehicle::VehicleSearchResult;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -6,14 +5,21 @@ use aws_config::{meta::region::RegionProviderChain, BehaviorVersion};
 use aws_sdk_s3::{config::Region, primitives::ByteStream};
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
-const DEDUP_TTL_SECS: u64 = 8 * 60 * 60;
-const DEDUP_MAX_CAPACITY: u64 = 50_000;
+/// S3-compatible vehicle data cache configuration.
+#[derive(Clone, Debug, Default)]
+pub struct S3CacheConfig {
+    pub enabled: bool,
+    pub bucket: Option<String>,
+    pub region: String,
+    pub prefix: String,
+    pub endpoint_url: Option<String>,
+    pub force_path_style: bool,
+}
 
 pub struct CachedVehicleData {
     pub data: VehicleSearchResult,
-    pub cached_at: String,
+    pub cached_at: time::OffsetDateTime,
 }
 
 #[async_trait]
@@ -36,7 +42,14 @@ struct CachedEntry {
 }
 
 impl S3VehicleDataCache {
-    pub async fn from_config(config: &S3CacheConfig) -> Result<Self> {
+    /// Build from configuration.
+    ///
+    /// `dedup_cache` is created centrally in [`crate::app_cache::AppCache`] so
+    /// that every in-memory cache in the application is visible in one place.
+    pub async fn from_config(
+        config: &S3CacheConfig,
+        dedup_cache: Cache<String, ()>,
+    ) -> Result<Self> {
         let bucket = config
             .bucket
             .clone()
@@ -62,10 +75,7 @@ impl S3VehicleDataCache {
             client: aws_sdk_s3::Client::from_conf(s3_config.build()),
             bucket,
             prefix: normalize_prefix(&config.prefix),
-            dedup_cache: Cache::builder()
-                .max_capacity(DEDUP_MAX_CAPACITY)
-                .time_to_live(Duration::from_secs(DEDUP_TTL_SECS))
-                .build(),
+            dedup_cache,
         })
     }
 
@@ -96,7 +106,13 @@ impl VehicleDataCache for S3VehicleDataCache {
         };
         let body = serde_json::to_vec(&entry).context("failed to serialize vehicle cache entry")?;
 
-        self.client
+        // Insert into dedup cache BEFORE the S3 write to prevent concurrent
+        // duplicate writes under high concurrency on the same plate.
+        // Rolled back on failure so the next request can retry.
+        self.dedup_cache.insert(plate.to_string(), ()).await;
+
+        if let Err(error) = self
+            .client
             .put_object()
             .bucket(&self.bucket)
             .key(key)
@@ -104,9 +120,11 @@ impl VehicleDataCache for S3VehicleDataCache {
             .body(ByteStream::from(body))
             .send()
             .await
-            .context("failed to write vehicle cache object")?;
+        {
+            self.dedup_cache.invalidate(plate).await;
+            anyhow::bail!("failed to write vehicle cache object: {error}");
+        }
 
-        self.dedup_cache.insert(plate.to_string(), ()).await;
         Ok(true)
     }
 
@@ -121,8 +139,10 @@ impl VehicleDataCache for S3VehicleDataCache {
             .await
         {
             Ok(output) => output,
-            Err(error) if is_not_found_error(&error) => return Ok(None),
-            Err(error) => return Err(error).context("failed to read vehicle cache object"),
+            Err(err) if err.as_service_error().is_some_and(|e| e.is_no_such_key()) => {
+                return Ok(None);
+            }
+            Err(error) => anyhow::bail!("failed to read vehicle cache object: {error}"),
         };
 
         let bytes = output
@@ -134,9 +154,15 @@ impl VehicleDataCache for S3VehicleDataCache {
         let entry: CachedEntry =
             serde_json::from_slice(bytes.as_ref()).context("failed to deserialize cache entry")?;
 
+        let cached_at = time::OffsetDateTime::parse(
+            &entry.cached_at,
+            &time::format_description::well_known::Rfc3339,
+        )
+        .context("failed to parse cached_at timestamp")?;
+
         Ok(Some(CachedVehicleData {
             data: entry.data,
-            cached_at: entry.cached_at,
+            cached_at,
         }))
     }
 }
@@ -148,14 +174,6 @@ fn normalize_prefix(prefix: &str) -> String {
     } else {
         format!("{prefix}/")
     }
-}
-
-fn is_not_found_error(error: &impl std::fmt::Display) -> bool {
-    let message = error.to_string();
-    message.contains("NoSuchKey")
-        || message.contains("NotFound")
-        || message.contains("404")
-        || message.contains("status code: 404")
 }
 
 #[cfg(test)]

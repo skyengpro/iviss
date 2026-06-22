@@ -16,7 +16,11 @@ use axum::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::sync::Arc;
+use tracing::Instrument;
 use uuid::Uuid;
+
+/// Maximum time to wait for an S3 cache read when the external API is down.
+const S3_CACHE_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 // ── POST /api/v1/vehicles/search ──────────────────────────────────────────────
 
@@ -46,7 +50,7 @@ pub async fn search_vehicle(
     // Validate plate format
     let plate = validate_plate_format(&payload.plate)?;
 
-    log_search_location(&plate, &payload);
+    log_search_location(&payload);
 
     match state.vehicle_api_svc.query_plate(&plate).await {
         Ok(api_response) => {
@@ -58,28 +62,31 @@ pub async fn search_vehicle(
             Ok((StatusCode::OK, Json(response)))
         }
         Err(error) => {
-            tracing::error!("Vehicle API lookup failed for plate {}: {}", plate, error);
+            tracing::error!("Vehicle API lookup failed: {}", error);
 
             if let Some(vehicle_data_cache) = &state.vehicle_data_cache {
-                match vehicle_data_cache.get_vehicle_data(&plate).await {
-                    Ok(Some(cached)) => {
+                match tokio::time::timeout(
+                    S3_CACHE_READ_TIMEOUT,
+                    vehicle_data_cache.get_vehicle_data(&plate),
+                )
+                .await
+                {
+                    Ok(Ok(Some(cached))) => {
                         tracing::info!(
-                            "Serving cached vehicle data for plate {} cached_at={}",
-                            plate,
-                            cached.cached_at
+                            cached_at = %cached.cached_at,
+                            "Serving vehicle data from S3 cache"
                         );
                         record_vehicle_search_control(&state, &payload, &cached.data).await;
                         return Ok((StatusCode::OK, Json(cached.data)));
                     }
-                    Ok(None) => {
-                        tracing::warn!("Vehicle cache miss for plate {}", plate);
+                    Ok(Ok(None)) => {
+                        tracing::warn!("Vehicle S3 cache miss");
                     }
-                    Err(cache_error) => {
-                        tracing::warn!(
-                            "Vehicle cache lookup failed for plate {}: {}",
-                            plate,
-                            cache_error
-                        );
+                    Ok(Err(cache_error)) => {
+                        tracing::warn!("Vehicle S3 cache lookup failed: {}", cache_error);
+                    }
+                    Err(_) => {
+                        tracing::warn!("Vehicle S3 cache read timed out");
                     }
                 }
             }
@@ -110,16 +117,11 @@ fn build_search_result(
     }
 }
 
-fn log_search_location(plate: &str, payload: &VehicleSearchRequest) {
+fn log_search_location(payload: &VehicleSearchRequest) {
     if let (Some(lat), Some(lon)) = (payload.latitude, payload.longitude) {
-        tracing::info!(
-            "Vehicle search for plate {} at coordinates: {}, {}",
-            plate,
-            lat,
-            lon
-        );
+        tracing::info!("Vehicle search at coordinates: {}, {}", lat, lon);
     } else {
-        tracing::info!("Vehicle search for plate {} (no location provided)", plate);
+        tracing::info!("Vehicle search (no location provided)");
     }
 }
 
@@ -182,24 +184,23 @@ fn cache_vehicle_search_result(
 ) {
     if let Some(vehicle_data_cache) = &state.vehicle_data_cache {
         let vehicle_data_cache = vehicle_data_cache.clone();
-        tokio::spawn(async move {
-            match vehicle_data_cache
-                .store_vehicle_data(&plate, &response)
-                .await
-            {
-                Ok(true) => tracing::debug!("Cached vehicle data for plate {}", plate),
-                Ok(false) => {
-                    tracing::debug!("Skipped duplicate vehicle cache write for plate {}", plate)
-                }
-                Err(error) => {
-                    tracing::warn!(
-                        "Failed to cache vehicle data for plate {}: {}",
-                        plate,
-                        error
-                    );
+        tokio::spawn(
+            async move {
+                match vehicle_data_cache
+                    .store_vehicle_data(&plate, &response)
+                    .await
+                {
+                    Ok(true) => tracing::debug!("Cached vehicle data to S3"),
+                    Ok(false) => {
+                        tracing::debug!("Skipped duplicate vehicle cache write")
+                    }
+                    Err(error) => {
+                        tracing::warn!("Failed to cache vehicle data: {}", error);
+                    }
                 }
             }
-        });
+            .instrument(tracing::debug_span!("cache_vehicle_data")),
+        );
     }
 }
 

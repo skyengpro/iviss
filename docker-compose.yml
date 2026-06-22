@@ -143,6 +143,7 @@ services:
       /bin/sh -c "
         mc alias set local http://iviss-minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
         mc mb --ignore-existing local/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
+        mc version enable local/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
         exit 0;
       "
     logging: *default-logging
