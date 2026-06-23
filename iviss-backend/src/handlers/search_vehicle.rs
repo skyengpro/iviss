@@ -6,8 +6,8 @@ use crate::{
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    services::vehicle_client_service::{VehicleApiError, {VehicleApiResponse, VehicleApiService},
-    utils::plate_format},
+    services::vehicle_client_service::{VehicleApiError, VehicleApiResponse, VehicleApiService},
+    utils::plate_format,
 };
 use axum::{
     extract::{Json, State},
@@ -42,7 +42,7 @@ const S3_CACHE_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_sec
      ),
     security(("bearer_auth" = []))
 )]
-#[instrument(name = "vehicle.search", skip(state, payload), fields(plate = %payload.plate))]
+#[tracing::instrument(name = "vehicle.search", skip(state, payload))]
 pub async fn search_vehicle(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,
@@ -61,13 +61,20 @@ pub async fn search_vehicle(
 
             Ok((StatusCode::OK, Json(response)))
         }
+        Err(VehicleApiError::NotFound) => {
+            tracing::info!(plate = %plate, "Vehicle not found in external registry");
+
+            Err(AppError::not_found(
+                "No vehicle found with the provided plate number",
+            ))
+        }
         Err(error) => {
             tracing::error!("Vehicle API lookup failed: {}", error);
 
-            if let Some(vehicle_data_cache) = &state.vehicle_data_cache {
+            if let Some(s3_data_cache) = &state.s3_data_cache {
                 match tokio::time::timeout(
                     S3_CACHE_READ_TIMEOUT,
-                    vehicle_data_cache.get_vehicle_data(&plate),
+                    s3_data_cache.get_vehicle_data(&plate),
                 )
                 .await
                 {
@@ -182,14 +189,11 @@ fn cache_vehicle_search_result(
     plate: String,
     response: VehicleSearchResult,
 ) {
-    if let Some(vehicle_data_cache) = &state.vehicle_data_cache {
-        let vehicle_data_cache = vehicle_data_cache.clone();
+    if let Some(s3_data_cache) = &state.s3_data_cache {
+        let s3_data_cache = s3_data_cache.clone();
         tokio::spawn(
             async move {
-                match vehicle_data_cache
-                    .store_vehicle_data(&plate, &response)
-                    .await
-                {
+                match s3_data_cache.store_vehicle_data(&plate, &response).await {
                     Ok(true) => tracing::debug!("Cached vehicle data to S3"),
                     Ok(false) => {
                         tracing::debug!("Skipped duplicate vehicle cache write")
@@ -223,7 +227,7 @@ fn cache_vehicle_search_result(
     ),
     security(("bearer_auth" = []))
 )]
-#[instrument(name = "vehicle.search_v1", skip(state, payload), fields(plate = %payload.plate))]
+#[tracing::instrument(name = "vehicle.search_v1", skip(state, payload))]
 pub async fn search_vehicle_v1(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,

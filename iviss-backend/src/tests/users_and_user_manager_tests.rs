@@ -155,11 +155,12 @@ async fn setup_test_app() -> (
         email_provider,
         &config,
         Arc::new(TelemetryHandle::noop()),
+        None,
     )
     .expect("failed to initialize test app state");
 
     // Create router
-    let app = routes::assembly(state);
+    let app = routes::assembly(Arc::new(state));
 
     (
         db,

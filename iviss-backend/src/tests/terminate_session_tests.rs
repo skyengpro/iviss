@@ -85,10 +85,11 @@ async fn setup_test_app() -> (
         Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
+        None,
     )
     .expect("failed to initialize test app state");
 
-    let app = routes::assembly(state);
+    let app = routes::assembly(Arc::new(state));
 
     (db, app, jwt_private_key_pem, jwt_public_key_pem, pg)
 }
