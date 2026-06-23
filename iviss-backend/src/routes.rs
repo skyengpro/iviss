@@ -8,9 +8,7 @@ use std::time::Duration;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 
-pub fn assembly(state: AppState) -> Router {
-    let state = Arc::new(state);
-
+pub fn assembly(state: Arc<AppState>) -> Router {
     let public_routes = Router::new()
         .route("/api/v1/health", get(crate::handlers::health::health_check))
         .route("/api/v1/auth/login", post(crate::handlers::auth::login))

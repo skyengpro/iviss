@@ -12,7 +12,7 @@ With the default local configuration, the bucket is `iviss-vehicle-cache` and th
 
 ## Object format
 
-Each file matches the Rust `CachedEntry` shape used by `vehicle_data_cache.rs`:
+Each file matches the Rust `CachedEntry` shape used by `s3_data_cache.rs`:
 
 ```json
 {
