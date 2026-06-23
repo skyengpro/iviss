@@ -24,6 +24,7 @@ vi.mock('@/services/auth/tokenManager', () => ({
   setAccessToken: vi.fn(),
   setRefreshToken: vi.fn(),
   getAccessToken: vi.fn().mockReturnValue(null),
+  getRefreshToken: vi.fn().mockReturnValue(null),
   clearAccessToken: vi.fn(),
 }));
 
@@ -277,20 +278,41 @@ describe('AuthProvider', () => {
     expect(res.success).toBe(true);
   });
 
-  it('dailyLoginRequest() — NOT_FOUND clears iviss_device_activated', async () => {
+  it('dailyLoginRequest() — missing badge keeps iviss_device_activated', async () => {
     localStorage.setItem('iviss_device_activated', 'true');
     vi.mocked(requestDailyLogin).mockResolvedValueOnce({
       data: undefined,
-      error: { code: 'NOT_FOUND', message: 'not found' },
+      error: { code: 'NOT_FOUND', message: 'User not found' },
     } as never);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
+    let res!: Awaited<ReturnType<typeof result.current.dailyLoginRequest>>;
     await act(async () => {
-      await result.current.dailyLoginRequest({ badgeId: 'GHOST' });
+      res = await result.current.dailyLoginRequest({ badgeId: 'GHOST' });
     });
 
+    expect(res.requiresActivation).toBe(false);
+    expect(localStorage.getItem('iviss_device_activated')).toBe('true');
+  });
+
+  it('dailyLoginRequest() — unregistered device clears iviss_device_activated', async () => {
+    localStorage.setItem('iviss_device_activated', 'true');
+    vi.mocked(requestDailyLogin).mockResolvedValueOnce({
+      data: undefined,
+      error: { code: 'NOT_FOUND', message: 'Device is not registered. Please re-activate.' },
+    } as never);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.dailyLoginRequest>>;
+    await act(async () => {
+      res = await result.current.dailyLoginRequest({ badgeId: 'B1' });
+    });
+
+    expect(res.requiresActivation).toBe(true);
     expect(localStorage.getItem('iviss_device_activated')).toBeNull();
   });
 

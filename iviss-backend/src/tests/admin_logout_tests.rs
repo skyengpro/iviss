@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
 use crate::routes;
+use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use serde_json::json;
@@ -95,6 +96,7 @@ async fn setup_admin_logout_test() -> (
         Arc::new(crate::services::sms_provider::MockSmsProvider),
         Arc::new(crate::services::email_provider::MockEmailProvider),
         &config,
+        Arc::new(TelemetryHandle::noop()),
     )
     .expect("failed to initialize test app state");
 

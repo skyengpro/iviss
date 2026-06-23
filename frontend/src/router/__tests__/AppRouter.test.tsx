@@ -88,7 +88,7 @@ describe('AppRouter', () => {
       expect(screen.getByTestId('location-display')).toHaveTextContent('/backoffice');
     });
 
-    it('redirects to /daily-login when only refresh token exists', () => {
+    it('redirects to /mobile when only refresh token exists (recoverable session)', () => {
       vi.mocked(tokenManager.getAccessToken).mockReturnValue(null);
       vi.mocked(tokenManager.getRefreshToken).mockReturnValue('refresh');
 
@@ -99,7 +99,7 @@ describe('AppRouter', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByTestId('location-display')).toHaveTextContent('/daily-login');
+      expect(screen.getByTestId('location-display')).toHaveTextContent('/mobile');
     });
   });
 

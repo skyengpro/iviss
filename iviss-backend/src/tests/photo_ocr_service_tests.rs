@@ -35,32 +35,32 @@ mod tests {
     // --- extract_plate_strict Tests ---
     #[test]
     fn test_extract_plate_strict_valid_format() {
-        assert_eq!(extract_plate_strict("AB123CD"), Some("AB123CD".to_string()));
-        assert_eq!(extract_plate_strict("XX999YZ"), Some("XX999YZ".to_string()));
+        assert_eq!(extract_plate_strict("CE128BC"), Some("CE128BC".to_string()));
+        assert_eq!(extract_plate_strict("LT4568A"), Some("LT4568A".to_string()));
+        assert_eq!(extract_plate_strict("SN1234"), Some("SN1234".to_string()));
     }
 
     #[test]
     fn test_extract_plate_strict_with_noise() {
         assert_eq!(
-            extract_plate_strict("  AB 123 CD  "),
-            Some("AB123CD".to_string())
+            extract_plate_strict("  CE 128 BC  "),
+            Some("CE128BC".to_string())
         );
         assert_eq!(
-            extract_plate_strict("some text AB123CD more text"),
-            Some("AB123CD".to_string())
+            extract_plate_strict("some text PA 02 RC 521 more text"),
+            Some("PA02RC521".to_string())
         );
         assert_eq!(
-            extract_plate_strict("AB@123#CD"),
-            Some("AB123CD".to_string())
+            extract_plate_strict("CE@128#BC"),
+            Some("CE128BC".to_string())
         );
-        assert_eq!(extract_plate_strict("ab123cd"), Some("AB123CD".to_string()));
+        assert_eq!(extract_plate_strict("ce128bc"), Some("CE128BC".to_string()));
         // Should convert to uppercase
     }
 
     #[test]
     fn test_extract_plate_strict_no_plate() {
         assert_eq!(extract_plate_strict("just some text"), None);
-        assert_eq!(extract_plate_strict("1234567"), None);
         assert_eq!(extract_plate_strict("ABCDEFG"), None);
     }
 
@@ -73,10 +73,11 @@ mod tests {
     #[test]
     fn test_enhance_photo_result_already_valid_plate() {
         let input = ScanResultData {
-            plate: "AB123CD".to_string(),
-            raw_text: "some text AB123CD".to_string(),
+            plate: "CE128BC".to_string(),
+            raw_text: "some text CE128BC".to_string(),
             confidence: 0.95,
             format_valid: true,
+            plate_type: Some("civil_cemac".to_string()),
         };
         let output = enhance_photo_result(input.clone());
         assert_eq!(output, input);
@@ -89,9 +90,10 @@ mod tests {
         // when the plate is completely empty.
         let input = ScanResultData {
             plate: "AB123C".to_string(), // Invalid format, but non-empty
-            raw_text: "some AB123CD text".to_string(),
+            raw_text: "some CE128BC text".to_string(),
             confidence: 0.60,
             format_valid: false,
+            plate_type: None,
         };
         let output = enhance_photo_result(input);
         // Plate should remain unchanged since it's not empty
@@ -107,6 +109,7 @@ mod tests {
             raw_text: "some text with numbers 12345".to_string(),
             confidence: 0.50,
             format_valid: false,
+            plate_type: None,
         };
         let output = enhance_photo_result(input.clone());
         assert_eq!(output, input); // Should be unchanged if no strict match
@@ -116,13 +119,15 @@ mod tests {
     fn test_enhance_photo_result_strict_extract_boosts_low_confidence() {
         let input = ScanResultData {
             plate: "".to_string(),
-            raw_text: "AB123CD".to_string(),
+            raw_text: "CE128BC".to_string(),
             confidence: 0.30,
             format_valid: false,
+            plate_type: None,
         };
         let output = enhance_photo_result(input);
-        assert_eq!(output.plate, "AB123CD".to_string());
+        assert_eq!(output.plate, "CE128BC".to_string());
         assert!(output.format_valid);
+        assert_eq!(output.plate_type, Some("civil_cemac".to_string()));
         assert_eq!(output.confidence, 0.90);
     }
 
@@ -130,13 +135,15 @@ mod tests {
     fn test_enhance_photo_result_strict_extract_does_not_lower_high_confidence() {
         let input = ScanResultData {
             plate: "".to_string(),
-            raw_text: "AB123CD".to_string(),
+            raw_text: "CE128BC".to_string(),
             confidence: 0.95,
             format_valid: false,
+            plate_type: None,
         };
         let output = enhance_photo_result(input);
-        assert_eq!(output.plate, "AB123CD".to_string());
+        assert_eq!(output.plate, "CE128BC".to_string());
         assert!(output.format_valid);
+        assert_eq!(output.plate_type, Some("civil_cemac".to_string()));
         assert_eq!(output.confidence, 0.95); // Should remain high
     }
 
@@ -148,12 +155,14 @@ mod tests {
             raw_text: "".to_string(),
             confidence: 0.5,
             format_valid: true,
+            plate_type: None,
         };
         let b = ScanResultData {
             plate: "P2".to_string(),
             raw_text: "".to_string(),
             confidence: 0.9,
             format_valid: false,
+            plate_type: None,
         };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P1".to_string());
         assert_eq!(pick_best(b.clone(), a.clone()).plate, "P1".to_string());
@@ -166,12 +175,14 @@ mod tests {
             raw_text: "".to_string(),
             confidence: 0.5,
             format_valid: false,
+            plate_type: None,
         };
         let b = ScanResultData {
             plate: "P2".to_string(),
             raw_text: "".to_string(),
             confidence: 0.7,
             format_valid: false,
+            plate_type: None,
         };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P2".to_string());
         assert_eq!(pick_best(b.clone(), a.clone()).plate, "P2".to_string());
@@ -184,12 +195,14 @@ mod tests {
             raw_text: "".to_string(),
             confidence: 0.5,
             format_valid: false,
+            plate_type: None,
         };
         let b = ScanResultData {
             plate: "P2".to_string(),
             raw_text: "".to_string(),
             confidence: 0.9,
             format_valid: false,
+            plate_type: None,
         };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P2".to_string());
         assert_eq!(pick_best(b.clone(), a.clone()).plate, "P2".to_string());
@@ -202,12 +215,14 @@ mod tests {
             raw_text: "".to_string(),
             confidence: 0.8,
             format_valid: true,
+            plate_type: None,
         };
         let b = ScanResultData {
             plate: "P2".to_string(),
             raw_text: "".to_string(),
             confidence: 0.8,
             format_valid: true,
+            plate_type: None,
         };
         assert_eq!(pick_best(a.clone(), b.clone()).plate, "P1".to_string()); // Falls back to 'a' if all equal
     }

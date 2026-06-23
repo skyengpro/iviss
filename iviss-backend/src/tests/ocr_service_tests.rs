@@ -1,15 +1,11 @@
 use image::GrayImage;
 use leptess::LepTess;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::dto::scan::ScanResultData;
 use crate::services::ocr_service::*;
-
-/// Cameroon plate format: 2 letters + 3 digits + 2 letters (e.g. CE128BC).
-static PLATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Z]{2}[0-9]{3}[A-Z]{2}$").unwrap());
+use crate::utils::plate_format;
 
 /// Radius (in pixels) for the adaptive threshold sliding window.
 const ADAPTIVE_RADIUS: u32 = 40;
@@ -40,19 +36,22 @@ mod tests {
     }
 
     #[test]
-    fn regex_accepts_valid_plates() {
-        assert!(PLATE_REGEX.is_match("CE128BC"));
-        assert!(PLATE_REGEX.is_match("AB000CD"));
-        assert!(PLATE_REGEX.is_match("ZZ999ZZ"));
+    fn plate_format_accepts_valid_plates() {
+        assert!(plate_format::is_valid("CE128BC"));
+        assert!(plate_format::is_valid("LT4568A"));
+        assert!(plate_format::is_valid("LTSR9652A"));
+        assert!(plate_format::is_valid("PA02RC521"));
+        assert!(plate_format::is_valid("SN1234"));
+        assert!(plate_format::is_valid("1234567"));
     }
 
     #[test]
-    fn regex_rejects_invalid_plates() {
-        assert!(!PLATE_REGEX.is_match("C128BC"));
-        assert!(!PLATE_REGEX.is_match("CE12BC"));
-        assert!(!PLATE_REGEX.is_match("CE1234BC"));
-        assert!(!PLATE_REGEX.is_match("1E128BC"));
-        assert!(!PLATE_REGEX.is_match(""));
+    fn plate_format_rejects_invalid_plates() {
+        assert!(!plate_format::is_valid("C128BC"));
+        assert!(!plate_format::is_valid("CE12BC"));
+        assert!(!plate_format::is_valid("CE12345BC"));
+        assert!(!plate_format::is_valid("1E128BC"));
+        assert!(!plate_format::is_valid(""));
     }
 
     #[test]
@@ -84,7 +83,7 @@ mod tests {
             Some("CE128BC".to_string())
         );
         assert_eq!(extract_plate_fuzzy("CE12OBC"), Some("CE120BC".to_string())); // O -> 0 in middle
-        assert_eq!(extract_plate_fuzzy("1E128BC"), Some("IE128BC".to_string())); // 1 -> I at start
+        assert_eq!(extract_plate_fuzzy("5W128BC"), Some("SW128BC".to_string())); // 5 -> S in region
         assert_eq!(extract_plate_fuzzy("CE12"), Some("CE12".to_string()));
         assert_eq!(extract_plate_fuzzy(""), None);
     }
@@ -96,12 +95,14 @@ mod tests {
             raw_text: "P1".into(),
             confidence: 0.5,
             format_valid: false,
+            plate_type: None,
         };
         let cand2 = ScanResultData {
             plate: "CE128BC".into(),
             raw_text: "CE128BC".into(),
             confidence: 0.8,
             format_valid: true,
+            plate_type: None,
         };
 
         let best = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
@@ -169,6 +170,7 @@ mod tests {
             raw_text: "CE128BC".to_string(),
             confidence: 0.7,
             format_valid: true,
+            plate_type: None,
         };
 
         let finalized = finalize(
@@ -191,6 +193,7 @@ mod tests {
             raw_text: "CE128".to_string(),
             confidence: 0.7,
             format_valid: false,
+            plate_type: None,
         };
 
         let finalized = finalize(
@@ -213,6 +216,7 @@ mod tests {
             raw_text: "".to_string(),
             confidence: 0.0,
             format_valid: false,
+            plate_type: None,
         };
 
         let finalized = finalize(
@@ -260,11 +264,8 @@ mod tests {
         );
 
         // Test character corrections in letter positions
-        assert_eq!(extract_plate_fuzzy("C0128BC"), Some("CO128BC".to_string())); // 0->O at pos 1
-        assert_eq!(extract_plate_fuzzy("C1128BC"), Some("CI128BC".to_string())); // 1->I at pos 1
-        assert_eq!(extract_plate_fuzzy("C5128BC"), Some("CS128BC".to_string())); // 5->S at pos 1
-        assert_eq!(extract_plate_fuzzy("C6128BC"), Some("CG128BC".to_string())); // 6->G at pos 1
-        assert_eq!(extract_plate_fuzzy("C8128BC"), Some("CB128BC".to_string())); // 8->B at pos 1
+        assert_eq!(extract_plate_fuzzy("0U128BC"), Some("OU128BC".to_string())); // 0->O at pos 0
+        assert_eq!(extract_plate_fuzzy("5W128BC"), Some("SW128BC".to_string())); // 5->S at pos 0
 
         // Test character corrections in digit positions
         assert_eq!(extract_plate_fuzzy("CE1O8BC"), Some("CE108BC".to_string())); // O->0 at pos 3
@@ -445,12 +446,14 @@ mod tests {
             raw_text: "INVALID1".to_string(),
             confidence: 0.3,
             format_valid: false,
+            plate_type: None,
         };
         let cand2 = ScanResultData {
             plate: "INVALID2".to_string(),
             raw_text: "INVALID2".to_string(),
             confidence: 0.7,
             format_valid: false,
+            plate_type: None,
         };
         let result = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
         assert_eq!(result.plate, "INVALID2"); // Higher confidence wins
@@ -462,12 +465,14 @@ mod tests {
             raw_text: "INVALID".to_string(),
             confidence: 0.9,
             format_valid: false,
+            plate_type: None,
         };
         let valid = ScanResultData {
             plate: "CE128BC".to_string(),
             raw_text: "CE128BC".to_string(),
             confidence: 0.1,
             format_valid: true,
+            plate_type: None,
         };
         let result = pick_best_ensemble(vec![Some(invalid), Some(valid)]);
         assert_eq!(result.plate, "CE128BC"); // Valid format wins regardless of confidence
@@ -479,12 +484,14 @@ mod tests {
             raw_text: "AB123CD".to_string(),
             confidence: 0.6,
             format_valid: true,
+            plate_type: None,
         };
         let valid2 = ScanResultData {
             plate: "EF456GH".to_string(),
             raw_text: "EF456GH".to_string(),
             confidence: 0.8,
             format_valid: true,
+            plate_type: None,
         };
         let result = pick_best_ensemble(vec![Some(valid1), Some(valid2)]);
         assert_eq!(result.plate, "EF456GH"); // Higher confidence wins when both valid

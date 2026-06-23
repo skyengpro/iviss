@@ -108,7 +108,7 @@ VALUES
     'agent',
     'AGT-104',
     'Michael Johnson',
-    '+237671210292',
+    '+237671220293',
     'PENDING_ACTIVATION'
 ),
 (

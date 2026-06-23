@@ -1,289 +1,394 @@
-# IVISS
+ **Welcome to IVISS.**
+
+IVISS is a multi-tenant platform for law-enforcement and regulatory teams to run roadside controls, verify vehicle compliance, and manage enforcement workflows.
+
+This README is here to make your work safer, faster, and more effective. It is the entry point for developers, operators, and reviewers. It gives a concise map of the system, local setup, architecture boundaries, security model, API/testing conventions, and where to find the full detailed documentation.
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Technologies](#technologies)
-- [Quick Start](#quick-start)
-  - [Prerequisites](#prerequisites)
-  - [Clone and Setup](#clone-and-setup)
-  - [Start Backend Services](#start-backend-services)
-  - [Verify Backend is Running](#verify-backend-is-running)
-  - [Start Frontend (Optional)](#start-frontend-optional)
-- [Testing the Setup](#testing-the-setup)
-  - [Test Backend Locally](#test-backend-locally)
-  - [Test from Mobile Device](#test-from-mobile-device)
-- [Development Features](#development-features)
-  - [Live Reloading](#live-reloading)
-  - [Database Access](#database-access)
-  - [Data Persistence](#data-persistence)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
+1. [Overview](#1-overview)
+2. [Architecture &amp; Design Decisions](#2-architecture--design-decisions)
+3. [Tech Stack](#3-tech-stack)
+4. [Multi-tenancy &amp; Security Model](#4-multi-tenancy--security-model)
+5. [Local Development](#5-local-development)
 
-## Project Overview
+   5.1[Prerequisites](#51-prerequisites)
+   5.2 [Configuration (`.env`)](#52-configuration-env)
+   5.3 [Startup](#53-startup)
+   5.4 [Useful Commands](#54-useful-commands)
+6. [Frontend Architecture](#6-frontend-architecture)
+7. [Backend Architecture (Rust)](#7-backend-architecture-rust)
+8. [Database &amp; Data Model](#8-database--data-model)
+9. [API Reference &amp; Conventions](#9-api-reference--conventions)
+10. [Testing Strategy](#10-testing-strategy)
+11. [Quality &amp; Coding Standards](#11-quality--coding-standards)
+12. [Debugging &amp; Troubleshooting](#12-debugging--troubleshooting)
+13. [Deployment &amp; CI/CD](#13-deployment--cicd)
+14. [Monitoring &amp; Logging](#14-monitoring--logging)
+15. [Contribution Guidelines](#15-contribution-guidelines)
+16. [Appendices](#16-appendices)
 
-IVISS (Intelligent Vehicle Identification & Security System) is a robust, multi-tenant platform designed to empower law enforcement and regulatory organizations. It streamlines vehicle identification, automates compliance checks, and provides comprehensive tools for managing field operations efficiently. The system aims to enhance public safety and regulatory adherence through advanced technology.
+## 1. Overview
 
-**Target Users:** Law enforcement agencies, government regulatory bodies, and organizations responsible for vehicle compliance and security.
+IVISS helps agencies:
 
-## Features
+- Identify vehicles (manual entry, photo/OCR workflows).
+- Perform field control operations and keep traceable control history.
+- Trigger and track enforcement actions.
+- Operate with role-based access control in a multi-organization environment.
+- Use a mobile-first web experience with PWA capabilities.
 
-- **License Plate Recognition**: Real-time Optical Character Recognition (OCR) scanning of vehicle license plates for rapid identification and data retrieval.
-- **Control History**: Comprehensive tracking and management of all vehicle control operations, including details of inspections, violations, and resolutions.
-- **Alert System**: Instant notification system for flagged vehicles (e.g., stolen, unregistered, or vehicles with outstanding warrants), enabling immediate action by field agents.
-- **Mobile First**: User interface and experience are optimized for mobile devices, ensuring field agents can efficiently perform tasks on the go.
-- **Progressive Web App (PWA)**: Installable on Android, iOS, and Desktop with offline support and automatic updates. [Learn more →](./PWA_IMPLEMENTATION_SUMMARY.md)
-- **Multi-Tenant**: Supports multiple organizations with isolated data and configurations.
-- **Role-Based Access Control**: Granular access control system with predefined roles (Super Admin, Admin, Supervisor, Agent) to manage permissions and data visibility.
+For system overview and functional context, see [docs/overview.md](docs/overview.md).
 
-## Architecture:
+## 2. Architecture & Design Decisions
 
-- **Frontend**: React + TypeScript + Vite + shadcn/ui (Mobile-first design)
-- **Backend**: Rust + Axum + PostgreSQL (Dockerized with live reloading)
-- **Database**: PostgreSQL 9.4 (Dockerized)
+High-level architecture:
 
----
+- **Frontend**: React + TypeScript + Vite (mobile-first SPA, PWA-enabled)
+- **Backend**: Rust + Axum + SQLx (REST API + OpenAPI)
+- **Database**: PostgreSQL 15
+- **Infrastructure**: Docker Compose (local), Terraform + Ansible + GitHub Actions (deployment)
 
-## Technologies
+Main design choices:
+
+- Multi-tenant data isolation by organization.
+- Backend-generated OpenAPI contract consumed by frontend codegen.
+- Role-based access control enforced in backend middleware.
+- Infrastructure-as-Code and automated CI/CD pipelines.
+
+For complete architecture diagrams and rationale, see:
+
+- [docs/architecture_spec.md](docs/architecture_spec.md)
+- [docs/sequence_diagrams_&amp;_flows.md](docs/sequence_diagrams_&_flows.md)
+
+## 3. Tech Stack
 
 ### Frontend
 
-- React: A JavaScript library for building user interfaces.
-- TypeScript: A typed superset of JavaScript that compiles to plain JavaScript.
-- Vite: A fast build tool for modern web projects.
-- shadcn/ui (Radix primitives): A collection of re-usable components built with Radix UI and Tailwind CSS.
-- Tailwind CSS: A utility-first CSS framework for rapidly building custom designs.
-- React Query: Powerful asynchronous state management for React.
-- React Router DOM: Declarative routing for React.
-- Tesseract.js (OCR): JavaScript library for performing OCR.
-- react-webcam: React component for accessing and displaying webcam streams.
+- React, TypeScript, Vite
+- Tailwind CSS + shadcn/ui (Radix primitives)
+- TanStack Query, React Router
+- Vitest + Testing Library
 
 ### Backend
 
-- Rust: A systems programming language focused on safety, speed, and concurrency.
-- Axum (Web framework): A web application framework built with Tokio, Tower, and Hyper.
-- Tokio (Async runtime): An asynchronous runtime for Rust.
-- SQLx (Database): An asynchronous, pure Rust SQL crate.
-- Tower-HTTP (Middleware): A collection of HTTP middleware for Tower.
+- Rust, Cargo, Axum, Tokio
+- SQLx (PostgreSQL)
+- Utoipa + Swagger UI (OpenAPI generation and docs)
 
-### Database
+### Platform
 
-- PostgreSQL 9.4 (via Docker): A powerful, open-source object-relational database system.
+- Docker / Docker Compose
+- GitHub Actions CI/CD
+- AWS Lightsail (deployment target)
 
----
+## 4. Multi-tenancy & Security Model
 
-## Quick Start
+Core model:
 
-### Prerequisites
+- Organization-scoped data and workflows.
+- RBAC across `admin`, `manager` (business label: supervisor), `org_admin`, and `agent` roles.
+- JWT-based authentication with role-aware access middleware.
+- Audit-oriented flows for sensitive operations.
 
-- **Docker** (20.10+) and **Docker Compose** (2.0+) - [Installation Guide](https://docs.docker.com/get-docker/)
-- **Node.js** (16+) and **npm** - Only for frontend development
+Security notes:
 
-### 1. Clone and Setup
+- External providers (SMS/Email) are configured via environment variables.
+- Secrets must never be committed.
+- Authentication/session controls are handled server-side.
+
+For full details, see:
+
+- [docs/auth_tokens.md](docs/auth_tokens.md)
+- [docs/developer/api.md](docs/developer/api.md)
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+
+## 5. Local Development
+
+### 5.1 Prerequisites
+
+- Docker Engine 20.10+
+- Docker Compose v2+
+- Node.js 20+ (for frontend local dev and tooling)
+- Rust toolchain + Cargo (for backend local build/test)
+
+### 5.2 Configuration (`.env`)
 
 ```bash
-# Clone repo & copy environment template
 cp .env.example .env
-
-# Set real local secrets before starting the stack
-# At minimum: POSTGRES_PASSWORD and EXTERNAL_POSTGRES_PASSWORD
 ```
 
-### 2. Start Backend Services
+Minimum values for local backend startup:
+
+- `POSTGRES_PASSWORD`
+- `EXTERNAL_POSTGRES_PASSWORD`
+- `JWT_PRIVATE_KEY_PEM`
+- `JWT_PUBLIC_KEY_PEM`
+- `ACTIVATION_CODE_PEPPER`
+- `SMS_PROVIDER`
+
+Recommended for end-to-end back-office flows:
+
+- `EMAIL_PROVIDER` (`mock`, `resend`, `lettre`/`smtp`)
+- Provider credentials for the selected email mode
+
+Notes:
+
+- The meaning of all those env varraibles are correctly documented in the `.env.example `file
+- Real org-admin email delivery (temporary password) requires a real provider (`resend` or `lettre`/`smtp`) and valid credentials.
+
+For the full setup matrix, see [docs/developer/getting-started.md](docs/developer/getting-started.md).
+
+### 5.3 Startup
 
 ```bash
-# Start the local development stack
-docker compose up -d
+docker compose --profile dev up -d --build
+```
 
-# Start the production-like local stack
-docker compose --profile prod up -d db redis backend-prod frontend-prod metrics
+Useful local URLs:
 
-# View real-time logs
+- Frontend: http://localhost:8080
+- Backend health: http://localhost:3000/api/v1/health
+- Swagger UI: http://localhost:3000/docs
+- OpenAPI JSON: http://localhost:3000/api-doc/openapi.json
+- Adminer: http://localhost:8081
+- Metrics health: http://localhost:9091/health
+
+### 5.4 Useful Commands
+
+```bash
+# Service status
+docker compose ps
+
+# Logs
 docker compose logs -f backend
-docker compose logs -f db
+docker compose logs -f frontend
 
-# Stop services (keeps data)
+# Stop stack
 docker compose down
 
-# Stop and remove all data
+# Stop + remove local volumes (destructive)
 docker compose down -v
 ```
 
-### 3. Verify Backend is Running
-
-```bash
-# Test health endpoint
-curl http://localhost:3000/api/v1/health
-# Should return: OK
-
-# Check service status
-docker compose ps
-# Both iviss-backend and iviss-db should show "Up"
-```
-
-### 4. Start Frontend (Optional)
+Frontend outside Docker (optional):
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# Access at http://localhost:5173
 ```
 
----
+## 6. Frontend Architecture
 
-## Testing the Setup
+Frontend structure is organized around routes, pages, reusable components, hooks, and generated OpenAPI client layers.
 
-### Test Backend Locally
+For the complete frontend architecture and developer breakdown, see:
 
-```bash
-# Health check
-curl http://localhost:3000/api/v1/health
+- [docs/FE_ARCHITECTURE.md](docs/FE_ARCHITECTURE.md)
+- [docs/developer/project-structure.md](docs/developer/project-structure.md)
 
-# Get your local IP (for mobile testing)
-hostname -I | awk '{print $1}'
-```
+## 7. Backend Architecture (Rust)
 
-### Test from Mobile Device
+Backend is an Axum service with modular boundaries for handlers, services, queries, middleware, DTOs, and tests.
 
-**Requirements:**
+Key entry points:
 
-- Mobile device on the **same WiFi network** as development machine
-- Backend services running (`docker compose ps` shows both services Up)
+- Runtime: `iviss-backend/src/main.rs`
+- Routes: `iviss-backend/src/routes.rs`
+- OpenAPI: `iviss-backend/src/api_doc.rs`
 
-**Steps:**
+For complete backend structure and conventions, see:
 
-1. **Get your local IP address:**
+- [docs/developer/project-structure.md](docs/developer/project-structure.md)
+- [docs/developer/api.md](docs/developer/api.md)
 
-   ```bash
-   hostname -I | awk '{print $1}'
-   # Example output: 192.168.1.233
-   ```
+## 8. Database & Data Model
 
-2. **Test from mobile browser:**
+IVISS uses PostgreSQL with SQLx migrations and seed mechanisms.
 
-   ```
-   http://YOUR_IP:3000/api/v1/health
-   ```
+Main domains include:
 
-   You should see "OK" response.
+- Organizations and users/roles
+- Vehicle registry and statuses
+- Control records and actions
+- Pending submission workflow
+- Audit logs
 
-3. **Configure frontend for mobile:**
+For full schema and DB workflow documentation, see:
 
-   Update `frontend/.env`:
+- [docs/schema.md](docs/schema.md)
+- [docs/data.md](docs/data.md)
+- [docs/developer/database.md](docs/developer/database.md)
 
-   ```env
-   VITE_API_URL=http://YOUR_IP:3000
-   ```
+## 9. API Reference & Conventions
 
-   Then rebuild frontend:
+API contract is generated from backend code and exposed through OpenAPI.
 
-   ```bash
-   cd frontend
-   npm run build
-   ```
+References:
 
-**Expected Results:**
+- Swagger UI (local): http://localhost:3000/docs
+- OpenAPI JSON (local): http://localhost:3000/api-doc/openapi.json
+- Frontend snapshot: `frontend/openapi.json`
 
-- ✅ Mobile browser can access `http://YOUR_IP:3000/api/v1/health`
-- ✅ Backend logs show incoming requests on the health endpoint
-- ❌ **If you get connection timeout:** Check firewall or ensure devices are on same network
+API implementation and conventions are documented in:
 
----
+- [docs/developer/api.md](docs/developer/api.md)
 
-## Development Features
+## 10. Testing Strategy
 
-### Live Reloading
+Testing is split by subsystem:
 
-The backend uses **cargo-watch** for automatic recompilation on code changes:
+- Backend: Rust tests, integration tests, DB tests (Testcontainers)
+- Frontend: unit/component tests with Vitest + Testing Library
+- CI: workflow-based validation for build, lint, type checks, tests, coverage, and security scans
 
-1. Start services: `docker compose up -d`
-2. Edit any Rust file in `iviss-backend/src/`
-3. Watch logs: `docker compose logs -f backend`
-4. Changes automatically trigger recompilation and restart
+For full commands and CI mapping, see:
 
-**Example:**
+- [docs/developer/testing.md](docs/developer/testing.md)
 
-```bash
-# In one terminal
-docker compose logs -f backend
+## 11. Quality & Coding Standards
 
-# In another terminal
-echo "// test change" >> iviss-backend/src/main.rs
+Project standards cover:
 
-# First terminal will show:
-# [Running 'cargo run']
-# Compiling iviss-backend...
-# INFO Listening on 0.0.0.0:3000
-```
+- Code style and module ownership
+- API/DB change discipline
+- Security defaults
+- Conventional commits and PR hygiene
 
-### Database Access
+See:
 
-```bash
-# Connect to database
-docker compose exec db psql -U iviss_user -d iviss_db
-```
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
 
-### Data Persistence
+## 12. Debugging & Troubleshooting
 
-Database data is stored in a Docker volume and persists across container restarts:
+Use a layered troubleshooting approach:
 
-```bash
-# Data survives this:
-docker compose down
-docker compose up -d
+- Service health and logs
+- Env/config validation
+- Auth/RBAC checks
+- OpenAPI/codegen sync issues
 
-# This DELETES all data:
-docker compose down -v
-```
+See:
 
-### Dev vs Prod Local
+- [docs/developer/debugging.md](docs/developer/debugging.md)
 
-- `docker compose up -d` starts the development services: hot reload for backend and frontend, source mounts, Adminer.
-- `docker compose --profile prod up -d db redis backend-prod frontend-prod metrics` starts the production-like services: release backend image and nginx frontend image, without dev mounts.
+## 13. Deployment & CI/CD
 
----
+Production deployment model:
 
-## Project Structure
+- Infrastructure provisioning: Terraform
+- Server configuration and rollout: Ansible + Docker Compose
+- Automation: GitHub Actions
+- Target: AWS Lightsail
 
-```
+For full deployment procedures and operational details, see:
+
+- [docs/deployment_guide.md](docs/deployment_guide.md)
+- [docs/release_guide.md](docs/release_guide.md)
+
+## 14. Monitoring & Logging
+
+Operational observability includes:
+
+- Prometheus scraping
+- Grafana dashboards
+- Service-level health endpoints and container logs
+
+See:
+
+- [docs/monitoring.md](docs/monitoring.md)
+- [monitoring/README.md](monitoring/README.md)
+
+## 15. Contribution Guidelines
+
+- Use dedicated feature branches.
+- Keep PRs focused and reviewable.
+- Update docs whenever behavior, interfaces, or workflows change.
+- Run relevant local checks before opening a PR.
+
+Developer contribution standards:
+
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+
+## 16. Appendices
+
+### A) Project Structure Snapshot
+
+```plaintext
 iviss/
-├── .github/                  # GitHub Actions workflows
-├── docs/                     # Project documentation (architecture, data, schema, diagrams)
-├── frontend/                 # Frontend application (React, TypeScript)
-├── iviss-backend/            # Backend application (Rust, Axum)
-├── infra/                    # Infrastructure-as-Code (Terraform, Ansible)
+├── .github/
+│   └── workflows/
+├── docs/                   # All documentation
+│   ├── architecture_spec.md
+│   └── developer/
+│       ├── README.md
+│       ├── ...
+├── frontend/               # React Frontend
+│   ├── src/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── router/
+│   │   ├── services/
+│   │   └── openapi-rq/
+│   ├── public/
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── openapi.json
+├── iviss-backend/          # Rust Backend
+│   ├── src/
+│   │   ├── handlers/
+│   │   ├── services/
+│   │   ├── queries/
+│   │   ├── middleware/
+│   │   ├── dto/
+│   │   ├── tests/
+│   │   ├── main.rs
+│   │   ├── routes.rs
+│   │   └── api_doc.rs
+│   ├── migrations/         # SQL migrations
+│   ├── seeds/
+│   ├── scripts/            # Utility scripts
+│   └── Cargo.toml
+├── infra/                  # Infrastructure as Code
+│   ├── terraform/
+│   ├── ansible/
+│   └── scripts/
+├── monitoring/             # Observability
+│   ├── prometheus/
+│   └── grafana/
+├── scripts/                # Utility scripts
+├── docker-compose.yml
+├── .env.example
+└── README.md
 ```
 
----
+For detailed structure, see [docs/developer/project-structure.md](docs/developer/project-structure.md).
 
-## Production Infrastructure (NEW)
+### B) Documentation Map
 
-[![Deployment Status](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml/badge.svg)](https://github.com/skyengpro/iviss/actions/workflows/deploy-aws.yml)
+- [docs/overview.md](docs/overview.md)
+- [docs/architecture_spec.md](docs/architecture_spec.md)
+- [docs/deployment_guide.md](docs/deployment_guide.md)
+- [docs/developer/README.md](docs/developer/README.md)
+- [docs/developer/getting-started.md](docs/developer/getting-started.md)
+- [docs/developer/api.md](docs/developer/api.md)
+- [docs/developer/database.md](docs/developer/database.md)
+- [docs/developer/testing.md](docs/developer/testing.md)
+- [docs/developer/coding-standards.md](docs/developer/coding-standards.md)
+- [docs/developer/debugging.md](docs/developer/debugging.md)
 
-The platform is deployed using **Infrastructure-as-Code (Terraform)** and **Automated CI/CD (GitHub Actions)** on **AWS Lightsail**.
+### C) License
 
-- **Hardware Profile**: **2 vCPUs, 2 GB RAM, 60 GB SSD** (Bundle: `small_3_0`)
-- **Orchestration**: Docker Compose + Ansible
-- **State Management**: Remote S3 Backend with DynamoDB Locking
+This project is proprietary. All rights reserved.
 
-> [!IMPORTANT]
-> For production setup and secrets management, see the [**Master Deployment Guide**](docs/deployment_guide.md).
 
----
 
-## Operational Documentation
-- [**Deployment & Infrastructure Guide**](docs/deployment_guide.md): The definitive guide for production.
+## Document Version
 
----
+**Version:** 1.0
+**Last Updated:** May 04, 2026
+**Author:** IVISS Development Team
 
-## Contributing
-
-For internal contributions, please coordinate with the project lead. All changes should be made on dedicated feature branches and reviewed before merging into the main development branch.
-
-## License
-
-This project is proprietary and all rights are reserved.
+For the latest version of this guide, check the Help section in the IVISS back-office or contact your system administrator.

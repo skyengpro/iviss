@@ -83,6 +83,17 @@ const roleColors: Record<string, 'default' | 'primary' | 'secondary' | 'destruct
     agent: 'outline',
   };
 
+function canResendActivationCode(user: UserProfile) {
+  return (
+    user.role === 'agent' &&
+    (user.status === 'PENDING_ACTIVATION' || user.sessionStatus === 'PENDING')
+  );
+}
+
+function canResendOrgAdminPassword(user: UserProfile) {
+  return user.role === 'org_admin' && user.status === 'PENDING_ACTIVATION';
+}
+
 export default function UserManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -131,6 +142,241 @@ export default function UserManagement() {
 
   const { organizations = [] } = useOrganizations();
 
+  const getUserStatusBadge = (status: UserProfile['status']) => {
+    let variant: 'valid' | 'pending' | 'critical' = 'critical';
+    let label = t('backOfficeUserManagement.suspended');
+
+    if (status === 'ACTIVE') {
+      variant = 'valid';
+      label = t('backOfficeUserManagement.active');
+    } else if (status === 'PENDING_ACTIVATION') {
+      variant = 'pending';
+      label = t('backOfficeUserManagement.pending');
+    }
+
+    return (
+      <StatusBadge variant={variant} size="sm">
+        {label}
+      </StatusBadge>
+    );
+  };
+
+  const getSessionStatusBadge = (sessionStatus?: UserProfile['sessionStatus']) => {
+    if (sessionStatus === 'ACTIVE') {
+      return (
+        <StatusBadge variant="valid" size="sm">
+          {t('backOfficeUserManagement.sessionActive')}
+        </StatusBadge>
+      );
+    }
+
+    if (sessionStatus === 'REVOKED') {
+      return (
+        <StatusBadge variant="critical" size="sm">
+          {t('backOfficeUserManagement.sessionTerminated')}
+        </StatusBadge>
+      );
+    }
+
+    if (sessionStatus === 'PENDING') {
+      return (
+        <StatusBadge variant="pending" size="sm">
+          {t('backOfficeUserManagement.pending')}
+        </StatusBadge>
+      );
+    }
+    if (sessionStatus === 'SUSPENDED') {
+      return (
+        <StatusBadge variant="pending" size="sm">
+          {t('backOfficeUserManagement.suspended')}
+        </StatusBadge>
+      );
+    }
+
+    return (
+      <StatusBadge variant="neutral" size="sm">
+        {t('backOfficeUserManagement.sessionInactive')}
+      </StatusBadge>
+    );
+  };
+
+  const renderUserRow = (user: UserProfile) => {
+    const terminateDisabled =
+      user.role !== 'agent' ||
+      (user.sessionStatus !== 'ACTIVE' && user.sessionStatus !== 'PENDING');
+    const restartDisabled =
+      user.role !== 'agent' ||
+      user.sessionStatus === 'ACTIVE' ||
+      user.sessionStatus === 'PENDING' ||
+      user.status === 'PENDING_ACTIVATION' ||
+      user.status === 'SUSPENDED' ||
+      !user.sessionStatus;
+
+    return (
+      <TableRow key={user.id} className="group">
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {user.avatarInitials || user.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{user.name}</p>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-muted-foreground" />
+            {user.role}
+          </div>
+        </TableCell>
+        <TableCell>{user.organization}</TableCell>
+        <TableCell>{getUserStatusBadge(user.status)}</TableCell>
+        <TableCell>{getSessionStatusBadge(user.sessionStatus)}</TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+          {t('backOfficeUserManagement.today')}
+        </TableCell>
+        <TableCell>
+          <span className="font-medium">0</span>
+        </TableCell>
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('backOfficeUserManagement.actions')}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedUser(user);
+                  setIsEditUserOpen(true);
+                }}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                {t('backOfficeUserManagement.editUser')}
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={user.role === 'agent'}>
+                <Key className="mr-2 h-4 w-4" />
+                {t('backOfficeUserManagement.resetPassword')}
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={user.role === 'agent'}>
+                <Shield className="mr-2 h-4 w-4" />
+                {t('backOfficeUserManagement.managePermissions')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedUser(user);
+                  setIsTerminateConfirmOpen(true);
+                }}
+                className="text-status-warning"
+                disabled={terminateDisabled}
+              >
+                <PowerOff className="mr-2 h-4 w-4" />
+                {t('backOfficeUserManagement.terminateSession')}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className="text-emerald-600 focus:text-emerald-600"
+                onClick={() => {
+                  setSelectedUser(user);
+                  setIsRestartConfirmOpen(true);
+                }}
+                disabled={restartDisabled}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {t('backOfficeUserManagement.restartSession')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={resendLoadingUserId === user.id || !canResendActivationCode(user)}
+                onClick={() => handleResendActivationCode(user)}
+              >
+                {resendLoadingUserId === user.id ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                {t('backOfficeUserManagement.resendActivationCode')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={resendLoadingUserId === user.id || !canResendOrgAdminPassword(user)}
+                onClick={() => handleResendOrgAdminPassword(user)}
+              >
+                {resendLoadingUserId === user.id ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Key className="mr-2 h-4 w-4" />
+                )}
+                {t('backOfficeUserManagement.resendOrgAdminPassword')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => toggleStatus(user)}
+                className={user.isActive ? 'text-status-warning' : 'text-status-valid'}
+                disabled={user.status === 'PENDING_ACTIVATION'}
+              >
+                {user.isActive ? (
+                  <>
+                    <UserX className="mr-2 h-4 w-4" />
+                    {t('backOfficeUserManagement.deactivate')}
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    {t('backOfficeUserManagement.activate')}
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedUser(user);
+                  setIsDeleteConfirmOpen(true);
+                }}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('backOfficeUserManagement.deleteUser')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const renderTableRows = () => {
+    if (isLoadingUsers) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="h-24 text-center">
+            {t('backOfficeUserManagement.loadingUsers')}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (filteredUsers.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+            {t('backOfficeUserManagement.noUsersFound')}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return filteredUsers.map(renderUserRow);
+  };
+
   // Calculate dynamic stats
   const totalUsersCount = users.length;
   const activeNowCount = users.filter((u: UserProfile) => u.status === 'ACTIVE').length;
@@ -141,8 +387,8 @@ export default function UserManagement() {
     try {
       const result = isSuperAdmin ? await provision(data) : await provisionOrg(data);
       setIsAddUserOpen(false);
-      if (result?.tempPassword && data.email) {
-        setTempPasswordInfo({ email: data.email, password: result.tempPassword });
+      if (result?.data?.tempPassword && data.email) {
+        setTempPasswordInfo({ email: data.email, password: result.data.tempPassword });
       } else {
         toast.success(t('backOfficeUserManagement.toastSuccess'));
       }
@@ -266,9 +512,35 @@ export default function UserManagement() {
     }
   };
 
+  const handleResendOrgAdminPassword = async (user: UserProfile) => {
+    setResendLoadingUserId(user.id);
+    try {
+      const response = await fetchWithAuth('/api/v1/admin/resend-org-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to resend org admin password');
+      }
+
+      const data = await response.json();
+      toast.success(data.message || 'Password sent successfully');
+    } catch (error) {
+      console.error('Resend password error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to resend org admin password');
+    } finally {
+      setResendLoadingUserId(null);
+    }
+  };
+
   const toggleStatus = async (user: UserProfile) => {
     try {
-      await update(user.id, { status: user.isActive ? 'SUSPENDED' : 'ACTIVE' });
+      await update(user.id, { status: user.isActive ? 'SUSPENDED' : 'PENDING_ACTIVATION' });
       toast.success(t('backOfficeUserManagement.toastSuccess'));
     } catch (error) {
       toast.error(t('backOfficeUserManagement.toastError'));
@@ -573,7 +845,7 @@ export default function UserManagement() {
                   <TableHead>{t('backOfficeUserManagement.role')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.organization')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.status')}</TableHead>
-                  <TableHead>{t('backOfficeUserManagement.terminateSession')}</TableHead>
+                  <TableHead>{t('backOfficeUserManagement.userDevice')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.lastActive')}</TableHead>
                   <TableHead>{t('backOfficeUserManagement.controlsToday')}</TableHead>
                   <TableHead className="w-[80px]">
@@ -581,196 +853,7 @@ export default function UserManagement() {
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {isLoadingUsers ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      {t('backOfficeUserManagement.loadingUsers')}
-                    </TableCell>
-                  </TableRow>
-                ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user: UserProfile) => (
-                    <TableRow key={user.id} className="group">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback className="bg-primary text-primary-foreground">
-                              {user.avatarInitials || user.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4 text-muted-foreground" />
-                          {user.role}
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.organization}</TableCell>
-                      <TableCell>
-                        <StatusBadge
-                          variant={
-                            user.status === 'ACTIVE'
-                              ? 'valid'
-                              : user.status === 'PENDING_ACTIVATION'
-                                ? 'pending'
-                                : 'critical'
-                          }
-                          size="sm"
-                        >
-                          {user.status === 'ACTIVE'
-                            ? t('backOfficeUserManagement.active')
-                            : user.status === 'PENDING_ACTIVATION'
-                              ? t('backOfficeUserManagement.pending')
-                              : t('backOfficeUserManagement.suspended')}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>
-                        {user.sessionStatus === 'ACTIVE' ? (
-                          <StatusBadge variant="valid" size="sm">
-                            {t('backOfficeUserManagement.sessionActive')}
-                          </StatusBadge>
-                        ) : user.sessionStatus === 'REVOKED' ? (
-                          <StatusBadge variant="destructive" size="sm">
-                            {t('backOfficeUserManagement.sessionTerminated')}
-                          </StatusBadge>
-                        ) : (
-                          <StatusBadge variant="neutral" size="sm">
-                            {t('backOfficeUserManagement.sessionInactive')}
-                          </StatusBadge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {t('backOfficeUserManagement.today')}
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">0</span>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>
-                              {t('backOfficeUserManagement.actions')}
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsEditUserOpen(true);
-                              }}
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.editUser')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Key className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.resetPassword')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Shield className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.managePermissions')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsTerminateConfirmOpen(true);
-                              }}
-                              className="text-status-warning"
-                              disabled={user.role !== 'agent' || user.sessionStatus !== 'ACTIVE'}
-                            >
-                              <PowerOff className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.terminateSession')}
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              className="text-emerald-600 focus:text-emerald-600"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsRestartConfirmOpen(true);
-                              }}
-                              disabled={
-                                user.role !== 'agent' ||
-                                user.sessionStatus === 'ACTIVE' ||
-                                user.status === 'PENDING_ACTIVATION' ||
-                                !user.sessionStatus
-                              }
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.restartSession')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={
-                                resendLoadingUserId === user.id ||
-                                user.role !== 'agent' ||
-                                !(
-                                  user.status === 'PENDING_ACTIVATION' ||
-                                  user.status === 'SUSPENDED'
-                                )
-                              }
-                              onClick={() => handleResendActivationCode(user)}
-                            >
-                              {resendLoadingUserId === user.id ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                              )}
-                              {t('backOfficeUserManagement.resendActivationCode')}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => toggleStatus(user)}
-                              className={
-                                user.isActive ? 'text-status-warning' : 'text-status-valid'
-                              }
-                            >
-                              {user.isActive ? (
-                                <>
-                                  <UserX className="mr-2 h-4 w-4" />
-                                  {t('backOfficeUserManagement.deactivate')}
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="mr-2 h-4 w-4" />
-                                  {t('backOfficeUserManagement.activate')}
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsDeleteConfirmOpen(true);
-                              }}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {t('backOfficeUserManagement.deleteUser')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      {t('backOfficeUserManagement.noUsersFound')}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+              <TableBody>{renderTableRows()}</TableBody>
             </Table>
           </div>
         </CardContent>

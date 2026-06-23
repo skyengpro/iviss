@@ -10,6 +10,7 @@ use axum::extract::{Extension, State};
 use axum::http::header::AUTHORIZATION;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use base64::Engine;
+use tracing::instrument;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::AppError;
@@ -19,12 +20,10 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-const SHIFT_TTL: Duration = Duration::from_secs(8 * 60 * 60);
 
 /// Logic to execute when a shift has ended.
 /// Marks the device as inactive and returns an unauthorized error.
@@ -50,17 +49,26 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     tag = "auth",
     operation_id = "loginUser"
 )]
+#[instrument(name = "auth.login", skip(state, payload), fields(email = %payload.email))]
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    metrics::counter!("iviss_auth_attempts_total", "method" => "login").increment(1);
+
     if payload.email.trim().is_empty() || payload.password.trim().is_empty() {
+        metrics::counter!("iviss_auth_failures_total", "reason" => "empty_credentials")
+            .increment(1);
         return Err(AppError::bad_request("Email and password are required"));
     }
 
     let user = auth_queries::find_admin_by_identity(&state.db, &payload.email)
         .await?
-        .ok_or_else(|| AppError::unauthorized("Invalid credentials"))?;
+        .ok_or_else(|| {
+            metrics::counter!("iviss_auth_failures_total", "reason" => "user_not_found")
+                .increment(1);
+            AppError::unauthorized("Invalid credentials")
+        })?;
 
     if user.status != UserStatus::Active && !user.must_change_password {
         tracing::warn!(
@@ -68,6 +76,8 @@ pub async fn login(
             status = %user.status.as_str(),
             "login: rejected — account not active"
         );
+        metrics::counter!("iviss_auth_failures_total", "reason" => "account_not_active")
+            .increment(1);
         return Err(AppError::unauthorized("Account is not active"));
     }
 
@@ -80,6 +90,7 @@ pub async fn login(
 
     if !matches {
         tracing::warn!(email = %payload.email, "login: rejected — wrong password");
+        metrics::counter!("iviss_auth_failures_total", "reason" => "wrong_password").increment(1);
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -89,6 +100,7 @@ pub async fn login(
         && user.role != UserRole::Manager
         && user.role != UserRole::OrgAdmin
     {
+        metrics::counter!("iviss_auth_failures_total", "reason" => "invalid_role").increment(1);
         return Err(AppError::unauthorized("Invalid credentials"));
     }
 
@@ -285,6 +297,7 @@ async fn revoke_all_user_refresh_tokens(
     tag = "auth",
     operation_id = "activateDevice"
 )]
+#[instrument(name = "auth.activate", skip(state, payload), fields(badge_id = %payload.badge_id))]
 pub async fn activate(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ActivateRequest>,
@@ -306,6 +319,7 @@ pub async fn activate(
         r#"
         SELECT id,
                role,
+               organization_id,
                status::TEXT AS status
         FROM users
         WHERE badge_id = $1
@@ -320,6 +334,7 @@ pub async fn activate(
 
     let user_id: Uuid = user_row.get("id");
     let user_role: UserRole = user_row.get("role");
+    let user_org_id: Option<Uuid> = user_row.get("organization_id");
     let user_status: String = user_row.get("status");
 
     if user_role != UserRole::Agent {
@@ -339,16 +354,42 @@ pub async fn activate(
         .await
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|_| AppError::internal_error("System time before UNIX_EPOCH"))?
-        .as_secs();
+    let org_id = user_org_id
+        .ok_or_else(|| AppError::forbidden("Agent must belong to an organization to activate"))?;
 
-    let shift_start: i64 = now.try_into().unwrap_or(0i64);
-    let shift_end: i64 = now
-        .saturating_add(SHIFT_TTL.as_secs())
-        .try_into()
-        .unwrap_or(0i64);
+    let (shift_start_minutes, shift_end_minutes) =
+        crate::queries::organization_queries::get_organization_work_time_cached(
+            &state.db,
+            &state.app_cache,
+            org_id,
+        )
+        .await?;
+
+    let localt_time_offset = time::UtcOffset::from_hms(1, 0, 0)
+        .map_err(|_| AppError::internal_error("Failed to build UTC+1 offset"))?;
+
+    let today_local = time::OffsetDateTime::now_utc()
+        .to_offset(localt_time_offset)
+        .date();
+
+    let shift_start_hour = (shift_start_minutes / 60) as u8;
+    let shift_start_minute = (shift_start_minutes % 60) as u8;
+    let shift_end_hour = (shift_end_minutes / 60) as u8;
+    let shift_end_minute = (shift_end_minutes % 60) as u8;
+
+    let shift_start_time = time::Time::from_hms(shift_start_hour, shift_start_minute, 0)
+        .map_err(|_| AppError::internal_error("Invalid shift_start_hour in organization"))?;
+
+    let shift_end_time = time::Time::from_hms(shift_end_hour, shift_end_minute, 0)
+        .map_err(|_| AppError::internal_error("Invalid shift_end_hour in organization"))?;
+
+    let shift_start: i64 =
+        time::OffsetDateTime::new_in_offset(today_local, shift_start_time, localt_time_offset)
+            .unix_timestamp();
+
+    let shift_end: i64 =
+        time::OffsetDateTime::new_in_offset(today_local, shift_end_time, localt_time_offset)
+            .unix_timestamp();
 
     sqlx::query(
         r#"
@@ -362,6 +403,22 @@ pub async fn activate(
     .execute(&mut *tx)
     .await
     .map_err(AppError::Database)?;
+
+    // sqlx::query(
+    //     r#"
+    //     UPDATE devices
+    //     SET status = 'SUSPENDED'::device_status,
+    //         revoked_at = NOW()
+    //     WHERE user_id = $1
+    //       AND id <> $2
+    //       AND status != 'SUSPENDED'::device_status
+    //     "#,
+    // )
+    // .bind(user_id)
+    // .bind(payload.device_id)
+    // .execute(&mut *tx)
+    // .await
+    // .map_err(AppError::Database)?;
 
     sqlx::query(
         r#"
@@ -480,6 +537,10 @@ pub async fn request_daily_login(
         ));
     }
 
+    if user.status == "PENDING_ACTIVATION" {
+        return Err(AppError::unauthorized("Account pending activation"));
+    }
+
     // Enforce shift hours per organization (Cameroon local time UTC+1)
     // Agents must belong to an organization
     let user_org_id: Option<Uuid> = sqlx::query_scalar(
@@ -513,8 +574,8 @@ pub async fn request_daily_login(
     let current_minute_of_day = (now_local.hour() as u32) * 60 + (now_local.minute() as u32);
 
     // Shift window: stored as minutes since midnight (inclusive start, exclusive end)
+    let fmt_time = |mins: u32| -> String { format!("{:02}:{:02}", mins / 60, mins % 60) };
     if current_minute_of_day < shift_start_minutes || current_minute_of_day >= shift_end_minutes {
-        let fmt_time = |mins: u32| -> String { format!("{:02}:{:02}", mins / 60, mins % 60) };
         return Err(AppError::unauthorized(format!(
             "Outside shift hours — login is available from {} to {} local time",
             fmt_time(shift_start_minutes),
@@ -525,9 +586,22 @@ pub async fn request_daily_login(
     let device_opt =
         auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
-    let device = device_opt.ok_or_else(|| {
-        AppError::NotFound("Device is not registered. Please re-activate.".into())
-    })?;
+    let device = match device_opt {
+        Some(d) => d,
+        None => {
+            let device_exists =
+                auth_queries::check_device_exists(&state.db, payload.device_id).await?;
+            if device_exists {
+                return Err(AppError::bad_request(
+                    " Incompatible Badge ID for this device. Please check your Badge ID.",
+                ));
+            } else {
+                return Err(AppError::NotFound(
+                    "Device is not registered. Please re-activate.".into(),
+                ));
+            }
+        }
+    };
 
     if device.status == "SUSPENDED" {
         return Err(AppError::unauthorized(
@@ -535,17 +609,19 @@ pub async fn request_daily_login(
         ));
     }
 
-    // Check for administrative termination cooldown (Ariel's feedback)
-    if let Some(revoked_at) = device.revoked_at {
-        // Assume UTC for the stored TIMESTAMP (project convention)
-        let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
-        let revoked_local = revoked_at.to_offset(local_offset);
-        let now = OffsetDateTime::now_utc().to_offset(local_offset);
+    // Check for administrative termination cooldown
+    if let (Some(revoked_at), dev_status) = (device.revoked_at, device.status) {
+        if dev_status != "PENDING" {
+            // Assume UTC for the stored TIMESTAMP (project convention)
+            let local_offset = time::UtcOffset::from_hms(1, 0, 0).unwrap_or(time::UtcOffset::UTC);
+            let revoked_local = revoked_at.to_offset(local_offset);
+            let now = OffsetDateTime::now_utc().to_offset(local_offset);
 
-        if revoked_local.date() == now.date() {
-            return Err(AppError::Forbidden(
-                "Session terminated by administrator. Please wait until your next shift (tomorrow at 8:00 AM) to request a new code.".into()
+            if revoked_local.date() == now.date() {
+                return Err(AppError::Forbidden(
+                format!("Session terminated by administrator. Please wait until your next shift (tomorrow at {}) to request a new code.", fmt_time(shift_start_minutes))
             ));
+            }
         }
     }
 
@@ -587,7 +663,7 @@ pub async fn request_daily_login(
     responses(
         (status = 200, description = "Login successful", body = VerifyDailyLoginResponse),
         (status = 400, description = "Bad request — missing or invalid fields", body = AppErrorResponse),
-        (status = 401, description = "Invalid OTP, expired, or device suspended", body = AppErrorResponse),
+        (status = 401, description = "Invalid OTP, expired, or device suspended or pending", body = AppErrorResponse),
         (status = 404, description = "User or device not found", body = AppErrorResponse),
     ),
     tag = "auth",
@@ -646,8 +722,8 @@ pub async fn verify_daily_login(
     }
 
     // Daily login doesn't REQUIRE the device to be registered yet
-    // but if it IS registered, it must not be suspended/revoked
-    if device_status == "SUSPENDED" || device_status == "REVOKED" {
+    // but if it IS registered, it must not be suspended
+    if device_status == "SUSPENDED" {
         return Err(AppError::unauthorized(format!(
             "Device status: {}",
             device_status.to_lowercase()
