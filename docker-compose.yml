@@ -115,8 +115,8 @@ services:
     container_name: iviss-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -141,10 +141,10 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://iviss-minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-        mc mb --ignore-existing local/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
-        mc version enable local/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
-        exit 0;
+        set -e;
+        mc alias set iviss-minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+        mc mb --ignore-existing iviss-minio/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
+        mc version enable iviss-minio/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
       "
     logging: *default-logging
     networks:
@@ -239,7 +239,7 @@ services:
       - "8080:8080"
     environment:
       NODE_ENV: development
-      VITE_API_URL: https://${DOMAIN_NAME:-localhost}
+      VITE_API_URL: http://${DOMAIN_NAME:-localhost:3000}
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - ./frontend:/app

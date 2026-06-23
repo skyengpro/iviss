@@ -23,8 +23,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout"] }
 anyhow = "1.0"
 thiserror = "1.0"
-aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-s3 = "1"
+aws-config = { version = "1", default-features = false, features = ["behavior-version-latest", "rt-tokio", "default-https-client"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
 
 utoipa = { version = "4", features = ["axum_extras", "uuid", "time"] }
 utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
@@ -53,7 +53,7 @@ p256 = { version = "0.13", features = ["ecdsa", "jwk"] }
 ecdsa = { version = "0.16", features = ["verifying"] }
 moka = { version = "0.12.15", features = ["future"] }
 # Force rustls-webpki to a patched version to fix RUSTSEC-2026-0098, RUSTSEC-2026-0099, and RUSTSEC-2026-0104
-rustls-webpki = "0.103.13"
+# rustls-webpki = "0.103.13"
 lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1-rustls-tls", "builder", "pool"] }
 
 [dev-dependencies]
