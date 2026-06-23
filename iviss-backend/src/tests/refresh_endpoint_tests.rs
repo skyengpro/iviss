@@ -2,6 +2,7 @@ use crate::app_state::AppState;
 use crate::routes;
 use crate::services::email_provider::MockEmailProvider;
 use crate::services::sms_provider::MockSmsProvider;
+use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use base64::Engine;
@@ -197,6 +198,7 @@ async fn setup_test_infrastructure() -> (
         Arc::new(MockSmsProvider),
         Arc::new(MockEmailProvider),
         &config,
+        Arc::new(TelemetryHandle::noop()),
     )
     .expect("failed to initialize test app state");
 

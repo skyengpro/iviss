@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import { X, Keyboard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ImageProcessor } from '@/utils/imageProcessor';
 
 interface PlateInputProps {
   value: string;
@@ -13,20 +14,8 @@ interface PlateInputProps {
   placeholder?: string;
 }
 
-// Supported formats:
-// 1. Standard: (REGION) 1234 A OR (REGION) 123 AB
-// 2. Police: SN 1234
-// 3. Military: 1234567
-// 4. Government: EN1234X
-// 5. Postal: RT123456
-// 6. Diplomatic: CD 01 123
-const REGION = 'AD|CE|ES|EN|LT|NO|NW|OU|SU|SW';
-export const PLATE_REGEX = new RegExp(
-  `^(?:(?:${REGION})\\s\\d{4}\\s[A-Z]|(?:${REGION})\\s\\d{3}\\s[A-Z]{2}|SN\\s\\d{4}|\\d{7}|[A-Z]{2}\\d{4}[A-Z]|RT\\d{6}|CD\\s\\d{1,3}\\s\\d{1,3})$`
-);
-
 export const isValidPlate = (plate: string): boolean => {
-  return PLATE_REGEX.test(plate.trim());
+  return ImageProcessor.classifyCameroonPlate(plate) !== null;
 };
 
 export function PlateInput({
@@ -122,7 +111,7 @@ export function PlateInput({
           className="flex-1 bg-transparent text-xl font-bold tracking-widest placeholder:text-muted-foreground/50 placeholder:font-normal placeholder:tracking-normal focus:outline-none"
           autoComplete="off"
           autoCapitalize="characters"
-          maxLength={12}
+          maxLength={16}
         />
 
         {/* Clear button */}

@@ -11,6 +11,7 @@ pub mod models;
 pub mod queries;
 pub mod routes;
 pub mod services;
+pub mod telemetry;
 #[cfg(test)]
 pub mod tests;
 pub mod utils;

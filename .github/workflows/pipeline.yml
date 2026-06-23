@@ -1,18 +1,14 @@
 name: Unified Release & Docker Pipeline
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - closed
   workflow_dispatch:
 
 jobs:
   release:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     name: Determine Release Version
     runs-on: ubuntu-latest
     permissions:
@@ -93,3 +89,40 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VITE_API_URL=https://api.iviss.skyengpro.app
+
+  update-om-values:
+    name: Update OM Repo Image Tags
+    needs: [release, docker]
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout OM repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: skyengpro/om
+          ref: feat/iviss-deployment
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Update backend image tag
+        env:
+          VERSION: ${{ needs.release.outputs.new_release_version }}
+        run: |
+          sed -i "s|^\(  tag:\).*|\1 \"${VERSION}\"|" helm/values/iviss/api.yaml
+
+      - name: Update frontend image tag
+        env:
+          VERSION: ${{ needs.release.outputs.new_release_version }}
+        run: |
+          sed -i "s|^\(  tag:\).*|\1 \"${VERSION}\"|" helm/values/iviss/web.yaml
+
+      - name: Commit and push
+        env:
+          VERSION: ${{ needs.release.outputs.new_release_version }}
+        run: |
+          git config user.name "iviss-bot"
+          git config user.email "bot@iviss.cloud"
+          git add helm/values/iviss/api.yaml helm/values/iviss/web.yaml
+          git commit -m "chore: update iviss image tags to ${VERSION}"
+          git push
