@@ -259,7 +259,8 @@ fn classify_compact(compact: &str) -> Option<PlateCategory> {
         (PlateCategory::GovernmentLegacy, &GOVERNMENT_LEGACY_RE),
     ];
 
-    checks.iter()
+    checks
+        .iter()
         .find_map(|(category, regex)| regex.is_match(compact).then_some(*category))
 }
 
@@ -295,7 +296,8 @@ fn correct_with_mask(candidate: &str, mask: &str) -> Option<String> {
                 let corrected = correct_letter(actual);
                 (corrected == literal).then_some(literal)
             }
-        }).collect()
+        })
+        .collect()
 }
 
 fn correct_letter(c: char) -> char {
