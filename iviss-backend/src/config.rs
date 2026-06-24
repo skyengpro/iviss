@@ -230,11 +230,6 @@ impl Config {
         let region = env::var("S3_CACHE_REGION")
             .or_else(|_| env::var("AWS_DEFAULT_REGION"))
             .unwrap_or_else(|_| "eu-west-1".to_string());
-        let prefix = env::var("S3_CACHE_PREFIX")
-            .ok()
-            .map(|v| v.trim().to_string())
-            .filter(|v| !v.is_empty())
-            .unwrap_or_else(|| "vehicle-cache/".to_string());
         let endpoint_url = env::var("S3_CACHE_ENDPOINT_URL")
             .or_else(|_| env::var("AWS_ENDPOINT_URL"))
             .ok()
@@ -247,7 +242,6 @@ impl Config {
             enabled,
             bucket,
             region,
-            prefix,
             endpoint_url,
             force_path_style,
         }
@@ -572,7 +566,6 @@ mod tests {
                 enabled: true,
                 bucket: None,
                 region: "us-east-1".into(),
-                prefix: "vehicle-cache/".into(),
                 endpoint_url: None,
                 force_path_style: false,
             },
