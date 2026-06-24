@@ -1,4 +1,5 @@
 use crate::dto::search_vehicle::VehicleSearchResult;
+use crate::utils::plate_format::{self, PlateCategory};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use aws_config::{meta::region::RegionProviderChain, BehaviorVersion};
@@ -6,13 +7,18 @@ use aws_sdk_s3::{config::Region, primitives::ByteStream};
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
 
+const S3_CACHE_PREFIX: &str = "vehicle-cache/";
+const REGION_CODES: &[&str] = &[
+    "AD", "CE", "EN", "ES", "LT", "NO", "NW", "OU", "SU", "SW", "SO",
+];
+const OTHER_CACHE_PARTITION: &str = "others";
+
 /// S3-compatible vehicle data cache configuration.
 #[derive(Clone, Debug, Default)]
 pub struct S3CacheConfig {
     pub enabled: bool,
     pub bucket: Option<String>,
     pub region: String,
-    pub prefix: String,
     pub endpoint_url: Option<String>,
     pub force_path_style: bool,
 }
@@ -31,7 +37,6 @@ pub trait VehicleDataCache: Send + Sync {
 pub struct S3VehicleDataCache {
     client: aws_sdk_s3::Client,
     bucket: String,
-    prefix: String,
     dedup_cache: Cache<String, ()>,
 }
 
@@ -74,7 +79,6 @@ impl S3VehicleDataCache {
         Ok(Self {
             client: aws_sdk_s3::Client::from_conf(s3_config.build()),
             bucket,
-            prefix: normalize_prefix(&config.prefix),
             dedup_cache,
         })
     }
@@ -86,7 +90,8 @@ impl S3VehicleDataCache {
             ));
         }
 
-        Ok(format!("{}{}.json", self.prefix, plate))
+        let partition = cache_partition_for_plate(plate);
+        Ok(format!("{}{partition}/{plate}.json", S3_CACHE_PREFIX))
     }
 }
 
@@ -167,23 +172,50 @@ impl VehicleDataCache for S3VehicleDataCache {
     }
 }
 
-fn normalize_prefix(prefix: &str) -> String {
-    let prefix = prefix.trim_matches('/');
-    if prefix.is_empty() {
-        String::new()
-    } else {
-        format!("{prefix}/")
+fn cache_partition_for_plate(plate: &str) -> &str {
+    let Some(found) = plate_format::classify(plate) else {
+        return OTHER_CACHE_PARTITION;
+    };
+
+    match found.category {
+        PlateCategory::CivilCemac
+        | PlateCategory::CivilLegacy
+        | PlateCategory::Trailer
+        | PlateCategory::BikeCemac
+        | PlateCategory::TestVehicle => plate
+            .get(..2)
+            .filter(|region| REGION_CODES.contains(region))
+            .unwrap_or(OTHER_CACHE_PARTITION),
+        PlateCategory::State
+        | PlateCategory::Diplomatic
+        | PlateCategory::Temporary
+        | PlateCategory::Transit
+        | PlateCategory::Postal
+        | PlateCategory::SpecialInvestment
+        | PlateCategory::NationalSecurity
+        | PlateCategory::Military
+        | PlateCategory::PostalTelecom
+        | PlateCategory::GovernmentLegacy => OTHER_CACHE_PARTITION,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cache_partition_routes_regional_plates_by_region_code() {
+        assert_eq!(cache_partition_for_plate("LT893DK"), "LT");
+        assert_eq!(cache_partition_for_plate("CE128BC"), "CE");
+        assert_eq!(cache_partition_for_plate("NW777AB"), "NW");
+        assert_eq!(cache_partition_for_plate("LTSR9652A"), "LT");
+    }
 
     #[test]
-    fn normalize_prefix_keeps_single_trailing_slash() {
-        assert_eq!(normalize_prefix("vehicle-cache"), "vehicle-cache/");
-        assert_eq!(normalize_prefix("/vehicle-cache/"), "vehicle-cache/");
-        assert_eq!(normalize_prefix(""), "");
+    fn cache_partition_routes_special_formats_to_others() {
+        assert_eq!(cache_partition_for_plate("CA1234A"), "others");
+        assert_eq!(cache_partition_for_plate("SN1234"), "others");
+        assert_eq!(cache_partition_for_plate("CMD02RC521"), "others");
+        assert_eq!(cache_partition_for_plate("EN1234X"), "others");
+        assert_eq!(cache_partition_for_plate("1234567"), "others");
     }
 }
