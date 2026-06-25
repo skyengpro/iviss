@@ -25,6 +25,7 @@ anyhow = "1.0"
 thiserror = "1.0"
 aws-config = { version = "1", default-features = false, features = ["behavior-version-latest", "rt-tokio", "default-https-client"] }
 aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "default-https-client"] }
+aes-gcm = "0.10"
 
 # Observability - Metrics (Prometheus)
 metrics = "0.24"
@@ -68,7 +69,7 @@ lettre = { version = "0.11", default-features = false, features = ["smtp-transpo
 
 [dev-dependencies]
 testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+testcontainers-modules = { version = "0.11", features = ["postgres", "minio"] }
 mockito = "1.4"
 tokio-test = "0.4"
 tower = "0.5"
