@@ -25,3 +25,5 @@ pub mod stats_queries_tests;
 pub mod terminate_session_tests;
 #[cfg(test)]
 pub mod users_and_user_manager_tests;
+#[cfg(test)]
+pub mod vehicle_data_cache_tests;

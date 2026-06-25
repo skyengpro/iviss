@@ -238,12 +238,36 @@ impl Config {
         let force_path_style =
             Self::parse_bool_env("S3_CACHE_FORCE_PATH_STYLE", endpoint_url.is_some());
 
+        // SSE-KMS: optional KMS key ARN for server-side encryption.
+        let kms_key_id = env::var("S3_CACHE_KMS_KEY_ID")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+
+        // Client-side AES-256-GCM: optional base64-encoded 32-byte key.
+        let encryption_key = env::var("S3_CACHE_ENCRYPTION_KEY")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .map(|b64| {
+                use base64::Engine;
+                let bytes = base64::engine::general_purpose::STANDARD
+                    .decode(&b64)
+                    .expect("S3_CACHE_ENCRYPTION_KEY is not valid base64");
+                let key: [u8; 32] = bytes
+                    .try_into()
+                    .expect("S3_CACHE_ENCRYPTION_KEY must decode to exactly 32 bytes");
+                key
+            });
+
         S3CacheConfig {
             enabled,
             bucket,
             region,
             endpoint_url,
             force_path_style,
+            kms_key_id,
+            encryption_key,
         }
     }
 
@@ -568,6 +592,8 @@ mod tests {
                 region: "us-east-1".into(),
                 endpoint_url: None,
                 force_path_style: false,
+                kms_key_id: None,
+                encryption_key: None,
             },
         };
 

@@ -52,10 +52,11 @@ x-backend-environment: &backend-environment
   S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
   S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-}
   S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-false}
+  S3_CACHE_SSE_KMS_KEY_ID: ${S3_CACHE_SSE_KMS_KEY_ID:-}
+  S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
   AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-eu-west-1}
-  # SEED_DATA: ${SEED_DATA:-true}
 
 services:
   # PostgreSQL service shared by dev and prod-style local runs
