@@ -179,13 +179,18 @@ export function setupAuthInterceptors(
     try {
       const url = new URL(request.url);
       if (REFRESH_PATHS.some((p) => url.pathname.includes(p))) {
-        // Check if it's specifically "invalid/expired refresh token" — that means revoked
+        // Check body to decide whether to logout or just surface the error
         try {
           const body = await response.clone().json();
           const msg = body?.message?.toLowerCase() || '';
           if (isDeviceReactivationMessage(msg)) {
             console.warn('[AuthInterceptor] Device reactivation required:', body.message);
             markDeviceReactivationRequired();
+            options.onSessionExpired?.();
+            return response;
+          }
+          if (msg.includes('shift ended')) {
+            console.warn('[AuthInterceptor] Shift ended — redirecting to daily-login');
             options.onSessionExpired?.();
             return response;
           }
