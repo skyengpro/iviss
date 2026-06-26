@@ -3,6 +3,7 @@ pub use crate::services::sms_provider::SmsProviderCredentials;
 pub use crate::services::vehicle_client_service::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
 };
+pub use crate::services::vehicle_data_cache::S3CacheConfig;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;
@@ -97,6 +98,8 @@ pub struct Config {
     pub admin_bootstrap_username: Option<String>,
     // Vehicle API
     pub vehicle_api_credentials: VehicleApiCredentials,
+    // S3-compatible vehicle data cache
+    pub s3_cache: S3CacheConfig,
 }
 
 impl Config {
@@ -185,6 +188,8 @@ impl Config {
             })
             .unwrap_or(false);
 
+        let s3_cache = Self::get_s3_cache_config();
+
         Ok(Self {
             database_url,
             server_host,
@@ -202,7 +207,68 @@ impl Config {
             admin_bootstrap_phone,
             admin_bootstrap_username,
             vehicle_api_credentials,
+            s3_cache,
         })
+    }
+
+    fn parse_bool_env(name: &str, default: bool) -> bool {
+        env::var(name)
+            .ok()
+            .map(|v| {
+                let v = v.trim().to_lowercase();
+                matches!(v.as_str(), "1" | "true" | "yes" | "on")
+            })
+            .unwrap_or(default)
+    }
+
+    fn get_s3_cache_config() -> S3CacheConfig {
+        let enabled = Self::parse_bool_env("S3_CACHE_ENABLED", false);
+        let bucket = env::var("S3_CACHE_BUCKET")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+        let region = env::var("S3_CACHE_REGION")
+            .or_else(|_| env::var("AWS_DEFAULT_REGION"))
+            .unwrap_or_else(|_| "eu-west-1".to_string());
+        let endpoint_url = env::var("S3_CACHE_ENDPOINT_URL")
+            .or_else(|_| env::var("AWS_ENDPOINT_URL"))
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+        let force_path_style =
+            Self::parse_bool_env("S3_CACHE_FORCE_PATH_STYLE", endpoint_url.is_some());
+
+        // SSE-KMS: optional KMS key ARN for server-side encryption.
+        let kms_key_id = env::var("S3_CACHE_KMS_KEY_ID")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+
+        // Client-side AES-256-GCM: optional base64-encoded 32-byte key.
+        let encryption_key = env::var("S3_CACHE_ENCRYPTION_KEY")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .map(|b64| {
+                use base64::Engine;
+                let bytes = base64::engine::general_purpose::STANDARD
+                    .decode(&b64)
+                    .expect("S3_CACHE_ENCRYPTION_KEY is not valid base64");
+                let key: [u8; 32] = bytes
+                    .try_into()
+                    .expect("S3_CACHE_ENCRYPTION_KEY must decode to exactly 32 bytes");
+                key
+            });
+
+        S3CacheConfig {
+            enabled,
+            bucket,
+            region,
+            endpoint_url,
+            force_path_style,
+            kms_key_id,
+            encryption_key,
+        }
     }
 
     fn get_sms_provider_credentials(sms_provider: &str) -> Result<SmsProviderCredentials> {
@@ -396,6 +462,12 @@ impl Config {
             ));
         }
 
+        if self.s3_cache.enabled && self.s3_cache.bucket.is_none() {
+            return Err(anyhow!(
+                "S3_CACHE_BUCKET must be set when S3_CACHE_ENABLED=true"
+            ));
+        }
+
         Ok(())
     }
 }
@@ -483,6 +555,7 @@ mod tests {
             admin_bootstrap_phone: Some("+237600000000".into()),
             admin_bootstrap_username: Some("admin".into()),
             vehicle_api_credentials: mock_vehicle_api_credentials(),
+            s3_cache: S3CacheConfig::default(),
         };
         assert!(config.validate().is_ok());
 
@@ -492,5 +565,41 @@ mod tests {
         // Mock credentials should fail validation in production
         prod_config.sms_credentials = SmsProviderCredentials::Mock;
         assert!(prod_config.validate().is_err());
+    }
+
+    #[test]
+    fn test_s3_cache_requires_bucket_when_enabled() {
+        let mut config = Config {
+            database_url: "db".into(),
+            server_host: "0.0.0.0".into(),
+            server_port: 3000,
+            log_level: LogLevel::Info,
+            jwt_private_key_pem: "priv".into(),
+            jwt_public_key_pem: "pub".into(),
+            environment: Environment::Local,
+            sms_credentials: SmsProviderCredentials::Mock,
+            email_credentials: EmailProviderCredentials::Mock,
+            otp_via_email: false,
+            activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
+            admin_bootstrap_email: None,
+            admin_bootstrap_password: None,
+            admin_bootstrap_phone: None,
+            admin_bootstrap_username: None,
+            vehicle_api_credentials: mock_vehicle_api_credentials(),
+            s3_cache: S3CacheConfig {
+                enabled: true,
+                bucket: None,
+                region: "us-east-1".into(),
+                endpoint_url: None,
+                force_path_style: false,
+                kms_key_id: None,
+                encryption_key: None,
+            },
+        };
+
+        assert!(config.validate().is_err());
+
+        config.s3_cache.bucket = Some("iviss-vehicle-cache".into());
+        assert!(config.validate().is_ok());
     }
 }

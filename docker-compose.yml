@@ -47,7 +47,16 @@ x-backend-environment: &backend-environment
   ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
   ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
   ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
-  # SEED_DATA: ${SEED_DATA:-true}
+  S3_CACHE_ENABLED: ${S3_CACHE_ENABLED:-false}
+  S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-}
+  S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
+  S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-}
+  S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-false}
+  S3_CACHE_SSE_KMS_KEY_ID: ${S3_CACHE_SSE_KMS_KEY_ID:-}
+  S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+  AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-eu-west-1}
 
 services:
   # PostgreSQL service shared by dev and prod-style local runs
@@ -96,6 +105,47 @@ services:
       - "8081:8080"
     depends_on:
       - db
+    logging: *default-logging
+    networks:
+      - iviss-network
+
+  minio:
+    profiles: ["dev"]
+    image: minio/minio:latest
+    container_name: iviss-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+    networks:
+      - iviss-network
+
+  minio-init:
+    profiles: ["dev"]
+    image: minio/mc:latest
+    container_name: iviss-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        mc alias set iviss-minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+        mc mb --ignore-existing iviss-minio/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
+        mc version enable iviss-minio/${S3_CACHE_BUCKET:-iviss-vehicle-cache};
+      "
     logging: *default-logging
     networks:
       - iviss-network
@@ -280,4 +330,5 @@ volumes:
     driver: local
   target_cache:
     driver: local
-
+  minio_data:
+    driver: local

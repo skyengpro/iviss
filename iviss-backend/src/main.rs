@@ -8,6 +8,7 @@ use iviss_backend::db::seed_admin::run_bootstrap_seed;
 use iviss_backend::routes;
 use iviss_backend::services::email_provider::EmailProvider;
 use iviss_backend::services::sms_provider::SmsProvider;
+use iviss_backend::services::vehicle_data_cache::{S3VehicleDataCache, VehicleDataCache};
 use iviss_backend::telemetry;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -49,6 +50,17 @@ async fn main() -> anyhow::Result<()> {
     info!("Caching necessary data from database...");
     cache.cache_necessary_data_from_database(&db_pool).await?;
 
+    let s3_data_cache: Option<Arc<dyn VehicleDataCache>> = if config.s3_cache.enabled {
+        info!("Initializing S3-compatible vehicle data cache");
+        Some(Arc::new(
+            S3VehicleDataCache::from_config(&config.s3_cache, cache.vehicle_dedup.clone())
+                .await
+                .context("Failed to initialize S3-compatible vehicle data cache")?,
+        ))
+    } else {
+        None
+    };
+
     let state = AppState::new(
         db_pool,
         cache,
@@ -56,12 +68,13 @@ async fn main() -> anyhow::Result<()> {
         email_provider,
         &config,
         telemetry_handle.clone(),
+        s3_data_cache,
     )
     .context("Failed to initialize application state")?;
 
     let shared_state = Arc::new(state);
 
-    let app = routes::assembly((*shared_state).clone())
+    let app = routes::assembly(shared_state.clone())
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
 
     let metrics_app = routes::metrics_router(shared_state.clone());
