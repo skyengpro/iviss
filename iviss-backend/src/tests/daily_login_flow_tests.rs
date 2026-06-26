@@ -184,6 +184,7 @@ async fn setup_test_infrastructure() -> (
         &config,
         Arc::new(TelemetryHandle::noop()),
     )
+    .await
     .expect("failed to initialize test app state");
 
     let app = routes::assembly(state);
