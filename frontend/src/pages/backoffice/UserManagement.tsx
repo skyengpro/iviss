@@ -201,10 +201,15 @@ export default function UserManagement() {
   };
 
   const renderUserRow = (user: UserProfile) => {
+    const isTargetOrgAdmin = user.role === 'org_admin';
+    const disableActionsForOrgAdmin = !isSuperAdmin && isTargetOrgAdmin;
+
     const terminateDisabled =
+      disableActionsForOrgAdmin ||
       user.role !== 'agent' ||
       (user.sessionStatus !== 'ACTIVE' && user.sessionStatus !== 'PENDING');
     const restartDisabled =
+      disableActionsForOrgAdmin ||
       user.role !== 'agent' ||
       user.sessionStatus === 'ACTIVE' ||
       user.sessionStatus === 'PENDING' ||
@@ -235,7 +240,13 @@ export default function UserManagement() {
         </TableCell>
         <TableCell>{user.organization}</TableCell>
         <TableCell>{getUserStatusBadge(user.status)}</TableCell>
-        <TableCell>{getSessionStatusBadge(user.sessionStatus)}</TableCell>
+        <TableCell>
+          {user.role === 'agent' ? (
+            getSessionStatusBadge(user.sessionStatus)
+          ) : (
+            <div className="flex justify-center font-bold text-muted-foreground">-</div>
+          )}
+        </TableCell>
         <TableCell className="text-sm text-muted-foreground">
           {t('backOfficeUserManagement.today')}
         </TableCell>
@@ -261,15 +272,16 @@ export default function UserManagement() {
                   setSelectedUser(user);
                   setIsEditUserOpen(true);
                 }}
+                disabled={disableActionsForOrgAdmin}
               >
                 <Edit className="mr-2 h-4 w-4" />
                 {t('backOfficeUserManagement.editUser')}
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={user.role === 'agent'}>
+              <DropdownMenuItem disabled={disableActionsForOrgAdmin || user.role === 'agent'}>
                 <Key className="mr-2 h-4 w-4" />
                 {t('backOfficeUserManagement.resetPassword')}
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={user.role === 'agent'}>
+              <DropdownMenuItem disabled={disableActionsForOrgAdmin || user.role === 'agent'}>
                 <Shield className="mr-2 h-4 w-4" />
                 {t('backOfficeUserManagement.managePermissions')}
               </DropdownMenuItem>
@@ -297,7 +309,11 @@ export default function UserManagement() {
                 {t('backOfficeUserManagement.restartSession')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={resendLoadingUserId === user.id || !canResendActivationCode(user)}
+                disabled={
+                  disableActionsForOrgAdmin ||
+                  resendLoadingUserId === user.id ||
+                  !canResendActivationCode(user)
+                }
                 onClick={() => handleResendActivationCode(user)}
               >
                 {resendLoadingUserId === user.id ? (
@@ -308,7 +324,11 @@ export default function UserManagement() {
                 {t('backOfficeUserManagement.resendActivationCode')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={resendLoadingUserId === user.id || !canResendOrgAdminPassword(user)}
+                disabled={
+                  disableActionsForOrgAdmin ||
+                  resendLoadingUserId === user.id ||
+                  !canResendOrgAdminPassword(user)
+                }
                 onClick={() => handleResendOrgAdminPassword(user)}
               >
                 {resendLoadingUserId === user.id ? (
@@ -322,7 +342,7 @@ export default function UserManagement() {
               <DropdownMenuItem
                 onClick={() => toggleStatus(user)}
                 className={user.isActive ? 'text-status-warning' : 'text-status-valid'}
-                disabled={user.status === 'PENDING_ACTIVATION'}
+                disabled={disableActionsForOrgAdmin || user.status === 'PENDING_ACTIVATION'}
               >
                 {user.isActive ? (
                   <>
@@ -342,6 +362,7 @@ export default function UserManagement() {
                   setIsDeleteConfirmOpen(true);
                 }}
                 className="text-destructive"
+                disabled={disableActionsForOrgAdmin}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 {t('backOfficeUserManagement.deleteUser')}
