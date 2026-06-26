@@ -301,12 +301,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               json?.reason === 'Shift ended' ||
               json?.message?.includes('Shift ended')
             ) {
-              setSession(null);
-              setUser(null);
-              applyAuthTokenToApiClient();
-              localStorage.removeItem(SESSION_KEY);
-              clearAccessToken();
-              globalThis.location.href = '/daily-login';
+              if (globalLogout) {
+                await globalLogout();
+              }
             }
           } catch {
             // ignore parse error - let auth interceptor handle it
