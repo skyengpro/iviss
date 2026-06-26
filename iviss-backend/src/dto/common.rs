@@ -12,7 +12,7 @@ pub enum Status {
 }
 
 /// How the plate was identified by the agent
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum IdentificationMode {
     Manual,

@@ -189,6 +189,7 @@ async fn setup_test_infrastructure() -> (
         admin_bootstrap_phone: Some("1234567890".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
         vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
+        s3_cache: crate::config::S3CacheConfig::default(),
     };
 
     let state = AppState::new(
@@ -198,10 +199,11 @@ async fn setup_test_infrastructure() -> (
         Arc::new(MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
+        None,
     )
     .expect("failed to initialize test app state");
 
-    let app = routes::assembly(state);
+    let app = routes::assembly(Arc::new(state));
 
     (
         app,

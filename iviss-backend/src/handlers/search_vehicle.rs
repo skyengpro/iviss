@@ -6,7 +6,7 @@ use crate::{
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    services::vehicle_client_service::{VehicleApiError, VehicleApiService},
+    services::vehicle_client_service::{VehicleApiError, VehicleApiResponse, VehicleApiService},
     utils::plate_format,
 };
 use axum::{
@@ -15,8 +15,11 @@ use axum::{
     response::IntoResponse,
 };
 use std::sync::Arc;
-use tracing::instrument;
+use tracing::Instrument;
 use uuid::Uuid;
+
+/// Maximum time to wait for an S3 cache read when the external API is down.
+const S3_CACHE_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 // ── POST /api/v1/vehicles/search ──────────────────────────────────────────────
 
@@ -39,7 +42,7 @@ use uuid::Uuid;
      ),
     security(("bearer_auth" = []))
 )]
-#[instrument(name = "vehicle.search", skip(state, payload), fields(plate = %payload.plate))]
+#[tracing::instrument(name = "vehicle.search", skip(state, payload))]
 pub async fn search_vehicle(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,
@@ -47,49 +50,104 @@ pub async fn search_vehicle(
     // Validate plate format
     let plate = validate_plate_format(&payload.plate)?;
 
-    let api_response =
-        state
-            .vehicle_api_svc
-            .query_plate(&plate)
-            .await
-            .map_err(|error| match error {
-                VehicleApiError::NotFound => AppError::not_found("Vehicle not found"),
-                _ => {
-                    tracing::error!("Vehicle API lookup failed for plate {}: {}", plate, error);
-                    AppError::external_api_failure("Vehicle registry lookup failed")
-                }
-            })?;
+    log_search_location(&payload);
 
+    match state.vehicle_api_svc.query_plate(&plate).await {
+        Ok(api_response) => {
+            let response = build_search_result(api_response, &plate);
+
+            record_vehicle_search_control(&state, &payload, &response).await;
+            cache_vehicle_search_result(&state, plate.clone(), response.clone());
+
+            Ok((StatusCode::OK, Json(response)))
+        }
+        Err(VehicleApiError::NotFound) => {
+            tracing::info!(plate = %plate, "Vehicle not found in external registry");
+
+            Err(AppError::not_found(
+                "No vehicle found with the provided plate number",
+            ))
+        }
+        Err(error) => {
+            tracing::error!("Vehicle API lookup failed: {}", error);
+
+            if let Some(s3_data_cache) = &state.s3_data_cache {
+                match tokio::time::timeout(
+                    S3_CACHE_READ_TIMEOUT,
+                    s3_data_cache.get_vehicle_data(&plate),
+                )
+                .await
+                {
+                    Ok(Ok(Some(cached))) => {
+                        tracing::info!(
+                            cached_at = %cached.cached_at,
+                            "Serving vehicle data from S3 cache"
+                        );
+                        record_vehicle_search_control(&state, &payload, &cached.data).await;
+                        return Ok((StatusCode::OK, Json(cached.data)));
+                    }
+                    Ok(Ok(None)) => {
+                        tracing::warn!("Vehicle S3 cache miss");
+                    }
+                    Ok(Err(cache_error)) => {
+                        tracing::warn!("Vehicle S3 cache lookup failed: {}", cache_error);
+                    }
+                    Err(_) => {
+                        tracing::warn!("Vehicle S3 cache read timed out");
+                    }
+                }
+            }
+
+            Err(AppError::external_api_failure(
+                "Vehicle registry lookup failed",
+            ))
+        }
+    }
+}
+
+fn build_search_result(
+    api_response: VehicleApiResponse,
+    requested_plate: &str,
+) -> VehicleSearchResult {
     let vehicle_info = api_response.vehicle;
     let status_results = VehicleApiService::build_status_results_from_api(&vehicle_info);
+    let original_plate = api_response
+        .plate_number
+        .unwrap_or_else(|| requested_plate.to_string());
 
-    // Contextual logging for search location (using the fields to avoid "unused field" warning)
-    if let (Some(lat), Some(lon)) = (payload.latitude, payload.longitude) {
-        tracing::info!(
-            "Vehicle search for plate {} at coordinates: {}, {}",
-            plate,
-            lat,
-            lon
-        );
-    } else {
-        tracing::info!("Vehicle search for plate {} (no location provided)", plate);
+    VehicleSearchResult {
+        plate_number: original_plate,
+        confidence: Some(1.0),
+        identification_mode: Some(IdentificationMode::Manual),
+        vehicle: vehicle_info,
+        status_results,
     }
+}
 
-    // Auto-log control record for successful search
+fn log_search_location(payload: &VehicleSearchRequest) {
+    if let (Some(lat), Some(lon)) = (payload.latitude, payload.longitude) {
+        tracing::info!("Vehicle search at coordinates: {}, {}", lat, lon);
+    } else {
+        tracing::info!("Vehicle search (no location provided)");
+    }
+}
+
+async fn record_vehicle_search_control(
+    state: &AppState,
+    payload: &VehicleSearchRequest,
+    response: &VehicleSearchResult,
+) {
     let control_id = Uuid::new_v4();
     let current_time = time::OffsetDateTime::now_utc();
-
-    let original_plate = api_response.plate_number.unwrap_or_else(|| plate.clone());
-    let status_str = status_to_control_value(&status_results.overall_status);
+    let status_str = status_to_control_value(&response.status_results.overall_status);
     let control_results = ControlResults {
         registration: Status::Valid,
-        insurance: status_results.insurance.status.clone(),
-        technical_inspection: status_results.technical.status.clone(),
-        wanted_status: status_results.police.status.clone(),
-        customs_status: status_results.customs.status.clone(),
+        insurance: response.status_results.insurance.status.clone(),
+        technical_inspection: response.status_results.technical.status.clone(),
+        wanted_status: response.status_results.police.status.clone(),
+        customs_status: response.status_results.customs.status.clone(),
     };
 
-    // Insert control record
     let _ = sqlx::query(
         r#"
         INSERT INTO control_records (
@@ -101,7 +159,7 @@ pub async fn search_vehicle(
         "#,
     )
     .bind(control_id)
-    .bind(&original_plate)
+    .bind(&response.plate_number)
     .bind(payload.agent_id.unwrap_or_else(Uuid::new_v4))
     .bind(payload.organization_id.unwrap_or_else(Uuid::new_v4))
     .bind(current_time)
@@ -124,20 +182,30 @@ pub async fn search_vehicle(
         tracing::error!("Failed to auto-log control: {}", e);
         e
     });
+}
 
-    // Determine identification mode and confidence (simplified for now)
-    let identification_mode = IdentificationMode::Manual;
-    let confidence = Some(1.0); // Perfect confidence for manual input
-
-    let response = VehicleSearchResult {
-        plate_number: original_plate,
-        confidence,
-        identification_mode: Some(identification_mode),
-        vehicle: vehicle_info,
-        status_results,
-    };
-
-    Ok((StatusCode::OK, Json(response)))
+fn cache_vehicle_search_result(
+    state: &Arc<AppState>,
+    plate: String,
+    response: VehicleSearchResult,
+) {
+    if let Some(s3_data_cache) = &state.s3_data_cache {
+        let s3_data_cache = s3_data_cache.clone();
+        tokio::spawn(
+            async move {
+                match s3_data_cache.store_vehicle_data(&plate, &response).await {
+                    Ok(true) => tracing::debug!("Cached vehicle data to S3"),
+                    Ok(false) => {
+                        tracing::debug!("Skipped duplicate vehicle cache write")
+                    }
+                    Err(error) => {
+                        tracing::warn!("Failed to cache vehicle data: {}", error);
+                    }
+                }
+            }
+            .instrument(tracing::debug_span!("cache_vehicle_data")),
+        );
+    }
 }
 
 #[utoipa::path(
@@ -159,7 +227,7 @@ pub async fn search_vehicle(
     ),
     security(("bearer_auth" = []))
 )]
-#[instrument(name = "vehicle.search_v1", skip(state, payload), fields(plate = %payload.plate))]
+#[tracing::instrument(name = "vehicle.search_v1", skip(state, payload))]
 pub async fn search_vehicle_v1(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<VehicleSearchRequest>,

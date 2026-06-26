@@ -2,10 +2,6 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::Serialize;
 
-pub const REGION_CODES: &[&str] = &[
-    "AD", "CE", "EN", "ES", "LT", "NO", "NW", "OU", "SU", "SW", "SO",
-];
-
 const MIN_PLATE_LEN: usize = 6;
 const MAX_PLATE_LEN: usize = 12;
 

@@ -137,6 +137,7 @@ async fn setup_test_app() -> (
         admin_bootstrap_phone: None,
         admin_bootstrap_username: None,
         vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
+        s3_cache: crate::config::S3CacheConfig::default(),
     };
 
     // Create Moka cache
@@ -154,11 +155,12 @@ async fn setup_test_app() -> (
         email_provider,
         &config,
         Arc::new(TelemetryHandle::noop()),
+        None,
     )
     .expect("failed to initialize test app state");
 
     // Create router
-    let app = routes::assembly(state);
+    let app = routes::assembly(Arc::new(state));
 
     (
         db,

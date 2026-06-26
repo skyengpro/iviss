@@ -62,7 +62,6 @@ pub async fn require_auth_web(
         user_id = %claims.sub,
         role = %claims.role,
         org_id = ?org_id,
-        jti = %claims.jti,
         "rbac: jwt verified"
     );
 

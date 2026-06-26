@@ -56,7 +56,6 @@ pub async fn require_auth(
                 %path,
                 user_id = %claims.sub,
                 device_id = %claims.device_id,
-                jti = %claims.jti,
                 role = %claims.role,
                 "auth: jwt verified (signature + exp)"
             );
