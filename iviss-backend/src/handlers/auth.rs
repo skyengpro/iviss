@@ -62,6 +62,28 @@ pub async fn login(
         return Err(AppError::bad_request("Email and password are required"));
     }
 
+    let rate_limit_key = format!("login_attempts:{}", payload.email.to_lowercase().trim());
+    let current_attempts = state
+        .app_cache
+        .rate_limit
+        .get(&rate_limit_key)
+        .await
+        .unwrap_or(0);
+
+    if current_attempts >= 5 {
+        tracing::warn!(email = %payload.email, "login: rate limited");
+        metrics::counter!("iviss_auth_failures_total", "reason" => "rate_limited").increment(1);
+        return Err(AppError::unauthorized(
+            "Too many login attempts. Please try again later.",
+        ));
+    }
+
+    state
+        .app_cache
+        .rate_limit
+        .insert(rate_limit_key.clone(), current_attempts + 1)
+        .await;
+
     let user = auth_queries::find_admin_by_identity(&state.db, &payload.email)
         .await?
         .ok_or_else(|| {
@@ -172,6 +194,8 @@ pub async fn login(
         role = %user.role.as_str(),
         "login: success"
     );
+
+    state.app_cache.rate_limit.invalidate(&rate_limit_key).await;
 
     Ok((
         StatusCode::OK,

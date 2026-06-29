@@ -17,6 +17,7 @@ pub struct AccessTokenClaims {
     pub shift_end: usize,
     pub exp: usize,
     pub jti: Uuid,
+    pub aud: String,
 }
 
 pub struct JwtService {
@@ -92,6 +93,7 @@ impl JwtService {
             shift_end,
             exp,
             jti: Uuid::new_v4(),
+            aud: "iviss-backend".to_string(),
         };
 
         let mut header = Header::new(Algorithm::RS256);
@@ -145,6 +147,7 @@ mod tests {
         let decoding_key = jsonwebtoken::DecodingKey::from_rsa_pem(pub_pem.as_bytes()).unwrap();
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
         validation.validate_exp = true;
+        validation.set_audience(&["iviss-backend"]);
 
         let decoded =
             jsonwebtoken::decode::<AccessTokenClaims>(&token, &decoding_key, &validation).unwrap();

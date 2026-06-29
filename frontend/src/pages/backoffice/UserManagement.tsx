@@ -111,10 +111,7 @@ export default function UserManagement() {
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [resendLoadingUserId, setResendLoadingUserId] = useState<string | null>(null);
-  const [tempPasswordInfo, setTempPasswordInfo] = useState<{
-    email: string;
-    password: string;
-  } | null>(null);
+
 
   // Superadmin sees all users; org admin sees only their org's users
   const {
@@ -406,13 +403,9 @@ export default function UserManagement() {
 
   const handleAddUser = async (data: ProvisionUserRequest) => {
     try {
-      const result = isSuperAdmin ? await provision(data) : await provisionOrg(data);
+      await (isSuperAdmin ? provision(data) : provisionOrg(data));
       setIsAddUserOpen(false);
-      if (result?.data?.tempPassword && data.email) {
-        setTempPasswordInfo({ email: data.email, password: result.data.tempPassword });
-      } else {
-        toast.success(t('backOfficeUserManagement.toastSuccess'));
-      }
+      toast.success(t('backOfficeUserManagement.toastSuccess'));
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : (error as { message?: string })?.message;
       toast.error(msg || t('backOfficeUserManagement.toastError'));
@@ -713,49 +706,6 @@ export default function UserManagement() {
                   className="bg-accent text-accent-foreground hover:bg-accent/90"
                 >
                   {t('backOfficeUserManagement.restartSession')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* Temp password dialog — shown after org admin creation */}
-          <AlertDialog
-            open={!!tempPasswordInfo}
-            onOpenChange={(open) => {
-              if (!open) setTempPasswordInfo(null);
-            }}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {t('backOfficeUserManagement.orgAdminCreatedTitle')}
-                </AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className="space-y-3">
-                    <p>{t('backOfficeUserManagement.orgAdminCreatedMessage')}</p>
-                    <div className="rounded-md border bg-muted p-3 space-y-1 text-sm font-mono">
-                      <div>
-                        <span className="text-muted-foreground">
-                          {t('backOfficeUserManagement.tempEmail')}:
-                        </span>{' '}
-                        {tempPasswordInfo?.email}
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">
-                          {t('backOfficeUserManagement.tempPassword')}:
-                        </span>{' '}
-                        {tempPasswordInfo?.password}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {t('backOfficeUserManagement.tempPasswordNote')}
-                    </p>
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setTempPasswordInfo(null)}>
-                  {t('backOfficeUserManagement.done')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
