@@ -128,6 +128,7 @@ async fn setup_test_app() -> (
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: Environment::Local,
+        cors_allowed_origins: vec!["http://localhost:8080".to_string()],
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
         otp_via_email: false,
@@ -319,10 +320,10 @@ async fn test_provision_user_creates_new_user() {
     // superadmin endpoint always creates org_admin regardless of requested role
     assert_eq!(body["user"]["role"], "org_admin");
     assert_eq!(body["user"]["status"], "PENDING_ACTIVATION");
-    // temp password must be present
+    // Temporary passwords must be delivered out-of-band, not leaked in API responses.
     assert!(
-        body["tempPassword"].is_string(),
-        "tempPassword should be returned"
+        body.get("tempPassword").is_none(),
+        "tempPassword should not be returned"
     );
 }
 

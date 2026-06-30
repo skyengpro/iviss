@@ -20,6 +20,7 @@ x-backend-environment: &backend-environment
   JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
   ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
   ENVIRONMENT: ${ENVIRONMENT:-local}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
   SERVER_HOST: 0.0.0.0
   SERVER_PORT: 3000
   LOG_LEVEL: ${LOG_LEVEL:-info}

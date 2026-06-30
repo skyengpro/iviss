@@ -1,11 +1,13 @@
 use crate::app_state::AppState;
 use crate::handlers::list_control::{get_list_control, get_list_control_paged};
 use crate::middleware::{auth, cors, metrics, rbac};
+use axum::http::HeaderValue;
 use axum::middleware::from_fn_with_state;
 use axum::{routing::get, routing::post, Router};
 use std::sync::Arc;
 use std::time::Duration;
 use tower_http::compression::CompressionLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::timeout::TimeoutLayer;
 
 pub fn assembly(state: Arc<AppState>) -> Router {
@@ -197,8 +199,16 @@ pub fn assembly(state: Arc<AppState>) -> Router {
         .merge(protected_routes)
         .layer(axum::middleware::from_fn(metrics::track_metrics))
         .layer(CompressionLayer::new())
+        .layer(SetResponseHeaderLayer::overriding(
+            axum::http::header::HeaderName::from_static("x-content-type-options"),
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            axum::http::header::HeaderName::from_static("cross-origin-resource-policy"),
+            HeaderValue::from_static("same-origin"),
+        ))
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
-        .layer(cors::cors_layer())
+        .layer(cors::cors_layer(&state.cors_allowed_origins))
         .with_state(state)
 }
 

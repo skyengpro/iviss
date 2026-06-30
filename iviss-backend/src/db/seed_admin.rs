@@ -119,6 +119,7 @@ mod tests {
             jwt_private_key_pem: "test_key".to_string(),
             jwt_public_key_pem: "test_pub".to_string(),
             environment: crate::config::Environment::Local,
+            cors_allowed_origins: vec!["http://localhost:8080".to_string()],
             sms_credentials: crate::services::sms_provider::SmsProviderCredentials::Mock,
             email_credentials: crate::services::email_provider::EmailProviderCredentials::Mock,
             otp_via_email: false,

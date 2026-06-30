@@ -20,6 +20,7 @@ fn make_jwt_service() -> JwtService {
 fn decode_access_claims(token: &str) -> AccessTokenClaims {
     let mut validation = Validation::new(Algorithm::RS256);
     validation.validate_exp = false;
+    validation.set_audience(&["iviss-backend"]);
 
     decode::<AccessTokenClaims>(
         token,

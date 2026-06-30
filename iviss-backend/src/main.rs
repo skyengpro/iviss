@@ -74,8 +74,11 @@ async fn main() -> anyhow::Result<()> {
 
     let shared_state = Arc::new(state);
 
-    let app = routes::assembly(shared_state.clone())
-        .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
+    let mut app = routes::assembly(shared_state.clone());
+
+    if config.environment != iviss_backend::config::Environment::Production {
+        app = app.merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", ApiDoc::openapi()));
+    }
 
     let metrics_app = routes::metrics_router(shared_state.clone());
 

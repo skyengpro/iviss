@@ -20,7 +20,7 @@ dotenvy = "0.15"
 config = "0.14"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-gzip", "timeout", "set-header"] }
 anyhow = "1.0"
 thiserror = "1.0"
 aws-config = { version = "1", default-features = false, features = ["behavior-version-latest", "rt-tokio", "default-https-client"] }

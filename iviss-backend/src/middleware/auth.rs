@@ -213,6 +213,7 @@ pub fn decode_access_token_rs256(
 
     let mut validation = Validation::new(Algorithm::RS256);
     validation.validate_exp = true;
+    validation.set_audience(&["iviss-backend"]);
     validation.leeway = 0;
 
     decode::<AccessTokenClaims>(token, &decoding_key, &validation)

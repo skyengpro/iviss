@@ -62,25 +62,10 @@ pub async fn provision_user(
 
     let user = create_org_admin_user_with_temp_password(&state.db, req, password_hash).await?;
 
-    println!(
-        "\n╔══════════════════════════════════════════════════╗\
-         \n║        ORG ADMIN ACCOUNT CREATED                 ║\
-         \n╠══════════════════════════════════════════════════╣\
-         \n║  Email    : {:<38}║\
-         \n║  Password : {:<38}║\
-         \n║  User ID  : {:<38}║\
-         \n╚══════════════════════════════════════════════════╝\
-         \n  ⚠  Share these credentials securely.\
-         \n  ⚠  The user must change the password on first login.\n",
-        user.email.as_deref().unwrap_or("(none)"),
-        temp_password,
-        user.id,
-    );
-
     tracing::info!(
         user_id = %user.id,
         email = %user.email.as_deref().unwrap_or(""),
-        "Org admin created successfully"
+        "Org admin created successfully. Password sent via email."
     );
 
     // Send the password to the user's email
@@ -97,7 +82,7 @@ pub async fn provision_user(
         StatusCode::CREATED,
         Json(ProvisionUserResponse {
             user,
-            temp_password: Some(temp_password),
+            temp_password: None,
         }),
     ))
 }
@@ -173,9 +158,23 @@ pub async fn get_user(
 )]
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let target_user = get_user_by_id(&state.db, id).await?;
+
+    if requester.role == "org_admin" {
+        if target_user.role == UserRole::Admin {
+            return Err(AppError::forbidden("Org admin cannot modify super admins"));
+        }
+        if target_user.organization_id != requester.organization_id {
+            return Err(AppError::forbidden(
+                "Org admin can only modify users within their organization",
+            ));
+        }
+    }
+
     let user = update_user_query(&state.db, id, payload).await?;
     Ok((StatusCode::OK, Json(user)))
 }
@@ -199,8 +198,22 @@ pub async fn update_user(
 )]
 pub async fn delete_user(
     State(state): State<Arc<AppState>>,
+    Extension(requester): Extension<AuthenticatedAdmin>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
+    let target_user = get_user_by_id(&state.db, id).await?;
+
+    if requester.role == "org_admin" {
+        if target_user.role == UserRole::Admin {
+            return Err(AppError::forbidden("Org admin cannot delete super admins"));
+        }
+        if target_user.organization_id != requester.organization_id {
+            return Err(AppError::forbidden(
+                "Org admin can only delete users within their organization",
+            ));
+        }
+    }
+
     hard_delete_user(&state.db, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

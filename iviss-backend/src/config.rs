@@ -9,6 +9,13 @@ use serde::Deserialize;
 use std::env;
 use std::str::FromStr;
 
+const DEFAULT_LOCAL_ALLOWED_ORIGINS: &[&str] = &[
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+];
+
 /// Application environment type
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -85,6 +92,7 @@ pub struct Config {
     pub jwt_private_key_pem: String,
     pub jwt_public_key_pem: String,
     pub environment: Environment,
+    pub cors_allowed_origins: Vec<String>,
     // SMS
     pub sms_credentials: SmsProviderCredentials,
     // Email
@@ -151,6 +159,9 @@ impl Config {
             .parse::<Environment>()
             .context("Failed to parse ENVIRONMENT")?;
 
+        let cors_allowed_origins = Self::get_allowed_origins(&environment)
+            .context("Failed to parse CORS_ALLOWED_ORIGINS")?;
+
         // SMS Provider configuration
         let sms_provider = env::var("SMS_PROVIDER").context("SMS_PROVIDER must be set")?;
         let sms_credentials = Self::get_sms_provider_credentials(&sms_provider)
@@ -198,6 +209,7 @@ impl Config {
             jwt_private_key_pem,
             jwt_public_key_pem,
             environment,
+            cors_allowed_origins,
             sms_credentials,
             email_credentials,
             otp_via_email,
@@ -219,6 +231,69 @@ impl Config {
                 matches!(v.as_str(), "1" | "true" | "yes" | "on")
             })
             .unwrap_or(default)
+    }
+
+    fn get_allowed_origins(environment: &Environment) -> Result<Vec<String>> {
+        match env::var("CORS_ALLOWED_ORIGINS") {
+            Ok(raw) if !raw.trim().is_empty() => Self::parse_allowed_origins(&raw),
+            _ if *environment == Environment::Local => Ok(DEFAULT_LOCAL_ALLOWED_ORIGINS
+                .iter()
+                .map(|origin| (*origin).to_string())
+                .collect()),
+            _ => Err(anyhow!(
+                "CORS_ALLOWED_ORIGINS must be set when ENVIRONMENT is staging or production"
+            )),
+        }
+    }
+
+    fn parse_allowed_origins(raw: &str) -> Result<Vec<String>> {
+        let mut origins = Vec::new();
+
+        for origin in raw.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+            Self::validate_origin(origin)?;
+            origins.push(origin.to_string());
+        }
+
+        if origins.is_empty() {
+            return Err(anyhow!("CORS_ALLOWED_ORIGINS cannot be empty"));
+        }
+
+        Ok(origins)
+    }
+
+    fn validate_origin(origin: &str) -> Result<()> {
+        if origin == "*" {
+            return Err(anyhow!(
+                "CORS_ALLOWED_ORIGINS must not contain wildcard '*'"
+            ));
+        }
+
+        let authority = origin
+            .strip_prefix("https://")
+            .or_else(|| origin.strip_prefix("http://"))
+            .ok_or_else(|| {
+                anyhow!(
+                    "Invalid origin '{origin}': expected an absolute http:// or https:// origin"
+                )
+            })?;
+
+        if authority.is_empty() {
+            return Err(anyhow!("Invalid origin '{origin}': missing host"));
+        }
+
+        if authority.contains(['/', '?', '#']) {
+            return Err(anyhow!(
+                "Invalid origin '{origin}': origins must not include path, query, fragment, or trailing slash"
+            ));
+        }
+
+        if origin.bytes().any(|b| b <= 0x20 || b >= 0x7f) {
+            return Err(anyhow!(
+                "Invalid origin '{origin}': only visible ASCII characters are allowed"
+            ));
+        }
+
+        Ok(())
     }
 
     fn get_s3_cache_config() -> S3CacheConfig {
@@ -400,6 +475,14 @@ impl Config {
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<()> {
+        if self.cors_allowed_origins.is_empty() {
+            return Err(anyhow!("CORS_ALLOWED_ORIGINS cannot be empty"));
+        }
+
+        for origin in &self.cors_allowed_origins {
+            Self::validate_origin(origin)?;
+        }
+
         // Validate SMS provider config in production
         if self.environment == Environment::Production {
             // Mock SMS provider is not allowed in production
@@ -534,6 +617,70 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_allowed_origins_accepts_explicit_origin_list() {
+        let origins =
+            Config::parse_allowed_origins("https://app.iviss.example,http://localhost:8080")
+                .unwrap();
+
+        assert_eq!(
+            origins,
+            vec![
+                "https://app.iviss.example".to_string(),
+                "http://localhost:8080".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_allowed_origins_rejects_wildcard() {
+        let err = Config::parse_allowed_origins("*").unwrap_err();
+
+        assert!(err.to_string().contains("wildcard"));
+    }
+
+    #[test]
+    fn test_parse_allowed_origins_rejects_path_or_trailing_slash() {
+        let err = Config::parse_allowed_origins("https://app.iviss.example/").unwrap_err();
+
+        assert!(err.to_string().contains("must not include path"));
+    }
+
+    #[test]
+    fn test_staging_and_production_require_allowed_origins() {
+        std::env::remove_var("CORS_ALLOWED_ORIGINS");
+
+        assert!(Config::get_allowed_origins(&Environment::Local).is_ok());
+        assert!(Config::get_allowed_origins(&Environment::Staging).is_err());
+        assert!(Config::get_allowed_origins(&Environment::Production).is_err());
+    }
+
+    #[test]
+    fn test_validate_rejects_empty_allowed_origins() {
+        let config = Config {
+            database_url: "db".into(),
+            server_host: "0.0.0.0".into(),
+            server_port: 3000,
+            log_level: LogLevel::Info,
+            jwt_private_key_pem: "priv".into(),
+            jwt_public_key_pem: "pub".into(),
+            environment: Environment::Local,
+            cors_allowed_origins: vec![],
+            sms_credentials: SmsProviderCredentials::Mock,
+            email_credentials: EmailProviderCredentials::Mock,
+            otp_via_email: false,
+            activation_code_pepper: "pepper_longer_than_32_characters_for_test".into(),
+            admin_bootstrap_email: None,
+            admin_bootstrap_password: None,
+            admin_bootstrap_phone: None,
+            admin_bootstrap_username: None,
+            vehicle_api_credentials: mock_vehicle_api_credentials(),
+            s3_cache: S3CacheConfig::default(),
+        };
+
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
     fn test_config_helpers() {
         let config = Config {
             database_url: "db".into(),
@@ -543,6 +690,7 @@ mod tests {
             jwt_private_key_pem: "priv".into(),
             jwt_public_key_pem: "pub".into(),
             environment: Environment::Local,
+            cors_allowed_origins: vec!["http://localhost:8080".into()],
             sms_credentials: SmsProviderCredentials::Vonage {
                 api_key: "key".into(),
                 api_secret: "secret".into(),
@@ -577,6 +725,7 @@ mod tests {
             jwt_private_key_pem: "priv".into(),
             jwt_public_key_pem: "pub".into(),
             environment: Environment::Local,
+            cors_allowed_origins: vec!["http://localhost:8080".into()],
             sms_credentials: SmsProviderCredentials::Mock,
             email_credentials: EmailProviderCredentials::Mock,
             otp_via_email: false,
