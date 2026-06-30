@@ -208,7 +208,7 @@ pub fn assembly(state: Arc<AppState>) -> Router {
             HeaderValue::from_static("same-origin"),
         ))
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
-        .layer(cors::cors_layer())
+        .layer(cors::cors_layer(&state.cors_allowed_origins))
         .with_state(state)
 }
 

@@ -65,6 +65,7 @@ async fn setup_test_app() -> (
         jwt_private_key_pem: jwt_private_key_pem.clone(),
         jwt_public_key_pem: jwt_public_key_pem.clone(),
         environment: crate::config::Environment::Local,
+        cors_allowed_origins: vec!["http://localhost:8080".to_string()],
         sms_credentials: crate::config::SmsProviderCredentials::Mock,
         email_credentials: crate::config::EmailProviderCredentials::Mock,
         otp_via_email: false,
