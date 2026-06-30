@@ -112,7 +112,6 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [resendLoadingUserId, setResendLoadingUserId] = useState<string | null>(null);
 
-
   // Superadmin sees all users; org admin sees only their org's users
   const {
     users: allUsers = [],
