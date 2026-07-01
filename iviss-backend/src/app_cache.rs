@@ -14,7 +14,7 @@ const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 /// Within this window a plate that was already written to S3 will be skipped,
 /// avoiding redundant PutObject calls. After expiry the next request for the
 /// same plate will produce a new S3 version.
-const VEHICLE_DEDUP_TTL_SECS: u64 = 8 * 60 * 60;
+const VEHICLE_DEDUP_TTL_SECS: u64 = 2 * 60 * 60;
 
 /// Maximum number of plate entries kept in the vehicle dedup cache.
 /// Each entry is roughly ~40 bytes (plate string + unit value), so 50 000
