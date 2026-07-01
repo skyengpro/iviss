@@ -206,6 +206,7 @@ jobs:
           key: frontend-coverage-${{ github.sha }}
       - uses: SonarSource/sonarqube-scan-action@v6
         env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
