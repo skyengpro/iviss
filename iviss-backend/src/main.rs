@@ -53,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
     let s3_data_cache: Option<Arc<dyn VehicleDataCache>> = if config.s3_cache.enabled {
         info!("Initializing S3-compatible vehicle data cache");
         Some(Arc::new(
-            S3VehicleDataCache::from_config(&config.s3_cache, cache.vehicle_dedup.clone())
+            S3VehicleDataCache::from_config(&config.s3_cache)
                 .await
                 .context("Failed to initialize S3-compatible vehicle data cache")?,
         ))

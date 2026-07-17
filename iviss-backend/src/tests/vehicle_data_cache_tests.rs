@@ -9,17 +9,14 @@
 //! - Both client-side AES-256-GCM + SSE-KMS hint set (Option E path;
 //!   SSE-KMS itself is not verifiable against MinIO, but the code path is
 //!   exercised and the upload must succeed)
-//!
-//! Unit tests for the `payload_crypto` module (encrypt / decrypt round-trip,
-//! wrong key, short payload) live in `vehicle_data_cache.rs`.
 
 use crate::dto::common::Status;
 use crate::dto::search_vehicle::{
     CustomsStatus, InsuranceStatus, OwnerInfo, PoliceStatus, StatusResults, TechnicalStatus,
     VehicleInfo, VehicleSearchResult,
 };
-use crate::services::vehicle_data_cache::{S3CacheConfig, S3VehicleDataCache, VehicleDataCache};
-use moka::future::Cache;
+use crate::services::vehicle_data_cache::{S3VehicleDataCache, VehicleDataCache};
+use crate::s3_cache_layer::{self, S3CacheConfig};
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::minio::MinIO;
 use time::OffsetDateTime;
@@ -157,8 +154,7 @@ async fn start_minio_cache(
         std::env::set_var("AWS_SECRET_ACCESS_KEY", "minioadmin");
     }
 
-    let dedup: Cache<String, ()> = Cache::new(1_000);
-    let cache = S3VehicleDataCache::from_config(&config, dedup)
+    let cache = S3VehicleDataCache::from_config(&config)
         .await
         .expect("failed to build S3VehicleDataCache");
 
@@ -178,15 +174,23 @@ async fn store_and_get_no_encryption() {
     let vehicle = make_test_vehicle(plate);
 
     // Store
-    let stored = cache.store_vehicle_data(plate, &vehicle).await.unwrap();
-    assert!(stored, "first write must return true");
+    s3_cache_layer::s3_writer::write_vehicle_data(
+        &cache.client,
+        &cache.bucket,
+        &cache.kms_key_id,
+        &cache.encryption_key,
+        plate,
+        &vehicle.vehicle,
+    )
+    .await
+    .unwrap();
 
     // Get
     let result = cache.get_vehicle_data(plate).await.unwrap();
     let cached = result.expect("should have found the cached entry");
-    assert_eq!(cached.data.plate_number, plate);
-    assert_eq!(cached.data.vehicle.brand, vehicle.vehicle.brand);
-    assert_eq!(cached.data.vehicle.owner.name, vehicle.vehicle.owner.name);
+    assert_eq!(cached.plate_number, plate);
+    assert_eq!(cached.vehicle.brand, vehicle.vehicle.brand);
+    assert_eq!(cached.vehicle.owner.name, vehicle.vehicle.owner.name);
 }
 
 /// Round-trip with client-side AES-256-GCM encryption active.
@@ -203,34 +207,23 @@ async fn store_and_get_with_client_side_encryption() {
     let plate = "CE128BC";
     let vehicle = make_test_vehicle(plate);
 
-    let stored = cache.store_vehicle_data(plate, &vehicle).await.unwrap();
-    assert!(stored);
+    s3_cache_layer::s3_writer::write_vehicle_data(
+        &cache.client,
+        &cache.bucket,
+        &cache.kms_key_id,
+        &cache.encryption_key,
+        plate,
+        &vehicle.vehicle,
+    )
+    .await
+    .unwrap();
 
     let result = cache.get_vehicle_data(plate).await.unwrap();
     let cached = result.expect("should have found the cached entry");
-    assert_eq!(cached.data.plate_number, plate);
+    assert_eq!(cached.plate_number, plate);
     assert_eq!(
-        cached.data.vehicle.chassis_number,
+        cached.vehicle.chassis_number,
         vehicle.vehicle.chassis_number
-    );
-}
-
-/// Verifies that the dedup guard prevents a second write for the same plate
-/// within the same process lifetime.
-#[tokio::test]
-async fn second_store_is_deduped() {
-    let (cache, _minio) = start_minio_cache(|_| {}).await;
-
-    let plate = "NW777AB";
-    let vehicle = make_test_vehicle(plate);
-
-    let first = cache.store_vehicle_data(plate, &vehicle).await.unwrap();
-    assert!(first, "first write should return true");
-
-    let second = cache.store_vehicle_data(plate, &vehicle).await.unwrap();
-    assert!(
-        !second,
-        "second write for same plate should be deduped (false)"
     );
 }
 
@@ -250,7 +243,15 @@ async fn store_rejects_plate_with_invalid_characters() {
     let (cache, _minio) = start_minio_cache(|_| {}).await;
 
     let vehicle = make_test_vehicle("bad/plate");
-    let err = cache.store_vehicle_data("bad/plate", &vehicle).await;
+    let err = s3_cache_layer::s3_writer::write_vehicle_data(
+        &cache.client,
+        &cache.bucket,
+        &cache.kms_key_id,
+        &cache.encryption_key,
+        "bad/plate",
+        &vehicle.vehicle,
+    )
+    .await;
     assert!(err.is_err(), "plate with '/' must be rejected");
 }
 
@@ -274,8 +275,6 @@ fn kms_key_id_is_propagated_from_config() {
         kms_key_id: Some(arn.into()),
         encryption_key: None,
     };
-    // The field is readable from config — this is what from_config copies into
-    // the struct field that gates the ssekms_key_id() call on put_object.
     assert_eq!(config.kms_key_id.as_deref(), Some(arn));
 }
 
@@ -295,19 +294,25 @@ async fn store_and_get_option_e_client_layer_verified() {
 
     let (cache, _minio) = start_minio_cache(|cfg| {
         cfg.encryption_key = Some(aes_key);
-        // kms_key_id intentionally NOT set: MinIO requires KES for custom key ARNs.
     })
     .await;
 
     let plate = "LT001XY";
     let vehicle = make_test_vehicle(plate);
 
-    let stored = cache.store_vehicle_data(plate, &vehicle).await.unwrap();
-    assert!(stored);
+    s3_cache_layer::s3_writer::write_vehicle_data(
+        &cache.client,
+        &cache.bucket,
+        &cache.kms_key_id,
+        &cache.encryption_key,
+        plate,
+        &vehicle.vehicle,
+    )
+    .await
+    .unwrap();
 
     let cached = cache.get_vehicle_data(plate).await.unwrap().unwrap();
-    assert_eq!(cached.data.plate_number, plate);
-    assert_eq!(cached.data.vehicle.owner.name, vehicle.vehicle.owner.name);
-    // Verify the timestamp was stored and parsed correctly.
+    assert_eq!(cached.plate_number, plate);
+    assert_eq!(cached.vehicle.owner.name, vehicle.vehicle.owner.name);
     assert!(cached.cached_at <= OffsetDateTime::now_utc());
 }

@@ -10,17 +10,7 @@ const RATE_LIMIT_TTL_SECS: u64 = 600; // 10 min
 const NONCE_TTL_SECS: u64 = 60; // 1 min
 const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 
-/// Dedup TTL for the vehicle S3 cache writes (8 hours).
-/// Within this window a plate that was already written to S3 will be skipped,
-/// avoiding redundant PutObject calls. After expiry the next request for the
-/// same plate will produce a new S3 version.
-const VEHICLE_DEDUP_TTL_SECS: u64 = 2 * 60 * 60;
 
-/// Maximum number of plate entries kept in the vehicle dedup cache.
-/// Each entry is roughly ~40 bytes (plate string + unit value), so 50 000
-/// entries ≈ 2 MB of heap — negligible for a backend process. This cap
-/// ensures bounded memory even under sustained high-cardinality traffic.
-const VEHICLE_DEDUP_MAX_CAPACITY: u64 = 50_000;
 
 #[derive(Clone, Debug)]
 pub struct OtpEntry {
@@ -69,9 +59,7 @@ pub struct AppCache {
     /// Key: organization_id (Uuid)
     /// Value: (start_work_time, end_work_time) in minutes
     pub org_work_time: Cache<Uuid, (u32, u32)>,
-    /// Dedup cache for vehicle S3 writes.
-    /// Key: plate number (String), Value: () — presence means "already written".
-    pub vehicle_dedup: Cache<String, ()>,
+
 }
 
 impl AppCache {
@@ -94,10 +82,6 @@ impl AppCache {
                 .time_to_live(Duration::from_secs(JTI_BLACKLIST_TTL_SECS))
                 .build(),
             org_work_time: Cache::builder().max_capacity(50).build(),
-            vehicle_dedup: Cache::builder()
-                .max_capacity(VEHICLE_DEDUP_MAX_CAPACITY)
-                .time_to_live(Duration::from_secs(VEHICLE_DEDUP_TTL_SECS))
-                .build(),
         }
     }
 

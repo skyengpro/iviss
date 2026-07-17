@@ -3,7 +3,7 @@ pub use crate::services::sms_provider::SmsProviderCredentials;
 pub use crate::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
 };
-pub use crate::services::vehicle_data_cache::S3CacheConfig;
+pub use crate::s3_cache_layer::S3CacheConfig;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;

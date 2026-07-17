@@ -16,7 +16,6 @@ use axum::{
     response::IntoResponse,
 };
 use std::sync::Arc;
-use tracing::Instrument;
 use uuid::Uuid;
 
 /// Maximum time to wait for an S3 cache read when the external API is down.
@@ -58,7 +57,6 @@ pub async fn search_vehicle(
             let response = build_search_result(api_response, &plate);
 
             record_vehicle_search_control(&state, &payload, &response).await;
-            cache_vehicle_search_result(&state, plate.clone(), response.clone());
 
             Ok((StatusCode::OK, Json(response)))
         }
@@ -84,8 +82,16 @@ pub async fn search_vehicle(
                             cached_at = %cached.cached_at,
                             "Serving vehicle data from S3 cache"
                         );
-                        record_vehicle_search_control(&state, &payload, &cached.data).await;
-                        return Ok((StatusCode::OK, Json(cached.data)));
+                        let status_results = VehicleService::build_status_results_from_api(&cached.vehicle);
+                        let response = VehicleSearchResult {
+                            plate_number: cached.plate_number,
+                            confidence: Some(1.0),
+                            identification_mode: Some(IdentificationMode::Manual),
+                            vehicle: cached.vehicle,
+                            status_results,
+                        };
+                        record_vehicle_search_control(&state, &payload, &response).await;
+                        return Ok((StatusCode::OK, Json(response)));
                     }
                     Ok(Ok(None)) => {
                         tracing::warn!("Vehicle S3 cache miss");
@@ -185,29 +191,6 @@ async fn record_vehicle_search_control(
     });
 }
 
-fn cache_vehicle_search_result(
-    state: &Arc<AppState>,
-    plate: String,
-    response: VehicleSearchResult,
-) {
-    if let Some(s3_data_cache) = &state.s3_data_cache {
-        let s3_data_cache = s3_data_cache.clone();
-        tokio::spawn(
-            async move {
-                match s3_data_cache.store_vehicle_data(&plate, &response).await {
-                    Ok(true) => tracing::debug!("Cached vehicle data to S3"),
-                    Ok(false) => {
-                        tracing::debug!("Skipped duplicate vehicle cache write")
-                    }
-                    Err(error) => {
-                        tracing::warn!("Failed to cache vehicle data: {}", error);
-                    }
-                }
-            }
-            .instrument(tracing::debug_span!("cache_vehicle_data")),
-        );
-    }
-}
 
 #[utoipa::path(
     post,
