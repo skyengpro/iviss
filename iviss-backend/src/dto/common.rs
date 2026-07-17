@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
 /// Shared status across all partner API responses
-#[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
     Valid,
@@ -12,7 +12,8 @@ pub enum Status {
 }
 
 /// How the plate was identified by the agent
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum IdentificationMode {
     Manual,
@@ -20,7 +21,8 @@ pub enum IdentificationMode {
     Live,
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct SubmissionLocation {
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,

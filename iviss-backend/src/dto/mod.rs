@@ -1,12 +1,25 @@
-pub mod audit;
-pub mod auth;
+// ── Shared DTO modules (always compiled) ──
 pub mod common;
-pub mod create_control;
-pub mod list_control;
-pub mod location;
-pub mod organizations;
-pub mod pending_submission;
-pub mod scan;
 pub mod search_vehicle;
+
+// ── API-only DTO modules ──
+#[cfg(feature = "api")]
+pub mod audit;
+#[cfg(feature = "api")]
+pub mod auth;
+#[cfg(feature = "api")]
+pub mod create_control;
+#[cfg(feature = "api")]
+pub mod list_control;
+#[cfg(feature = "api")]
+pub mod location;
+#[cfg(feature = "api")]
+pub mod organizations;
+#[cfg(feature = "api")]
+pub mod pending_submission;
+#[cfg(feature = "api")]
+pub mod scan;
+#[cfg(feature = "api")]
 pub mod stats;
+#[cfg(feature = "api")]
 pub mod users;

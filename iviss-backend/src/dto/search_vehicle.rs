@@ -1,11 +1,11 @@
 use crate::dto::common::{IdentificationMode, Status};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 // Request
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct VehicleSearchRequest {
     pub plate: String,
     pub latitude: Option<f64>,
@@ -17,14 +17,16 @@ pub struct VehicleSearchRequest {
 
 // Sub-objects
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct OwnerInfo {
     pub name: Option<String>,
     pub address: Option<String>,
     pub national_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct VehicleInfo {
     pub brand: Option<String>,
     pub model: Option<String>,
@@ -37,7 +39,8 @@ pub struct VehicleInfo {
     pub owner: OwnerInfo,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct InsuranceStatus {
     pub status: Status,
     pub provider: Option<String>,
@@ -47,7 +50,8 @@ pub struct InsuranceStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct PoliceStatus {
     pub status: Status,
     pub is_wanted: bool,
@@ -57,7 +61,8 @@ pub struct PoliceStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct CustomsStatus {
     pub status: Status,
     pub is_cleared: bool,
@@ -66,7 +71,8 @@ pub struct CustomsStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct TechnicalStatus {
     pub status: Status,
     pub last_inspection_date: Option<String>,
@@ -76,7 +82,8 @@ pub struct TechnicalStatus {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct StatusResults {
     pub overall_status: Status,
     pub insurance: InsuranceStatus,
@@ -88,7 +95,8 @@ pub struct StatusResults {
 
 //  Response
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct VehicleSearchResult {
     pub plate_number: String,
     pub confidence: Option<f64>,
@@ -97,7 +105,8 @@ pub struct VehicleSearchResult {
     pub status_results: StatusResults,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct UploadResponse {
     pub message: String,
     pub submission_id: String,
