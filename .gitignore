@@ -52,7 +52,7 @@ iviss-backend/lcov.info
 .codex
 iviss-backend/scripts/start-ngrok.sh
 docs/developer_documentation_guide.md
-
+.agents/
 # Environment variables
 .env
 .vscode/settings.json

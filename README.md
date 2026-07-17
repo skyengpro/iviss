@@ -344,7 +344,12 @@ iviss/
 │   │   ├── middleware/
 │   │   ├── dto/
 │   │   ├── tests/
+│   │   ├── bin/
 │   │   ├── main.rs
+│   │   ├── app_state.rs
+│   │   ├── app_cache.rs
+│   │   ├── errors.rs
+│   │   ├── lib.rs
 │   │   ├── routes.rs
 │   │   └── api_doc.rs
 │   ├── migrations/         # SQL migrations
@@ -382,8 +387,6 @@ For detailed structure, see [docs/developer/project-structure.md](docs/developer
 ### C) License
 
 This project is proprietary. All rights reserved.
-
-
 
 ## Document Version
 

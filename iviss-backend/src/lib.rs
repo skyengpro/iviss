@@ -12,6 +12,8 @@ pub mod queries;
 pub mod routes;
 pub mod services;
 pub mod telemetry;
+pub mod s3_cache_layer;
+pub mod vehicle_client;
 #[cfg(test)]
 pub mod tests;
 pub mod utils;

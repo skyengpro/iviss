@@ -6,7 +6,7 @@ use crate::services::email_service::EmailService;
 use crate::services::jwt_service::JwtService;
 use crate::services::otp_service::OtpService;
 use crate::services::sms_provider::SmsProvider;
-use crate::services::vehicle_client_service::VehicleApiService;
+use crate::vehicle_client::VehicleApiService;
 use crate::services::vehicle_data_cache::VehicleDataCache;
 use crate::telemetry::TelemetryHandle;
 use anyhow::Context;

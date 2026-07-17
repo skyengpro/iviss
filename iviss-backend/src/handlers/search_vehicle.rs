@@ -6,7 +6,8 @@ use crate::{
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    services::vehicle_client_service::{VehicleApiError, VehicleApiResponse, VehicleApiService},
+    vehicle_client::{VehicleApiError, VehicleApiResponse},
+    services::vehicle_status_service::VehicleService,
     utils::plate_format,
 };
 use axum::{
@@ -110,7 +111,7 @@ fn build_search_result(
     requested_plate: &str,
 ) -> VehicleSearchResult {
     let vehicle_info = api_response.vehicle;
-    let status_results = VehicleApiService::build_status_results_from_api(&vehicle_info);
+    let status_results = VehicleService::build_status_results_from_api(&vehicle_info);
     let original_plate = api_response
         .plate_number
         .unwrap_or_else(|| requested_plate.to_string());

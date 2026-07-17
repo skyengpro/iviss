@@ -1,6 +1,6 @@
 pub use crate::services::email_provider::EmailProviderCredentials;
 pub use crate::services::sms_provider::SmsProviderCredentials;
-pub use crate::services::vehicle_client_service::{
+pub use crate::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
 };
 pub use crate::services::vehicle_data_cache::S3CacheConfig;

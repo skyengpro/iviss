@@ -33,8 +33,97 @@ impl VehicleService {
             return Status::Warning;
         }
 
-        // If all are valid, overall is valid
+        // If any status is pending, overall is pending
+        if matches!(insurance.status, Status::Pending)
+            || matches!(police.status, Status::Pending)
+            || matches!(customs.status, Status::Pending)
+            || matches!(technical.status, Status::Pending)
+        {
+            return Status::Pending;
+        }
+
         Status::Valid
+    }
+
+    /// Build status results from a live external API response (no DB row).
+    ///
+    /// Insurance, police, and technical statuses are `Pending` until real
+    /// external data sources are integrated. Only the customs status is derived
+    /// from the vehicle data returned by the registry API.
+    pub fn build_status_results_from_api(vehicle_info: &VehicleInfo) -> StatusResults {
+        let insurance = InsuranceStatus {
+            status: Status::Pending,
+            provider: None,
+            policy_number: None,
+            expiry_date: None,
+            coverage_type: None,
+            notes: Some("No insurance data available for the moment".to_string()),
+        };
+        let police = PoliceStatus {
+            status: Status::Pending,
+            is_wanted: false,
+            is_stolen: false,
+            report_date: None,
+            report_number: None,
+            notes: Some("No police data available for the moment".to_string()),
+        };
+        let customs = Self::build_customs_status_from_api(vehicle_info.customs_status.as_deref());
+        let technical = TechnicalStatus {
+            status: Status::Pending,
+            last_inspection_date: None,
+            expiry_date: None,
+            mileage: None,
+            defects: Vec::new(),
+            notes: Some("No technical inspection data available for the moment".to_string()),
+        };
+        let overall_status =
+            Self::calculate_overall_status(&insurance, &police, &customs, &technical);
+
+        StatusResults {
+            overall_status,
+            insurance,
+            police,
+            customs,
+            technical,
+            vehicle_image_url: None,
+        }
+    }
+
+    /// Derive a [`CustomsStatus`] from the raw string returned by the
+    /// external vehicle registry API.
+    pub fn build_customs_status_from_api(customs_status: Option<&str>) -> CustomsStatus {
+        match customs_status.map(|status| status.trim().to_uppercase()) {
+            Some(status) if status == "CLEARED" || status == "OK" || status == "RAS" => {
+                CustomsStatus {
+                    status: Status::Valid,
+                    is_cleared: true,
+                    import_date: None,
+                    declaration_number: None,
+                    notes: Some(status),
+                }
+            }
+            Some(status) if status == "NOT_CLEARED" => CustomsStatus {
+                status: Status::Critical,
+                is_cleared: false,
+                import_date: None,
+                declaration_number: None,
+                notes: Some(status),
+            },
+            Some(status) => CustomsStatus {
+                status: Status::Warning,
+                is_cleared: false,
+                import_date: None,
+                declaration_number: None,
+                notes: Some(status),
+            },
+            None => CustomsStatus {
+                status: Status::Pending,
+                is_cleared: false,
+                import_date: None,
+                declaration_number: None,
+                notes: Some("No customs data available from the vehicle API".to_string()),
+            },
+        }
     }
 
     pub fn build_vehicle_info(vehicle_row: &VehicleRow) -> VehicleInfo {
