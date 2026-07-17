@@ -1,0 +1,60 @@
+ARG RUST_VERSION=1.96
+ARG DEBIAN_CODENAME=bookworm
+
+# ── builder ─────────────────────────────────────────────────────────────────
+# Lean base: no OCR packages needed — the sync binary carries no leptess/tesseract dependency.
+FROM rust:${RUST_VERSION}-slim-${DEBIAN_CODENAME} AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    clang \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV CARGO_TERM_COLOR=always
+
+COPY Cargo.toml Cargo.lock ./
+
+# Warm the dependency cache with a stub binary before copying full source.
+# --no-default-features excludes axum, sqlx, utoipa, leptess, and all other
+# API-only optional dependencies → faster build, smaller binary.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/cargo-target \
+    mkdir -p src/bin && \
+    printf 'fn main() {}\n' > src/main.rs && \
+    printf 'fn main() {}\n' > src/bin/s3-cache-sync.rs && \
+    CARGO_TARGET_DIR=/cargo-target cargo build --release --locked \
+        --bin s3-cache-sync --no-default-features && \
+    rm -rf src
+
+COPY src ./src
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/cargo-target \
+    CARGO_TARGET_DIR=/cargo-target cargo build --release --locked \
+        --bin s3-cache-sync --no-default-features && \
+    install -D /cargo-target/release/s3-cache-sync /out/s3-cache-sync
+
+
+# ── production ───────────────────────────────────────────────────────────────
+# Minimal runtime image — no OCR libs, no server stack, no exposed ports.
+FROM debian:${DEBIAN_CODENAME}-slim AS production
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* && \
+    groupadd --system iviss && \
+    useradd --system --gid iviss --home-dir /app --create-home iviss
+
+WORKDIR /app
+
+COPY --from=builder --chown=iviss:iviss /out/s3-cache-sync /app/s3-cache-sync
+
+USER iviss
+
+CMD ["/app/s3-cache-sync"]

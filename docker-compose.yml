@@ -149,6 +149,52 @@ services:
     networks:
       - iviss-network
 
+  # S3 cache sync service — fetches vehicle data from the external API and
+  # populates the S3 cache. Shares the minio instance for local dev.
+  # Opt-in with: docker compose --profile dev up s3-cache-sync
+  s3-cache-sync:
+    profiles: ["dev"]
+    build:
+      context: ./iviss-backend
+      dockerfile: Dockerfile.s3-cache-sync
+    container_name: iviss-s3-cache-sync
+    restart: unless-stopped
+    environment:
+      # External vehicle registry API credentials
+      EXTERNAL_API_BASE_URL: ${EXTERNAL_API_BASE_URL:?EXTERNAL_API_BASE_URL must be set}
+      EXTERNAL_API_USERNAME: ${EXTERNAL_API_USERNAME:?EXTERNAL_API_USERNAME must be set}
+      EXTERNAL_API_PASSWORD: ${EXTERNAL_API_PASSWORD:?EXTERNAL_API_PASSWORD must be set}
+      EXTERNAL_API_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA:?EXTERNAL_API_LOCK_NDIA must be set}
+      EXTERNAL_API_KINDIA: ${EXTERNAL_API_KINDIA:?EXTERNAL_API_KINDIA must be set}
+      EXTERNAL_API_USER: ${EXTERNAL_API_USER:?EXTERNAL_API_USER must be set}
+      EXTERNAL_API_CLIENT: ${EXTERNAL_API_CLIENT:?EXTERNAL_API_CLIENT must be set}
+      EXTERNAL_API_CTR: ${EXTERNAL_API_CTR:?EXTERNAL_API_CTR must be set}
+      EXTERNAL_API_TLS_CERT_B64: ${EXTERNAL_API_TLS_CERT_B64:?EXTERNAL_API_TLS_CERT_B64 must be set}
+      EXTERNAL_API_HEADER_USER: ${EXTERNAL_API_USER}
+      EXTERNAL_API_HEADER_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA}
+      EXTERNAL_API_HEADER_KINDIA: ${EXTERNAL_API_KINDIA}
+      EXTERNAL_API_HEADER_CLIENT: ${EXTERNAL_API_CLIENT}
+      EXTERNAL_API_HEADER_CTR: ${EXTERNAL_API_CTR}
+      # S3 cache config
+      S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-iviss-vehicle-cache}
+      S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
+      S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-http://minio:9000}
+      S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-true}
+      S3_CACHE_KMS_KEY_ID: ${S3_CACHE_SSE_KMS_KEY_ID:-}
+      S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # Logging
+      RUST_LOG: ${LOG_LEVEL:-info}
+    depends_on:
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+    networks:
+      - iviss-network
+
   # Development backend with cargo-watch and source mounts
   backend:
     profiles: ["dev"]

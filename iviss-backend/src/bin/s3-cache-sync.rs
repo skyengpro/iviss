@@ -21,7 +21,26 @@ async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     // 2. Load VehicleApiCredentials from env vars
-    let base_url = env::var("EXTERNAL_API_BASE_URL")
+    let api_credentials = load_vehicle_api_credentials();
+
+    // 3. Build VehicleApiService (shared module)
+    let _vehicle_api_svc = VehicleApiService::new(api_credentials)?;
+
+    // 4. Load S3CacheConfig from env vars
+    let s3_config = load_s3_cache_config();
+
+    // 5. Build S3 client via s3_cache_layer::build_s3_client()
+    let (_s3_client, bucket_name) = s3_cache_layer::build_s3_client(&s3_config).await?;
+    tracing::info!(bucket = %bucket_name, "S3 Client successfully initialized");
+
+    // 6. TODO: Set up tokio-cron-scheduler for 1x/day execution
+    // 7. TODO: Batch-fetch logic (awaiting final decision)
+    todo!("Batch fetch strategy pending decision")
+}
+
+
+fn load_vehicle_api_credentials () -> VehicleApiCredentials {
+        let base_url = env::var("EXTERNAL_API_BASE_URL")
         .unwrap_or_else(|_| "https://test-api.iviss.gov".to_string());
     let username = env::var("EXTERNAL_API_USERNAME").unwrap_or_default();
     let password = env::var("EXTERNAL_API_PASSWORD").unwrap_or_default();
@@ -46,10 +65,10 @@ async fn main() -> anyhow::Result<()> {
         tls_cert_b64,
     };
 
-    // 3. Build VehicleApiService (shared module)
-    let _vehicle_api_svc = VehicleApiService::new(api_credentials)?;
+    api_credentials
+}
 
-    // 4. Load S3CacheConfig from env vars
+fn load_s3_cache_config() -> S3CacheConfig {
     let bucket = env::var("S3_CACHE_BUCKET").ok();
     let region = env::var("S3_CACHE_REGION").unwrap_or_else(|_| "eu-west-1".to_string());
     let endpoint_url = env::var("S3_CACHE_ENDPOINT_URL").ok().filter(|s| !s.is_empty());
@@ -83,11 +102,5 @@ async fn main() -> anyhow::Result<()> {
         encryption_key,
     };
 
-    // 5. Build S3 client via s3_cache_layer::build_s3_client()
-    let (_s3_client, bucket_name) = s3_cache_layer::build_s3_client(&s3_config).await?;
-    tracing::info!(bucket = %bucket_name, "S3 Client successfully initialized");
-
-    // 6. TODO: Set up tokio-cron-scheduler for 1x/day execution
-    // 7. TODO: Batch-fetch logic (awaiting final decision)
-    todo!("Batch fetch strategy pending decision")
+    s3_config
 }
