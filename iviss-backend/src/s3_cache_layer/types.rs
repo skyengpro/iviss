@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 
 pub const S3_CACHE_PREFIX: &str = "vehicle-cache/";
 pub const OTHER_CACHE_PARTITION: &str = "others";
-pub const REGION_CODES: &[&str] = &[
+pub const PLATE_PREFIX_CODES: &[&str] = &[
     "AD", "CE", "EN", "ES", "LT", "NO", "NW", "OU", "SU", "SW", "SO",
+    "CMD", "CPC", "CD", "CC", "PA", "RT", "IS", "SN", "IT"
 ];
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -35,7 +36,7 @@ pub fn cache_partition_for_plate(plate: &str) -> &str {
         | PlateCategory::BikeCemac
         | PlateCategory::TestVehicle => plate
             .get(..2)
-            .filter(|region| REGION_CODES.contains(region))
+            .filter(|region| PLATE_PREFIX_CODES.contains(region))
             .unwrap_or(OTHER_CACHE_PARTITION),
         PlateCategory::State
         | PlateCategory::Diplomatic

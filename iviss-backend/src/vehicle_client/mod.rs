@@ -15,4 +15,5 @@ pub mod types;
 pub use client::VehicleApiService;
 pub use types::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiError, VehicleApiResponse,
+    ExternalVehicle,
 };

@@ -1,5 +1,5 @@
 [package]
-name = "iviss-test-api"
+name = "iviss-mock-ext-api"
 version = "0.1.0"
 edition = "2021"
 description = "Mock external vehicle registry API for local development and testing"

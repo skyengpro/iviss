@@ -160,21 +160,24 @@ services:
     container_name: iviss-s3-cache-sync
     restart: unless-stopped
     environment:
-      # External vehicle registry API credentials
-      EXTERNAL_API_BASE_URL: ${EXTERNAL_API_BASE_URL:?EXTERNAL_API_BASE_URL must be set}
-      EXTERNAL_API_USERNAME: ${EXTERNAL_API_USERNAME:?EXTERNAL_API_USERNAME must be set}
-      EXTERNAL_API_PASSWORD: ${EXTERNAL_API_PASSWORD:?EXTERNAL_API_PASSWORD must be set}
-      EXTERNAL_API_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA:?EXTERNAL_API_LOCK_NDIA must be set}
-      EXTERNAL_API_KINDIA: ${EXTERNAL_API_KINDIA:?EXTERNAL_API_KINDIA must be set}
-      EXTERNAL_API_USER: ${EXTERNAL_API_USER:?EXTERNAL_API_USER must be set}
-      EXTERNAL_API_CLIENT: ${EXTERNAL_API_CLIENT:?EXTERNAL_API_CLIENT must be set}
-      EXTERNAL_API_CTR: ${EXTERNAL_API_CTR:?EXTERNAL_API_CTR must be set}
-      EXTERNAL_API_TLS_CERT_B64: ${EXTERNAL_API_TLS_CERT_B64:?EXTERNAL_API_TLS_CERT_B64 must be set}
-      EXTERNAL_API_HEADER_USER: ${EXTERNAL_API_USER}
-      EXTERNAL_API_HEADER_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA}
-      EXTERNAL_API_HEADER_KINDIA: ${EXTERNAL_API_KINDIA}
-      EXTERNAL_API_HEADER_CLIENT: ${EXTERNAL_API_CLIENT}
-      EXTERNAL_API_HEADER_CTR: ${EXTERNAL_API_CTR}
+      # Mock external vehicle registry API — always points to the locally-running
+      # iviss-mock-ext-api server (start with: cargo run in iviss-mock-ext-api/).
+      # NOT read from .env so the real EXTERNAL_API_BASE_URL is never used here.
+      EXTERNAL_API_BASE_URL: http://host.docker.internal:3001
+      EXTERNAL_API_USERNAME: test
+      EXTERNAL_API_PASSWORD: test
+      # Header params are not required by the mock API — kept empty.
+      EXTERNAL_API_LOCK_NDIA: ""
+      EXTERNAL_API_KINDIA: ""
+      EXTERNAL_API_USER: ""
+      EXTERNAL_API_CLIENT: ""
+      EXTERNAL_API_CTR: ""
+      EXTERNAL_API_TLS_CERT_B64: ""
+      EXTERNAL_API_HEADER_USER: ""
+      EXTERNAL_API_HEADER_LOCK_NDIA: ""
+      EXTERNAL_API_HEADER_KINDIA: ""
+      EXTERNAL_API_HEADER_CLIENT: ""
+      EXTERNAL_API_HEADER_CTR: ""
       # S3 cache config
       S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-iviss-vehicle-cache}
       S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
@@ -186,6 +189,10 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       # Logging
       RUST_LOG: ${LOG_LEVEL:-info}
+    # Required on Linux: maps host.docker.internal → host's loopback so the
+    # container can reach the manually-run mock API server.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       minio:
         condition: service_healthy

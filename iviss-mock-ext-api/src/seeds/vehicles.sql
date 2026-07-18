@@ -21,26 +21,28 @@ VALUES
     -- ── LT prefix ────────────────────────────────────────────────────────────
     ('LT 045 AA',  'SB1GP56U07E012345', 'Toyota',                  '13', 'NGUENA MARC',          'RAS',     'CLEARED'),
     ('LT 128 BC',  'WDD2050421R012345', 'MERCEDES 180',            '17', 'ATANGANA HELENE',      'RAS',     'NOT_CLEARED'),
-    ('LT 307 DE',  'JN1BKAJ11U012345',  'NISSAN MICRA',            '10', 'MVONDO ETIENNE',       'RAS',     'CLEARED'),
+    ('LTSR 307 DE',  'JN1BKAJ11U012345',  'NISSAN MICRA',            '10', 'MVONDO ETIENNE',       'RAS',     'CLEARED'),
     ('LT 491 FG',  NULL,               'Opel',                     '12', 'NKENGNE SUZANNE',      'RAS',     'CLEARED'),
     ('LT 600 HJ',  'WVWDB4505LK012345', 'VOLKSWAGEN POLO',         '15', 'BIKOE ROGER',          'RAS',     'NOT_CLEARED'),
     ('LT 050 KL',  'TW00R1MGDH4012345', NULL,                      '11', NULL,                   'RAS',     'CLEARED'),
 
-    -- ── SN prefix ────────────────────────────────────────────────────────────
+    -- ── SN and SU prefix ────────────────────────────────────────────────────────────
     ('SN 490 MN',  'KMHDN41BP4A012345', 'HYUNDAI ACCENT',          '14', 'ONANA JEAN-CLAUDE',    'RAS',     'CLEARED'),
-    ('SN 022 OP',  'VF1BA000529012345', 'RENAULT CLIO',            '10', 'ESSONO MARIE',         'RAS',     'NOT_CLEARED'),
+    ('SU 022 OP',  'VF1BA000529012345', 'RENAULT CLIO',            '10', 'ESSONO MARIE',         'RAS',     'NOT_CLEARED'),
     ('SN 815 QR',  'ZAHBR7AG9F4012345', 'Peugeot',                 '16', 'BIYONG GABRIEL',       'RAS',     'CLEARED'),
-    ('SN 134 ST',  NULL,               'TOYOTA 53SBN0',            '13', 'ATEMENGUE LUCIE',      'RAS',     'NOT_CLEARED'),
+    ('SNRE 815 QR','HACBR7AG9F4012345', 'MERCEDES BENZ C200',      '16', 'SOCIETE DES AUTO MOTEURS',       'RAS',     'CLEARED'),
+    ('SU 134 ST',  NULL,               'TOYOTA 53SBN0',            '13', 'ATEMENGUE LUCIE',      'RAS',     'NOT_CLEARED'),
 
-    -- ── DL prefix ────────────────────────────────────────────────────────────
-    ('DL 210 UV',  'WDB9636321L012345', 'MERCEDES 180',            '19', 'MINYEM FRANCOIS',      'RAS',     'CLEARED'),
-    ('DL 088 WX',  'VF1BB000512012345', 'RENAULT MEGANE',          '14', NULL,                   'RAS',     'NOT_CLEARED'),
-    ('DL 500 YZ',  'KNAFE121795012345', NULL,                       NULL, 'OWONO BERNADETTE',     'RAS',     'CLEARED'),
+    -- ── EN prefix ────────────────────────────────────────────────────────────
+    ('EN 210 UV',  'WDB9636321L012345', 'MERCEDES 180',            '19', 'MINYEM FRANCOIS',      'RAS',     'CLEARED'),
+    ('EN 088 WX',  'VF1BB000512012345', 'RENAULT MEGANE',          '14', NULL,                   'RAS',     'NOT_CLEARED'),
+    ('EN 500 YZ',  'KNAFE121795012345', NULL,                       NULL, 'OWONO BERNADETTE',     'RAS',     'CLEARED'),
 
-    -- ── LD prefix ────────────────────────────────────────────────────────────
-    ('LD 331 AA',  'JSAAZS21S00012345', 'SUZUKI',                  '10', 'NKEMDIRIM SUNDAY',     'RAS',     'NOT_CLEARED'),
-    ('LD 042 BB',  'SHH0P37021U012345', 'HONDA CIVIC',             '12', 'NGOUMOU FELIX',        'RAS',     'CLEARED'),
-    ('LD 199 CC',  NULL,               'Toyota',                   '13', 'ABENA PATRICIA',       'RAS',     'CLEARED'),
+    -- ── NO prefix ────────────────────────────────────────────────────────────
+    ('NO 331 AK',  'JSAAZS21S00012345', 'SUZUKI',                  '10', 'NKEMDIRIM SUNDAY',     'RAS',     'NOT_CLEARED'),
+    ('NO 042 VB',  'SHH0P37021U012345', 'HONDA CIVIC',             '12', 'NGOUMOU FELIX',        'RAS',     'CLEARED'),
+    ('SW 652 CB',  'SHH0P37021U012345', 'HONDA  LV32',             '32', 'ALIN FELIX',        'RAS',     'CLEARED'),
+    ('NO 199 DC',  NULL,               'Toyota',                   '13', 'ABENA PATRICIA',       'RAS',     'CLEARED'),
 
     -- ── Edge cases ───────────────────────────────────────────────────────────
     -- All optional fields NULL (only plate_number present — parser should handle gracefully)
