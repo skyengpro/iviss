@@ -220,6 +220,8 @@ jobs:
   report:
     name: Frontend CI Report
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [frontend_install, openapi_codegen, frontend_build, frontend_lint, frontend_prettier, frontend_typescript, frontend_unit_tests, frontend_sonarqube]
     if: always()
     steps:

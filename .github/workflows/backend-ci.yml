@@ -151,6 +151,8 @@ jobs:
   report:
     name: Backend CI Report
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [gitleaks, backend_build, backend_coverage, backend_fmt, backend_clippy, backend_audit, backend_doc]
     if: always()
     steps:
