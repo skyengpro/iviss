@@ -70,15 +70,28 @@ impl VehicleApiService {
             .error_for_status()
             .context("vehicle API returned an error status")?;
 
-        let html = response
+        let body = response
             .text()
             .await
             .context("failed to read vehicle API response")?;
-        debug!("Received vehicle API response ({} bytes)", html.len());
+        debug!("Received vehicle API response ({} bytes)", body.len());
 
-        if is_vehicle_not_found_response(&html) {
+        if is_vehicle_not_found_response(&body) {
             return Err(VehicleApiError::NotFound);
         }
+
+        // The API (both real and mock) wraps the HTML inside a JSON envelope:
+        // {"data": "<html>…"}.  Extract the inner value before parsing.
+        let html = if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&body) {
+            json_val
+                .get("data")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_owned())
+                .unwrap_or(body)
+        } else {
+            // Not JSON — treat the raw body as plain HTML (legacy / fallback).
+            body
+        };
 
         self.parse_html_response(&html).map_err(Into::into)
     }
