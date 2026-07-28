@@ -1,5 +1,6 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { AuthContext, AuthContextType } from '@/hooks/auth/use-auth';
+import { useProactiveRefresh } from '@/hooks/auth/use-proactive-refresh';
 import { UserProfile, AuthResponse } from '@/openapi-rq/requests/types.gen';
 import { getDeviceId } from '@/services/device/deviceId';
 import {
@@ -8,6 +9,7 @@ import {
   getAccessToken,
   getRefreshToken,
   clearAccessToken,
+  isTokenExpired,
 } from '@/services/auth/tokenManager';
 import {
   client,
@@ -85,6 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useProactiveRefresh(!!session);
 
   const logout = async (forced = false) => {
     const accessToken = getAccessToken();
@@ -208,20 +212,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (existingSession) {
         try {
           const sessionData = JSON.parse(existingSession) as AuthResponse;
-          // Decode the JWT payload (middle segment) to check expiry WITHOUT
-          // signature verification. This lets us reject stale tokens from old
-          // key pairs or expired sessions before a 401 can trigger a forced logout.
-          const parts = sessionData.accessToken?.split('.');
-          let isValid = false;
-          if (parts && parts.length === 3) {
-            try {
-              const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-              const nowSecs = Math.floor(Date.now() / 1000);
-              isValid = typeof payload.exp === 'number' && payload.exp > nowSecs;
-            } catch {
-              // unparseable payload
-            }
-          }
+          // Reject stale tokens from old key pairs or expired sessions before
+          // a 401 can trigger a forced logout.
+          const isValid = !!sessionData.accessToken && !isTokenExpired(sessionData.accessToken);
 
           if (isValid) {
             setSession(sessionData);
