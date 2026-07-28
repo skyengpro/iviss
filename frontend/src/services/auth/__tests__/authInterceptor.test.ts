@@ -16,11 +16,7 @@ vi.mock('../signatureService', () => ({
 import { requestRefresh, verifyRefresh } from '@/openapi-rq/requests/services.gen';
 import { getDeviceId } from '../../device/deviceId';
 import { signNonce } from '../signatureService';
-import {
-  performTokenRefresh,
-  setupAuthInterceptors,
-  REFRESH_TIMEOUT_MS,
-} from '../authInterceptor';
+import { performTokenRefresh, setupAuthInterceptors, REFRESH_TIMEOUT_MS } from '../authInterceptor';
 
 const mockedRequestRefresh = vi.mocked(requestRefresh);
 const mockedVerifyRefresh = vi.mocked(verifyRefresh);
@@ -85,12 +81,18 @@ describe('authInterceptor', () => {
     it('retries the challenge once when the nonce is raced/expired, then succeeds', async () => {
       localStorage.setItem('iviss_refresh_token', 'rt-1');
       mockedGetDeviceId.mockResolvedValue('device-1');
-      mockedRequestRefresh.mockResolvedValue({ data: { nonce: 'nonce-1' }, error: undefined } as any);
+      mockedRequestRefresh.mockResolvedValue({
+        data: { nonce: 'nonce-1' },
+        error: undefined,
+      } as any);
       mockedSignNonce.mockResolvedValue('signed-nonce');
       mockedVerifyRefresh
         .mockResolvedValueOnce({
           data: undefined,
-          error: { code: 'UNAUTHORIZED', message: 'Nonce expired or not found — request a new challenge' },
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Nonce expired or not found — request a new challenge',
+          },
         } as any)
         .mockResolvedValueOnce({ data: { accessToken: 'at-retry' }, error: undefined } as any);
 
@@ -104,7 +106,10 @@ describe('authInterceptor', () => {
     it('gives up without throwing after exhausting nonce retries', async () => {
       localStorage.setItem('iviss_refresh_token', 'rt-1');
       mockedGetDeviceId.mockResolvedValue('device-1');
-      mockedRequestRefresh.mockResolvedValue({ data: { nonce: 'nonce-1' }, error: undefined } as any);
+      mockedRequestRefresh.mockResolvedValue({
+        data: { nonce: 'nonce-1' },
+        error: undefined,
+      } as any);
       mockedSignNonce.mockResolvedValue('signed-nonce');
       mockedVerifyRefresh.mockResolvedValue({
         data: undefined,
@@ -166,7 +171,10 @@ describe('authInterceptor', () => {
     it('uses the single-step admin refresh when the stored session role is admin', async () => {
       localStorage.setItem('iviss_refresh_token', 'rt-admin');
       localStorage.setItem('iviss_session', JSON.stringify({ user: { role: 'admin' } }));
-      mockedRequestRefresh.mockResolvedValue({ data: { accessToken: 'admin-at' }, error: undefined } as any);
+      mockedRequestRefresh.mockResolvedValue({
+        data: { accessToken: 'admin-at' },
+        error: undefined,
+      } as any);
 
       const result = await performTokenRefresh();
 
@@ -297,10 +305,13 @@ describe('authInterceptor', () => {
       const fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
       vi.stubGlobal('fetch', fetchSpy);
 
-      const res401 = new Response(JSON.stringify({ code: 'UNAUTHORIZED', message: 'Token expired' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res401 = new Response(
+        JSON.stringify({ code: 'UNAUTHORIZED', message: 'Token expired' }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
 
       const finalResponse = await respond(res401, finalRequest);
 
@@ -325,7 +336,10 @@ describe('authInterceptor', () => {
 
       // A request that never went through the request interceptor, so it has
       // no entry in the retry WeakMap.
-      const untrackedRequest = new Request('http://x/api/v1/controls', { method: 'POST', body: '{}' });
+      const untrackedRequest = new Request('http://x/api/v1/controls', {
+        method: 'POST',
+        body: '{}',
+      });
       const res401 = new Response(JSON.stringify({ message: 'Token expired' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -393,7 +407,9 @@ describe('authInterceptor', () => {
 
       expect(onSessionExpired).toHaveBeenCalledTimes(1);
       expect(localStorage.getItem('iviss_device_activated')).toBeNull();
-      expect(localStorage.getItem('iviss_forced_logout_reason')).toBe('DEVICE_REACTIVATION_REQUIRED');
+      expect(localStorage.getItem('iviss_forced_logout_reason')).toBe(
+        'DEVICE_REACTIVATION_REQUIRED'
+      );
     });
 
     it('does not attempt a refresh twice for the same request (retry-header guard)', async () => {

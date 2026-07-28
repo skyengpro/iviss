@@ -109,7 +109,10 @@ const STRUCTURED_ERROR_CODES: ReadonlySet<string> = new Set([
  * Prefers the backend's structured `code` when present (older deployed
  * backends won't send one yet), falling back to text classification.
  */
-function classifyAuthError(code: string | undefined, message: string | undefined | null): AuthErrorCategory {
+function classifyAuthError(
+  code: string | undefined,
+  message: string | undefined | null
+): AuthErrorCategory {
   if (code && STRUCTURED_ERROR_CODES.has(code)) {
     return code as AuthErrorCategory;
   }
@@ -128,7 +131,10 @@ function isAdminSession(): boolean {
   }
 }
 
-async function performAdminRefresh(refreshToken: string, signal: AbortSignal): Promise<string | null> {
+async function performAdminRefresh(
+  refreshToken: string,
+  signal: AbortSignal
+): Promise<string | null> {
   const res = await requestRefresh({ body: { refreshToken }, throwOnError: false, signal });
   if (res.error || !res.data) {
     console.error('[AuthInterceptor] Admin token refresh failed:', res.error);
@@ -147,9 +153,15 @@ async function performAgentChallenge(
 ): Promise<{ accessToken: string } | { category: AuthErrorCategory }> {
   const deviceId = await getDeviceId();
 
-  const res1 = await requestRefresh({ body: { refreshToken, deviceId }, throwOnError: false, signal });
+  const res1 = await requestRefresh({
+    body: { refreshToken, deviceId },
+    throwOnError: false,
+    signal,
+  });
   if (res1.error || !res1.data) {
-    return { category: classifyAuthError(extractErrorCode(res1.error), extractErrorMessage(res1.error)) };
+    return {
+      category: classifyAuthError(extractErrorCode(res1.error), extractErrorMessage(res1.error)),
+    };
   }
 
   const { nonce } = res1.data as { nonce?: string };
@@ -162,7 +174,9 @@ async function performAgentChallenge(
     signal,
   });
   if (res2.error || !res2.data) {
-    return { category: classifyAuthError(extractErrorCode(res2.error), extractErrorMessage(res2.error)) };
+    return {
+      category: classifyAuthError(extractErrorCode(res2.error), extractErrorMessage(res2.error)),
+    };
   }
 
   const { accessToken, refreshToken: nextRT } = res2.data as {

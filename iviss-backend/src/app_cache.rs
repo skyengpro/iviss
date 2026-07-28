@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 
 const RATE_LIMIT_TTL_SECS: u64 = 600; // 10 min
-pub const NONCE_TTL_SECS: u64 = 300; // 5 min
+pub const NONCE_TTL_SECS: u64 = 180; // 3 min
 const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 
 /// Dedup TTL for the vehicle S3 cache writes (8 hours).

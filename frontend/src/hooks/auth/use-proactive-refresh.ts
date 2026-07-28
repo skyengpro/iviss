@@ -42,8 +42,7 @@ export function useProactiveRefresh(isAuthenticated: boolean): void {
           }
           const accessToken = getAccessToken();
           const refreshToken = getRefreshToken();
-          const hasRefreshableSession =
-            !!accessToken && !!refreshToken && refreshToken !== 'null';
+          const hasRefreshableSession = !!accessToken && !!refreshToken && refreshToken !== 'null';
           if (hasRefreshableSession && isTokenExpired(accessToken, EXPIRY_LEEWAY_SECS)) {
             await performTokenRefresh();
           }

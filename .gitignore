@@ -50,6 +50,7 @@ iviss-backend/lcov.info
 .kilocode/
 /plans
 .codex
+.agents
 iviss-backend/scripts/start-ngrok.sh
 docs/developer_documentation_guide.md
 
