@@ -64,6 +64,8 @@ jobs:
     needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
+      - name: Record start time
+        run: echo "START_TIME=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -82,12 +84,19 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: frontend
+      - name: Report timing
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - $START_TIME ))
+          echo "### Build: ${DURATION}s" >> "$GITHUB_STEP_SUMMARY"
 
   frontend_lint:
     name: Frontend Lint
     needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
+      - name: Record start time
+        run: echo "START_TIME=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -106,6 +115,11 @@ jobs:
       - name: ESLint
         run: npm run lint:check
         working-directory: frontend
+      - name: Report timing
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - $START_TIME ))
+          echo "### Lint: ${DURATION}s" >> "$GITHUB_STEP_SUMMARY"
 
   frontend_prettier:
     name: Frontend Prettier
@@ -136,6 +150,8 @@ jobs:
     needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
+      - name: Record start time
+        run: echo "START_TIME=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -154,12 +170,19 @@ jobs:
       - name: TypeScript
         run: npm run ts:check
         working-directory: frontend
+      - name: Report timing
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - $START_TIME ))
+          echo "### TypeScript: ${DURATION}s" >> "$GITHUB_STEP_SUMMARY"
 
   frontend_unit_tests:
     name: Frontend Unit Tests
     needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
+      - name: Record start time
+        run: echo "START_TIME=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -183,6 +206,11 @@ jobs:
         with:
           path: frontend/coverage
           key: frontend-coverage-${{ github.sha }}
+      - name: Report timing
+        if: always()
+        run: |
+          DURATION=$(( $(date +%s) - $START_TIME ))
+          echo "### Unit Tests: ${DURATION}s" >> "$GITHUB_STEP_SUMMARY"
 
   frontend_sonarqube:
     name: Frontend SonarQube Analysis
@@ -216,3 +244,26 @@ jobs:
             -Dsonar.sources=src
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.qualitygate.wait=false
+
+  report:
+    name: Frontend CI Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [frontend_install, openapi_codegen, frontend_build, frontend_lint, frontend_prettier, frontend_typescript, frontend_unit_tests, frontend_sonarqube]
+    if: always()
+    steps:
+      - name: Generate report
+        run: |
+          echo "## Frontend CI Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Install | ${{ needs.frontend_install.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| OpenAPI Codegen | ${{ needs.openapi_codegen.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build | ${{ needs.frontend_build.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lint | ${{ needs.frontend_lint.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Prettier | ${{ needs.frontend_prettier.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| TypeScript | ${{ needs.frontend_typescript.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Unit Tests | ${{ needs.frontend_unit_tests.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SonarQube | ${{ needs.frontend_sonarqube.result }} |" >> "$GITHUB_STEP_SUMMARY"

@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     curl \
     ca-certificates \
+    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -78,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr-eng \
     ca-certificates \
     curl \
+    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* && \
     groupadd --system iviss && \
     useradd --system --gid iviss --home-dir /app --create-home iviss
