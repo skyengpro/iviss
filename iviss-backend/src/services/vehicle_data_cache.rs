@@ -159,6 +159,10 @@ impl VehicleDataCache for S3VehicleDataCache {
 
         if let Err(error) = request.send().await {
             self.dedup_cache.invalidate(plate).await;
+            tracing::error!(
+                error = ?error,
+                "failed to write vehicle cache object to S3"
+            );
             anyhow::bail!("failed to write vehicle cache object: {error}");
         }
 
