@@ -5,6 +5,7 @@ useDefault = true
 
 [allowlist]
 paths = [
+  '''^graphify-out/''',
   '''^\.env$''',
   '''^\.env\.example$''',
   '''^\.env\.prod\.example$''',
