@@ -3468,7 +3468,11 @@
           "BAD_REQUEST",
           "TOO_MANY_REQUESTS",
           "EXTERNAL_API_FAILURE",
-          "INTERNAL_ERROR"
+          "INTERNAL_ERROR",
+          "NONCE_RETRY",
+          "SESSION_REVOKED",
+          "SHIFT_ENDED",
+          "DEVICE_REACTIVATION"
         ]
       },
       "IdentificationMode": {

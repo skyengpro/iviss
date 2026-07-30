@@ -306,6 +306,164 @@ async fn test_refresh_with_invalid_token() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+/// Regression: after a failed verify_refresh (bad signature, revoked
+/// token), the nonce must remain available so a legitimate retry with the
+/// correct signature still works. Previously the nonce was invalidated up
+/// front, so any failure burned a valid challenge that the real device
+/// could otherwise have completed.
+#[tokio::test]
+async fn test_verify_refresh_keeps_nonce_available_on_bad_signature() {
+    let (app, _db, _user_id, device_id, refresh_token, ec_signing_key, _pg) =
+        setup_test_infrastructure().await;
+
+    let refresh_body = json!({
+        "refreshToken": refresh_token,
+        "deviceId": device_id,
+    });
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh")
+                .header("content-type", "application/json")
+                .body(Body::from(refresh_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let nonce = body["nonce"].as_str().unwrap().to_string();
+
+    // First verify with the WRONG key — must fail without consuming the nonce.
+    let wrong_key = SigningKey::random(&mut OsRng);
+    let bad_signed = sign_nonce_jws(&nonce, &wrong_key);
+    let bad_verify_body = json!({
+        "refreshToken": refresh_token,
+        "deviceId": device_id,
+        "signedNonce": bad_signed,
+    });
+    let bad_resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh/verify")
+                .header("content-type", "application/json")
+                .body(Body::from(bad_verify_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(bad_resp.status(), StatusCode::UNAUTHORIZED);
+
+    // Now retry with the CORRECT signature — since the nonce wasn't burned
+    // by the bad attempt, this must succeed.
+    let good_signed = sign_nonce_jws(&nonce, &ec_signing_key);
+    let good_verify_body = json!({
+        "refreshToken": refresh_token,
+        "deviceId": device_id,
+        "signedNonce": good_signed,
+    });
+    let good_resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh/verify")
+                .header("content-type", "application/json")
+                .body(Body::from(good_verify_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(good_resp.status(), StatusCode::OK);
+}
+
+/// Regression: replaying the exact same signed nonce twice must fail the
+/// second time. The atomic `remove()` at the end of verify_refresh returns
+/// `None` on the second call, and the endpoint responds with a retriable
+/// NONCE_RETRY error rather than issuing a second access token.
+#[tokio::test]
+async fn test_verify_refresh_rejects_replayed_signed_nonce() {
+    let (app, _db, _user_id, device_id, refresh_token, ec_signing_key, _pg) =
+        setup_test_infrastructure().await;
+
+    // Step 1: get a nonce.
+    let refresh_body = json!({
+        "refreshToken": refresh_token,
+        "deviceId": device_id,
+    });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh")
+                .header("content-type", "application/json")
+                .body(Body::from(refresh_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let nonce = body["nonce"].as_str().unwrap().to_string();
+
+    let signed_nonce = sign_nonce_jws(&nonce, &ec_signing_key);
+    let verify_body = json!({
+        "refreshToken": refresh_token,
+        "deviceId": device_id,
+        "signedNonce": signed_nonce,
+    });
+
+    // First verify: succeeds and consumes the nonce.
+    let first = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh/verify")
+                .header("content-type", "application/json")
+                .body(Body::from(verify_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(first.status(), StatusCode::OK);
+
+    // Second verify with the exact same signed nonce: must be rejected.
+    let second = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh/verify")
+                .header("content-type", "application/json")
+                .body(Body::from(verify_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(second.status(), StatusCode::UNAUTHORIZED);
+
+    let second_body_bytes = axum::body::to_bytes(second.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let second_body: serde_json::Value = serde_json::from_slice(&second_body_bytes).unwrap();
+    // Must carry the retriable NONCE_RETRY code so the frontend re-challenges
+    // instead of logging the user out.
+    assert_eq!(second_body["code"].as_str(), Some("NONCE_RETRY"));
+}
+
 #[tokio::test]
 async fn test_refresh_with_invalid_signature() {
     let (app, _db, _user_id, device_id, refresh_token, _ec_signing_key, _pg) =

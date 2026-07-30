@@ -17,6 +17,14 @@ pub enum ErrorCode {
     TooManyRequests,
     ExternalApiFailure,
     InternalError,
+    /// Refresh nonce missing/expired/mismatched — retry the challenge, don't log out.
+    NonceRetry,
+    /// Refresh token rejected — session is over.
+    SessionRevoked,
+    /// Device shift has ended.
+    ShiftEnded,
+    /// Device needs re-activation.
+    DeviceReactivation,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -32,6 +40,10 @@ pub enum AppError {
 
     #[error("Authentication failed: {0}")]
     Unauthorized(String),
+
+    /// Same as `Unauthorized`, but carries a structured `ErrorCode` for callers that need one.
+    #[error("Authentication failed: {1}")]
+    UnauthorizedWithCode(ErrorCode, String),
 
     #[error("Forbidden: {0}")]
     Forbidden(String),
@@ -70,6 +82,10 @@ impl AppError {
 
     pub fn unauthorized(msg: impl Into<String>) -> Self {
         Self::Unauthorized(msg.into())
+    }
+
+    pub fn unauthorized_with_code(code: ErrorCode, msg: impl Into<String>) -> Self {
+        Self::UnauthorizedWithCode(code, msg.into())
     }
 
     pub fn forbidden(msg: impl Into<String>) -> Self {
@@ -128,6 +144,9 @@ impl IntoResponse for AppError {
                 ErrorCode::Unauthorized,
                 msg.clone(),
             ),
+            AppError::UnauthorizedWithCode(code, msg) => {
+                (StatusCode::UNAUTHORIZED, *code, msg.clone())
+            }
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, ErrorCode::Forbidden, msg.clone()),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, ErrorCode::NotFound, msg.clone()),
             AppError::BadRequest(msg) => {
