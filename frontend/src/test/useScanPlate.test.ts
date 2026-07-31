@@ -227,6 +227,79 @@ describe('useScanPlate', () => {
     expect(result.current.liveDetections[0].status).toBe('valid');
   });
 
+  it('does not vote on stability for reads that fail format validation', async () => {
+    // Noise that doesn't even parse as a plate must never delay or wrongly
+    // confirm the consensus — only format_valid reads should vote.
+    vi.mocked(scanPlate).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          plate: 'NOTAPLATE',
+          confidence: 0.9,
+          format_valid: false,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
+
+    const onSuccess = vi.fn();
+    const { result } = renderHook(() => useScanPlate({ onSuccess }));
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
+
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    for (let i = 0; i < 6; i += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    }
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    // Still visible in the raw detections feed — just never confirmed as stable.
+    expect(result.current.liveDetections.some((d) => d.plateNumber === 'NOTAPLATE')).toBe(true);
+  });
+
+  it('confirms a stable plate on the real field-log confidence regime (0-63, not 76-92)', async () => {
+    // Once mean_text_conf is exposed unmodified, measured confidences on real
+    // plates fall between 0 and 63 (median near 0-16) — a fixture stuck at
+    // 76-92 would validate a path that doesn't exist in production.
+    vi.mocked(scanPlate).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          plate: 'CE568LR',
+          confidence: 0.12,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof scanPlate>>);
+
+    const onSuccess = vi.fn();
+    const { result } = renderHook(() => useScanPlate({ onSuccess }));
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
+
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    for (let i = 0; i < 6 && onSuccess.mock.calls.length === 0; i += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    }
+
+    expect(onSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({ plateNumber: 'CE568LR', confidence: 12 })
+    );
+  });
+
   it('cleanup effect aborts in-flight request and clears timeout on unmount', () => {
     vi.mocked(scanPlate).mockImplementationOnce(
       () => new Promise(() => {}) as ReturnType<typeof scanPlate>

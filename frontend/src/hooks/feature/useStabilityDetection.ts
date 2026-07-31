@@ -44,16 +44,28 @@ export function useStabilityDetection({
       setHistory((prev) => {
         const newHistory = [...prev, result].slice(-windowSize);
 
-        const agreeing = newHistory.filter((item) => item.plateNumber === result.plateNumber);
-
-        if (agreeing.length >= requiredMatches) {
-          setStableResult({
-            plateNumber: result.plateNumber,
-            confidence: Math.max(...agreeing.map((item) => item.confidence)),
-          });
-        } else {
-          setStableResult(null);
+        const byPlate = new Map<string, DetectionResult[]>();
+        for (const item of newHistory) {
+          const bucket = byPlate.get(item.plateNumber);
+          if (bucket) bucket.push(item);
+          else byPlate.set(item.plateNumber, [item]);
         }
+
+        let winner: DetectionResult[] | null = null;
+        for (const bucket of byPlate.values()) {
+          if (bucket.length >= requiredMatches && (!winner || bucket.length > winner.length)) {
+            winner = bucket;
+          }
+        }
+
+        setStableResult(
+          winner
+            ? {
+                plateNumber: winner[0].plateNumber,
+                confidence: Math.max(...winner.map((item) => item.confidence)),
+              }
+            : null
+        );
 
         return newHistory;
       });

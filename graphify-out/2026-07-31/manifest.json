@@ -1,8 +1,8 @@
 {
   ".claude/settings.json": {
-    "mtime": 1785451486.9642165,
-    "ast_hash": "3bc4363f1ea232cda5d2610217515ebd",
-    "semantic_hash": "3bc4363f1ea232cda5d2610217515ebd"
+    "mtime": 1785460635.9284904,
+    "ast_hash": "5b82d95c632c4f87635c6d9ae1d79506",
+    "semantic_hash": ""
   },
   ".mcp.json": {
     "mtime": 1785434735.9655385,
@@ -130,9 +130,9 @@
     "semantic_hash": "7c86417252c667569570f26cb67813ee"
   },
   "frontend/src/components/mobile/scan/ScanViewfinder.tsx": {
-    "mtime": 1785064936.8303409,
-    "ast_hash": "f5211064e9fbfcd3d3f97a38da03dc7f",
-    "semantic_hash": "f5211064e9fbfcd3d3f97a38da03dc7f"
+    "mtime": 1785460378.2065823,
+    "ast_hash": "3fa15f661dc2b7edc0df2051f3d9e0f9",
+    "semantic_hash": ""
   },
   "frontend/src/components/mobile/vehicle/VehicleActionFooter.tsx": {
     "mtime": 1785064936.8307238,
@@ -525,24 +525,24 @@
     "semantic_hash": "5d1283bd16bddb50b3a3d8740e6f8477"
   },
   "frontend/src/hooks/feature/useCamera.ts": {
-    "mtime": 1785064936.8503287,
-    "ast_hash": "5f9580cc46f459b8626c19b595654ed2",
-    "semantic_hash": "5f9580cc46f459b8626c19b595654ed2"
+    "mtime": 1785460354.8530922,
+    "ast_hash": "368b94fa40bc894a784551e38a0bf288",
+    "semantic_hash": ""
   },
   "frontend/src/hooks/feature/usePhotoCapture.ts": {
-    "mtime": 1785064936.850602,
-    "ast_hash": "492cc3e442ef712d325c974c3b66558e",
-    "semantic_hash": "492cc3e442ef712d325c974c3b66558e"
+    "mtime": 1785460462.342279,
+    "ast_hash": "904266a41220783fd51aad26794895f4",
+    "semantic_hash": ""
   },
   "frontend/src/hooks/feature/useScanPlate.ts": {
-    "mtime": 1785064936.8508515,
-    "ast_hash": "1fbf72647a36cdd26571ef465bab0729",
-    "semantic_hash": "1fbf72647a36cdd26571ef465bab0729"
+    "mtime": 1785460434.7497025,
+    "ast_hash": "b22dbfb8d1fa17c89d6a6f17b7091665",
+    "semantic_hash": ""
   },
   "frontend/src/hooks/feature/useStabilityDetection.ts": {
-    "mtime": 1785064936.8510735,
-    "ast_hash": "93a74006cb5cb98276c9e30efa48b606",
-    "semantic_hash": "93a74006cb5cb98276c9e30efa48b606"
+    "mtime": 1785460387.9650111,
+    "ast_hash": "a251d0524a82695d48a9fe7bb694cbf9",
+    "semantic_hash": ""
   },
   "frontend/src/hooks/ui/use-form-field.ts": {
     "mtime": 1785064936.8513234,
@@ -735,9 +735,9 @@
     "semantic_hash": "58fd711edaf396582685c19efa5cb250"
   },
   "frontend/src/pages/mobile/MobileScan.tsx": {
-    "mtime": 1785064936.8643904,
-    "ast_hash": "7a247bc5f62c8ca1e5cc7162ac107ac1",
-    "semantic_hash": "7a247bc5f62c8ca1e5cc7162ac107ac1"
+    "mtime": 1785460473.3506851,
+    "ast_hash": "190ca156e67b274f39f3e5f32eb83948",
+    "semantic_hash": ""
   },
   "frontend/src/pages/mobile/MobileSearch.tsx": {
     "mtime": 1785064936.8645878,
@@ -995,9 +995,9 @@
     "semantic_hash": "54801c73c35216420dffe5826c2e3c08"
   },
   "frontend/src/utils/imageProcessor.ts": {
-    "mtime": 1785064936.8844128,
-    "ast_hash": "1092bfe3e4197882f1dfee472ad67e1d",
-    "semantic_hash": "1092bfe3e4197882f1dfee472ad67e1d"
+    "mtime": 1785460641.5235312,
+    "ast_hash": "a393a5d68a4dd5dab8ea7969dffa9a42",
+    "semantic_hash": ""
   },
   "frontend/src/vite-env.d.ts": {
     "mtime": 1785064936.88479,
@@ -2188,5 +2188,20 @@
     "mtime": 1785456537.8955598,
     "ast_hash": "5e09e19dc3997d49ba76e0c4d0cdb7e9",
     "semantic_hash": "5e09e19dc3997d49ba76e0c4d0cdb7e9"
+  },
+  "frontend/src/hooks/feature/useCaptureCoaching.ts": {
+    "mtime": 1785460453.616843,
+    "ast_hash": "c6e48cb64b1b86bb92d3202c542beb00",
+    "semantic_hash": ""
+  },
+  "frontend/src/utils/captureFrame.ts": {
+    "mtime": 1785460245.9723675,
+    "ast_hash": "d466abfecafc916a1a54117405cb30a5",
+    "semantic_hash": ""
+  },
+  "frontend/src/utils/viewfinder.ts": {
+    "mtime": 1785460254.8453655,
+    "ast_hash": "c12daa42c78001b32293322459bd5e1b",
+    "semantic_hash": ""
   }
 }
