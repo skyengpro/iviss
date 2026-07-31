@@ -82,6 +82,9 @@ async fn main() -> anyhow::Result<()> {
 
     let metrics_app = routes::metrics_router(shared_state.clone());
 
+    // Pay Tesseract's initialization at startup rather than on the first scan.
+    iviss_backend::services::ocr_service::warm_up_tesseract_pool();
+
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
     info!("Listening on {}", addr);
 

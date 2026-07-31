@@ -5,10 +5,19 @@ edition = "2021"
 default-run = "iviss-backend"
 
 [profile.release]
-opt-level = "z"     # Optimise pour la taille (ou "s" pour un compromis)
+opt-level = 3       # Pipeline image CPU-bound : la vectorisation et l'inlining priment sur la taille
 lto = true          # Link Time Optimization : analyse tout le graphe de dépendances
 codegen-units = 1   # Réduit le parallélisme à la compilation pour mieux optimiser
 strip = true        # Retire les symboles de debug du binaire final
+
+# Le conteneur de dev tourne `cargo watch -x run` (profil debug) : sans ceci,
+# les dépendances de traitement d'image sont non optimisées et tout timing
+# mesuré en développement est ininterprétable.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
 
 [dependencies]
 axum = { version = "0.7", features = ["macros", "multipart"] }

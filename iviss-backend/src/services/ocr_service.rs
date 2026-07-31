@@ -1,23 +1,116 @@
-use image::{GenericImageView, GrayImage};
+use image::codecs::bmp::BmpEncoder;
+use image::{DynamicImage, ExtendedColorType, GenericImageView, GrayImage, Luma};
 use leptess::{LepTess, Variable};
+use once_cell::sync::Lazy;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Barrier};
+use std::time::{Duration, Instant};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
+use crate::services::ocr_timings::{OcrBudget, Stage, StageTimings};
 use crate::utils::plate_format;
 
-/// Radius (in pixels) for the adaptive threshold sliding window.
-const ADAPTIVE_RADIUS: u32 = 40;
+/// Sauvola window radius, derived from image height: a fixed radius does not
+/// mean the same thing at 300px and at 1080px of input.
+const SAUVOLA_RADIUS_DIVISOR: u32 = 8;
+const SAUVOLA_RADIUS_MIN: u32 = 15;
+const SAUVOLA_RADIUS_MAX: u32 = 100;
 
-/// Offset subtracted from the local mean when applying adaptive threshold.
-const ADAPTIVE_C: i16 = 5;
+/// Sauvola sensitivity `k` (Leptonica documents 0.2–0.5, typically 0.35).
+const SAUVOLA_K: f64 = 0.35;
 
-static TMP_COUNTER: AtomicU64 = AtomicU64::new(1);
+/// Dynamic range of the local standard deviation in Sauvola's formula.
+const SAUVOLA_STD_DEV_RANGE: f64 = 128.0;
+
+/// White border added around the binarized crop. Tesseract reads characters
+/// touching the edge poorly; *ImproveQuality* warns against larger borders.
+const OCR_BORDER_PX: u32 = 30;
+
+/// Fraction trimmed from each side before measuring polarity, so the surrounding
+/// bodywork does not decide the polarity of the plate.
+const POLARITY_INSET: f32 = 0.20;
+
+/// Split point used to re-binarize after bilinear rotation.
+const BILEVEL_MIDPOINT: u8 = 128;
+
+/// Skew search range, in whole degrees, either side of zero.
+const SKEW_SEARCH_DEGREES: i32 = 7;
+
+/// Below this angle (radians) rotating costs more than it corrects.
+const MIN_SKEW_RADIANS: f32 = 0.01;
+
+/// Tesseract is told the source is 300 dpi; the crops are not scanned pages and
+/// carry no resolution metadata of their own.
+const SOURCE_RESOLUTION_DPI: i32 = 300;
+
+/// Character set the plate formats are built from. Kept as a hint only: the LSTM
+/// engine does not honour it reliably, so the real correction lives in
+/// `plate_format`.
+const PLATE_CHAR_WHITELIST: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+/// Default tessdata location inside the Debian-based runtime image.
+const DEFAULT_TESSDATA_PREFIX: &str = "/usr/share/tesseract-ocr/5/tessdata";
+
+/// In-process deadline, checked between stages.
+pub const OCR_STAGE_BUDGET: Duration = Duration::from_millis(8_500);
+
+/// Handler-side deadline, covering queueing plus work. Deliberately longer than
+/// [`OCR_STAGE_BUDGET`] so the pipeline gives up first and reports why.
+pub const OCR_REQUEST_TIMEOUT: Duration = Duration::from_millis(9_000);
 
 thread_local! {
     static TESSERACT: RefCell<Option<LepTess>> = const { RefCell::new(None) };
+}
+
+/// Caps concurrent OCR work at the number of cores. Without it a burst spreads
+/// across Tokio's 512-thread blocking pool and every request degrades the next.
+static OCR_PERMITS: Lazy<Arc<Semaphore>> = Lazy::new(|| {
+    let workers = ocr_worker_count();
+    tracing::info!("OCR concurrency limited to {workers} in-flight request(s)");
+    Arc::new(Semaphore::new(workers))
+});
+
+fn ocr_worker_count() -> usize {
+    std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1)
+}
+
+/// Acquire the right to run one OCR pipeline. Hold the permit for the whole
+/// blocking task; dropping it releases the slot.
+pub async fn acquire_ocr_permit() -> Result<OwnedSemaphorePermit, AppError> {
+    OCR_PERMITS
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|e| AppError::internal_error(format!("OCR semaphore closed: {e}")))
+}
+
+/// Initialize one Tesseract instance per blocking worker at startup, so the
+/// first real request does not pay for it.
+///
+/// The barrier keeps each warm-up task parked until all of them have started,
+/// which is what forces Tokio to hand them out on distinct threads — the
+/// engine is stored in a thread-local.
+pub fn warm_up_tesseract_pool() {
+    let workers = ocr_worker_count();
+    let barrier = Arc::new(Barrier::new(workers));
+
+    for _ in 0..workers {
+        let barrier = Arc::clone(&barrier);
+        tokio::task::spawn_blocking(move || {
+            match TesseractGuard::new() {
+                Ok(guard) => drop(guard),
+                Err(e) => tracing::warn!("Tesseract warm-up failed on this worker: {e}"),
+            }
+            barrier.wait();
+        });
+    }
+
+    tracing::info!("Tesseract warm-up dispatched to {workers} worker(s)");
 }
 
 pub struct TesseractGuard {
@@ -57,223 +150,215 @@ impl Drop for TesseractGuard {
 
 /// Run the full OCR pipeline on raw image bytes (JPEG / PNG).
 pub fn scan_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
-    let start_total = std::time::Instant::now();
+    let started = Instant::now();
+    let budget = OcrBudget::new(OCR_STAGE_BUDGET);
+    let mut timings = StageTimings::default();
 
-    // 1. Load the image
-    let load_start = std::time::Instant::now();
-    let img = image::load_from_memory(image_bytes)
-        .map_err(|e| AppError::bad_request(format!("Cannot decode image: {e}")))?;
-    let load_elapsed = load_start.elapsed();
+    let img = decode_image(image_bytes, &mut timings)?;
+    let result = scan_plate_image(&img, &mut timings, &budget);
 
-    let (width, height) = img.dimensions();
-    tracing::info!(
-        "Received image for OCR: {}x{} ({} bytes), load took {:?}",
-        width,
-        height,
-        image_bytes.len(),
-        load_elapsed
-    );
+    timings.total = started.elapsed();
+    timings.emit("scan");
 
-    // 2. Convert to 8-bit grayscale
-    let gray = img.to_luma8();
-
-    // 3. Preprocessing: deskew → percentile contrast stretch → adaptive threshold → morphology
-    let process_start = std::time::Instant::now();
-
-    // Rotation correction
-    let deskewed = deskew(&gray);
-
-    // Contrast stretch (using 2nd/98th percentiles)
-    let stretched = contrast_stretch_percentile(&deskewed);
-
-    // Local adaptive threshold
-    let binary_raw = adaptive_threshold(&stretched, ADAPTIVE_RADIUS, ADAPTIVE_C);
-
-    // Morphological opening to clean up noise (small white blobs in black regions)
-    let binary_clean = morphology_open(&binary_raw);
-
-    // Add 30px white border — Tesseract works much better when chars aren't touching edges
-    let binary = add_border(&binary_clean, 30, 255);
-
-    // Lazily computed; only needed if binary variants fail.
-    let mut inverted: Option<GrayImage> = None;
-
-    let process_elapsed = process_start.elapsed();
-
-    // 4. Initialize / reuse Tesseract
-    let tess_init_start = std::time::Instant::now();
-    let mut tess = TesseractGuard::new()?;
-    let tess_init_elapsed = tess_init_start.elapsed();
-
-    let tesseract_start = std::time::Instant::now();
-
-    // Write the preprocessed image(s) once per request and reuse across OCR passes.
-    // leptonica/leptess works most reliably via file paths.
-    let tmp_id = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let bin_path = format!("/tmp/ocr_bin_{tmp_id}.png");
-    binary
-        .save(&bin_path)
-        .map_err(|e| AppError::internal_error(format!("Failed to write temp image: {e}")))?;
-    let mut inv_path: Option<String> = None;
-
-    // --- MODE 1: PSM 7 (Single Text Line) ---
-    tess.set_variable(Variable::TesseditPagesegMode, "7")
-        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 7: {e}")))?;
-    let r_b7 = try_ocr_path(&mut tess, &bin_path, "binary-psm7");
-
-    if let Some(ref res) = r_b7 {
-        if res.format_valid {
-            return finalize(
-                res.clone(),
-                process_elapsed,
-                tesseract_start.elapsed(),
-                start_total.elapsed(),
-            );
-        }
-    }
-
-    let r_i7 = {
-        if inverted.is_none() {
-            inverted = Some(add_border(&invert_image(&binary), 0, 255));
-            let p = format!("/tmp/ocr_inv_{tmp_id}.png");
-            inverted.as_ref().unwrap().save(&p).map_err(|e| {
-                AppError::internal_error(format!("Failed to write temp image: {e}"))
-            })?;
-            inv_path = Some(p);
-        }
-        inv_path
-            .as_ref()
-            .and_then(|p| try_ocr_path(&mut tess, p, "inverted-psm7"))
-    };
-
-    if let Some(ref res) = r_i7 {
-        if res.format_valid {
-            return finalize(
-                res.clone(),
-                process_elapsed,
-                tesseract_start.elapsed(),
-                start_total.elapsed(),
-            );
-        }
-    }
-
-    // --- MODE 2: PSM 8 (Single Word) ---
-    tess.set_variable(Variable::TesseditPagesegMode, "8")
-        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 8: {e}")))?;
-    let r_b8 = try_ocr_path(&mut tess, &bin_path, "binary-psm8");
-
-    if let Some(ref res) = r_b8 {
-        if res.format_valid {
-            return finalize(
-                res.clone(),
-                process_elapsed,
-                tesseract_start.elapsed(),
-                start_total.elapsed(),
-            );
-        }
-    }
-
-    // --- MODE 3: PSM 11 (Sparse Text) --- Fallback
-    tess.set_variable(Variable::TesseditPagesegMode, "11")
-        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 11: {e}")))?;
-    let r_b11 = try_ocr_path(&mut tess, &bin_path, "binary-psm11");
-
-    if let Some(ref res) = r_b11 {
-        if res.format_valid {
-            return finalize(
-                res.clone(),
-                process_elapsed,
-                tesseract_start.elapsed(),
-                start_total.elapsed(),
-            );
-        }
-    }
-
-    let r_i11 = {
-        if inverted.is_none() {
-            inverted = Some(add_border(&invert_image(&binary), 0, 255));
-            let p = format!("/tmp/ocr_inv_{tmp_id}.png");
-            inverted.as_ref().unwrap().save(&p).map_err(|e| {
-                AppError::internal_error(format!("Failed to write temp image: {e}"))
-            })?;
-            inv_path = Some(p);
-        }
-        inv_path
-            .as_ref()
-            .and_then(|p| try_ocr_path(&mut tess, p, "inverted-psm11"))
-    };
-
-    // --- MODE 4: PSM 13 (Raw Line) --- Fallback
-    tess.set_variable(Variable::TesseditPagesegMode, "13")
-        .map_err(|e| AppError::internal_error(format!("Failed to set PSM 13: {e}")))?;
-    let r_b13 = try_ocr_path(&mut tess, &bin_path, "binary-psm13");
-
-    let tesseract_elapsed = tesseract_start.elapsed();
-
-    // 5. Result Selection (Voting via pick_best_ensemble)
-    let candidates = vec![r_b7, r_i7, r_b8, r_b11, r_i11, r_b13];
-    let final_result = pick_best_ensemble(candidates);
-
-    // Best-effort cleanup of temp files
-    let _ = std::fs::remove_file(&bin_path);
-    if let Some(p) = inv_path.as_ref() {
-        let _ = std::fs::remove_file(p);
-    }
-
-    // Add tesseract init time into logs by folding it into process_elapsed.
-    // (We don't change the response; this is purely for observability.)
-    let _ = tess_init_elapsed;
-    finalize(
-        final_result,
-        process_elapsed,
-        tesseract_elapsed,
-        start_total.elapsed(),
-    )
+    finalize(result?, &timings)
 }
 
-pub fn finalize(
-    mut res: ScanResultData,
-    proc: std::time::Duration,
-    tess: std::time::Duration,
-    total: std::time::Duration,
-) -> Result<ScanResultData, AppError> {
-    if res.format_valid {
-        res.confidence = 0.90;
-    } else if !res.plate.is_empty() {
-        res.confidence = 0.50;
-    }
+/// Decode raw bytes, charging the cost to the decode stage.
+pub fn decode_image(
+    image_bytes: &[u8],
+    timings: &mut StageTimings,
+) -> Result<DynamicImage, AppError> {
+    let img = timings
+        .time(Stage::Decode, || image::load_from_memory(image_bytes))
+        .map_err(|e| AppError::bad_request(format!("Cannot decode image: {e}")))?;
 
+    let (width, height) = img.dimensions();
+    timings.set_input_dimensions(width, height);
+    Ok(img)
+}
+
+/// Run preprocessing and the OCR pass ensemble on an already-decoded image.
+///
+/// Taking a decoded image (rather than bytes) is what lets the photo pipeline
+/// hand its crop straight over, instead of re-encoding to JPEG and losing
+/// detail immediately before recognition.
+pub fn scan_plate_image(
+    img: &DynamicImage,
+    timings: &mut StageTimings,
+    budget: &OcrBudget,
+) -> Result<ScanResultData, AppError> {
+    let gray = img.to_luma8();
+    let prepared = preprocess(&gray, timings, budget)?;
+
+    budget.check(Stage::TessInit)?;
+    let mut tess = timings.time(Stage::TessInit, TesseractGuard::new)?;
+
+    let page = encode_bmp(&prepared)?;
+    run_pass_ensemble(&mut tess, &page, timings, budget)
+}
+
+/// Single exit point for a scan result.
+///
+/// It deliberately does **not** touch `confidence`: that value stays the raw
+/// Tesseract `mean_text_conf`, and `format_valid` stays an independent signal.
+/// Deriving one from the other duplicates a signal and throws the other away,
+/// which makes any client-side threshold calibration meaningless.
+pub fn finalize(res: ScanResultData, timings: &StageTimings) -> Result<ScanResultData, AppError> {
     tracing::info!(
-        "Scan completed: process={:?}, tesseract={:?}, total={:?}, plate={:?} (conf={:.2})",
-        proc,
-        tess,
-        total,
-        res.plate,
-        res.confidence
+        plate = %res.plate,
+        plate_type = ?res.plate_type,
+        format_valid = res.format_valid,
+        confidence = res.confidence,
+        passes = timings.passes,
+        total_ms = timings.total.as_millis(),
+        "OCR completed"
     );
 
     Ok(res)
 }
 
-// ── OCR helper ────────────────────────────────────────────────────────────────
+// ── preprocessing pipeline ────────────────────────────────────────────────────
+
+/// Contrast stretch → Sauvola → polarity normalisation → deskew → opening →
+/// border.
+///
+/// Order matters, and this is not the order it used to be in:
+///
+/// * The skew search runs on a **binarized, polarity-normalised** image. On
+///   greyscale the projection-profile variance is dominated by large luminance
+///   areas (bodywork, plate background) rather than by text rows, and the angle
+///   it picks is noise.
+/// * The morphological opening runs **after** polarity normalisation: an
+///   opening removes *light* structures, so on a light-on-dark plate it would
+///   otherwise eat the glyphs instead of the noise.
+/// * The border is added **once**, at the very end, on an image whose
+///   background is already 255 — no second inverted image is produced, so the
+///   dark frame that used to reach Tesseract on inverted passes cannot exist.
+fn preprocess(
+    gray: &GrayImage,
+    timings: &mut StageTimings,
+    budget: &OcrBudget,
+) -> Result<GrayImage, AppError> {
+    let radius =
+        (gray.height() / SAUVOLA_RADIUS_DIVISOR).clamp(SAUVOLA_RADIUS_MIN, SAUVOLA_RADIUS_MAX);
+
+    budget.check(Stage::Contrast)?;
+    let stretched = timings.time(Stage::Contrast, || contrast_stretch_percentile(gray));
+
+    budget.check(Stage::Threshold)?;
+    let binary = timings.time(Stage::Threshold, || {
+        let binarized = sauvola_threshold(&stretched, radius, SAUVOLA_K);
+        if is_light_on_dark(&binarized) {
+            invert_image(&binarized)
+        } else {
+            binarized
+        }
+    });
+
+    budget.check(Stage::Deskew)?;
+    let deskewed = timings.time(Stage::Deskew, || deskew(&binary));
+
+    budget.check(Stage::Morphology)?;
+    let opened = timings.time(Stage::Morphology, || morphology_open(&deskewed));
+
+    budget.check(Stage::Border)?;
+    Ok(timings.time(Stage::Border, || add_border(&opened, OCR_BORDER_PX, 255)))
+}
+
+/// Encode a grayscale image as an in-memory BMP for `set_image_from_mem`.
+///
+/// BMP is uncompressed, so this costs about a memcpy and loses nothing —
+/// unlike the previous PNG round-trip through `/tmp`, which also leaked files
+/// on every early return.
+fn encode_bmp(img: &GrayImage) -> Result<Vec<u8>, AppError> {
+    let mut buf = Vec::new();
+    BmpEncoder::new(&mut buf)
+        .encode(
+            img.as_raw(),
+            img.width(),
+            img.height(),
+            ExtendedColorType::L8,
+        )
+        .map_err(|e| AppError::internal_error(format!("Failed to encode image for OCR: {e}")))?;
+    Ok(buf)
+}
+
+// ── OCR passes ────────────────────────────────────────────────────────────────
+
+/// Run the PSM ensemble and select a result.
+///
+/// PSM 7 and PSM 13 always both run: a single pass returning something
+/// well-formed proves nothing, because the post-processing in `plate_format`
+/// can turn noise into something well-formed. Agreement between two independent
+/// segmentations is the actual evidence.
+///
+/// PSM 11 (*sparse text*) only runs when neither pass read any text at all —
+/// the case it is designed for. Run systematically, it reliably recovers
+/// surrounding signage (dealer frames), which then feeds the fuzzy corrector.
+fn run_pass_ensemble(
+    tess: &mut TesseractGuard,
+    page: &[u8],
+    timings: &mut StageTimings,
+    budget: &OcrBudget,
+) -> Result<ScanResultData, AppError> {
+    let passes_started = Instant::now();
+
+    budget.check(Stage::OcrPasses)?;
+    set_page_seg_mode(tess, "7")?;
+    let single_line = try_ocr(tess, page, "psm7");
+    timings.count_pass();
+
+    budget.check(Stage::OcrPasses)?;
+    set_page_seg_mode(tess, "13")?;
+    let raw_line = try_ocr(tess, page, "psm13");
+    timings.count_pass();
+
+    let selected = match (single_line, raw_line) {
+        (Some(a), Some(b)) if passes_agree(&a, &b) => {
+            // Report the stronger of the two measurements, not an average and
+            // not an agreement bonus.
+            let confidence = a.confidence.max(b.confidence);
+            let mut agreed = if a.confidence >= b.confidence { a } else { b };
+            agreed.confidence = confidence;
+            agreed
+        }
+        (None, None) => {
+            budget.check(Stage::OcrPasses)?;
+            set_page_seg_mode(tess, "11")?;
+            let sparse = try_ocr(tess, page, "psm11");
+            timings.count_pass();
+            pick_best_ensemble(vec![sparse])
+        }
+        (a, b) => pick_best_ensemble(vec![a, b]),
+    };
+
+    timings.record(Stage::OcrPasses, passes_started.elapsed());
+    Ok(selected)
+}
+
+/// Two passes agree when both produced the same well-formed plate.
+fn passes_agree(a: &ScanResultData, b: &ScanResultData) -> bool {
+    a.format_valid && b.format_valid && !a.plate.is_empty() && a.plate == b.plate
+}
+
+fn set_page_seg_mode(tess: &mut LepTess, mode: &str) -> Result<(), AppError> {
+    tess.set_variable(Variable::TesseditPagesegMode, mode)
+        .map_err(|e| AppError::internal_error(format!("Failed to set PSM {mode}: {e}")))
+}
 
 pub fn take_tesseract() -> Result<LepTess, AppError> {
     TESSERACT.with(|cell| {
         let mut slot = cell.borrow_mut();
         if slot.is_none() {
-            let mut tess = LepTess::new(Some("/usr/share/tesseract-ocr/5/tessdata"), "eng")
+            let tessdata = tessdata_prefix();
+            let mut tess = LepTess::new(Some(&tessdata), "eng")
                 .map_err(|e| AppError::internal_error(format!("Failed to init Tesseract: {e}")))?;
-
-            tess.set_variable(
-                Variable::TesseditCharWhitelist,
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-            )
-            .map_err(|e| AppError::internal_error(format!("Failed to set whitelist: {e}")))?;
-
+            configure_tesseract(&mut tess)?;
             *slot = Some(tess);
         }
 
-        Ok(slot.take().expect("Tesseract slot must be initialized"))
+        slot.take()
+            .ok_or_else(|| AppError::internal_error("Tesseract slot was not initialized"))
     })
 }
 
@@ -283,10 +368,48 @@ pub fn put_tesseract(tess: LepTess) {
     });
 }
 
-/// Attempt OCR on a single image path using leptess.
-pub fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<ScanResultData> {
-    tess.set_image(img_path).ok()?;
-    tess.set_source_resolution(300);
+/// Read from the environment first so the binary stays runnable outside the
+/// Docker image.
+fn tessdata_prefix() -> String {
+    std::env::var("TESSDATA_PREFIX").unwrap_or_else(|_| DEFAULT_TESSDATA_PREFIX.to_string())
+}
+
+/// Engine settings applied once, at instance creation.
+///
+/// The OCR engine mode cannot be set here: `leptess 0.14` exposes no OEM
+/// parameter on `LepTess::new`, `tessedit_ocr_engine_mode` is read at Init, and
+/// the underlying `TessApi` is private. The default is already LSTM on `eng`.
+///
+/// `tessedit_do_invert=0` is deprecated upstream and disappears in Tesseract 6
+/// in favour of `invert_threshold`, which `leptess` cannot reach either. The
+/// runtime image ships Tesseract 5.3, where it still works — tracked as debt.
+fn configure_tesseract(tess: &mut LepTess) -> Result<(), AppError> {
+    let settings = [
+        // A language model over an alphanumeric code bends plates like `CE128BC`
+        // towards English vocabulary.
+        (Variable::LoadSystemDawg, "0"),
+        (Variable::LoadFreqDawg, "0"),
+        // Polarity is normalised in `preprocess`; letting Tesseract retry the
+        // inverted image silently doubles the compute.
+        (Variable::TesseditDoInvert, "0"),
+        (Variable::TesseditCharWhitelist, PLATE_CHAR_WHITELIST),
+    ];
+
+    for (variable, value) in settings {
+        tess.set_variable(variable, value).map_err(|e| {
+            AppError::internal_error(format!(
+                "Failed to set Tesseract variable {variable:?}: {e}"
+            ))
+        })?;
+    }
+
+    Ok(())
+}
+
+/// Attempt OCR on an in-memory image. Returns `None` when the pass read no text.
+pub fn try_ocr(tess: &mut LepTess, image: &[u8], label: &str) -> Option<ScanResultData> {
+    tess.set_image_from_mem(image).ok()?;
+    tess.set_source_resolution(SOURCE_RESOLUTION_DPI);
 
     let raw_text = tess.get_utf8_text().unwrap_or_default();
     let trimmed = raw_text.trim();
@@ -296,13 +419,13 @@ pub fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<S
     let format_valid = plate_match.is_some();
     let plate_type = plate_match.map(|m| m.category.as_str().to_string());
 
-    tracing::info!(
-        "[{}] OCR raw: {:?} (conf: {:.2}), extracted: {:?}, valid: {}",
-        label,
-        trimmed,
+    tracing::debug!(
+        pass = label,
+        raw = trimmed,
         confidence,
-        extracted,
-        format_valid
+        extracted = ?extracted,
+        format_valid,
+        "OCR pass"
     );
 
     if trimmed.is_empty() {
@@ -319,29 +442,32 @@ pub fn try_ocr_path(tess: &mut LepTess, img_path: &str, label: &str) -> Option<S
 }
 
 /// Pick the best result from an ensemble of candidates.
+///
+/// Candidates that read text but yielded no plate are considered only when no
+/// candidate holds a plate at all. Otherwise a confident scrap of text (`"200"`
+/// at 0.63) outranks a real plate read at lower confidence and the client gets
+/// an empty plate back.
 pub fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData {
-    let mut best: Option<ScanResultData> = None;
+    let (with_plate, without_plate): (Vec<_>, Vec<_>) = candidates
+        .into_iter()
+        .flatten()
+        .partition(|cand| !cand.plate.is_empty());
 
-    for cand in candidates.into_iter().flatten() {
-        match &best {
-            None => best = Some(cand),
-            Some(curr) => {
-                let better =
-                    (cand.format_valid, cand.confidence) > (curr.format_valid, curr.confidence);
-                if better {
-                    best = Some(cand);
-                }
+    let pool = if with_plate.is_empty() {
+        without_plate
+    } else {
+        with_plate
+    };
+
+    pool.into_iter()
+        .reduce(|best, cand| {
+            if (cand.format_valid, cand.confidence) > (best.format_valid, best.confidence) {
+                cand
+            } else {
+                best
             }
-        }
-    }
-
-    best.unwrap_or(ScanResultData {
-        plate: String::new(),
-        raw_text: String::new(),
-        confidence: 0.0,
-        format_valid: false,
-        plate_type: None,
-    })
+        })
+        .unwrap_or_default()
 }
 
 // ── image processing helpers ──────────────────────────────────────────────────
@@ -405,107 +531,42 @@ pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
     out
 }
 
-/// Deskew (rotation correction) using horizontal projection profile variance.
-/// Evaluates angles between -7 and +7 degrees to find the sharpest horizontal alignment.
-pub fn deskew(img: &GrayImage) -> GrayImage {
-    use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
-    let (w, h) = img.dimensions();
-
-    let mut best_angle = 0.0;
-    let mut max_variance = 0.0;
-
-    for angle_deg in -7..=7 {
-        let rad = (angle_deg as f32).to_radians();
-        let rotated = rotate_about_center(img, rad, Interpolation::Bilinear, image::Luma([0]));
-
-        let mut row_sums = vec![0u32; h as usize];
-        for y in 0..h {
-            for x in 0..w {
-                row_sums[y as usize] += rotated.get_pixel(x, y)[0] as u32;
-            }
-        }
-
-        let mean = row_sums.iter().sum::<u32>() as f32 / h as f32;
-        let mut variance = 0.0;
-        for &sum in &row_sums {
-            let diff = sum as f32 - mean;
-            variance += diff * diff;
-        }
-
-        if variance > max_variance {
-            max_variance = variance;
-            best_angle = rad;
-        }
-    }
-
-    if best_angle.abs() > 0.01 {
-        rotate_about_center(img, best_angle, Interpolation::Bilinear, image::Luma([0]))
-    } else {
-        img.clone()
-    }
-}
-
-/// Simple 3x3 morphological opening (erosion followed by dilation).
-/// Cleans up small noise specs in the binary image.
-pub fn morphology_open(img: &GrayImage) -> GrayImage {
-    let (w, h) = img.dimensions();
-    if w < 3 || h < 3 {
+/// Sauvola adaptive binarization: `t = m · (1 − k · (1 − s / 128))`.
+///
+/// A local-mean threshold (mean − C) ignores local variance entirely, so on a
+/// weakly contrasted but uniform area — a plate in shade, a reflection, a
+/// partially blown-out capture — the mean alone is enough to tip background
+/// pixels into ink. Sauvola pulls the threshold down as local contrast drops,
+/// which is the right behaviour under uneven lighting.
+///
+/// Two integral images (sums and sums of squares) keep the cost at O(1) per
+/// pixel, exactly as the local-mean version. Window statistics use `f64`: on a
+/// 100px radius the squared sums reach ~2.6e9, well past `f32` precision.
+pub fn sauvola_threshold(img: &GrayImage, radius: u32, k: f64) -> GrayImage {
+    let (w, h) = (img.width() as usize, img.height() as usize);
+    if w == 0 || h == 0 {
         return img.clone();
     }
 
-    // Erode (initialize with input to preserve borders)
-    let mut eroded = img.clone();
-    for y in 1..(h - 1) {
-        for x in 1..(w - 1) {
-            let mut min_val = 255;
-            for dy in -1..=1 {
-                for dx in -1..=1 {
-                    let px = img.get_pixel((x as i32 + dx) as u32, (y as i32 + dy) as u32)[0];
-                    if px < min_val {
-                        min_val = px;
-                    }
-                }
-            }
-            eroded.put_pixel(x, y, image::Luma([min_val]));
-        }
-    }
-
-    // Dilate (initialize with eroded to preserve borders)
-    let mut out = eroded.clone();
-    for y in 1..(h - 1) {
-        for x in 1..(w - 1) {
-            let mut max_val = 0;
-            for dy in -1..=1 {
-                for dx in -1..=1 {
-                    let px = eroded.get_pixel((x as i32 + dx) as u32, (y as i32 + dy) as u32)[0];
-                    if px > max_val {
-                        max_val = px;
-                    }
-                }
-            }
-            out.put_pixel(x, y, image::Luma([max_val]));
-        }
-    }
-    out
-}
-
-/// Adaptive thresholding using a local mean (integral-image based, O(1) per pixel).
-pub fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
-    let (w, h) = (img.width() as usize, img.height() as usize);
     let iw = w + 1;
     let pixels = img.as_raw();
 
-    // Build integral image
-    let mut integral = vec![0i64; iw * (h + 1)];
+    let mut sums = vec![0i64; iw * (h + 1)];
+    let mut squares = vec![0i64; iw * (h + 1)];
+
     for y in 0..h {
         let mut row_sum = 0i64;
+        let mut row_square = 0i64;
         let row_off = y * w;
-        let int_curr_row_off = (y + 1) * iw;
-        let int_prev_row_off = y * iw;
+        let curr_row = (y + 1) * iw;
+        let prev_row = y * iw;
 
         for x in 0..w {
-            row_sum += pixels[row_off + x] as i64;
-            integral[int_curr_row_off + (x + 1)] = row_sum + integral[int_prev_row_off + (x + 1)];
+            let value = pixels[row_off + x] as i64;
+            row_sum += value;
+            row_square += value * value;
+            sums[curr_row + x + 1] = row_sum + sums[prev_row + x + 1];
+            squares[curr_row + x + 1] = row_square + squares[prev_row + x + 1];
         }
     }
 
@@ -522,19 +583,194 @@ pub fn adaptive_threshold(img: &GrayImage, radius: u32, c: i16) -> GrayImage {
             let x1 = x.saturating_sub(r);
             let x2 = (x + r + 1).min(w);
 
-            let count = ((x2 - x1) * (y2 - y1)) as i64;
-            let sum = integral[y2 * iw + x2] - integral[y1 * iw + x2] - integral[y2 * iw + x1]
-                + integral[y1 * iw + x1];
+            let count = ((x2 - x1) * (y2 - y1)) as f64;
+            let window = |acc: &[i64]| {
+                (acc[y2 * iw + x2] - acc[y1 * iw + x2] - acc[y2 * iw + x1] + acc[y1 * iw + x1])
+                    as f64
+            };
 
-            let threshold = ((sum / count) as i16 - c).max(0) as u8;
-            if pixels[row_off + x] > threshold {
-                out_pixels[row_off + x] = 255;
+            let mean = window(&sums) / count;
+            let variance = (window(&squares) / count - mean * mean).max(0.0);
+            let std_dev = variance.sqrt();
+            let threshold = mean * (1.0 - k * (1.0 - std_dev / SAUVOLA_STD_DEV_RANGE));
+
+            out_pixels[row_off + x] = if f64::from(pixels[row_off + x]) > threshold {
+                255
             } else {
-                out_pixels[row_off + x] = 0;
+                0
+            };
+        }
+    }
+
+    out
+}
+
+/// Whether a binarized image carries light glyphs on a dark background.
+///
+/// Measured on the central region only (a 20% inset per side). Across the whole
+/// frame the margin is 5–10 points against a 50% tipping point, and with
+/// `tessedit_do_invert=0` a wrong call is unrecoverable.
+pub fn is_light_on_dark(binary: &GrayImage) -> bool {
+    let (w, h) = binary.dimensions();
+    if w == 0 || h == 0 {
+        return false;
+    }
+
+    let inset_x = (w as f32 * POLARITY_INSET) as u32;
+    let inset_y = (h as f32 * POLARITY_INSET) as u32;
+    let x_end = w - inset_x;
+    let y_end = h - inset_y;
+
+    let raw = binary.as_raw();
+    let mut dark = 0u64;
+
+    for y in inset_y..y_end {
+        let row_off = (y * w) as usize;
+        for x in inset_x..x_end {
+            if raw[row_off + x as usize] < BILEVEL_MIDPOINT {
+                dark += 1;
             }
         }
     }
-    out
+
+    let total = u64::from(x_end - inset_x) * u64::from(y_end - inset_y);
+    total > 0 && dark * 2 > total
+}
+
+/// Find the rotation (radians) that best aligns text rows, by maximising the
+/// variance of the horizontal projection profile.
+///
+/// The input must already be binarized **and** polarity-normalised: on
+/// greyscale the variance is driven by broad luminance areas rather than by
+/// text rows, and the chosen angle varies frame to frame on a plate that is
+/// perfectly straight.
+pub fn estimate_skew_angle(binary: &GrayImage) -> f32 {
+    use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
+
+    let (w, h) = binary.dimensions();
+    if w == 0 || h == 0 {
+        return 0.0;
+    }
+
+    // Seed with 0°, so an ambiguous image is left unrotated rather than
+    // rotated by whichever angle was evaluated first.
+    let mut best_angle = 0.0f32;
+    let mut max_variance = projection_variance(binary);
+
+    for angle_deg in -SKEW_SEARCH_DEGREES..=SKEW_SEARCH_DEGREES {
+        if angle_deg == 0 {
+            continue;
+        }
+
+        let rad = (angle_deg as f32).to_radians();
+        let rotated = rotate_about_center(binary, rad, Interpolation::Bilinear, Luma([255]));
+        let variance = projection_variance(&rotated);
+
+        if variance > max_variance {
+            max_variance = variance;
+            best_angle = rad;
+        }
+    }
+
+    best_angle
+}
+
+fn projection_variance(img: &GrayImage) -> f64 {
+    let (w, h) = (img.width() as usize, img.height() as usize);
+    if w == 0 || h == 0 {
+        return 0.0;
+    }
+
+    let raw = img.as_raw();
+    let row_sums: Vec<f64> = (0..h)
+        .map(|y| {
+            raw[y * w..(y + 1) * w]
+                .iter()
+                .map(|&px| f64::from(px))
+                .sum::<f64>()
+        })
+        .collect();
+
+    let mean = row_sums.iter().sum::<f64>() / h as f64;
+    row_sums
+        .iter()
+        .map(|sum| {
+            let diff = sum - mean;
+            diff * diff
+        })
+        .sum::<f64>()
+        / h as f64
+}
+
+/// Rotation correction on a binarized, polarity-normalised image.
+///
+/// Corners exposed by the rotation are filled with background (255), never with
+/// black: dark scan borders are "erroneously picked up as extra characters".
+/// The result is re-binarized because bilinear interpolation leaves greys, and
+/// both the opening and Tesseract expect two strict levels.
+pub fn deskew(binary: &GrayImage) -> GrayImage {
+    use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
+
+    let angle = estimate_skew_angle(binary);
+    if angle.abs() <= MIN_SKEW_RADIANS {
+        return binary.clone();
+    }
+
+    let rotated = rotate_about_center(binary, angle, Interpolation::Bilinear, Luma([255]));
+    to_bilevel(rotated)
+}
+
+fn to_bilevel(mut img: GrayImage) -> GrayImage {
+    for px in img.iter_mut() {
+        *px = if *px >= BILEVEL_MIDPOINT { 255 } else { 0 };
+    }
+    img
+}
+
+/// 3x3 morphological opening (erosion then dilation).
+///
+/// Applied as separable 1x3 then 3x1 passes over the raw buffer: about 6
+/// unchecked accesses per pixel instead of ~36 bounds-checked `get_pixel` /
+/// `put_pixel` calls, for the same result on the interior. The 1px frame is
+/// left untouched, as before.
+pub fn morphology_open(img: &GrayImage) -> GrayImage {
+    let (w, h) = img.dimensions();
+    if w < 3 || h < 3 {
+        return img.clone();
+    }
+
+    let eroded = separable_3x3(img, |a, b, c| a.min(b).min(c));
+    separable_3x3(&eroded, |a, b, c| a.max(b).max(c))
+}
+
+/// Apply a separable 3x3 rank filter: horizontally over every row, then
+/// vertically over the interior rows.
+fn separable_3x3(img: &GrayImage, combine: fn(u8, u8, u8) -> u8) -> GrayImage {
+    let (w, h) = (img.width() as usize, img.height() as usize);
+    let src = img.as_raw();
+
+    let mut horizontal = src.clone();
+    for y in 0..h {
+        let row_off = y * w;
+        for x in 1..(w - 1) {
+            horizontal[row_off + x] =
+                combine(src[row_off + x - 1], src[row_off + x], src[row_off + x + 1]);
+        }
+    }
+
+    let mut out = src.clone();
+    for y in 1..(h - 1) {
+        let row_off = y * w;
+        for x in 1..(w - 1) {
+            out[row_off + x] = combine(
+                horizontal[row_off - w + x],
+                horizontal[row_off + x],
+                horizontal[row_off + w + x],
+            );
+        }
+    }
+
+    GrayImage::from_raw(img.width(), img.height(), out).unwrap_or_else(|| img.clone())
 }
 
 /// Invert a grayscale image: 255 → 0, 0 → 255.
@@ -549,28 +785,20 @@ pub fn invert_image(img: &GrayImage) -> GrayImage {
 /// Add a solid color border around the image.
 pub fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
     let (w, h) = img.dimensions();
-    let mut out = GrayImage::from_pixel(w + 2 * border, h + 2 * border, image::Luma([color]));
+    let mut out = GrayImage::from_pixel(w + 2 * border, h + 2 * border, Luma([color]));
     image::imageops::replace(&mut out, img, border as i64, border as i64);
     out
 }
 
 /// Extract and correct a Cameroon plate candidate from noisy OCR text.
+///
+/// A reading that does not parse is not a weak plate — it is not a plate. There
+/// is deliberately no "return whatever was normalised" fallback here.
 pub fn extract_plate_fuzzy(raw: &str) -> Option<String> {
-    if let Some(found) = plate_format::fuzzy_correct(raw) {
-        return Some(found.plate);
-    }
-
-    let cleaned = normalise_plate(raw);
-    if cleaned.len() >= 4 {
-        return Some(cleaned);
-    }
-
-    None
+    plate_format::fuzzy_correct(raw).map(|found| found.plate)
 }
 
 /// Uppercase, strip non-alphanumeric chars.
 pub fn normalise_plate(raw: &str) -> String {
     plate_format::normalise(raw)
 }
-
-// ── tests ─────────────────────────────────────────────────────────────────────
