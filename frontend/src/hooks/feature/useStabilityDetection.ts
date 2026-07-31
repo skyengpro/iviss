@@ -8,15 +8,20 @@ export interface DetectionResult {
 interface UseStabilityDetectionProps {
   requiredMatches?: number;
   minConfidence?: number;
+  windowSize?: number;
 }
 
 /**
  * Hook to manage the stability detection logic for license plate scanning.
- * It requires 3 consecutive identical results with >75% confidence to confirm a match.
+ * Confirms a plate once `requiredMatches` of the last `windowSize` readings
+ * agree — a sliding majority vote, not a consecutive-match streak, so a
+ * single misread interleaved in an otherwise-agreeing stream doesn't wipe
+ * out the count already accumulated by the others.
  */
 export function useStabilityDetection({
   requiredMatches = 3,
-  minConfidence = 75,
+  minConfidence = 0,
+  windowSize = 5,
 }: UseStabilityDetectionProps = {}) {
   const [history, setHistory] = useState<DetectionResult[]>([]);
   const [stableResult, setStableResult] = useState<{
@@ -26,50 +31,34 @@ export function useStabilityDetection({
 
   /**
    * Adds a new detection result and checks if stability is reached.
+   * Confidence is a pre-filter here, not the stability signal itself —
+   * agreement across independent frames is.
    * @param result Output from the OCR backend
-   * @returns The stable result if confirmed, otherwise null
    */
   const addDetection = useCallback(
-    (result: DetectionResult | null): { plateNumber: string; confidence: number } | null => {
-      // If no result or low confidence, reset stability
+    (result: DetectionResult | null): void => {
       if (!result || !result.plateNumber || result.confidence < minConfidence) {
-        setHistory([]);
-        setStableResult(null);
-        return null;
+        return;
       }
 
       setHistory((prev) => {
-        // If the plate changes, restart the consecutive-match counter
-        if (prev.length > 0 && prev[prev.length - 1].plateNumber !== result.plateNumber) {
-          setStableResult(null);
-          return [result];
-        }
+        const newHistory = [...prev, result].slice(-windowSize);
 
-        const newHistory = [...prev, result].slice(-requiredMatches);
+        const agreeing = newHistory.filter((item) => item.plateNumber === result.plateNumber);
 
-        if (newHistory.length === requiredMatches) {
-          const firstPlate = newHistory[0].plateNumber;
-          const allMatch = newHistory.every((item) => item.plateNumber === firstPlate);
-          if (allMatch) {
-            const avgConfidence =
-              newHistory.reduce((sum, item) => sum + item.confidence, 0) / newHistory.length;
-            setStableResult({
-              plateNumber: firstPlate,
-              confidence: avgConfidence,
-            });
-          } else {
-            setStableResult(null);
-          }
+        if (agreeing.length >= requiredMatches) {
+          setStableResult({
+            plateNumber: result.plateNumber,
+            confidence: Math.max(...agreeing.map((item) => item.confidence)),
+          });
         } else {
           setStableResult(null);
         }
 
         return newHistory;
       });
-
-      return null;
     },
-    [requiredMatches, minConfidence]
+    [requiredMatches, minConfidence, windowSize]
   );
 
   const resetStability = useCallback(() => {

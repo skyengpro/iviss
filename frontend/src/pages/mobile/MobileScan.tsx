@@ -28,6 +28,7 @@ export default function MobileScan() {
     webcamRef,
     facingMode,
     getScreenshot,
+    captureStill,
     toggleFacingMode,
     handleUserMedia,
     handleUserMediaError,
@@ -84,9 +85,9 @@ export default function MobileScan() {
 
   const handleCapture = useCallback(async () => {
     setIsScanning(true);
-    await captureAndProcess(getScreenshot);
+    await captureAndProcess(captureStill);
     setIsScanning(false);
-  }, [captureAndProcess, getScreenshot, setIsScanning]);
+  }, [captureAndProcess, captureStill, setIsScanning]);
 
   const handlePhotoRetry = useCallback(() => {
     photoRetry();

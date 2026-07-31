@@ -1,4 +1,5 @@
 import { TFunction } from 'i18next';
+import { computeViewfinderCrop, VF_ASPECT } from '@/utils/viewfinder';
 
 export interface CameroonPlateClassification {
   plate: string;
@@ -29,213 +30,45 @@ const PLATE_PATTERNS: Array<{ category: string; regex: RegExp }> = [
  * Image preprocessing utilities for license plate OCR
  * Optimized for Cameroon plates (orange background, black text)
  */
-
 export class ImageProcessor {
+  private static readonly PHOTO_JPEG_QUALITY = 0.95;
+  private static readonly PRIMARY_PHOTO_MAX_WIDTH = 1400;
+  private static readonly FALLBACK_PHOTO_MAX_WIDTH = 1800;
+  private static readonly LIVE_CROP_OPTIONS = { maxWidth: 800, quality: 0.95 };
+
   /**
-   * Preprocess image for hybrid OCR
-   * Resizes to 800x600 and compresses to JPEG 70% (~50KB)
-   * @param imageSrc Base64 image data
-   * @returns Processed base64 image
+   * Crops the viewfinder region out of `img` and draws it into `canvas` at
+   * native resolution, downscaled to `maxWidth` only if wider — never
+   * upscaled. Output aspect always matches the crop itself, so a degenerate
+   * crop (fallback to full image) never gets squashed into a fixed box.
    */
-  static async preprocessForOCR(imageSrc: string, t: TFunction): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            reject(new Error(t('errors.canvasContext')));
-            return;
-          }
-
-          // Target resolution 800x600
-          canvas.width = 800;
-          canvas.height = 600;
-
-          // High-quality scaling
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          // Draw image to fill the 800x600 canvas (may crop slightly if aspect ratio differs)
-          const scale = Math.max(800 / img.width, 600 / img.height);
-          const x = (800 - img.width * scale) / 2;
-          const y = (600 - img.height * scale) / 2;
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-          // Return as JPEG with 70% quality for optimal bandwidth (~50KB)
-          const result = canvas.toDataURL('image/jpeg', 0.7);
-
-          resolve(result);
-        } catch (error) {
-          reject(new Error(t('errors.imageProcessing')));
-        }
-      };
-      img.onerror = () => reject(new Error(t('errors.imageLoad')));
-      img.src = imageSrc;
-    });
-  }
-
-  private static convolve(
+  private static drawViewfinderCrop(
+    img: HTMLImageElement,
+    canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    kernel: number[],
-    divisor: number,
-    bias: number
-  ) {
-    const src = ctx.getImageData(0, 0, width, height);
-    const dst = ctx.createImageData(width, height);
-    const s = src.data;
-    const d = dst.data;
+    maxWidth: number
+  ): void {
+    const crop = computeViewfinderCrop(
+      img.width,
+      img.height,
+      window.innerWidth,
+      window.innerHeight
+    ) ?? { sx: 0, sy: 0, sw: img.width, sh: img.height };
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let a = 0;
+    const outWidth = Math.min(crop.sw, maxWidth);
+    const outHeight = outWidth * (crop.sh / crop.sw);
 
-        for (let ky = -1; ky <= 1; ky++) {
-          const sy = Math.min(height - 1, Math.max(0, y + ky));
-          for (let kx = -1; kx <= 1; kx++) {
-            const sx = Math.min(width - 1, Math.max(0, x + kx));
-            const si = (sy * width + sx) * 4;
-            const ki = (ky + 1) * 3 + (kx + 1);
-            const w = kernel[ki];
-            r += s[si] * w;
-            g += s[si + 1] * w;
-            b += s[si + 2] * w;
-            a += s[si + 3] * w;
-          }
-        }
+    canvas.width = Math.round(outWidth);
+    canvas.height = Math.round(outHeight);
 
-        const di = (y * width + x) * 4;
-        d[di] = ImageProcessor.clamp(r / divisor + bias);
-        d[di + 1] = ImageProcessor.clamp(g / divisor + bias);
-        d[di + 2] = ImageProcessor.clamp(b / divisor + bias);
-        d[di + 3] = ImageProcessor.clamp(a / divisor + bias);
-      }
-    }
-
-    ctx.putImageData(dst, 0, 0);
-  }
-
-  static async preprocessForPhotoCapture(imageSrc: string, t: TFunction): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            reject(new Error(t('errors.canvasContext')));
-            return;
-          }
-
-          const targetWidth = 1800;
-          const targetHeight = 900;
-
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          const W = window.innerWidth;
-          const H = window.innerHeight;
-          const w = img.width;
-          const h = img.height;
-
-          const scale = Math.max(W / w, H / h);
-          const vw = W * 0.92;
-          const vh = vw / 2.0;
-
-          const sw = vw / scale;
-          const sh = vh / scale;
-
-          const sx = (w - sw) / 2;
-          const sy = (h - sh) / 2;
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, targetWidth, targetHeight);
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
-
-          ImageProcessor.convolve(
-            ctx,
-            targetWidth,
-            targetHeight,
-            [0, -1, 0, -1, 5, -1, 0, -1, 0],
-            1,
-            0
-          );
-
-          const result = canvas.toDataURL('image/jpeg', 0.92);
-          resolve(result);
-        } catch (error) {
-          reject(new Error(t('errors.imageProcessing')));
-        }
-      };
-      img.onerror = () => reject(new Error(t('errors.imageLoad')));
-      img.src = imageSrc;
-    });
-  }
-
-  // ── Viewfinder guide-frame constants ───────────────────────────────────────
-  // The viewfinder occupies 92 % of the screen width with a 3.5:1 aspect ratio
-  // (accommodates both 520×110 mm standard and 460×135 mm secondary Cameroon plates).
-  private static readonly VF_WIDTH_RATIO = 0.92;
-  private static readonly VF_ASPECT = 3.5; // width / height
-
-  /**
-   * Computes safe crop coordinates (sx, sy, sw, sh) and corresponding
-   * destination coordinates (dx, dy, dw, dh) for canvas drawing.
-   * Clamps to image boundaries to prevent out-of-bounds drawing,
-   * which can occur if window dimensions change or ratios overshoot.
-   */
-  private static getSafeCrop(imgW: number, imgH: number, targetW: number, targetH: number) {
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-
-    // The webcam uses object-cover, so the scale is the larger ratio
-    const scale = Math.max(W / imgW, H / imgH);
-
-    // Viewfinder dimensions in CSS pixels
-    const vw = W * ImageProcessor.VF_WIDTH_RATIO;
-    const vh = vw / ImageProcessor.VF_ASPECT;
-
-    // Convert CSS pixels → raw video pixels
-    const sw = vw / scale;
-    const sh = vh / scale;
-
-    // Center the crop on the video frame
-    const sx = (imgW - sw) / 2;
-    const sy = (imgH - sh) / 2;
-
-    // Clamp coordinates to image bounds
-    const safeSx = Math.max(0, sx);
-    const safeSy = Math.max(0, sy);
-    const safeSw = Math.min(sw, imgW - safeSx);
-    const safeSh = Math.min(sh, imgH - safeSy);
-
-    // Calculate destination coordinates to maintain aspect ratio if clamped
-    if (sw === 0 || sh === 0) {
-      return { sx: 0, sy: 0, sw: imgW, sh: imgH, dx: 0, dy: 0, dw: targetW, dh: targetH };
-    }
-    const dx = (targetW - (safeSw / sw) * targetW) / 2;
-    const dy = (targetH - (safeSh / sh) * targetH) / 2;
-    const dw = (safeSw / sw) * targetW;
-    const dh = (safeSh / sh) * targetH;
-
-    return { sx: safeSx, sy: safeSy, sw: safeSw, sh: safeSh, dx, dy, dw, dh };
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
   }
 
   /**
    * Preprocess a photo capture for OCR by cropping exactly to the viewfinder
-   * guide frame, up-scaling to an OCR-friendly resolution, and applying a
-   * light sharpen kernel.
+   * guide frame, at native resolution (downscale-only, never upscale).
    *
    * This is the PRIMARY photo preprocessing method — it should be called
    * first (not as a fallback).
@@ -253,44 +86,50 @@ export class ImageProcessor {
             return;
           }
 
-          // Output dimensions — 3.5:1 plate-matched aspect ratio
-          const targetWidth = 1400;
-          const targetHeight = 400; // 1400 / 3.5 = 400
-
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          // Calculate clamped crop and destination coordinates
-          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
-            img.width,
-            img.height,
-            targetWidth,
-            targetHeight
-          );
-
-          // White background (in case crop overshoots)
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, targetWidth, targetHeight);
-
-          // Draw ONLY the viewfinder region into the output canvas
-          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-
-          // Light sharpen to compensate for scaling and minor hand tremor
-          ImageProcessor.convolve(
+          ImageProcessor.drawViewfinderCrop(
+            img,
+            canvas,
             ctx,
-            targetWidth,
-            targetHeight,
-            [0, -1, 0, -1, 6, -1, 0, -1, 0], // mild sharpen (centre = 6 instead of 5)
-            2, // divisor — keeps overall brightness stable
-            0
+            ImageProcessor.PRIMARY_PHOTO_MAX_WIDTH
           );
 
-          // High quality JPEG to preserve detail for OCR
-          const result = canvas.toDataURL('image/jpeg', 0.92);
+          const result = canvas.toDataURL('image/jpeg', ImageProcessor.PHOTO_JPEG_QUALITY);
           resolve(result);
+        } catch (error) {
+          reject(new Error(t('errors.imageProcessing')));
+        }
+      };
+      img.onerror = () => reject(new Error(t('errors.imageLoad')));
+      img.src = imageSrc;
+    });
+  }
+
+  /**
+   * Fallback photo preprocessing, used only when the primary attempt
+   * returns nothing usable. Same viewfinder-crop geometry as the primary
+   * path, at a slightly larger downscale ceiling.
+   */
+  static async preprocessForPhotoCapture(imageSrc: string, t: TFunction): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error(t('errors.canvasContext')));
+            return;
+          }
+
+          ImageProcessor.drawViewfinderCrop(
+            img,
+            canvas,
+            ctx,
+            ImageProcessor.FALLBACK_PHOTO_MAX_WIDTH
+          );
+
+          resolve(canvas.toDataURL('image/jpeg', ImageProcessor.PHOTO_JPEG_QUALITY));
         } catch (error) {
           reject(new Error(t('errors.imageProcessing')));
         }
@@ -327,19 +166,18 @@ export class ImageProcessor {
 
           // Work on a small version for speed — quality check doesn't need full res
           const checkW = 400;
-          const checkH = Math.round(400 / ImageProcessor.VF_ASPECT);
+          const checkH = Math.round(400 / VF_ASPECT);
           canvas.width = checkW;
           canvas.height = checkH;
 
-          // Crop to viewfinder region using the shared helper
-          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
+          const crop = computeViewfinderCrop(
             img.width,
             img.height,
-            checkW,
-            checkH
-          );
+            window.innerWidth,
+            window.innerHeight
+          ) ?? { sx: 0, sy: 0, sw: img.width, sh: img.height };
 
-          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+          ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, checkW, checkH);
           const imageData = ctx.getImageData(0, 0, checkW, checkH);
           const pixels = imageData.data;
 
@@ -419,57 +257,6 @@ export class ImageProcessor {
   }
 
   /**
-   * Preprocess image for high-resolution single-shot photo capture.
-   * Uses 1600×1200 at JPEG 90% quality for maximum OCR accuracy.
-   * @param imageSrc Base64 image data
-   * @returns Processed base64 image
-   */
-  static async preprocessForHighRes(imageSrc: string, t: TFunction): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            reject(new Error(t('errors.canvasContext')));
-            return;
-          }
-
-          // High-res target: 1600×1200
-          canvas.width = 1600;
-          canvas.height = 1200;
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          // Center-crop to fill canvas
-          const scale = Math.max(1600 / img.width, 1200 / img.height);
-          const x = (1600 - img.width * scale) / 2;
-          const y = (1200 - img.height * scale) / 2;
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-          // 90% quality for minimal compression artifacts
-          const result = canvas.toDataURL('image/jpeg', 0.9);
-          resolve(result);
-        } catch (error) {
-          reject(new Error(t('errors.imageProcessing')));
-        }
-      };
-      img.onerror = () => reject(new Error(t('errors.imageLoad')));
-      img.src = imageSrc;
-    });
-  }
-
-  /**
-   * Clamp value between 0 and 255
-   */
-  private static clamp(value: number): number {
-    return Math.max(0, Math.min(255, value));
-  }
-
-  /**
    * Validate Cameroon license plate format
    * @param text OCR extracted text
    * @returns Cleaned and validated plate number or null
@@ -538,95 +325,6 @@ export class ImageProcessor {
     }
   }
 
-  /**
-   * Scale image to optimal size for OCR
-   * Tesseract works best with images around 300 DPI
-   */
-  static async scaleImage(
-    imageSrc: string,
-    t: TFunction,
-    targetWidth: number = 800
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) {
-          reject(new Error(t('errors.canvasContext')));
-          return;
-        }
-
-        // Calculate scaled dimensions
-        const scale = targetWidth / img.width;
-        canvas.width = targetWidth;
-        canvas.height = img.height * scale;
-
-        // Use high-quality scaling
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.95));
-      };
-      img.onerror = () => reject(new Error(t('errors.imageLoad')));
-      img.src = imageSrc;
-    });
-  }
-
-  /**
-   * Crop image to a center box for better OCR accuracy
-   * Viewfinder is roughly 3:1 aspect ratio in the center
-   */
-  static async cropToViewfinder(imageSrc: string, t: TFunction): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            reject(new Error(t('errors.canvasContext')));
-            return;
-          }
-
-          // Output dimensions — 3.5:1 aspect ratio matching Cameroon plates
-          const targetWidth = 1200;
-          const targetHeight = Math.round(1200 / ImageProcessor.VF_ASPECT);
-
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          // Calculate clamped crop and destination coordinates
-          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
-            img.width,
-            img.height,
-            targetWidth,
-            targetHeight
-          );
-
-          // White background
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, targetWidth, targetHeight);
-
-          // Draw without squashing!
-          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-
-          resolve(canvas.toDataURL('image/jpeg', 0.9));
-        } catch (error) {
-          reject(new Error(t('errors.imageProcessing')));
-        }
-      };
-      img.onerror = () => reject(new Error(t('errors.imageLoad')));
-      img.src = imageSrc;
-    });
-  }
-
   static async cropToViewfinderFast(imageSrc: string, t: TFunction): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -640,29 +338,14 @@ export class ImageProcessor {
             return;
           }
 
-          // Smaller output for live scanning to reduce upload + backend time
-          const targetWidth = 800;
-          const targetHeight = Math.round(800 / ImageProcessor.VF_ASPECT);
-
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          const { sx, sy, sw, sh, dx, dy, dw, dh } = ImageProcessor.getSafeCrop(
-            img.width,
-            img.height,
-            targetWidth,
-            targetHeight
+          ImageProcessor.drawViewfinderCrop(
+            img,
+            canvas,
+            ctx,
+            ImageProcessor.LIVE_CROP_OPTIONS.maxWidth
           );
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, targetWidth, targetHeight);
-          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-
-          // Lower quality for speed in live mode
-          resolve(canvas.toDataURL('image/jpeg', 0.65));
+          resolve(canvas.toDataURL('image/jpeg', ImageProcessor.LIVE_CROP_OPTIONS.quality));
         } catch (error) {
           reject(new Error(t('errors.imageProcessing')));
         }

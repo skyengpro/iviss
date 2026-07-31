@@ -96,12 +96,12 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
   const isProcessingRef = useRef(false);
 
   /**
-   * Capture a screenshot, assess quality, preprocess by cropping to the
+   * Capture a still, assess quality, preprocess by cropping to the
    * viewfinder guide frame, and send to the backend OCR endpoint.
    * Updates state through idle → processing → result/error.
    */
   const captureAndProcess = useCallback(
-    async (getScreenshot: () => string | null) => {
+    async (captureStill: () => Promise<string | null>) => {
       if (isProcessingRef.current) return;
       isProcessingRef.current = true;
 
@@ -111,7 +111,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
       setCapturedImageSrc(null);
 
       try {
-        const imageSrc = getScreenshot();
+        const imageSrc = await captureStill();
         if (!imageSrc) {
           throw new Error(t('mobileScan.photoError'));
         }

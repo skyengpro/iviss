@@ -33,10 +33,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
 
   const activeRequestRef = useRef<AbortController | null>(null);
 
-  const { addDetection, resetStability, stableResult } = useStabilityDetection({
-    requiredMatches: 2,
-    minConfidence: 40,
-  });
+  const { addDetection, resetStability, stableResult } = useStabilityDetection();
 
   const scanIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -78,12 +75,6 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
     async (imageSrc: string) => {
       setIsLiveProcessing(true);
       try {
-        // Cancel any previous in-flight request so we don't wait on stale frames
-        if (activeRequestRef.current) {
-          activeRequestRef.current.abort();
-          activeRequestRef.current = null;
-        }
-
         const controller = new AbortController();
         activeRequestRef.current = controller;
 
@@ -116,12 +107,12 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
           };
 
           // Add to detections list for visual feedback (even if not stable yet)
-          // Add to detections list for visual feedback (even if not stable yet)
           // ONLY add if there is actual text
           if (result.plateNumber.trim() !== '') {
+            const formatValid = json.data.format_valid === true;
             setLiveDetections((prev) => {
               if (prev.some((d) => d.plateNumber === result.plateNumber)) return prev;
-              const status: PlateStatus = json.data?.format_valid ? 'valid' : 'warning';
+              const status: PlateStatus = formatValid ? 'valid' : 'warning';
               return [
                 {
                   plateNumber: result.plateNumber,
@@ -131,8 +122,11 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
                 ...prev,
               ].slice(0, 10);
             });
-            // 4. Update Stability Logic
-            addDetection(result);
+            // Only well-formed reads vote on stability — noise that doesn't even
+            // parse as a plate must not delay or wrongly confirm the consensus.
+            if (formatValid) {
+              addDetection(result);
+            }
           }
         }
       } catch (error) {

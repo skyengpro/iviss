@@ -1,5 +1,6 @@
 import React from 'react';
 import Webcam from 'react-webcam';
+import { VF_ASPECT } from '@/utils/viewfinder';
 
 interface ScanViewfinderProps {
   webcamRef: React.RefObject<Webcam>;
@@ -26,6 +27,8 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 }) => {
   const videoConstraints = {
     facingMode: facingMode,
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
   };
 
   const borderColor = hasError ? 'border-destructive' : 'border-accent';
@@ -44,6 +47,7 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
           ref={webcamRef}
           screenshotFormat="image/jpeg"
           videoConstraints={videoConstraints}
+          forceScreenshotSourceSize
           className="absolute inset-0 h-full w-full object-cover"
           onUserMedia={onUserMedia}
           onUserMediaError={onUserMediaError}
@@ -53,7 +57,7 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
 
       {/* Scan frame overlay */}
       <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
-        <div className="relative aspect-[7/2] w-full max-w-sm">
+        <div className="relative w-full max-w-sm" style={{ aspectRatio: VF_ASPECT }}>
           {/* Corner markers */}
           <div
             className={`absolute left-0 top-0 h-5 w-8 border-l-4 border-t-4 transition-colors duration-300 ${borderColor}`}
