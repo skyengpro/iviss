@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::time::Instant;
 
 use image::imageops::FilterType;
 use image::GenericImageView;
@@ -6,54 +6,92 @@ use image::GenericImageView;
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
 use crate::services::ocr_service;
+use crate::services::ocr_timings::{OcrBudget, Stage, StageTimings};
 use crate::utils::plate_format;
+
+/// A crop at or above this width/height ratio is already plate-shaped: the
+/// frontend viewfinder framed it, and the colour crop can only degrade it.
+const PLATE_SHAPED_ASPECT: f32 = 3.0;
+
+/// Crops narrower than this are upscaled before OCR.
+const MIN_OCR_WIDTH: u32 = 400;
+
+/// Scale factor of the enhanced retry pass.
+const ENHANCED_PASS_SCALE: f32 = 1.5;
 
 /// OCR pipeline for single-shot photo captures.
 ///
 /// This service is intentionally separate from live scanning so it can evolve
 /// independently (heavier preprocessing, different retry strategies, etc.).
 pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
-    let img = image::load_from_memory(image_bytes)
-        .map_err(|e| AppError::bad_request(format!("Cannot decode image: {e}")))?;
+    let started = Instant::now();
+    let budget = OcrBudget::new(ocr_service::OCR_STAGE_BUDGET);
+    let mut timings = StageTimings::default();
 
-    // 1. Color-adaptive crop (isolates the plate region based on known color profiles)
-    let cropped = color_adaptive_crop(&img).unwrap_or_else(|| img.clone());
+    let img = ocr_service::decode_image(image_bytes, &mut timings)?;
 
-    // 2. Smart upscaling for small crops (ensures characters are at least ~30px tall)
-    let (cw, ch) = cropped.dimensions();
-    let base_img = if cw < 400 {
-        let scale = 400.0 / cw as f32;
-        cropped.resize(400, (ch as f32 * scale) as u32, FilterType::Triangle)
-    } else {
-        cropped.clone()
-    };
+    // 1. Colour-adaptive crop, skipped when the frontend already sent a
+    //    plate-shaped crop: the orange profile also catches skin, wood and
+    //    earth, so on a tight crop it has nothing to gain and something to lose.
+    let cropped = timings.time(Stage::Crop, || {
+        let (w, h) = img.dimensions();
+        let plate_shaped = h > 0 && (w as f32 / h as f32) >= PLATE_SHAPED_ASPECT;
+        if plate_shaped {
+            None
+        } else {
+            color_adaptive_crop(&img)
+        }
+    });
+    let source = cropped.as_ref().unwrap_or(&img);
 
-    let run_ocr = |i: &image::DynamicImage| -> Result<ScanResultData, AppError> {
-        let mut buf: Vec<u8> = Vec::new();
-        i.write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Jpeg)
-            .map_err(|e| AppError::internal_error(format!("Failed to encode image: {e}")))?;
-        Ok(enhance_photo_result(ocr_service::scan_plate(&buf)?))
-    };
+    // 2. Smart upscaling for small crops (keeps characters reasonably tall)
+    let (cw, ch) = source.dimensions();
+    let upscaled = (cw > 0 && cw < MIN_OCR_WIDTH).then(|| {
+        let scale = MIN_OCR_WIDTH as f32 / cw as f32;
+        source.resize(
+            MIN_OCR_WIDTH,
+            (ch as f32 * scale) as u32,
+            FilterType::Triangle,
+        )
+    });
+    let base_img = upscaled.as_ref().unwrap_or(source);
 
-    // 3. Multi-scale OCR: Try 1x scale
-    let first = run_ocr(&base_img)?;
-    if first.format_valid {
-        return Ok(first);
+    // 3. Native pass. The decoded image goes straight to the scan pipeline —
+    //    no JPEG round-trip, which would throw away detail right before
+    //    recognition.
+    let first = enhance_photo_result(ocr_service::scan_plate_image(
+        base_img,
+        &mut timings,
+        &budget,
+    )?);
+
+    // Retry only when the native pass read no text at all. An invalid format is
+    // not evidence that a heavier pass would do better; it just doubles the cost.
+    if !first.raw_text.trim().is_empty() {
+        timings.total = started.elapsed();
+        timings.emit("photo");
+        return ocr_service::finalize(first, &timings);
     }
 
-    // Fallback: 1.5x upscale with contrast boost and unsharpening
     let (bw, bh) = base_img.dimensions();
-    let upscale_img = base_img
+    let enhanced = base_img
         .resize(
-            (bw as f32 * 1.5) as u32,
-            (bh as f32 * 1.5) as u32,
+            (bw as f32 * ENHANCED_PASS_SCALE) as u32,
+            (bh as f32 * ENHANCED_PASS_SCALE) as u32,
             FilterType::Triangle,
         )
         .adjust_contrast(25.0)
         .unsharpen(1.0, 1);
 
-    let second = run_ocr(&upscale_img)?;
-    Ok(pick_best(first, second))
+    let second = enhance_photo_result(ocr_service::scan_plate_image(
+        &enhanced,
+        &mut timings,
+        &budget,
+    )?);
+
+    timings.total = started.elapsed();
+    timings.emit("photo");
+    ocr_service::finalize(pick_best(first, second), &timings)
 }
 
 fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage> {
@@ -151,6 +189,12 @@ fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage>
     None
 }
 
+/// Second look at a scan result on the photo path.
+///
+/// It never touches `confidence`: that stays the raw Tesseract measurement, on
+/// this path as on the scan path. Flooring it here would leave any client-side
+/// threshold calibration inoperative for every photo capture, since every
+/// `photo_plate` call goes through this function.
 pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     // If the scan pipeline already extracted a plate, keep it (even if format is invalid).
     // Photo mode should still surface the best candidate to the client.
@@ -166,15 +210,13 @@ pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     // If scan couldn't extract a plate, try a strict extraction from raw_text.
     // This mirrors the intent of the photo service without discarding useful OCR info.
     if let Some(p) = extract_plate_strict(&r.raw_text) {
+        // `extract_plate_strict` cannot guarantee the extracted string
+        // classifies — that invariant belongs to another module — so derive the
+        // flag instead of asserting it.
         let plate_match = plate_format::classify(&p);
-        r.plate = p;
-        r.format_valid = true;
+        r.format_valid = plate_match.is_some();
         r.plate_type = plate_match.map(|m| m.category.as_str().to_string());
-        // Keep confidence semantics consistent with `ocr_service::finalize`, which
-        // promotes valid-format plates to a high confidence score.
-        if r.confidence < 0.90 {
-            r.confidence = 0.90;
-        }
+        r.plate = p;
     }
 
     r
@@ -184,6 +226,12 @@ pub(crate) fn extract_plate_strict(raw: &str) -> Option<String> {
     plate_format::extract_first(raw).map(|m| m.plate)
 }
 
+/// Select between two readings.
+///
+/// Selection only ever returns a reading exactly as it was recognised. The
+/// former character-level vote built a third string from the two — a plate no
+/// pass actually read — and then promoted it to `format_valid` whenever the
+/// composite happened to match a pattern.
 pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData {
     // Priority 1: Valid format
     if a.format_valid && !b.format_valid {
@@ -191,37 +239,6 @@ pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData 
     }
     if b.format_valid && !a.format_valid {
         return b;
-    }
-
-    // Character-level voting if both are invalid but have the same length
-    if !a.format_valid
-        && !b.format_valid
-        && !a.plate.is_empty()
-        && !b.plate.is_empty()
-        && a.plate.len() == b.plate.len()
-    {
-        let mut voted = String::new();
-        for (ca, cb) in a.plate.chars().zip(b.plate.chars()) {
-            if ca == cb {
-                voted.push(ca);
-            } else {
-                // Break tie with confidence
-                voted.push(if a.confidence > b.confidence { ca } else { cb });
-            }
-        }
-        let mut res = if a.confidence > b.confidence {
-            a.clone()
-        } else {
-            b.clone()
-        };
-        res.plate = voted;
-        if let Some(found) = plate_format::classify(&res.plate) {
-            res.plate = found.plate;
-            res.format_valid = true;
-            res.plate_type = Some(found.category.as_str().to_string());
-            res.confidence = 0.90;
-        }
-        return res;
     }
 
     // Priority 2: If one has a candidate plate and the other does not, pick the one with text.

@@ -170,7 +170,7 @@
 - health.rs
 
 ## God Nodes (most connected - your core abstractions)
-1. `AppError` - 167 edges
+1. `AppError` - 178 edges
 2. `AppState` - 83 edges
 3. `cn()` - 80 edges
 4. `useAuth()` - 43 edges
@@ -322,7 +322,7 @@ Nodes (28): activate(), change_password(), login(), logout(), on_shift_ended(), 
 
 ### Community 26 - "SmsProvider"
 Cohesion: 0.15
-Nodes (16): MockSmsProvider, OrangeSmsProvider, OrangeTokenResponse, Arc, Cache, Client, Instant, Result (+8 more)
+Nodes (18): cache_partition_for_plate(), CachedEntry, CachedVehicleData, decrypt(), decrypt_rejects_short_payload(), decrypt_with_wrong_key_fails(), encrypt(), encrypt_decrypt_round_trip() (+10 more)
 
 ### Community 27 - "control_queries_tests.rs"
 Cohesion: 0.28
@@ -338,7 +338,7 @@ Nodes (52): init_metrics(), init_telemetry(), init_tracer_provider(), Arc, Optio
 
 ### Community 30 - "plate_format.rs"
 Cohesion: 0.17
-Nodes (15): classify(), classify_compact(), correct_digit(), correct_letter(), correct_with_mask(), extract_first(), find_candidate(), format_display() (+7 more)
+Nodes (16): classify(), classify_compact(), correct_digit(), correct_letter(), correct_with_mask(), extract_first(), find_candidate(), format_display() (+8 more)
 
 ### Community 31 - "IVISS Back Office Desktop Dashboard"
 Cohesion: 0.12

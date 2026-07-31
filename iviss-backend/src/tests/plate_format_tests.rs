@@ -92,4 +92,48 @@ mod tests {
         assert_eq!(plate_format::format_display("LTSR9652A"), "LT SR 9652 A");
         assert_eq!(plate_format::format_display("SN1234"), "SN 1234");
     }
+
+    // ── fuzzy_correct: Military and GovernmentLegacy are unreachable by
+    //    substitution, since neither carries a regional prefix or literal
+    //    marker to anchor a correction ─────────────────────────────────────
+
+    #[test]
+    fn fuzzy_correct_does_not_reach_military_or_government_legacy_by_substitution() {
+        // Both windows are drawn from real field OCR of a dealer frame
+        // ("TAUNUS AUTO..."): the confusion table alone maps them onto the
+        // Military (`\d{7}`) and GovernmentLegacy (`[A-Z]{2}\d{4}[A-Z]`)
+        // masks with no regional prefix or literal marker to anchor the
+        // correction — `7IOA2TA` -> `7104214`, `AUTOSBW` -> `AU1058W`.
+        assert_eq!(plate_format::fuzzy_correct("7IOA2TA"), None);
+        assert_eq!(plate_format::fuzzy_correct("AUTOSBW"), None);
+    }
+
+    #[test]
+    fn genuine_military_and_government_legacy_plates_still_read_directly() {
+        // The exclusion only applies to the substitution path; a plate that
+        // actually reads as one of these categories must keep working.
+        assert_eq!(
+            plate_format::fuzzy_correct("1234567").map(|m| m.category),
+            Some(PlateCategory::Military)
+        );
+        assert_eq!(
+            plate_format::fuzzy_correct("AB1234C").map(|m| m.category),
+            Some(PlateCategory::GovernmentLegacy)
+        );
+    }
+
+    #[test]
+    fn fuzzy_correct_bounds_substitution_noise_to_three_characters() {
+        // A window slid over a whole line of unrelated text, with no length
+        // bound, will always correct something into a well-formed plate. The
+        // 7-character civil mask must not fire inside far longer noise.
+        let long_noise = "XXXXXXXXXXXXXXXXCE1O8BCXXXXXXXXXXXXXXXX";
+        assert_eq!(plate_format::fuzzy_correct(long_noise), None);
+
+        // Within the tolerated 3-character margin it still recovers.
+        assert_eq!(
+            plate_format::fuzzy_correct("KCE1O8BC").map(|m| m.plate),
+            Some("CE108BC".to_string())
+        );
+    }
 }

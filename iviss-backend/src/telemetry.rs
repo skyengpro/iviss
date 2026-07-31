@@ -121,6 +121,26 @@ fn init_metrics() -> Result<metrics_exporter_prometheus::PrometheusHandle> {
     metrics::describe_gauge!("iviss_active_sessions", "Number of active sessions");
     metrics::describe_counter!("iviss_scans_total", "Total number of plate scans");
     metrics::describe_counter!("iviss_scan_errors_total", "Total number of scan errors");
+    metrics::describe_histogram!(
+        "iviss_ocr_stage_duration_seconds",
+        "Duration of each OCR pipeline stage in seconds"
+    );
+    metrics::describe_histogram!(
+        "iviss_ocr_duration_seconds",
+        "End-to-end OCR pipeline duration in seconds"
+    );
+    metrics::describe_histogram!(
+        "iviss_ocr_passes",
+        "Number of Tesseract recognition passes per request"
+    );
+    metrics::describe_histogram!(
+        "iviss_ocr_input_pixels",
+        "Pixel count of the image submitted to the OCR pipeline"
+    );
+    metrics::describe_counter!(
+        "iviss_ocr_budget_exceeded_total",
+        "Number of OCR requests abandoned on the stage budget"
+    );
     metrics::describe_counter!(
         "iviss_auth_attempts_total",
         "Total number of authentication attempts"
