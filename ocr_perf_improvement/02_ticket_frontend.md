@@ -1,9 +1,14 @@
 # Ticket frontend — pipeline de scan de plaques
 
-Aucun de ces correctifs n'existe sur `dev`. Chaque section = un défaut
-diagnostiqué + le correctif conçu et validé (tests unitaires + mesure sur
-photo réelle) sur la branche abandonnée. Fichiers/lignes ci-dessous réfèrent
-à l'état actuel de `dev`.
+Aucun de ces correctifs n'est encore appliqué au code. Chaque section = un
+défaut diagnostiqué + le correctif conçu, validé par tests unitaires et par
+mesure sur photo réelle lors d'une itération antérieure. Fichiers/lignes
+ci-dessous réfèrent à l'état actuel de `dev`.
+
+> **Lire d'abord [`06_validation_documentaire.md`](06_validation_documentaire.md) §3.**
+> Ce ticket a été rédigé contre une version antérieure du code : **trois noms de
+> symboles et deux valeurs numériques y sont faux**. Les corrections sont
+> reportées en ligne ci-dessous, marquées « ⚠️ Correction ».
 
 ## 1. Capture — résolution native et vrai still (pas une frame vidéo)
 
@@ -30,6 +35,19 @@ hauteur de capitale.
 - **Mesuré** : hauteur de capitale ~130px après ce correctif (voir
   `04_mesures_verifiees.md`). Ne pas monter plus haut sans nouvelle preuve.
 
+> **⚠️ Précision (vérifiée le 2026-07-31).** `ImageCapture` n'est supporté **ni
+> sur Safari macOS ni sur Safari iOS**, et est désactivé par défaut dans Firefox
+> (`takePhoto()` seul). Sur iOS, **seul le 3ᵉ barreau de l'échelle s'exécute** :
+> tout le correctif de résolution y repose sur `width/height: {ideal: 1920/1080}`
+> **et** `forceScreenshotSourceSize`. Ces deux réglages ne sont donc pas des
+> compléments de l'échelle `ImageCapture` — sur iOS ils *sont* le correctif.
+> `ideal` (et non `exact`) est le bon choix : `exact` échoue en
+> `OverconstrainedError` si la définition n'est pas disponible.
+>
+> **La résolution de capture 1920×1080 est actée et ne doit pas être baissée.**
+> Ce qui reste à mesurer, c'est la **largeur du crop OCR** (800px), pas la
+> capture — voir `06_validation_documentaire.md` §4.
+
 ## 2. Capture — latence perçue du bouton (`takePhoto` en tête d'échelle)
 
 **Défaut.** Si l'échelle ci-dessus place `takePhoto()` en premier essai (au
@@ -52,6 +70,20 @@ C'est la latence perçue à l'appui du bouton.
   l'obturateur réintroduirait l'attente qu'on vient de supprimer. **Ce point
   a été vérifié à tort comme "défaut" en première passe de relecture — ne
   pas y retoucher.**
+
+> **⚠️ Correction.** `focusOnViewfinder` **n'existe pas sur `dev`** :
+> `useCamera.ts` fait 55 lignes et n'accède jamais aux `MediaStreamTrack`.
+> La consigne ci-dessus porte donc sur du code **à écrire**, pas sur un
+> correctif à appliquer. Idem pour le métrage `pointsOfInterest` (audit §4.4) :
+> tout l'accès aux capacités de la piste est à créer, sous garde
+> `track.getCapabilities()`, sans échec si non supporté.
+>
+> Le fondement de l'ordre `grabFrame` → `takePhoto` est confirmé **verbatim**
+> par le README ImageCapture de Chromium : « takePhoto() interrupts the
+> MediaStream, reconfigures the camera […] whereas grabFrame() just takes the
+> next available VideoFrame […] inside the renderer process ». Contrepartie
+> documentée et acceptée : `grabFrame` est plafonné à la définition de la
+> piste vidéo, d'où l'importance des contraintes `ideal` du §1.
 
 ## 3. Viseur — géométrie et aspect
 
@@ -79,6 +111,23 @@ crop réellement envoyé étaient calculés indépendamment (overlay en
   `preprocessForPhoto`, qui blowait ~135px à 1400px et amplifiait le bruit).
   Downscale uniquement, jamais upscale.
 
+> **⚠️ Corrections (vérifiées le 2026-07-31).**
+>
+> - La constante s'appelle **`ImageProcessor.VF_ASPECT`** (`imageProcessor.ts:190`),
+>   pas `VIEWFINDER_ASPECT`. Sa valeur 3.5 est bien celle du ticket.
+> - **`cropToViewfinder` est du code mort** : seul `cropToViewfinderFast` est
+>   appelé (`useScanPlate.ts:91`). Le correctif d'aspect vaut pour les deux —
+>   ou `cropToViewfinder` est supprimé avec le reste du code mort (§ audit 2.6 :
+>   `preprocessForHighRes`, `preprocessForOCR`, `scaleImage`, tous sans appelant
+>   hors tests).
+> - **Il existe un TROISIÈME calcul de cadre, non mentionné jusqu'ici.**
+>   `preprocessForPhotoCapture` (`imageProcessor.ts:125-184`) code en dur son
+>   propre aspect : `const vh = vw / 2.0;` (`:154`) — ni `VF_ASPECT` (3.5), ni
+>   l'overlay. C'est le chemin de repli photo (`usePhotoCapture.ts:158`). Il
+>   **doit** passer par `utils/viewfinder.ts` comme les deux autres, sinon la
+>   « géométrie partagée par construction » laisse un calcul indépendant en place.
+>   Le test de non-régression doit couvrir les **trois** appelants.
+
 ## 4. Qualité JPEG du chemin live
 
 **Défaut.** `LIVE_CROP_OPTIONS.quality = 0.7` — artefacts JPEG qui
@@ -89,7 +138,23 @@ s'impriment sur les traits des glyphes, alors que le chemin photo est déjà à
 **Correctif.** `LIVE_CROP_OPTIONS: { maxWidth: 800, quality: 0.95 }`. Le
 plafond de coût vient de `maxWidth`, pas de la qualité.
 
+> **⚠️ Correction.** `LIVE_CROP_OPTIONS` **n'existe pas sur `dev`** : la qualité
+> est codée en dur à **0.65** (`imageProcessor.ts:665`) — donc **pire** que les
+> 0.7 annoncés — et la largeur à `targetWidth = 800` (`:644`). Le chemin photo
+> est à 0.92 (`:292`), pas 0.95. Le correctif reste le bon : introduire
+> l'objet `LIVE_CROP_OPTIONS: { maxWidth: 800, quality: 0.95 }` et aligner le
+> chemin photo sur 0.95. La documentation Tesseract (*ImproveQuality*)
+> déconseille les artefacts de compression en entrée.
+
 ## 5. Scan live — seuil de confiance et logique de stabilité
+
+> **⚠️ Correction.** `MIN_LIVE_CONFIDENCE` **n'existe pas sur `dev`**. Les
+> valeurs réelles sont passées en ligne : `useScanPlate.ts:36-39` appelle
+> `useStabilityDetection({ requiredMatches: 2, minConfidence: 40 })`. (Les
+> défauts du hook lui-même sont `3` / `75` — `useStabilityDetection.ts:18-19` —
+> mais l'appelant les écrase.) Lire donc « 40 » partout où le ticket dit « 55 ».
+> **Le diagnostic est inchangé** : face à un régime mesuré 0-63 de médiane
+> proche de 0-16, un seuil à 40 rejette encore la quasi-totalité des lectures.
 
 **Défaut, cause du "scan qui ne se termine jamais".** `MIN_LIVE_CONFIDENCE =
 55` datait de l'époque où le backend écrasait la confiance par 0.90/0.50.
@@ -143,6 +208,14 @@ une largeur de sonde fixe.
   — l'API `react-webcam` l'accepte), au lieu du screenshot plein format
   partagé avec le scan.
 
+> **⚠️ Correction.** `useCaptureCoaching` **n'existe pas sur `dev`** : il n'y a
+> aujourd'hui aucune boucle de coaching, seulement le gate bloquant
+> post-capture (`usePhotoCapture.ts:123-128`). Cette section n'est donc pas un
+> correctif à appliquer mais une **contrainte de conception** du hook à créer :
+> le garder sous `mode === 'photo' && photoState === 'idle' && !isScanning`
+> **dès la première écriture**, et lui donner sa propre source d'image capée à
+> 640px. C'est un piège déjà rencontré, pas une hypothèse.
+
 ## Tests à ajouter/adapter
 
 Voir `05_tests_de_non_regression.md` pour le détail. En bref : fixtures de
@@ -152,9 +225,9 @@ géométrie du viseur (overlay = crop) reste garantie par construction.
 
 ## Code de référence
 
-Le diff complet (avant abandon) est dans l'historique de la conversation qui
-a produit ce dossier — non rejoué ici verbatim pour rester un ticket, pas un
-patch. Les fichiers todo côté frontend : `utils/viewfinder.ts` (nouveau),
+Le diff complet de l'itération antérieure est dans l'historique de la
+conversation qui a produit ce dossier — non rejoué ici verbatim pour rester un
+ticket, pas un patch. Les fichiers todo côté frontend : `utils/viewfinder.ts` (nouveau),
 `utils/captureFrame.ts` (nouveau), `utils/imageProcessor.ts`,
 `hooks/feature/useScanPlate.ts`, `hooks/feature/useStabilityDetection.ts`,
 `hooks/feature/useCamera.ts`, `hooks/feature/useCaptureCoaching.ts` (nouveau),

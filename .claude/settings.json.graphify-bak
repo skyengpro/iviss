@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/hermann/.local/bin/graphify hook-guard search"
+            "command": "/home/lonsti-ws/.local/bin/graphify hook-guard search"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/hermann/.local/bin/graphify hook-guard read"
+            "command": "/home/lonsti-ws/.local/bin/graphify hook-guard read"
           }
         ]
       }

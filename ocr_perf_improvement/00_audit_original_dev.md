@@ -1,22 +1,22 @@
 # Audit du pipeline de capture / scan de plaques — et plan d'amélioration
 
-> **⚠️ Statut réel (2026-07-30) : rien de ce qui suit n'est sur `dev`.**
-> Tout le travail décrit ici — l'audit ET la "phase 1" que la §4 dit "livrée" —
-> a existé uniquement comme modifications non committées sur la branche
-> `perf/ocr-pipeline-resolution-and-speed`, créée depuis `dev` sans qu'aucun
-> commit n'ait jamais été fait. Ces modifications ont été abandonnées ; `dev`
-> est donc revenu à l'état **pré-audit** : famine de résolution, `opt-level =
-> "z"`, aucune observabilité par étage, confiance fabriquée à 0.90/0.50, etc.
+> **⚠️ Statut (mis à jour le 2026-07-31) : rien de ce qui suit n'est encore
+> appliqué au code.** Le pipeline OCR est à l'état **pré-audit** : famine de
+> résolution, `opt-level = "z"`, aucune observabilité par étage, confiance
+> fabriquée à 0.90/0.50, etc. La branche
+> `perf/ocr-pipeline-resolution-and-speed` porte ce dossier de conception et
+> constitue le chantier actif de l'amélioration.
 >
 > Ce fichier est conservé tel qu'il a été écrit, pour son diagnostic (§1, §2,
-> §2.5, §2.7) qui reste 100% valable contre l'état actuel de `dev`. **Sa §4
-> ("Implémentation livrée") ne décrit plus rien qui existe** — pour l'état
-> réel de ce qui a été conçu, validé et testé (y compris les corrections
-> apportées à cette "phase 1" après relecture), voir
+> §2.5, §2.7) — **re-vérifié ligne à ligne contre le code le 2026-07-31 et
+> confirmé exact**, numéros de ligne compris (voir
+> [`06_validation_documentaire.md`](06_validation_documentaire.md) §1). **Sa §4
+> ("Implémentation livrée") ne décrit rien qui existe** — pour l'état réel de
+> ce qui a été conçu, validé et testé, voir
 > [`02_ticket_frontend.md`](02_ticket_frontend.md) et
-> [`03_ticket_backend.md`](03_ticket_backend.md) dans ce dossier, qui la
-> remplacent. Sa §4bis reste utile comme détail d'implémentation, sous réserve
-> des corrections listées dans les tickets.
+> [`03_ticket_backend.md`](03_ticket_backend.md), qui la remplacent. Sa §4bis
+> reste utile comme détail d'implémentation, sous réserve des corrections
+> listées dans les tickets **et dans `06_validation_documentaire.md` §3**.
 
 ---
 

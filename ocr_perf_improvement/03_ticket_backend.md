@@ -1,8 +1,14 @@
 # Ticket backend — pipeline OCR
 
-Aucun de ces correctifs n'existe sur `dev`. Chaque section = un défaut
-diagnostiqué + le correctif conçu et validé (tests unitaires + mesure sur
-photo réelle) sur la branche abandonnée.
+Aucun de ces correctifs n'est encore appliqué au code. Chaque section = un
+défaut diagnostiqué + le correctif conçu, validé par tests unitaires et par
+mesure sur photo réelle lors d'une itération antérieure.
+
+> **Lire d'abord [`06_validation_documentaire.md`](06_validation_documentaire.md) §3 et §5.**
+> Ce ticket a été rédigé contre une version antérieure du code. Corrections
+> reportées en ligne ci-dessous, marquées « ⚠️ ». Deux ajouts de fond :
+> **la binarisation passe à Sauvola** (§3) et **la confiance est fabriquée à
+> deux endroits que le §7 ne visait pas** (§6).
 
 ## 1. Performance et observabilité (fondations — à faire en premier)
 
@@ -60,7 +66,11 @@ photo réelle) sur la branche abandonnée.
 
 ## 2. Configuration Tesseract
 
-Dans `init_tesseract` (posé une fois, au démarrage) :
+> **⚠️ Correction.** La fonction s'appelle **`take_tesseract`**
+> (`ocr_service.rs:260`), pas `init_tesseract`. C'est elle qui contient le
+> `LepTess::new` paresseux et le seul `set_variable` actuel (la whitelist).
+
+Dans `take_tesseract` (posé une fois, au démarrage) :
 - `load_system_dawg=0`, `load_freq_dawg=0` — sans ça le modèle de langue LSTM
   tord un code alphanumérique type `CE128BC` vers du vocabulaire anglais.
 - `tessedit_do_invert=0` — la polarité est gérée nous-mêmes (§4) ; sans ça
@@ -79,6 +89,27 @@ Dans `init_tesseract` (posé une fois, au démarrage) :
   Barrier` pour forcer Tokio à distribuer sur des threads distincts), pour
   que la première requête ne paie pas l'initialisation.
 
+> **⚠️ Précisions vérifiées (2026-07-31) — ne pas re-chercher.**
+>
+> - `LoadSystemDawg`, `LoadFreqDawg`, `TesseditDoInvert` et
+>   `TesseditCharWhitelist` existent bien dans l'énum `leptess::Variable`
+>   (`leptess-0.14.0/src/variable.rs`). Les trois réglages sont applicables.
+> - **La conclusion sur l'OEM est confirmée et plus forte qu'énoncée** : outre
+>   l'absence de paramètre sur `LepTess::new`, le champ `LepTess.tess_api` est
+>   **privé** (`lib.rs:97`), donc le `TessApi.raw` public de
+>   `tesseract-plumbing` est inatteignable depuis un `LepTess`.
+> - **Conséquence non relevée : `invert_threshold` et `thresholding_method` sont
+>   eux aussi inatteignables.** `set_variable` n'accepte que l'énum `Variable`,
+>   qui ne les contient pas, et il n'existe aucun setter par chaîne libre.
+> - **`tessedit_do_invert` est valable mais daté** : déprécié, retiré en
+>   Tesseract **6.0**, remplacé par `invert_threshold` (défaut 0.7 ; 0.0 pour
+>   désactiver). L'image est `debian:bookworm-slim` + `libtesseract5`, soit
+>   **Tesseract 5.3.0**, où il fonctionne encore. À tracer comme dette : la
+>   montée en Tesseract 6 imposera `tesseract-plumbing 0.8` en dépendance
+>   directe (`init_4` accepte un `TessOcrEngineMode`, et
+>   `TessBaseApi::set_variable` prend deux `&CStr`, ce qui débloquerait du même
+>   coup l'OEM explicite, `invert_threshold` et `thresholding_method`).
+
 ## 3. Pipeline de prétraitement — ordre corrigé
 
 **Défaut mesuré (`04_mesures_verifiees.md`)** : sur `dev`, l'ordre est
@@ -93,14 +124,14 @@ caractères parasites par Tesseract.
 
 **Ordre corrigé, à réimplémenter ainsi :**
 
-```
+```text
 gray
   → contrast_stretch_percentile
-  → adaptive_threshold(radius = height/8, C)
+  → sauvola_threshold(radius = height/8, k = 0.35)
   → is_light_on_dark ?  invert            (mesuré sur la région CENTRALE, pas toute l'image)
   → deskew(binaire)                        (remplissage 255, re-binarisation post-rotation)
   → morphology_open                        (sur image déjà polarité-normalisée)
-  → add_border(30, 255)
+  → add_border(30, 255)                    (UNE SEULE FOIS, après la polarité — voir plus bas)
 ```
 
 Points clés :
@@ -122,6 +153,70 @@ Points clés :
   sur toute l'image : la marge globale mesurée n'était que de 5-10 points
   (40-45% dark contre un seuil de bascule à 50%), et avec
   `tessedit_do_invert=0` un mauvais appel est irrécupérable.
+
+### 3 bis. Binarisation — passer de la moyenne locale à Sauvola
+
+**Défaut.** `adaptive_threshold` (`ocr_service.rs:493`) est un seuillage à
+**moyenne locale − C** (Bradley/Wellner) : il ne regarde que la moyenne du
+voisinage et **ignore complètement la variance locale**. Sur une zone
+uniforme faiblement contrastée (plaque à l'ombre, reflet, sur-exposition
+partielle), la moyenne suffit à basculer des pixels de fond en encre.
+
+**Correctif — implémenter Sauvola en Rust.** Formule de référence Leptonica
+(`src/binarize.c`) :
+
+```text
+t = m · (1 − k · (1 − s / 128))
+```
+
+où `m` et `s` sont moyenne et écart-type locaux, et `k ≈ 0.35`
+(plage documentée 0.2–0.5). L'idée : plus le contraste local est fort, plus le
+seuil se rapproche de la moyenne ; plus il est faible, plus le seuil descend
+sous la moyenne — donc moins on fabrique d'encre dans le bruit.
+
+Points d'implémentation :
+
+- **Pas de nouvelle dépendance, pas d'`unsafe`.** `adaptive_threshold` construit
+  déjà une image intégrale ; il suffit d'en construire une **seconde sur les
+  carrés** (`i64` puis `f64` pour la variance) pour obtenir `s` en O(1) par
+  pixel, exactement comme `m` aujourd'hui. Le surcoût est un second passage
+  d'accumulation, pas un changement de complexité.
+- **Ni `thresholding_method` (Tesseract 5) ni `pixSauvolaBinarizeTiled`
+  (Leptonica) ne sont utilisables ici** : le premier n'est pas dans l'énum
+  `leptess::Variable`, le second exigerait `leptonica-sys` en dépendance directe
+  et de la FFI `unsafe`. Voir `06_validation_documentaire.md` §5.
+- **Garder la même signature de fenêtre** que le correctif de rayon relatif :
+  `radius = (height/8).clamp(15, 100)`. Leptonica note un `whsize` minimum de 2
+  et typiquement ≥ 7 — le plancher de 15 est confortablement au-dessus.
+- **Attention à `ADAPTIVE_C`** : la constante disparaît avec la moyenne locale,
+  remplacée par `k`. Ne pas la conserver « au cas où » — deux paramètres pour un
+  seul effet est exactement ce qui a fait perdre du temps sur le balayage C.
+- **Honnêteté sur le gain attendu.** Le balayage `ADAPTIVE_C` de
+  `04_mesures_verifiees.md` a montré des glyphes visuellement identiques sur la
+  photo de référence : sur *ce* corpus, la binarisation n'est pas le facteur
+  limitant, et le gain de Sauvola est **théorique**. Le motif du changement est
+  qu'il est mieux fondé sous éclairage inégal — le cas de terrain que la photo
+  de référence ne représente pas. **Rejouer `samples/binarize_replica.py` avant
+  et après**, et conserver un test comparant les deux binarisations sur une
+  fixture à illumination volontairement inégale (gradient), où Sauvola doit
+  strictement faire mieux. Si la mesure de terrain ne montre rien, le
+  changement reste défendable mais ne doit pas être présenté comme un gain.
+
+### 3 ter. Bordure noire sur le chemin inversé (défaut non listé jusqu'ici)
+
+`ocr_service.rs:137` et `:194` font `add_border(&invert_image(&binary), 0, 255)`.
+Or `binary` porte **déjà** une bordure blanche de 30 px, posée en `:96`.
+L'inverser la rend **noire**, et le `add_border(..., 0, ...)` est un no-op —
+il n'en repose aucune. **Toutes les passes inversées voient donc un cadre noir
+de 30 px**, ce que la documentation Tesseract (*ImproveQuality*) décrit
+précisément comme « erroneously picked up as extra characters ».
+
+L'ordre corrigé du §3 supprime le défaut par construction (la polarité est
+normalisée **avant** l'unique `add_border`, il n'y a plus de seconde image
+inversée à border). Le point est consigné ici pour deux raisons : il explique
+une part du bruit observé en terrain, et il justifie un **test dédié** —
+vérifier que l'image finalement envoyée à Tesseract a ses quatre coins à 255,
+sur les deux polarités d'entrée.
 
 ## 4. Ensemble de passes PSM — exiger un accord, pas un premier succès
 
@@ -191,6 +286,10 @@ de concessionnaire, jamais présentes sur la vraie plaque) :
   pas asserté inconditionnellement à `true` après `extract_plate_strict` —
   cette fonction ne peut pas garantir que la chaîne extraite classifie
   toujours (invariant d'un autre module).
+- **`enhance_photo_result` ne doit plus fabriquer de confiance non plus.**
+  `photo_ocr_service.rs:175-177` fait `if r.confidence < 0.90 { r.confidence =
+  0.90 }` — le même défaut que `finalize`, à un autre endroit (voir §7).
+  À supprimer.
 - **`color_adaptive_crop` sauté quand le frontend a déjà envoyé un crop
   plaque-shaped** (aspect ≥ 3.0) : redondant une fois le viseur frontend
   corrigé (§ticket frontend #3), et son profil de couleur orange attrape
@@ -199,13 +298,33 @@ de concessionnaire, jamais présentes sur la vraie plaque) :
   rehaussée que si la passe native n'a produit **aucun texte du tout**,
   jamais simplement parce que `format_valid` est faux.
 
-## 7. Sémantique de confiance (déjà correcte sur cette branche, à vérifier en réimplémentant)
+## 7. Sémantique de confiance
 
 `finalize` ne doit **jamais** réécrire `confidence` depuis `format_valid`
 (l'ancien 0.90/0.50 dupliquait un signal et en jetait un autre). `confidence`
 reste la mesure brute de Tesseract (`mean_text_conf`), `format_valid` reste
 indépendant. C'est ce qui permet au ticket frontend §5 de recalibrer le seuil
 de stabilité sur des données réelles plutôt que sur 0/50/90 arbitraires.
+
+> **⚠️ Correction — la confiance est fabriquée à TROIS endroits, pas un.**
+> Ce paragraphe ne visait que `ocr_service::finalize` (`:240-244`). Vérification
+> du 2026-07-31 :
+>
+> | Emplacement | Ce qu'il fait |
+> |---|---|
+> | `ocr_service.rs:240-244` | `finalize` : 0.90 si `format_valid`, sinon 0.50 si plaque non vide |
+> | `photo_ocr_service.rs:175-177` | `enhance_photo_result` : plancher à 0.90 (voir §6) |
+> | `photo_ocr_service.rs:222` | `pick_best`, branche de vote caractère par caractère : 0.90 sur le composite |
+>
+> `pick_best` est réglé incidemment par la suppression du bloc de vote (§6),
+> mais **`enhance_photo_result` ne l'est par aucune autre section**. Si on
+> l'oublie, **toute recalibration du seuil frontend reste inopérante sur le
+> chemin photo**, puisque `enhance_photo_result` est traversé à chaque appel de
+> `photo_plate` (`:35`). Les trois doivent tomber ensemble.
+>
+> Le contrat OpenAPI n'est pas rompu : la forme de `ScanResultData` est
+> inchangée, seule la sémantique de la valeur l'est. Prévenir le frontend —
+> c'est exactement le préalable du ticket frontend §5.
 
 ## Tests à ajouter
 

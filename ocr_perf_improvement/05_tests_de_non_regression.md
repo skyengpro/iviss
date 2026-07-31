@@ -10,8 +10,8 @@ d'expérience de cette session).
 
 Tirées verbatim des logs d'un scan réel de la plaque `CE568LR`, où le crop
 avait capté le cadre de concessionnaire ("TAUNUS AUTO — Mercedes-Benz und
-smart in Wiesbaden"). Chacune revenait `format_valid: true` sur la branche
-abandonnée avant correctif (voir `03_ticket_backend.md` §5) :
+smart in Wiesbaden"). Chacune revenait `format_valid: true` avant correctif
+(voir `03_ticket_backend.md` §5) :
 
 ```rust
 #[test]
@@ -119,9 +119,60 @@ fn test_is_light_on_dark_detects_inverted_plate() {
 }
 ```
 
+### Bordure — les quatre coins à 255, sur les deux polarités
+
+Couvre le défaut découvert le 2026-07-31 (`03_ticket_backend.md` §3 ter) :
+`add_border(&invert_image(&binary), 0, 255)` inversait une bordure blanche
+déjà posée, donnant un cadre **noir** de 30px à toutes les passes inversées.
+
+```rust
+#[test]
+fn test_submitted_image_always_has_light_border() {
+    // pour une entrée dark-on-light ET une entrée light-on-dark :
+    // l'image finalement passée à Tesseract doit avoir ses 4 coins == 255
+}
+```
+
+### Binarisation — Sauvola doit battre la moyenne locale sous éclairage inégal
+
+Le balayage `ADAPTIVE_C` a montré que la binarisation n'est pas le facteur
+limitant sur la photo de référence (`04_mesures_verifiees.md`) : le gain de
+Sauvola porte sur l'illumination inégale, qu'il faut donc fabriquer.
+
+```rust
+#[test]
+fn test_sauvola_beats_local_mean_under_illumination_gradient() {
+    // fixture : glyphes d'intensité constante sur un fond en gradient
+    //           (p. ex. 60 → 200 de gauche à droite)
+    // la moyenne locale doit perdre des glyphes du côté clair ou fabriquer
+    // de l'encre du côté sombre ; Sauvola doit les conserver tous.
+}
+
+#[test]
+fn test_sauvola_on_uniform_background_matches_local_mean() {
+    // non-régression : sur fond uniforme les deux doivent donner le même
+    // résultat à quelques pixels près — sinon k est mal calibré.
+}
+```
+
+### Confiance — aucune valeur fabriquée sur aucun des trois chemins
+
+```rust
+#[test]
+fn test_confidence_is_never_synthesised() {
+    // ocr_service::finalize, photo_ocr_service::enhance_photo_result et
+    // ::pick_best ne doivent jamais produire 0.90 ni 0.50 à partir de
+    // format_valid. Un résultat mesuré à 0.0 et format_valid=true doit
+    // ressortir à 0.0.
+}
+```
+
+C'est le verrou du ticket frontend §5 : sans lui, la recalibration du seuil de
+stabilité est validée sur des données qui n'existent pas en production.
+
 ### Constantes et tests fantômes — à ne pas réintroduire
 
-Sur la branche abandonnée, `ocr_service_tests.rs` redéclarait localement
+Lors d'une itération antérieure, `ocr_service_tests.rs` redéclarait localement
 `const ADAPTIVE_RADIUS: u32 = 40` (alors que la production dérive désormais
 ce rayon de la hauteur), un `TMP_COUNTER` et un `TESSERACT` thread-local
 propres au fichier de test (alors que la production avait supprimé le
@@ -164,9 +215,15 @@ en production.
 
 ```ts
 // utils/__tests__/viewfinder.test.ts
-// computeViewfinderCrop doit être LA fonction utilisée à la fois par
-// ScanViewfinder.tsx (overlay dessiné) et par cropToViewfinder
-// (imageProcessor.ts, crop envoyé) — pas deux calculs indépendants.
+// computeViewfinderCrop doit être LA fonction utilisée par les TROIS
+// appelants — pas trois calculs indépendants :
+//   1. ScanViewfinder.tsx            (overlay dessiné, aspect-[7/2])
+//   2. cropToViewfinderFast          (imageProcessor.ts:630, crop live envoyé)
+//   3. preprocessForPhotoCapture     (imageProcessor.ts:125, repli photo)
+//
+// Le 3e est celui qu'on oublie : il code en dur son propre aspect à 2.0
+// (imageProcessor.ts:154), ni VF_ASPECT ni l'overlay. Le test doit échouer
+// si l'un des trois recalcule le cadre lui-même.
 ```
 
 ## Photo de référence pour les tests manuels
