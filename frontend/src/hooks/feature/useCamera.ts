@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import Webcam from 'react-webcam';
 import { captureFrame } from '@/utils/captureFrame';
+import { ViewfinderBox } from '@/utils/viewfinder';
 
 export type FacingMode = 'user' | 'environment';
 
@@ -102,6 +103,22 @@ export function useCamera({ initialFacingMode = 'environment' }: UseCameraProps 
   }, []);
 
   /**
+   * The real on-screen box the video covers (object-cover), read straight off
+   * the rendered <video> element. This is what the drawn viewfinder overlay
+   * is actually centered in — window.innerWidth/innerHeight is NOT the same
+   * box wherever a header, padding, or other chrome shrinks the video below
+   * full-viewport size, so using it as a stand-in silently reintroduces a
+   * mismatch between the overlay and the crop sent for OCR.
+   */
+  const getViewfinderBox = useCallback((): ViewfinderBox | null => {
+    const video = webcamRef.current?.video;
+    if (!video) return null;
+    const rect = video.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    return { width: rect.width, height: rect.height };
+  }, []);
+
+  /**
    * True still capture for the photo-mode shutter button — grabFrame() at
    * native track resolution first, takePhoto() second, getScreenshot()
    * fallback last. See utils/captureFrame.ts.
@@ -123,6 +140,7 @@ export function useCamera({ initialFacingMode = 'environment' }: UseCameraProps 
     handleUserMediaError,
     getScreenshot,
     getPreviewScreenshot,
+    getViewfinderBox,
     captureStill,
   };
 }

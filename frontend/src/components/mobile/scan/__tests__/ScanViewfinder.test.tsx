@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { createRef } from 'react';
 import Webcam from 'react-webcam';
 import { ScanViewfinder } from '../ScanViewfinder';
-import { VF_ASPECT } from '@/utils/viewfinder';
+import { VF_ASPECT, VF_WIDTH_RATIO } from '@/utils/viewfinder';
 
 vi.mock('react-webcam', () => ({
   default: vi.fn(() => null),
@@ -30,12 +30,14 @@ describe('ScanViewfinder', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
-  it('sizes the overlay frame from the shared VF_ASPECT single source of truth', () => {
-    const { container } = renderViewfinder();
-    const frame = container.querySelector('.max-w-sm') as HTMLElement;
+  it('sizes the overlay frame from the shared VF_ASPECT/VF_WIDTH_RATIO single source of truth', () => {
+    const { getByTestId } = renderViewfinder();
+    const frame = getByTestId('viewfinder-frame');
 
-    expect(frame).not.toBeNull();
+    // Same constants (and no independent max-width cap) as computeViewfinderCrop
+    // uses for the crop actually sent to OCR — this is what keeps the two in sync.
     expect(frame.style.aspectRatio).toBe(String(VF_ASPECT));
+    expect(frame.style.width).toBe(`${VF_WIDTH_RATIO * 100}%`);
   });
 
   it('requests native 1920x1080 capture and forces the screenshot to match it', () => {

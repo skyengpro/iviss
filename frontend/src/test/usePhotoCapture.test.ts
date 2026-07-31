@@ -96,13 +96,48 @@ describe('usePhotoCapture', () => {
     expect(result.current.editedPlate).toBe('CE128BC');
     expect(ImageProcessor.assessImageQuality).toHaveBeenCalledWith(
       'data:image/jpeg;base64,screenshot',
-      expect.any(Function)
+      expect.any(Function),
+      undefined
     );
     expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledWith(
       'data:image/jpeg;base64,screenshot',
-      expect.any(Function)
+      expect.any(Function),
+      undefined
     );
     expect(ImageProcessor.preprocessForPhotoCapture).not.toHaveBeenCalled();
+  });
+
+  it('forwards getViewfinderBox to the OCR preprocessing calls so the crop matches the on-screen overlay', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'CE128BC', confidence: 0.9, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const box = { width: 390, height: 620 };
+    const getViewfinderBox = vi.fn(() => box);
+    const { result } = renderHook(() => usePhotoCapture({ getViewfinderBox }));
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockCaptureStill);
+    });
+
+    expect(ImageProcessor.assessImageQuality).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,screenshot',
+      expect.any(Function),
+      box
+    );
+    expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,screenshot',
+      expect.any(Function),
+      box
+    );
   });
 
   it('should confirm on the real field-log confidence regime (0-63, not 76-92)', async () => {

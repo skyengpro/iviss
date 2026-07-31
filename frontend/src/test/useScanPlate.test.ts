@@ -300,6 +300,27 @@ describe('useScanPlate', () => {
     );
   });
 
+  it('forwards getViewfinderBox to cropToViewfinderFast so the live crop matches the on-screen overlay', async () => {
+    const getViewfinderBox = vi.fn(() => ({ width: 390, height: 620 }));
+    const { result } = renderHook(() => useScanPlate({ getViewfinderBox }));
+    const getScreenshot = vi.fn(() => 'data:image/jpeg;base64,FRAME');
+
+    act(() => {
+      result.current.startLiveScan(getScreenshot);
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+    });
+
+    expect(ImageProcessor.cropToViewfinderFast).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,FRAME',
+      expect.any(Function),
+      { width: 390, height: 620 }
+    );
+  });
+
   it('cleanup effect aborts in-flight request and clears timeout on unmount', () => {
     vi.mocked(scanPlate).mockImplementationOnce(
       () => new Promise(() => {}) as ReturnType<typeof scanPlate>

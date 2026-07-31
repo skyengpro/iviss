@@ -186,6 +186,38 @@ describe('ImageProcessor', () => {
       restoreImg();
     });
 
+    it('prefers the measured viewfinder box over window size when provided', async () => {
+      // window is 1024x768 (beforeEach), but the real rendered box is smaller —
+      // e.g. a video sitting below a fixed header. The measured box must win,
+      // otherwise the overlay the user sees and the crop sent to OCR diverge
+      // (ocr_perf_improvement/02_ticket_frontend.md §3).
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const box = { width: 390, height: 620 };
+      const expected = expectedCropOutput(1400, box.width, box.height);
+      await ImageProcessor.preprocessForPhoto('data:image', mockT, box);
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 390, 620);
+      expect(mockCanvas.width).toBe(expected.width);
+      expect(mockCanvas.height).toBe(expected.height);
+
+      restoreImg();
+    });
+
+    it('falls back to window size when the box is degenerate (e.g. ref not mounted yet)', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      await ImageProcessor.preprocessForPhoto('data:image', mockT, { width: 0, height: 0 });
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 1024, 768);
+
+      restoreImg();
+    });
+
     it('rejects with errors.imageLoad when image errors', async () => {
       setupCanvasMock();
       const restoreImg = setupImageMock(false);
@@ -314,6 +346,21 @@ describe('ImageProcessor', () => {
 
       restoreImg();
     });
+
+    it('prefers the measured viewfinder box over window size when provided', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      await ImageProcessor.cropToViewfinderFast('data:image', mockT, {
+        width: 390,
+        height: 620,
+      });
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 390, 620);
+
+      restoreImg();
+    });
   });
 
   describe('assessImageQuality', () => {
@@ -369,6 +416,20 @@ describe('ImageProcessor', () => {
         isAcceptable: false,
         feedback: 'mobileScan.qualityTooBlurry',
       });
+
+      restoreImg();
+    });
+
+    it('prefers the measured viewfinder box over window size when provided', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      setupCanvasMock({
+        getImageData: vi.fn(() => ({ data: pixelsWith([120, 120, 120]) })),
+      });
+      const restoreImg = setupImageMock(true);
+
+      await ImageProcessor.assessImageQuality('data:image', mockT, { width: 390, height: 620 });
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 390, 620);
 
       restoreImg();
     });

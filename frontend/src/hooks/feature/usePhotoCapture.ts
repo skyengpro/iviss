@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DetectedPlate, PlateStatus } from './useScanPlate';
 import { photoPlate } from '@/openapi-rq/requests/services.gen';
 import type { ScanPlateResponse } from '@/openapi-rq/requests/types.gen';
+import type { ViewfinderBox } from '@/utils/viewfinder';
 
 function normalizePlateCandidate(v: unknown): string {
   if (typeof v !== 'string') return '';
@@ -74,6 +75,8 @@ type PhotoCaptureState = 'idle' | 'processing' | 'result' | 'error';
 
 interface UsePhotoCaptureProps {
   onConfirm?: (plate: DetectedPlate) => void;
+  /** Measured on-screen viewfinder box — keeps the photo crop aligned with the overlay. */
+  getViewfinderBox?: () => ViewfinderBox | null;
 }
 
 /**
@@ -82,7 +85,7 @@ interface UsePhotoCaptureProps {
  * high-resolution frame, uploads it to the backend OCR endpoint, and
  * presents the result for user confirmation before navigation.
  */
-export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
+export function usePhotoCapture({ onConfirm, getViewfinderBox }: UsePhotoCaptureProps = {}) {
   const { t } = useTranslation();
 
   const [state, setState] = useState<PhotoCaptureState>('idle');
@@ -120,7 +123,8 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         setCapturedImageSrc(imageSrc);
 
         // ── Quality gate — reject blurry / dark / bright images early ──────
-        const quality = await ImageProcessor.assessImageQuality(imageSrc, t);
+        const box = getViewfinderBox?.();
+        const quality = await ImageProcessor.assessImageQuality(imageSrc, t, box);
         if (!quality.isAcceptable) {
           setError(quality.feedback);
           setState('error');
@@ -148,14 +152,18 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         };
 
         // ── Primary attempt — viewfinder-cropped, plate-ratio image ───────
-        const primaryProcessed = await ImageProcessor.preprocessForPhoto(imageSrc, t);
+        const primaryProcessed = await ImageProcessor.preprocessForPhoto(imageSrc, t, box);
         let json = await sendToOcr(primaryProcessed);
 
         let extracted = extractPlateFromAny(json);
 
         // ── Fallback — only if primary returned nothing useful ────────────
         if ((!json?.success || extracted.plate === '') && json?.success !== false) {
-          const fallbackProcessed = await ImageProcessor.preprocessForPhotoCapture(imageSrc, t);
+          const fallbackProcessed = await ImageProcessor.preprocessForPhotoCapture(
+            imageSrc,
+            t,
+            box
+          );
           json = await sendToOcr(fallbackProcessed);
           extracted = extractPlateFromAny(json);
         }
@@ -190,7 +198,7 @@ export function usePhotoCapture({ onConfirm }: UsePhotoCaptureProps = {}) {
         isProcessingRef.current = false;
       }
     },
-    [t]
+    [t, getViewfinderBox]
   );
 
   /** Reset to idle state for a new capture attempt. */

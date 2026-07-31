@@ -1,5 +1,5 @@
 import { TFunction } from 'i18next';
-import { computeViewfinderCrop, VF_ASPECT } from '@/utils/viewfinder';
+import { computeViewfinderCrop, VF_ASPECT, ViewfinderBox } from '@/utils/viewfinder';
 
 export interface CameroonPlateClassification {
   plate: string;
@@ -37,6 +37,19 @@ export class ImageProcessor {
   private static readonly LIVE_CROP_OPTIONS = { maxWidth: 800, quality: 0.95 };
 
   /**
+   * `window.innerWidth/innerHeight` is only a stand-in for "the box the
+   * video visually covers" — it overstates the real box whenever a header,
+   * padding, or other chrome shrinks the actual rendered element (as it does
+   * on MobileScan, below a fixed top bar). Callers should always pass the
+   * measured box (e.g. `video.getBoundingClientRect()`); this fallback exists
+   * only for callers that genuinely can't measure it yet (ref not mounted).
+   */
+  private static resolveBox(box?: ViewfinderBox | null): ViewfinderBox {
+    if (box && box.width > 0 && box.height > 0) return box;
+    return { width: window.innerWidth, height: window.innerHeight };
+  }
+
+  /**
    * Crops the viewfinder region out of `img` and draws it into `canvas` at
    * native resolution, downscaled to `maxWidth` only if wider — never
    * upscaled. Output aspect always matches the crop itself, so a degenerate
@@ -46,14 +59,16 @@ export class ImageProcessor {
     img: HTMLImageElement,
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
-    maxWidth: number
+    maxWidth: number,
+    box?: ViewfinderBox | null
   ): void {
-    const crop = computeViewfinderCrop(
-      img.width,
-      img.height,
-      window.innerWidth,
-      window.innerHeight
-    ) ?? { sx: 0, sy: 0, sw: img.width, sh: img.height };
+    const { width: boxW, height: boxH } = ImageProcessor.resolveBox(box);
+    const crop = computeViewfinderCrop(img.width, img.height, boxW, boxH) ?? {
+      sx: 0,
+      sy: 0,
+      sw: img.width,
+      sh: img.height,
+    };
 
     const outWidth = Math.min(crop.sw, maxWidth);
     const outHeight = outWidth * (crop.sh / crop.sw);
@@ -73,7 +88,11 @@ export class ImageProcessor {
    * This is the PRIMARY photo preprocessing method — it should be called
    * first (not as a fallback).
    */
-  static async preprocessForPhoto(imageSrc: string, t: TFunction): Promise<string> {
+  static async preprocessForPhoto(
+    imageSrc: string,
+    t: TFunction,
+    box?: ViewfinderBox | null
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -90,7 +109,8 @@ export class ImageProcessor {
             img,
             canvas,
             ctx,
-            ImageProcessor.PRIMARY_PHOTO_MAX_WIDTH
+            ImageProcessor.PRIMARY_PHOTO_MAX_WIDTH,
+            box
           );
 
           const result = canvas.toDataURL('image/jpeg', ImageProcessor.PHOTO_JPEG_QUALITY);
@@ -109,7 +129,11 @@ export class ImageProcessor {
    * returns nothing usable. Same viewfinder-crop geometry as the primary
    * path, at a slightly larger downscale ceiling.
    */
-  static async preprocessForPhotoCapture(imageSrc: string, t: TFunction): Promise<string> {
+  static async preprocessForPhotoCapture(
+    imageSrc: string,
+    t: TFunction,
+    box?: ViewfinderBox | null
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -126,7 +150,8 @@ export class ImageProcessor {
             img,
             canvas,
             ctx,
-            ImageProcessor.FALLBACK_PHOTO_MAX_WIDTH
+            ImageProcessor.FALLBACK_PHOTO_MAX_WIDTH,
+            box
           );
 
           resolve(canvas.toDataURL('image/jpeg', ImageProcessor.PHOTO_JPEG_QUALITY));
@@ -150,7 +175,8 @@ export class ImageProcessor {
    */
   static async assessImageQuality(
     imageSrc: string,
-    t: TFunction
+    t: TFunction,
+    box?: ViewfinderBox | null
   ): Promise<{ isAcceptable: boolean; feedback: string }> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -170,12 +196,13 @@ export class ImageProcessor {
           canvas.width = checkW;
           canvas.height = checkH;
 
-          const crop = computeViewfinderCrop(
-            img.width,
-            img.height,
-            window.innerWidth,
-            window.innerHeight
-          ) ?? { sx: 0, sy: 0, sw: img.width, sh: img.height };
+          const { width: boxW, height: boxH } = ImageProcessor.resolveBox(box);
+          const crop = computeViewfinderCrop(img.width, img.height, boxW, boxH) ?? {
+            sx: 0,
+            sy: 0,
+            sw: img.width,
+            sh: img.height,
+          };
 
           ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, checkW, checkH);
           const imageData = ctx.getImageData(0, 0, checkW, checkH);
@@ -325,7 +352,11 @@ export class ImageProcessor {
     }
   }
 
-  static async cropToViewfinderFast(imageSrc: string, t: TFunction): Promise<string> {
+  static async cropToViewfinderFast(
+    imageSrc: string,
+    t: TFunction,
+    box?: ViewfinderBox | null
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -342,7 +373,8 @@ export class ImageProcessor {
             img,
             canvas,
             ctx,
-            ImageProcessor.LIVE_CROP_OPTIONS.maxWidth
+            ImageProcessor.LIVE_CROP_OPTIONS.maxWidth,
+            box
           );
 
           resolve(canvas.toDataURL('image/jpeg', ImageProcessor.LIVE_CROP_OPTIONS.quality));

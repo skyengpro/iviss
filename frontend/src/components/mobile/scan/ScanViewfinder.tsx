@@ -1,6 +1,6 @@
 import React from 'react';
 import Webcam from 'react-webcam';
-import { VF_ASPECT } from '@/utils/viewfinder';
+import { VF_ASPECT, VF_WIDTH_RATIO } from '@/utils/viewfinder';
 
 interface ScanViewfinderProps {
   webcamRef: React.RefObject<Webcam>;
@@ -55,9 +55,17 @@ export const ScanViewfinder: React.FC<ScanViewfinderProps> = ({
         />
       )}
 
-      {/* Scan frame overlay */}
-      <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
-        <div className="relative w-full max-w-sm" style={{ aspectRatio: VF_ASPECT }}>
+      {/* Scan frame overlay — width/aspect come from utils/viewfinder.ts, the same
+          VF_WIDTH_RATIO/VF_ASPECT source computeViewfinderCrop uses for the crop
+          sent to OCR, so this frame and the actual crop stay in sync by construction.
+          No independent max-width cap: that used to diverge from the crop math on
+          larger screens (see ocr_perf_improvement/02_ticket_frontend.md §3). */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div
+          data-testid="viewfinder-frame"
+          className="relative"
+          style={{ width: `${VF_WIDTH_RATIO * 100}%`, aspectRatio: VF_ASPECT }}
+        >
           {/* Corner markers */}
           <div
             className={`absolute left-0 top-0 h-5 w-8 border-l-4 border-t-4 transition-colors duration-300 ${borderColor}`}

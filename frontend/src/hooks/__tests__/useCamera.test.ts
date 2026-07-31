@@ -17,11 +17,22 @@ function fakeTrack(overrides: Partial<MediaStreamTrack & { getCapabilities: unkn
   } as unknown as MediaStreamTrack;
 }
 
-function fakeWebcam(track: MediaStreamTrack | undefined, getScreenshot = vi.fn()) {
+function fakeWebcam(
+  track: MediaStreamTrack | undefined,
+  getScreenshot = vi.fn(),
+  video: HTMLVideoElement | null = null
+) {
   return {
     stream: { getVideoTracks: () => (track ? [track] : []) } as unknown as MediaStream,
     getScreenshot,
+    video,
   } as unknown as Webcam;
+}
+
+function fakeVideo(rect: Partial<DOMRect>) {
+  return {
+    getBoundingClientRect: () => rect as DOMRect,
+  } as unknown as HTMLVideoElement;
 }
 
 describe('useCamera', () => {
@@ -119,6 +130,46 @@ describe('useCamera', () => {
 
       expect(preview).toBe('data:image/jpeg;base64,preview');
       expect(getScreenshot).toHaveBeenCalledWith({ width: 640, height: 360 });
+    });
+  });
+
+  describe('getViewfinderBox', () => {
+    it('returns null when webcam ref is null', () => {
+      const { result } = renderHook(() => useCamera());
+
+      expect(result.current.getViewfinderBox()).toBeNull();
+    });
+
+    it('returns null when the video element is not mounted', () => {
+      const { result } = renderHook(() => useCamera());
+      result.current.webcamRef.current = fakeWebcam(undefined, vi.fn(), null);
+
+      expect(result.current.getViewfinderBox()).toBeNull();
+    });
+
+    it('returns null on a degenerate (zero-size) rendered box', () => {
+      const { result } = renderHook(() => useCamera());
+      result.current.webcamRef.current = fakeWebcam(
+        undefined,
+        vi.fn(),
+        fakeVideo({ width: 0, height: 700 })
+      );
+
+      expect(result.current.getViewfinderBox()).toBeNull();
+    });
+
+    it('reads the real rendered box off the <video> element, not window size', () => {
+      const { result } = renderHook(() => useCamera());
+      // Deliberately different from any window.innerWidth/innerHeight default —
+      // this is the whole point: the box must come from the actual DOM element,
+      // which is smaller than the window whenever a header/chrome shrinks it.
+      result.current.webcamRef.current = fakeWebcam(
+        undefined,
+        vi.fn(),
+        fakeVideo({ width: 390, height: 620 })
+      );
+
+      expect(result.current.getViewfinderBox()).toEqual({ width: 390, height: 620 });
     });
   });
 

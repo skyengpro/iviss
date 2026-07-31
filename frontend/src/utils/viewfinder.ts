@@ -5,6 +5,13 @@ export interface ViewfinderCrop {
   sh: number;
 }
 
+// The on-screen box the image visually covers (object-cover), e.g. the
+// rendered <video>/<img> element's own bounding box — not the window.
+export interface ViewfinderBox {
+  width: number;
+  height: number;
+}
+
 // 92% of the display box width, 4.5:1 aspect — ~2% margin over the 4.7 CEMAC
 // plate ratio (measured on samples/reference_plate_CE568LR.png).
 export const VF_WIDTH_RATIO = 0.92;

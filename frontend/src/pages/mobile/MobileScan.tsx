@@ -28,6 +28,7 @@ export default function MobileScan() {
     webcamRef,
     facingMode,
     getScreenshot,
+    getViewfinderBox,
     captureStill,
     toggleFacingMode,
     handleUserMedia,
@@ -48,6 +49,7 @@ export default function MobileScan() {
       // Live scan should immediately navigate (no confirmation step)
       navigate(`/mobile/vehicle/${encodeURIComponent(plate.plateNumber)}`);
     },
+    getViewfinderBox,
   });
 
   // ── Photo Capture Hook ──────────────────────────────────────────────────────
@@ -67,6 +69,7 @@ export default function MobileScan() {
     onConfirm: (plate) => {
       navigate(`/mobile/vehicle/${encodeURIComponent(plate.plateNumber)}`);
     },
+    getViewfinderBox,
   });
 
   // 30-second fallback timer for manual entry (live mode only)

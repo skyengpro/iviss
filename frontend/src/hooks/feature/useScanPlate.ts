@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useStabilityDetection, DetectionResult } from './useStabilityDetection';
 import { scanPlate } from '@/openapi-rq/requests/services.gen';
 import type { ScanPlateResponse } from '@/openapi-rq/requests/types.gen';
+import type { ViewfinderBox } from '@/utils/viewfinder';
 
 export type PlateStatus = 'valid' | 'warning' | 'critical';
 
@@ -15,13 +16,15 @@ export interface DetectedPlate {
 
 interface UseScanPlateProps {
   onSuccess?: (plate: DetectedPlate) => void;
+  /** Measured on-screen viewfinder box — keeps the live crop aligned with the overlay. */
+  getViewfinderBox?: () => ViewfinderBox | null;
 }
 
 /**
  * Hook to manage the license plate scanning process (The "Eyes" of the system).
  * Implements 500ms frame sampling and hybrid OCR communication.
  */
-export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
+export function useScanPlate({ onSuccess, getViewfinderBox }: UseScanPlateProps = {}) {
   const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [isLiveProcessing, setIsLiveProcessing] = useState(false);
@@ -79,7 +82,11 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         activeRequestRef.current = controller;
 
         // 1. Optimize image (smaller crop + lower quality for speed)
-        const compressedImage = await ImageProcessor.cropToViewfinderFast(imageSrc, t);
+        const compressedImage = await ImageProcessor.cropToViewfinderFast(
+          imageSrc,
+          t,
+          getViewfinderBox?.()
+        );
 
         // 2. Prepare for upload (convert data URL to blob)
         const response = await fetch(compressedImage);
@@ -139,7 +146,7 @@ export function useScanPlate({ onSuccess }: UseScanPlateProps = {}) {
         setIsLiveProcessing(false);
       }
     },
-    [addDetection, t]
+    [addDetection, t, getViewfinderBox]
   );
 
   const isProcessingRef = useRef(false);
