@@ -30,6 +30,7 @@ import { ImageProcessor } from '@/utils/imageProcessor';
 
 describe('usePhotoCapture', () => {
   let originalFetch: typeof global.fetch;
+  const mockCaptureStill = async () => 'data:image/jpeg;base64,screenshot';
 
   beforeEach(() => {
     originalFetch = global.fetch;
@@ -61,7 +62,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should process a capture successfully', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
     const mockOnConfirm = vi.fn();
 
     // Mock fetch for blob conversion (data URL -> Blob)
@@ -84,7 +84,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture({ onConfirm: mockOnConfirm }));
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('result');
@@ -96,18 +96,82 @@ describe('usePhotoCapture', () => {
     expect(result.current.editedPlate).toBe('CE128BC');
     expect(ImageProcessor.assessImageQuality).toHaveBeenCalledWith(
       'data:image/jpeg;base64,screenshot',
-      expect.any(Function)
+      expect.any(Function),
+      undefined
     );
     expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledWith(
       'data:image/jpeg;base64,screenshot',
-      expect.any(Function)
+      expect.any(Function),
+      undefined
     );
     expect(ImageProcessor.preprocessForPhotoCapture).not.toHaveBeenCalled();
   });
 
-  it('should stop before OCR when image quality is not acceptable', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
+  it('forwards getViewfinderBox to the OCR preprocessing calls so the crop matches the on-screen overlay', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
 
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { plate: 'CE128BC', confidence: 0.9, format_valid: true },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const box = { width: 390, height: 620 };
+    const getViewfinderBox = vi.fn(() => box);
+    const { result } = renderHook(() => usePhotoCapture({ getViewfinderBox }));
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockCaptureStill);
+    });
+
+    expect(ImageProcessor.assessImageQuality).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,screenshot',
+      expect.any(Function),
+      box
+    );
+    expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledWith(
+      'data:image/jpeg;base64,screenshot',
+      expect.any(Function),
+      box
+    );
+  });
+
+  it('should confirm on the real field-log confidence regime (0-63, not 76-92)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
+    });
+
+    vi.mocked(photoPlate).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          plate: 'CE568LR',
+          confidence: 0.16,
+          format_valid: true,
+        },
+      },
+      error: undefined,
+    } as Awaited<ReturnType<typeof photoPlate>>);
+
+    const { result } = renderHook(() => usePhotoCapture());
+
+    await act(async () => {
+      await result.current.captureAndProcess(mockCaptureStill);
+    });
+
+    expect(result.current.state).toBe('result');
+    expect(result.current.detectedPlate).toEqual({
+      plateNumber: 'CE568LR',
+      confidence: 16,
+      status: 'valid',
+    });
+  });
+
+  it('should stop before OCR when image quality is not acceptable', async () => {
     vi.mocked(ImageProcessor.assessImageQuality).mockResolvedValueOnce({
       isAcceptable: false,
       feedback: 'mobileScan.qualityTooBlurry',
@@ -116,7 +180,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('error');
@@ -128,8 +192,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -144,22 +206,22 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('error');
     expect(result.current.error).toBe('mobileScan.photoError');
   });
 
-  it('should handle no screenshot gracefully', async () => {
-    const mockGetScreenshot = () => null;
+  it('should handle no still captured gracefully', async () => {
+    const mockCaptureStillNull = async () => null;
 
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStillNull);
     });
 
     expect(result.current.state).toBe('error');
@@ -167,8 +229,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should fallback to preprocessForPhotoCapture if first OCR returns no plate', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -194,7 +254,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(ImageProcessor.preprocessForPhoto).toHaveBeenCalledTimes(1);
@@ -210,8 +270,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should extract a plate from raw_text when normalized plate is empty', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -232,7 +290,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('result');
@@ -246,8 +304,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should normalize top-level OCR plate fields for backward-compatible responses', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -265,7 +321,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('result');
@@ -277,8 +333,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should set error when both OCR calls fail to find a plate', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -306,7 +360,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('error');
@@ -314,8 +368,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should prevent double-capture while processing', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     // Make fetch hang slightly so we can trigger again
     global.fetch = vi.fn().mockImplementation(() => {
       return new Promise((resolve) => {
@@ -339,9 +391,9 @@ describe('usePhotoCapture', () => {
     let promise2: any;
 
     act(() => {
-      promise1 = result.current.captureAndProcess(mockGetScreenshot);
+      promise1 = result.current.captureAndProcess(mockCaptureStill);
       // Immediately call again
-      promise2 = result.current.captureAndProcess(mockGetScreenshot);
+      promise2 = result.current.captureAndProcess(mockCaptureStill);
     });
 
     await act(async () => {
@@ -353,8 +405,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should reset state on retry', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -370,7 +420,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.state).toBe('result');
@@ -387,8 +437,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should handle plate editing, cancelling edit reverts editedPlate', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -404,7 +452,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     act(() => {
@@ -439,7 +487,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should handle confirm with edited plate', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
     const mockOnConfirm = vi.fn();
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -457,7 +504,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture({ onConfirm: mockOnConfirm }));
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     act(() => {
@@ -473,8 +520,6 @@ describe('usePhotoCapture', () => {
   });
 
   it('should set status to warning for invalid format plates', async () => {
-    const mockGetScreenshot = () => 'data:image/jpeg;base64,screenshot';
-
     global.fetch = vi.fn().mockResolvedValue({
       blob: () => Promise.resolve(new Blob(['image'], { type: 'image/jpeg' })),
     });
@@ -490,7 +535,7 @@ describe('usePhotoCapture', () => {
     const { result } = renderHook(() => usePhotoCapture());
 
     await act(async () => {
-      await result.current.captureAndProcess(mockGetScreenshot);
+      await result.current.captureAndProcess(mockCaptureStill);
     });
 
     expect(result.current.detectedPlate?.status).toBe('warning');

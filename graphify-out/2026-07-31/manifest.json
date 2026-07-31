@@ -1,7 +1,7 @@
 {
   ".claude/settings.json": {
-    "mtime": 1785480008.8483546,
-    "ast_hash": "4d3ade6d3ee6f1e4ccf598ac09180cb4",
+    "mtime": 1785460635.9284904,
+    "ast_hash": "5b82d95c632c4f87635c6d9ae1d79506",
     "semantic_hash": ""
   },
   ".mcp.json": {
@@ -435,9 +435,9 @@
     "semantic_hash": "678fd945f8eac6a067814a30f25fb8d1"
   },
   "frontend/src/hooks/__tests__/useCamera.test.ts": {
-    "mtime": 1785479209.89966,
-    "ast_hash": "30b272958b42a8bbfde156fbe112100a",
-    "semantic_hash": ""
+    "mtime": 1785064936.8464274,
+    "ast_hash": "4c0bfbad0e34f53c185285e6bf0cf76e",
+    "semantic_hash": "4c0bfbad0e34f53c185285e6bf0cf76e"
   },
   "frontend/src/hooks/__tests__/useGeolocation.test.ts": {
     "mtime": 1785064936.846612,
@@ -460,9 +460,9 @@
     "semantic_hash": "bc1ee864e5e1dba240d33a7fba52ed17"
   },
   "frontend/src/hooks/__tests__/useStabilityDetection.test.ts": {
-    "mtime": 1785479429.7569592,
-    "ast_hash": "f775bb58010985b9a677e6dc4617462f",
-    "semantic_hash": ""
+    "mtime": 1785064936.8475173,
+    "ast_hash": "5a81bc89fc566148e9294c6a19354bbb",
+    "semantic_hash": "5a81bc89fc566148e9294c6a19354bbb"
   },
   "frontend/src/hooks/api/__tests__/useLogControl.test.ts": {
     "mtime": 1785064936.847889,
@@ -540,8 +540,8 @@
     "semantic_hash": ""
   },
   "frontend/src/hooks/feature/useStabilityDetection.ts": {
-    "mtime": 1785479329.420439,
-    "ast_hash": "efdc7b31357d2840ebbd37582b28c851",
+    "mtime": 1785460387.9650111,
+    "ast_hash": "a251d0524a82695d48a9fe7bb694cbf9",
     "semantic_hash": ""
   },
   "frontend/src/hooks/ui/use-form-field.ts": {
@@ -975,19 +975,24 @@
     "semantic_hash": "86cfe0f0db35fe6e9afe5de528d2e7d0"
   },
   "frontend/src/test/usePhotoCapture.test.ts": {
-    "mtime": 1785479903.7854688,
-    "ast_hash": "dd43b07676390d0fb1513eb9b75eeb07",
-    "semantic_hash": ""
+    "mtime": 1785064936.8822966,
+    "ast_hash": "25c1b319bfa69891df25d909b055004f",
+    "semantic_hash": "25c1b319bfa69891df25d909b055004f"
   },
   "frontend/src/test/useScanPlate.test.ts": {
-    "mtime": 1785480093.7030504,
-    "ast_hash": "b61bbe7472da64879b7bd8abf8dac90e",
-    "semantic_hash": ""
+    "mtime": 1785064936.8826964,
+    "ast_hash": "fd2a8831b1c5a2beec82b8b6693f35bd",
+    "semantic_hash": "fd2a8831b1c5a2beec82b8b6693f35bd"
+  },
+  "frontend/src/test/useStabilityDetection.test.ts": {
+    "mtime": 1785064936.883084,
+    "ast_hash": "cf9bde2c768a28a0d7a1c80dd8b3b362",
+    "semantic_hash": "cf9bde2c768a28a0d7a1c80dd8b3b362"
   },
   "frontend/src/utils/__tests__/imageProcessor.test.ts": {
-    "mtime": 1785461941.8376586,
-    "ast_hash": "11e3d962236aa3f035e942dff0ae8339",
-    "semantic_hash": ""
+    "mtime": 1785064936.8838615,
+    "ast_hash": "54801c73c35216420dffe5826c2e3c08",
+    "semantic_hash": "54801c73c35216420dffe5826c2e3c08"
   },
   "frontend/src/utils/imageProcessor.ts": {
     "mtime": 1785460641.5235312,
@@ -2197,26 +2202,6 @@
   "frontend/src/utils/viewfinder.ts": {
     "mtime": 1785460254.8453655,
     "ast_hash": "c12daa42c78001b32293322459bd5e1b",
-    "semantic_hash": ""
-  },
-  "frontend/src/components/mobile/scan/__tests__/ScanViewfinder.test.tsx": {
-    "mtime": 1785462067.889766,
-    "ast_hash": "1424bd772fe9785a4dc7dbb22abe475e",
-    "semantic_hash": ""
-  },
-  "frontend/src/hooks/__tests__/useCaptureCoaching.test.ts": {
-    "mtime": 1785480169.3592024,
-    "ast_hash": "0091a0f7222f486a43f03ecbb71abb56",
-    "semantic_hash": ""
-  },
-  "frontend/src/utils/__tests__/captureFrame.test.ts": {
-    "mtime": 1785461842.6762395,
-    "ast_hash": "f2a8c1dfe6665ead9baa279c2a617db8",
-    "semantic_hash": ""
-  },
-  "frontend/src/utils/__tests__/viewfinder.test.ts": {
-    "mtime": 1785461779.3327184,
-    "ast_hash": "3bf0f9fa51333cd5f8a08a78819de59d",
     "semantic_hash": ""
   }
 }

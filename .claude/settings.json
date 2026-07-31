@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(graphify explain *)",
+      "Bash(npx tsc *)",
+      "Bash(npx prettier *)",
+      "Bash(npx eslint *)",
+      "Bash(npx vitest *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
