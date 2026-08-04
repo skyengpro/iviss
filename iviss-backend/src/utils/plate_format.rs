@@ -5,6 +5,15 @@ use serde::Serialize;
 const MIN_PLATE_LEN: usize = 6;
 const MAX_PLATE_LEN: usize = 12;
 
+/// How much surrounding noise the *substitution* path tolerates around a
+/// candidate window.
+///
+/// Slid over a whole line of advertising text with no length bound, some window
+/// always corrects into something well-formed. This bounds `fuzzy_correct`
+/// only; `find_candidate` and `extract_first` read the text as OCR reported it,
+/// without substitution, and stay unbounded on purpose.
+const MAX_FUZZY_NOISE_CHARS: usize = 3;
+
 static CIVIL_CEMAC_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?:AD|CE|EN|ES|LT|NO|NW|OU|SU|SW|SO)\d{3}[A-Z]{2}$").unwrap());
 static BIKE_CEMAC_RE: Lazy<Regex> =
@@ -162,17 +171,36 @@ pub fn fuzzy_correct(raw: &str) -> Option<PlateMatch> {
             if end > compact.len() {
                 continue;
             }
+            if compact.len() - mask.len() > MAX_FUZZY_NOISE_CHARS {
+                continue;
+            }
 
             let candidate = &compact[start..end];
             if let Some(corrected) = correct_with_mask(candidate, mask) {
                 if let Some(found) = classify(&corrected) {
-                    return Some(found);
+                    if is_fuzzy_reachable(found.category) {
+                        return Some(found);
+                    }
                 }
             }
         }
     }
 
     None
+}
+
+/// Whether a category may be *reached by character substitution*.
+///
+/// `Military` (`^\d{7}$`) and `GovernmentLegacy` (`^[A-Z]{2}\d{4}[A-Z]$`) carry
+/// no regional prefix and no literal marker to anchor a correction, so the
+/// confusion table alone reaches them from arbitrary text: `TAUNUS…` → `7104214`,
+/// `AUTOSBW` → `AU1058W`. Both stay fully recognised by `classify` and
+/// `extract_first`, which read the text as-is — a genuine `1234567` still works.
+fn is_fuzzy_reachable(category: PlateCategory) -> bool {
+    !matches!(
+        category,
+        PlateCategory::Military | PlateCategory::GovernmentLegacy
+    )
 }
 
 pub fn format_display(raw: &str) -> String {

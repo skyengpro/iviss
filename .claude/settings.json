@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(graphify explain *)",
+      "Bash(npx tsc *)",
+      "Bash(npx prettier *)",
+      "Bash(npx eslint *)",
+      "Bash(npx vitest *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -6,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/lonsti-ws/.local/bin/graphify hook-guard search"
+            "command": "/Users/hermann/.local/bin/graphify hook-guard search"
           }
         ]
       },
@@ -15,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/lonsti-ws/.local/bin/graphify hook-guard read"
+            "command": "/Users/hermann/.local/bin/graphify hook-guard read"
           }
         ]
       }

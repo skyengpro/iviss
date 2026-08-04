@@ -61,7 +61,6 @@ struct CachedEntry {
 
 impl S3VehicleDataCache {
     /// Build from configuration.
-    ///
     /// `dedup_cache` is created centrally in [`crate::app_cache::AppCache`] so
     /// that every in-memory cache in the application is visible in one place.
     pub async fn from_config(
@@ -138,8 +137,6 @@ impl VehicleDataCache for S3VehicleDataCache {
         };
 
         // Insert into dedup cache BEFORE the S3 write to prevent concurrent
-        // duplicate writes under high concurrency on the same plate.
-        // Rolled back on failure so the next request can retry.
         self.dedup_cache.insert(plate.to_string(), ()).await;
 
         // --- Server-side encryption (Option C layer) ---

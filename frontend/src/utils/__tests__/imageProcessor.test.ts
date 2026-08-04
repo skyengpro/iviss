@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ImageProcessor } from '@/utils/imageProcessor';
+import * as viewfinderModule from '@/utils/viewfinder';
+import { computeViewfinderCrop, VF_ASPECT } from '@/utils/viewfinder';
 
 // Mock translation function
 const mockT = vi.fn((key: string) => key) as any;
 const originalImage = globalThis.Image;
+
+// Native capture resolution — the fixed "sensor" size used by every test below.
+const NATIVE_IMG_WIDTH = 1920;
+const NATIVE_IMG_HEIGHT = 1080;
 
 // Helper factory for canvas mocking
 function setupCanvasMock(contextMethods = {}, returnsNullContext = false) {
@@ -12,9 +18,6 @@ function setupCanvasMock(contextMethods = {}, returnsNullContext = false) {
     : {
         drawImage: vi.fn(),
         getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-        createImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-        putImageData: vi.fn(),
-        fillRect: vi.fn(),
         ...contextMethods,
       };
 
@@ -43,8 +46,8 @@ function setupImageMock(triggerLoad = true) {
       super();
       // Auto-trigger load or error in next tick
       setTimeout(() => {
-        this.width = 1920;
-        this.height = 1080;
+        this.width = NATIVE_IMG_WIDTH;
+        this.height = NATIVE_IMG_HEIGHT;
         if (triggerLoad && this.onload) this.onload(new Event('load'));
         else if (!triggerLoad && this.onerror) this.onerror('error');
       }, 0);
@@ -56,13 +59,25 @@ function setupImageMock(triggerLoad = true) {
   };
 }
 
+/** Mirrors ImageProcessor's private drawViewfinderCrop math exactly, so the
+ * expected canvas size is derived from the same computeViewfinderCrop the
+ * implementation calls — not a second, independently hand-computed formula. */
+function expectedCropOutput(maxWidth: number, boxW: number, boxH: number) {
+  const crop = computeViewfinderCrop(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, boxW, boxH)!;
+  const outWidth = Math.min(crop.sw, maxWidth);
+  const outHeight = outWidth * (crop.sh / crop.sw);
+  return { crop, width: Math.round(outWidth), height: Math.round(outHeight) };
+}
+
+function setWindowSize(width: number, height: number) {
+  Object.defineProperty(globalThis, 'innerWidth', { value: width, writable: true });
+  Object.defineProperty(globalThis, 'innerHeight', { value: height, writable: true });
+}
+
 describe('ImageProcessor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock window inner width/height
-    Object.defineProperty(globalThis, 'innerWidth', { value: 1024, writable: true });
-    Object.defineProperty(globalThis, 'innerHeight', { value: 768, writable: true });
+    setWindowSize(1024, 768);
   });
 
   afterEach(() => {
@@ -110,140 +125,239 @@ describe('ImageProcessor', () => {
     });
   });
 
-  describe('preprocessForOCR', () => {
-    it('resolves to a data URL when image loads', async () => {
-      setupCanvasMock();
+  describe('preprocessForPhoto (primary photo path)', () => {
+    it('crops to the shared viewfinder geometry and encodes at 0.95', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      const { mockCanvas, mockContext } = setupCanvasMock();
       const restoreImg = setupImageMock(true);
 
-      const result = await ImageProcessor.preprocessForOCR('data:image/jpeg;base64,...', mockT);
-      expect(result).toBe('data:image/jpeg;base64,mockdata');
-
-      restoreImg();
-    });
-
-    it('rejects with errors.imageLoad when image errors', async () => {
-      const restoreImg = setupImageMock(false);
-
-      await expect(ImageProcessor.preprocessForOCR('data:image', mockT)).rejects.toThrow(
-        'errors.imageLoad'
-      );
-
-      restoreImg();
-    });
-
-    it('rejects with errors.canvasContext when getContext returns null', async () => {
-      setupCanvasMock({}, true);
-      const restoreImg = setupImageMock(true);
-
-      await expect(ImageProcessor.preprocessForOCR('data:image', mockT)).rejects.toThrow(
-        'errors.canvasContext'
-      );
-
-      restoreImg();
-    });
-  });
-
-  describe('preprocessForHighRes', () => {
-    it('resolves to a data URL', async () => {
-      setupCanvasMock();
-      const restoreImg = setupImageMock(true);
-
-      const result = await ImageProcessor.preprocessForHighRes('data:image', mockT);
-      expect(result).toBe('data:image/jpeg;base64,mockdata');
-
-      restoreImg();
-    });
-
-    it('rejects with errors.imageLoad when image errors', async () => {
-      const restoreImg = setupImageMock(false);
-
-      await expect(ImageProcessor.preprocessForHighRes('data:image', mockT)).rejects.toThrow(
-        'errors.imageLoad'
-      );
-
-      restoreImg();
-    });
-
-    it('rejects with errors.canvasContext when getContext returns null', async () => {
-      setupCanvasMock({}, true);
-      const restoreImg = setupImageMock(true);
-
-      await expect(ImageProcessor.preprocessForHighRes('data:image', mockT)).rejects.toThrow(
-        'errors.canvasContext'
-      );
-
-      restoreImg();
-    });
-  });
-
-  describe('preprocessForPhotoCapture', () => {
-    it('resolves to a data URL and applies sharpening kernel', async () => {
-      const { mockContext, mockCanvas } = setupCanvasMock({
-        getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4 * 4 * 4) })), // Small mock image
-        createImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4 * 4 * 4) })),
-      });
-      const restoreImg = setupImageMock(true);
-
-      const result = await ImageProcessor.preprocessForPhotoCapture('data:image', mockT);
-
-      expect(result).toBe('data:image/jpeg;base64,mockdata');
-      expect(mockContext.getImageData).toHaveBeenCalled();
-      expect(mockContext.putImageData).toHaveBeenCalled();
-      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.92);
-
-      restoreImg();
-    });
-
-    it('rejects with errors.imageLoad when image errors', async () => {
-      const restoreImg = setupImageMock(false);
-
-      await expect(ImageProcessor.preprocessForPhotoCapture('data:image', mockT)).rejects.toThrow(
-        'errors.imageLoad'
-      );
-
-      restoreImg();
-    });
-
-    it('rejects with errors.canvasContext when getContext returns null', async () => {
-      setupCanvasMock({}, true);
-      const restoreImg = setupImageMock(true);
-
-      await expect(ImageProcessor.preprocessForPhotoCapture('data:image', mockT)).rejects.toThrow(
-        'errors.canvasContext'
-      );
-
-      restoreImg();
-    });
-  });
-
-  describe('preprocessForPhoto', () => {
-    it('crops to the plate-ratio viewfinder and applies sharpening', async () => {
-      const { mockContext, mockCanvas } = setupCanvasMock({
-        getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(1400 * 400 * 4) })),
-        createImageData: vi.fn(() => ({ data: new Uint8ClampedArray(1400 * 400 * 4) })),
-      });
-      const restoreImg = setupImageMock(true);
-
+      const expected = expectedCropOutput(1400, 1024, 768);
       const result = await ImageProcessor.preprocessForPhoto('data:image', mockT);
 
       expect(result).toBe('data:image/jpeg;base64,mockdata');
-      expect(mockCanvas.width).toBe(1400);
-      expect(mockCanvas.height).toBe(400);
-      expect(mockContext.fillRect).toHaveBeenCalledWith(0, 0, 1400, 400);
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 1024, 768);
+      expect(mockCanvas.width).toBe(expected.width);
+      expect(mockCanvas.height).toBe(expected.height);
       expect(mockContext.drawImage).toHaveBeenCalledWith(
         expect.any(HTMLImageElement),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number)
+        expected.crop.sx,
+        expected.crop.sy,
+        expected.crop.sw,
+        expected.crop.sh,
+        0,
+        0,
+        expected.width,
+        expected.height
       );
-      expect(mockContext.getImageData).toHaveBeenCalledWith(0, 0, 1400, 400);
-      expect(mockContext.putImageData).toHaveBeenCalled();
-      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.92);
+      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.95);
+
+      restoreImg();
+    });
+
+    it('downscales when the native crop exceeds the 1400px ceiling', async () => {
+      setWindowSize(4500, 2000); // wide box -> native crop well above 1400px
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const expected = expectedCropOutput(1400, 4500, 2000);
+      expect(expected.crop.sw).toBeGreaterThan(1400); // sanity check on the fixture itself
+
+      await ImageProcessor.preprocessForPhoto('data:image', mockT);
+
+      expect(mockCanvas.width).toBe(1400);
+      expect(mockCanvas.height).toBe(expected.height);
+
+      restoreImg();
+    });
+
+    it('never upscales a native crop narrower than the 1400px ceiling', async () => {
+      setWindowSize(500, 400); // narrow box -> native crop well below 1400px
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const expected = expectedCropOutput(1400, 500, 400);
+      expect(expected.crop.sw).toBeLessThan(1400); // sanity check on the fixture itself
+
+      await ImageProcessor.preprocessForPhoto('data:image', mockT);
+
+      expect(mockCanvas.width).toBe(expected.width);
+      expect(mockCanvas.width).toBeLessThan(1400);
+
+      restoreImg();
+    });
+
+    it('prefers the measured viewfinder box over window size when provided', async () => {
+      // window is 1024x768 (beforeEach), but the real rendered box is smaller —
+      // e.g. a video sitting below a fixed header. The measured box must win,
+      // otherwise the overlay the user sees and the crop sent to OCR diverge
+      // (ocr_perf_improvement/02_ticket_frontend.md §3).
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const box = { width: 390, height: 620 };
+      const expected = expectedCropOutput(1400, box.width, box.height);
+      await ImageProcessor.preprocessForPhoto('data:image', mockT, box);
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 390, 620);
+      expect(mockCanvas.width).toBe(expected.width);
+      expect(mockCanvas.height).toBe(expected.height);
+
+      restoreImg();
+    });
+
+    it('falls back to window size when the box is degenerate (e.g. ref not mounted yet)', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      await ImageProcessor.preprocessForPhoto('data:image', mockT, { width: 0, height: 0 });
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 1024, 768);
+
+      restoreImg();
+    });
+
+    it('rejects with errors.imageLoad when image errors', async () => {
+      setupCanvasMock();
+      const restoreImg = setupImageMock(false);
+
+      await expect(ImageProcessor.preprocessForPhoto('data:image', mockT)).rejects.toThrow(
+        'errors.imageLoad'
+      );
+
+      restoreImg();
+    });
+
+    it('rejects with errors.canvasContext when getContext returns null', async () => {
+      setupCanvasMock({}, true);
+      const restoreImg = setupImageMock(true);
+
+      await expect(ImageProcessor.preprocessForPhoto('data:image', mockT)).rejects.toThrow(
+        'errors.canvasContext'
+      );
+
+      restoreImg();
+    });
+  });
+
+  describe('preprocessForPhotoCapture (fallback photo path)', () => {
+    it('uses the shared viewfinder geometry — not its own hardcoded aspect', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      const { mockCanvas, mockContext } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const expected = expectedCropOutput(1800, 1024, 768);
+      const result = await ImageProcessor.preprocessForPhotoCapture('data:image', mockT);
+
+      expect(result).toBe('data:image/jpeg;base64,mockdata');
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 1024, 768);
+      expect(mockCanvas.width).toBe(expected.width);
+      expect(mockCanvas.height).toBe(expected.height);
+      // The previous implementation hardcoded vh = vw / 2.0 — assert the
+      // actual output aspect matches VF_ASPECT (within rounding), not 2.0.
+      expect(mockCanvas.width / mockCanvas.height).toBeCloseTo(VF_ASPECT, 1);
+      expect(mockContext.drawImage).toHaveBeenCalledWith(
+        expect.any(HTMLImageElement),
+        expected.crop.sx,
+        expected.crop.sy,
+        expected.crop.sw,
+        expected.crop.sh,
+        0,
+        0,
+        expected.width,
+        expected.height
+      );
+      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.95);
+
+      restoreImg();
+    });
+
+    it('downscales at a larger ceiling (1800px) than the primary path', async () => {
+      setWindowSize(4500, 2000);
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const primary = expectedCropOutput(1400, 4500, 2000);
+      const fallback = expectedCropOutput(1800, 4500, 2000);
+      // Same crop, different ceiling -> fallback path preserves more detail.
+      expect(fallback.width).toBeGreaterThan(primary.width);
+
+      await ImageProcessor.preprocessForPhotoCapture('data:image', mockT);
+
+      expect(mockCanvas.width).toBe(fallback.width);
+      expect(mockCanvas.height).toBe(fallback.height);
+
+      restoreImg();
+    });
+
+    it('rejects with errors.imageLoad when image errors', async () => {
+      const restoreImg = setupImageMock(false);
+
+      await expect(ImageProcessor.preprocessForPhotoCapture('data:image', mockT)).rejects.toThrow(
+        'errors.imageLoad'
+      );
+
+      restoreImg();
+    });
+
+    it('rejects with errors.canvasContext when getContext returns null', async () => {
+      setupCanvasMock({}, true);
+      const restoreImg = setupImageMock(true);
+
+      await expect(ImageProcessor.preprocessForPhotoCapture('data:image', mockT)).rejects.toThrow(
+        'errors.canvasContext'
+      );
+
+      restoreImg();
+    });
+  });
+
+  describe('cropToViewfinderFast (live path)', () => {
+    it('uses the shared viewfinder geometry and encodes at 0.95 (LIVE_CROP_OPTIONS)', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const expected = expectedCropOutput(800, 1024, 768);
+      const result = await ImageProcessor.cropToViewfinderFast('data:image', mockT);
+
+      expect(result).toBe('data:image/jpeg;base64,mockdata');
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 1024, 768);
+      expect(mockCanvas.width).toBe(expected.width);
+      expect(mockCanvas.height).toBe(expected.height);
+      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.95);
+
+      restoreImg();
+    });
+
+    it('caps the live crop at 800px even when the native crop is much wider', async () => {
+      setWindowSize(4500, 2000);
+      const { mockCanvas } = setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      const expected = expectedCropOutput(800, 4500, 2000);
+      expect(expected.crop.sw).toBeGreaterThan(800);
+
+      await ImageProcessor.cropToViewfinderFast('data:image', mockT);
+
+      expect(mockCanvas.width).toBe(800);
+      expect(mockCanvas.height).toBe(expected.height);
+
+      restoreImg();
+    });
+
+    it('prefers the measured viewfinder box over window size when provided', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      setupCanvasMock();
+      const restoreImg = setupImageMock(true);
+
+      await ImageProcessor.cropToViewfinderFast('data:image', mockT, {
+        width: 390,
+        height: 620,
+      });
+
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 390, 620);
 
       restoreImg();
     });
@@ -251,7 +365,7 @@ describe('ImageProcessor', () => {
 
   describe('assessImageQuality', () => {
     const checkW = 400;
-    const checkH = Math.round(400 / 3.5);
+    const checkH = Math.round(400 / VF_ASPECT);
 
     function pixelsWith(rgb: [number, number, number]) {
       const data = new Uint8ClampedArray(checkW * checkH * 4);
@@ -305,63 +419,17 @@ describe('ImageProcessor', () => {
 
       restoreImg();
     });
-  });
 
-  describe('cropToViewfinder', () => {
-    it('resolves and uses window.innerWidth/innerHeight correctly', async () => {
-      const { mockCanvas } = setupCanvasMock();
+    it('prefers the measured viewfinder box over window size when provided', async () => {
+      const spy = vi.spyOn(viewfinderModule, 'computeViewfinderCrop');
+      setupCanvasMock({
+        getImageData: vi.fn(() => ({ data: pixelsWith([120, 120, 120]) })),
+      });
       const restoreImg = setupImageMock(true);
 
-      const result = await ImageProcessor.cropToViewfinder('data:image', mockT);
-      expect(result).toBe('data:image/jpeg;base64,mockdata');
-      expect(mockCanvas.width).toBe(1200);
-      expect(mockCanvas.height).toBe(343);
-      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.9);
+      await ImageProcessor.assessImageQuality('data:image', mockT, { width: 390, height: 620 });
 
-      restoreImg();
-    });
-  });
-
-  describe('cropToViewfinderFast', () => {
-    it('requests lower quality JPEG output (0.65)', async () => {
-      const { mockCanvas } = setupCanvasMock();
-      const restoreImg = setupImageMock(true);
-
-      const result = await ImageProcessor.cropToViewfinderFast('data:image', mockT);
-
-      expect(result).toBe('data:image/jpeg;base64,mockdata');
-      expect(mockCanvas.width).toBe(800);
-      expect(mockCanvas.height).toBe(229);
-      expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.65);
-
-      restoreImg();
-    });
-  });
-
-  describe('scaleImage', () => {
-    it('uses correct targetWidth scaling math', async () => {
-      const { mockCanvas } = setupCanvasMock();
-      const restoreImg = setupImageMock(true);
-
-      // Default targetWidth is 800
-      const result = await ImageProcessor.scaleImage('data:image', mockT);
-
-      expect(result).toBe('data:image/jpeg;base64,mockdata');
-      expect(mockCanvas.width).toBe(800);
-      // Height should be scaled based on aspect ratio (1080 / (1920/800))
-      expect(mockCanvas.height).toBe(1080 * (800 / 1920));
-
-      restoreImg();
-    });
-
-    it('uses custom targetWidth', async () => {
-      const { mockCanvas } = setupCanvasMock();
-      const restoreImg = setupImageMock(true);
-
-      await ImageProcessor.scaleImage('data:image', mockT, 400);
-
-      expect(mockCanvas.width).toBe(400);
-      expect(mockCanvas.height).toBe(1080 * (400 / 1920));
+      expect(spy).toHaveBeenCalledWith(NATIVE_IMG_WIDTH, NATIVE_IMG_HEIGHT, 390, 620);
 
       restoreImg();
     });

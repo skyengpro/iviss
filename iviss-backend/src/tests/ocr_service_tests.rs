@@ -1,465 +1,310 @@
-use image::GrayImage;
-use leptess::LepTess;
-use std::cell::RefCell;
-use std::sync::atomic::{AtomicU64, Ordering};
+use image::{GrayImage, Luma};
 
 use crate::dto::scan::ScanResultData;
 use crate::services::ocr_service::*;
-use crate::utils::plate_format;
-
-/// Radius (in pixels) for the adaptive threshold sliding window.
-const ADAPTIVE_RADIUS: u32 = 40;
-
-/// Offset subtracted from the local mean when applying adaptive threshold.
-const ADAPTIVE_C: i16 = 5;
-
-static TMP_COUNTER: AtomicU64 = AtomicU64::new(1);
-
-thread_local! {
-    static TESSERACT: RefCell<Option<LepTess>> = const { RefCell::new(None) };
-}
+use crate::services::ocr_timings::{OcrBudget, StageTimings};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::Luma;
-    use std::fs;
     use std::time::Duration;
 
-    // ── Basic utility tests (existing) ───────────────────────────────────────
-
-    #[test]
-    fn normalise_removes_spaces_and_dashes() {
-        assert_eq!(normalise_plate("ce 128 bc"), "CE128BC");
-        assert_eq!(normalise_plate("CE-128-BC"), "CE128BC");
-        assert_eq!(normalise_plate("  Ce128Bc  "), "CE128BC");
-    }
-
-    #[test]
-    fn plate_format_accepts_valid_plates() {
-        assert!(plate_format::is_valid("CE128BC"));
-        assert!(plate_format::is_valid("LT4568A"));
-        assert!(plate_format::is_valid("LTSR9652A"));
-        assert!(plate_format::is_valid("PA02RC521"));
-        assert!(plate_format::is_valid("SN1234"));
-        assert!(plate_format::is_valid("1234567"));
-    }
-
-    #[test]
-    fn plate_format_rejects_invalid_plates() {
-        assert!(!plate_format::is_valid("C128BC"));
-        assert!(!plate_format::is_valid("CE12BC"));
-        assert!(!plate_format::is_valid("CE12345BC"));
-        assert!(!plate_format::is_valid("1E128BC"));
-        assert!(!plate_format::is_valid(""));
-    }
-
-    #[test]
-    fn contrast_stretch_full_range() {
-        let img = GrayImage::from_fn(3, 1, |x, _| {
-            Luma([match x {
-                0 => 100,
-                1 => 150,
-                _ => 200,
-            }])
-        });
-        let stretched = contrast_stretch_percentile(&img);
-        assert_eq!(stretched.get_pixel(0, 0)[0], 0);
-        assert_eq!(stretched.get_pixel(2, 0)[0], 255);
-    }
-
-    #[test]
-    fn adaptive_threshold_basic() {
-        let img = GrayImage::from_fn(5, 1, |x, _| Luma([if x == 2 { 200 } else { 10 }]));
-        let result = adaptive_threshold(&img, 2, 5);
-        assert_eq!(result.get_pixel(2, 0)[0], 255);
-    }
-
-    #[test]
-    fn test_extract_plate_fuzzy() {
-        assert_eq!(extract_plate_fuzzy("CE128BC"), Some("CE128BC".to_string()));
-        assert_eq!(
-            extract_plate_fuzzy("!CE128BC!"),
-            Some("CE128BC".to_string())
-        );
-        assert_eq!(extract_plate_fuzzy("CE12OBC"), Some("CE120BC".to_string())); // O -> 0 in middle
-        assert_eq!(extract_plate_fuzzy("5W128BC"), Some("SW128BC".to_string())); // 5 -> S in region
-        assert_eq!(extract_plate_fuzzy("CE12"), Some("CE12".to_string()));
-        assert_eq!(extract_plate_fuzzy(""), None);
-    }
-
-    #[test]
-    fn test_pick_best_ensemble() {
-        let cand1 = ScanResultData {
-            plate: "P1".into(),
-            raw_text: "P1".into(),
-            confidence: 0.5,
-            format_valid: false,
-            plate_type: None,
-        };
-        let cand2 = ScanResultData {
-            plate: "CE128BC".into(),
-            raw_text: "CE128BC".into(),
-            confidence: 0.8,
-            format_valid: true,
-            plate_type: None,
-        };
-
-        let best = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
-        assert!(best.format_valid);
-        assert_eq!(best.plate, "CE128BC");
-
-        let best_empty = pick_best_ensemble(vec![]);
-        assert_eq!(best_empty.plate, "");
-    }
-
-    #[test]
-    fn test_image_helpers() {
-        let img = GrayImage::from_pixel(10, 10, Luma([100]));
-        let inverted = invert_image(&img);
-        assert_eq!(inverted.get_pixel(0, 0)[0], 155);
-
-        let bordered = add_border(&img, 5, 255);
-        assert_eq!(bordered.width(), 20);
-        assert_eq!(bordered.height(), 20);
-    }
-
-    // ── TesseractGuard tests ─────────────────────────────────────────────────
-
-    #[test]
-    fn test_tesseract_guard_creation() {
-        // This test will fail if Tesseract is not available, but that's expected
-        // In a real environment, you'd mock Tesseract or use testcontainers
-        let result = TesseractGuard::new();
-        // We can't guarantee success without Tesseract, but we can test the structure
-        match result {
-            Ok(_guard) => {
-                // Guard was created successfully
-                // Drop will be called automatically, testing the Drop impl
+    fn dark_on_light(w: u32, h: u32, dark_rect: (u32, u32, u32, u32)) -> GrayImage {
+        let mut img = GrayImage::from_pixel(w, h, Luma([255]));
+        let (x0, y0, x1, y1) = dark_rect;
+        for y in y0..y1 {
+            for x in x0..x1 {
+                img.put_pixel(x, y, Luma([0]));
             }
-            Err(_) => {
-                // Expected if Tesseract is not available in test environment
-            }
+        }
+        img
+    }
+
+    // ── extract_plate_fuzzy: dealer-surround strings must never yield a plate ──
+    //
+    // Verbatim from a real field scan of plate CE568LR where the crop caught
+    // the dealer frame ("TAUNUS AUTO — Mercedes-Benz und smart in Wiesbaden").
+    // Each of these used to return `format_valid: true` via either the
+    // now-removed `len >= 4` fallback or an unbounded fuzzy substitution
+    // reaching Military/GovernmentLegacy with no anchor.
+    #[test]
+    fn extract_plate_fuzzy_rejects_dealer_surround() {
+        for raw in [
+            "7\n\nIO\n\nA\n\n2\n\nTAUNUS\n\nM BU SMT W",
+            "1\n\nFO\n\nPY\n\nTAUNUSAUTO\n\nSBW",
+            "SS\n\nGC\n\nFF\n\nTAUNUSAUTO MB1 S W",
+            "FO\n\nTAUNUSAUTO\n\nMP",
+            "IO\n\nTAUNUSAUTOM",
+            "IU\n\nLAY\n\nTANS\n\nA\n\nINUSAUTO\n\nM\n\nB",
+        ] {
+            assert_eq!(
+                extract_plate_fuzzy(raw),
+                None,
+                "dealer surround must not yield a plate: {raw:?}"
+            );
         }
     }
 
-    // ── Tesseract management tests ───────────────────────────────────────────
-
     #[test]
-    fn test_tesseract_thread_local_storage() {
-        // Test that the thread local storage works
-        TESSERACT.with(|cell| {
-            let mut slot = cell.borrow_mut();
-            assert!(slot.is_none(), "Initial state should be None");
-
-            // Simulate putting a tesseract back
-            *slot = None; // Would be Some(tess) in real scenario
-
-            // Test taking works
-            let taken = slot.take();
-            assert!(taken.is_none(), "Should be able to take None");
-        });
-    }
-
-    // ── finalize function tests ───────────────────────────────────────────────
-
-    #[test]
-    fn test_finalize_format_valid() {
-        let result = ScanResultData {
-            plate: "CE128BC".to_string(),
-            raw_text: "CE128BC".to_string(),
-            confidence: 0.7,
-            format_valid: true,
-            plate_type: None,
-        };
-
-        let finalized = finalize(
-            result,
-            Duration::from_millis(100),
-            Duration::from_millis(200),
-            Duration::from_millis(300),
-        )
-        .unwrap();
-
-        assert_eq!(finalized.plate, "CE128BC");
-        assert_eq!(finalized.confidence, 0.90); // Should be set to 0.90 for valid format
-        assert!(finalized.format_valid);
-    }
-
-    #[test]
-    fn test_finalize_format_invalid_with_plate() {
-        let result = ScanResultData {
-            plate: "CE128".to_string(), // Invalid format
-            raw_text: "CE128".to_string(),
-            confidence: 0.7,
-            format_valid: false,
-            plate_type: None,
-        };
-
-        let finalized = finalize(
-            result,
-            Duration::from_millis(100),
-            Duration::from_millis(200),
-            Duration::from_millis(300),
-        )
-        .unwrap();
-
-        assert_eq!(finalized.plate, "CE128");
-        assert_eq!(finalized.confidence, 0.50); // Should be set to 0.50 for invalid format
-        assert!(!finalized.format_valid);
-    }
-
-    #[test]
-    fn test_finalize_empty_plate() {
-        let result = ScanResultData {
-            plate: "".to_string(),
-            raw_text: "".to_string(),
-            confidence: 0.0,
-            format_valid: false,
-            plate_type: None,
-        };
-
-        let finalized = finalize(
-            result,
-            Duration::from_millis(100),
-            Duration::from_millis(200),
-            Duration::from_millis(300),
-        )
-        .unwrap();
-
-        assert_eq!(finalized.plate, "");
-        assert_eq!(finalized.confidence, 0.0); // Should remain 0.0 for empty plate
-        assert!(!finalized.format_valid);
-    }
-
-    // ── try_ocr_path function tests ───────────────────────────────────────────
-
-    #[test]
-    fn test_try_ocr_path_empty_result() {
-        // This test requires mocking Tesseract or using a real instance
-        // For now, we'll test the logic structure
-        // In a real test environment, you'd create a mock Tesseract that returns empty text
-
-        // Create a dummy image file for testing
-        let img = GrayImage::from_pixel(10, 10, Luma([128]));
-        let test_path = "/tmp/test_ocr_empty.png";
-
-        if img.save(test_path).is_ok() {
-            // This would normally test with a real Tesseract instance
-            let _ = fs::remove_file(test_path);
+    fn extract_plate_fuzzy_still_recovers_plates_with_stray_glyphs() {
+        for (raw, expected) in [
+            ("CE568LR", "CE568LR"),
+            ("KECE568LR", "CE568LR"), // K = stray glyph from the CEMAC logo
+            ("CE 568 LR", "CE568LR"),
+        ] {
+            assert_eq!(
+                extract_plate_fuzzy(raw).as_deref(),
+                Some(expected),
+                "{raw:?}"
+            );
         }
     }
 
-    // ── Enhanced extract_plate_fuzzy tests ─────────────────────────────────────
-
     #[test]
-    fn test_extract_plate_fuzzy_comprehensive() {
-        // Test exact matches
-        assert_eq!(extract_plate_fuzzy("CE128BC"), Some("CE128BC".to_string()));
-
-        // Test with noise
-        assert_eq!(
-            extract_plate_fuzzy("Noise CE128BC More"),
-            Some("CE128BC".to_string())
-        );
-
-        // Test character corrections in letter positions
-        assert_eq!(extract_plate_fuzzy("0U128BC"), Some("OU128BC".to_string())); // 0->O at pos 0
-        assert_eq!(extract_plate_fuzzy("5W128BC"), Some("SW128BC".to_string())); // 5->S at pos 0
-
-        // Test character corrections in digit positions
-        assert_eq!(extract_plate_fuzzy("CE1O8BC"), Some("CE108BC".to_string())); // O->0 at pos 3
-        assert_eq!(extract_plate_fuzzy("CE1I8BC"), Some("CE118BC".to_string())); // I->1 at pos 3
-        assert_eq!(extract_plate_fuzzy("CE1Z8BC"), Some("CE128BC".to_string())); // Z->2 at pos 3
-        assert_eq!(extract_plate_fuzzy("CE1S8BC"), Some("CE158BC".to_string())); // S->5 at pos 3
-        assert_eq!(extract_plate_fuzzy("CE1G8BC"), Some("CE168BC".to_string())); // G->6 at pos 3
-        assert_eq!(extract_plate_fuzzy("CE1B8BC"), Some("CE188BC".to_string())); // B->8 at pos 3
-
-        // Test last letter positions
-        assert_eq!(extract_plate_fuzzy("CE128B0"), Some("CE128BO".to_string())); // 0->O at pos 6
-        assert_eq!(extract_plate_fuzzy("CE128B1"), Some("CE128BI".to_string())); // 1->I at pos 6
-
-        // Test short strings (fallback case)
-        assert_eq!(extract_plate_fuzzy("CE12"), Some("CE12".to_string()));
-        assert_eq!(extract_plate_fuzzy("1234"), Some("1234".to_string()));
-
-        // Test too short strings
+    fn extract_plate_fuzzy_no_longer_falls_back_on_bare_length() {
+        // The `cleaned.len() >= 4` fallback used to accept any normalised
+        // string this long as "a plate". A string that doesn't parse isn't a
+        // weak plate, it isn't a plate.
+        assert_eq!(extract_plate_fuzzy("CE12"), None);
+        assert_eq!(extract_plate_fuzzy("1234"), None);
         assert_eq!(extract_plate_fuzzy("CE1"), None);
         assert_eq!(extract_plate_fuzzy(""), None);
-
-        // Test with special characters
-        assert_eq!(
-            extract_plate_fuzzy("CE-128-BC"),
-            Some("CE128BC".to_string())
-        );
-        assert_eq!(
-            extract_plate_fuzzy("CE 128 BC"),
-            Some("CE128BC".to_string())
-        );
-        assert_eq!(
-            extract_plate_fuzzy("CE.128.BC"),
-            Some("CE128BC".to_string())
-        );
     }
 
-    // ── Enhanced image processing tests ───────────────────────────────────────
+    // ── pick_best_ensemble: an empty plate must never win on confidence alone ──
 
     #[test]
-    fn test_contrast_stretch_edge_cases() {
-        // Test empty image
-        let empty_img = GrayImage::new(0, 0);
-        let result = contrast_stretch_percentile(&empty_img);
-        assert_eq!(result.dimensions(), (0, 0));
+    fn pick_best_ensemble_skips_candidates_without_a_plate() {
+        let textual_but_empty = ScanResultData {
+            plate: String::new(),
+            raw_text: "200".into(),
+            confidence: 0.63,
+            format_valid: false,
+            plate_type: None,
+        };
+        let real = ScanResultData {
+            plate: "CE568LR".into(),
+            raw_text: "CE568LR".into(),
+            confidence: 0.0,
+            format_valid: true,
+            plate_type: None,
+        };
 
-        // Test uniform image (all same pixel value)
-        let uniform_img = GrayImage::from_pixel(10, 10, Luma([128]));
-        let result = contrast_stretch_percentile(&uniform_img);
-        assert_eq!(result.get_pixel(0, 0)[0], 128); // Should remain unchanged
-
-        // Test already full range image
-        let full_range_img = GrayImage::from_fn(2, 1, |x, _| Luma([if x == 0 { 0 } else { 255 }]));
-        let result = contrast_stretch_percentile(&full_range_img);
-        assert_eq!(result.get_pixel(0, 0)[0], 0);
-        assert_eq!(result.get_pixel(1, 0)[0], 255);
-
-        // Test single pixel image
-        let single_img = GrayImage::from_pixel(1, 1, Luma([100]));
-        let result = contrast_stretch_percentile(&single_img);
-        assert_eq!(result.get_pixel(0, 0)[0], 100);
+        let result = pick_best_ensemble(vec![Some(textual_but_empty), Some(real)]);
+        assert_eq!(result.plate, "CE568LR");
     }
 
     #[test]
-    fn test_adaptive_threshold_edge_cases() {
-        // Test empty image
-        let empty_img = GrayImage::new(0, 0);
-        let result = adaptive_threshold(&empty_img, 5, 5);
-        assert_eq!(result.dimensions(), (0, 0));
+    fn pick_best_ensemble_falls_back_to_textual_candidates_when_nothing_has_a_plate() {
+        // Only when *no* candidate holds a plate should a text-only reading win.
+        let a = ScanResultData {
+            plate: String::new(),
+            raw_text: "abc".into(),
+            confidence: 0.2,
+            format_valid: false,
+            plate_type: None,
+        };
+        let b = ScanResultData {
+            plate: String::new(),
+            raw_text: "def".into(),
+            confidence: 0.8,
+            format_valid: false,
+            plate_type: None,
+        };
 
-        // Test uniform image
-        let uniform_img = GrayImage::from_pixel(10, 10, Luma([128]));
-        let result = adaptive_threshold(&uniform_img, 5, 5);
-        // All pixels should be the same (either all black or all white)
-        let first_pixel = result.get_pixel(0, 0)[0];
-        for y in 0..result.height() {
-            for x in 0..result.width() {
-                assert_eq!(result.get_pixel(x, y)[0], first_pixel);
+        let result = pick_best_ensemble(vec![Some(a), Some(b)]);
+        assert_eq!(result.raw_text, "def");
+    }
+
+    // ── Sauvola binarization ────────────────────────────────────────────────
+
+    #[test]
+    fn sauvola_beats_local_mean_under_illumination_gradient() {
+        // Constant-intensity glyphs (value 40) over a background gradient from
+        // 60 (left) to 200 (right). A local-mean threshold either loses the
+        // glyph on the bright side or manufactures ink on the dark side;
+        // Sauvola's variance term should keep every glyph column dark.
+        let w = 200u32;
+        let h = 40u32;
+        let glyph_cols = [20u32, 60, 100, 140, 180];
+
+        let mut img = GrayImage::new(w, h);
+        for y in 0..h {
+            for x in 0..w {
+                let bg = 60.0 + (x as f32 / w as f32) * 140.0;
+                img.put_pixel(x, y, Luma([bg as u8]));
+            }
+        }
+        for &gx in &glyph_cols {
+            for y in 10..30 {
+                for dx in 0..4 {
+                    img.put_pixel(gx + dx, y, Luma([40]));
+                }
             }
         }
 
-        // Test with different radius values
-        let img = GrayImage::from_fn(5, 5, |_, _| Luma([128]));
-        let result1 = adaptive_threshold(&img, 1, 5);
-        let result2 = adaptive_threshold(&img, 10, 5);
-        assert_eq!(result1.dimensions(), (5, 5));
-        assert_eq!(result2.dimensions(), (5, 5));
+        let sauvola = sauvola_threshold(&img, 20, 0.35);
 
-        // Test with different C values
-        let result3 = adaptive_threshold(&img, 5, 0);
-        let result4 = adaptive_threshold(&img, 5, 10);
-        assert_eq!(result3.dimensions(), (5, 5));
-        assert_eq!(result4.dimensions(), (5, 5));
+        for &gx in &glyph_cols {
+            let dark = (0..4).all(|dx| sauvola.get_pixel(gx + dx, 20)[0] == 0);
+            assert!(
+                dark,
+                "Sauvola should keep glyph at x={gx} dark under the gradient"
+            );
+        }
     }
 
     #[test]
-    fn test_invert_image_comprehensive() {
-        // Test black and white
-        let black_img = GrayImage::from_pixel(5, 5, Luma([0]));
-        let inverted_black = invert_image(&black_img);
-        assert_eq!(inverted_black.get_pixel(0, 0)[0], 255);
+    fn sauvola_on_uniform_background_matches_local_mean_within_noise() {
+        // Non-regression: on a flat background the two methods should agree
+        // almost everywhere, or `k` is miscalibrated.
+        let mut img = GrayImage::from_pixel(60, 60, Luma([180]));
+        for y in 25..35 {
+            for x in 25..35 {
+                img.put_pixel(x, y, Luma([40]));
+            }
+        }
 
-        let white_img = GrayImage::from_pixel(5, 5, Luma([255]));
-        let inverted_white = invert_image(&white_img);
-        assert_eq!(inverted_white.get_pixel(0, 0)[0], 0);
+        let sauvola = sauvola_threshold(&img, 15, 0.35);
+        assert_eq!(sauvola.get_pixel(30, 30)[0], 0, "glyph interior stays dark");
+        assert_eq!(
+            sauvola.get_pixel(5, 5)[0],
+            255,
+            "flat background stays light"
+        );
+    }
 
-        // Test middle value
-        let gray_img = GrayImage::from_pixel(5, 5, Luma([128]));
-        let inverted_gray = invert_image(&gray_img);
-        assert_eq!(inverted_gray.get_pixel(0, 0)[0], 127);
+    // ── Polarity: measured on the central region only ──────────────────────
 
-        // Test double inversion returns original
-        let double_inverted = invert_image(&inverted_gray);
-        assert_eq!(double_inverted.get_pixel(0, 0)[0], 128);
+    #[test]
+    fn is_light_on_dark_ignores_dark_edges() {
+        // Dark surround outside the 20% inset, light centre: on the whole
+        // frame this measures ~51% dark and would wrongly flip polarity.
+        let mut img = GrayImage::from_pixel(100, 100, Luma([0]));
+        for y in 20..80 {
+            for x in 20..80 {
+                img.put_pixel(x, y, Luma([255]));
+            }
+        }
+        assert!(!is_light_on_dark(&img));
     }
 
     #[test]
-    fn test_morphology_closes_white_holes() {
-        // Create an image with a solid black background (representing text) and one white pixel (hole)
+    fn is_light_on_dark_detects_inverted_plate() {
+        // Light glyphs on a dark background at the centre must be detected.
+        let img = GrayImage::from_pixel(100, 100, Luma([0]));
+        let mut img = img;
+        for y in 40..60 {
+            for x in 40..60 {
+                img.put_pixel(x, y, Luma([255]));
+            }
+        }
+        assert!(is_light_on_dark(&img));
+    }
+
+    // ── Deskew: binarized-image bias, background fill, bilevel output ──────
+
+    #[test]
+    fn deskew_on_a_straight_binary_plate_picks_zero() {
+        // On greyscale, `estimate_skew_angle` used to pick up to +2.5° on a
+        // perfectly straight plate because the projection variance was
+        // dominated by broad luminance areas rather than text rows. On a
+        // binarized, polarity-normalised image it must settle on 0.
+        let img = dark_on_light(200, 60, (20, 20, 180, 40));
+        assert_eq!(estimate_skew_angle(&img), 0.0);
+    }
+
+    #[test]
+    fn deskew_fills_corners_with_background_not_black() {
+        // Use an off-axis pattern so a real rotation angle is found.
+        let mut img = GrayImage::from_pixel(120, 120, Luma([255]));
+        for y in 0..120 {
+            for x in 0..120 {
+                if (x as i32 - y as i32).unsigned_abs() < 3 {
+                    img.put_pixel(x, y, Luma([0]));
+                }
+            }
+        }
+        let deskewed = deskew(&img);
+        let (w, h) = deskewed.dimensions();
+        for &(x, y) in &[(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)] {
+            assert_eq!(
+                deskewed.get_pixel(x, y)[0],
+                255,
+                "corner ({x},{y}) must be filled with background, not black"
+            );
+        }
+    }
+
+    #[test]
+    fn deskew_output_is_strictly_bilevel() {
+        let img = dark_on_light(150, 60, (10, 10, 140, 50));
+        let deskewed = deskew(&img);
+        for px in deskewed.pixels() {
+            assert!(
+                px[0] == 0 || px[0] == 255,
+                "bilinear interpolation must be re-binarized, got {}",
+                px[0]
+            );
+        }
+    }
+
+    // ── morphology_open: separable rewrite must match the naive semantics ──
+
+    #[test]
+    fn morphology_open_closes_a_single_pixel_hole() {
         let mut img = GrayImage::from_pixel(10, 10, Luma([0]));
-        img.put_pixel(5, 5, Luma([255])); // Single white hole pixel
+        img.put_pixel(5, 5, Luma([255]));
 
         let cleaned = morphology_open(&img);
-        // The min filter expands the black, erasing the white pixel.
-        // The max filter shrinks the black back, but the white hole is permanently gone.
         assert_eq!(cleaned.get_pixel(5, 5)[0], 0);
-        // The rest of the image should remain black
         assert_eq!(cleaned.get_pixel(0, 0)[0], 0);
+    }
+
+    #[test]
+    fn morphology_open_preserves_a_solid_block() {
+        let mut img = GrayImage::from_pixel(20, 20, Luma([255]));
+        for y in 5..15 {
+            for x in 5..15 {
+                img.put_pixel(x, y, Luma([0]));
+            }
+        }
+        let cleaned = morphology_open(&img);
         assert_eq!(cleaned.get_pixel(9, 9)[0], 0);
+        assert_eq!(cleaned.get_pixel(0, 0)[0], 255);
     }
 
+    // ── Confidence: never synthesised from format_valid ─────────────────────
+
     #[test]
-    fn test_deskew_returns_image() {
-        // Test that deskew gracefully handles a blank image without crashing
-        let empty_img = GrayImage::from_pixel(20, 20, Luma([255]));
-        let deskewed = deskew(&empty_img);
-        assert_eq!(deskewed.dimensions(), (20, 20));
+    fn finalize_never_rewrites_confidence() {
+        for (plate, format_valid, confidence) in [
+            ("CE568LR", true, 0.0f32),
+            ("CE568LR", true, 0.42),
+            ("NOISE", false, 0.63),
+            ("", false, 0.0),
+        ] {
+            let result = ScanResultData {
+                plate: plate.to_string(),
+                raw_text: plate.to_string(),
+                confidence,
+                format_valid,
+                plate_type: None,
+            };
+            let timings = StageTimings::default();
+            let finalized = finalize(result, &timings).unwrap();
+            assert_eq!(
+                finalized.confidence, confidence,
+                "finalize must not rewrite confidence for plate={plate:?}"
+            );
+            assert_eq!(finalized.format_valid, format_valid);
+        }
     }
 
-    #[test]
-    fn test_add_border_comprehensive() {
-        let img = GrayImage::from_pixel(10, 15, Luma([100]));
-
-        // Test with zero border (should be same size)
-        let no_border = add_border(&img, 0, 255);
-        assert_eq!(no_border.dimensions(), (10, 15));
-
-        // Test with positive border
-        let bordered = add_border(&img, 5, 255);
-        assert_eq!(bordered.dimensions(), (20, 25));
-
-        // Check border color
-        assert_eq!(bordered.get_pixel(0, 0)[0], 255); // Top-left corner
-        assert_eq!(bordered.get_pixel(19, 24)[0], 255); // Bottom-right corner
-
-        // Check original image is centered
-        assert_eq!(bordered.get_pixel(5, 5)[0], 100); // Top-left of original
-        assert_eq!(bordered.get_pixel(14, 19)[0], 100); // Bottom-right of original
-
-        // Test with different border color
-        let black_border = add_border(&img, 3, 0);
-        assert_eq!(black_border.get_pixel(0, 0)[0], 0);
-        assert_eq!(black_border.dimensions(), (16, 21));
-    }
-
-    // ── Enhanced pick_best_ensemble tests ─────────────────────────────────────
+    // ── pick_best_ensemble: unchanged trivial semantics kept as a guard ─────
 
     #[test]
-    fn test_pick_best_ensemble_comprehensive() {
-        // Test with all None
-        let result = pick_best_ensemble(vec![None, None, None]);
-        assert_eq!(result.plate, "");
-        assert_eq!(result.confidence, 0.0);
-        assert!(!result.format_valid);
-
-        // Test with only invalid formats
-        let cand1 = ScanResultData {
-            plate: "INVALID1".to_string(),
-            raw_text: "INVALID1".to_string(),
-            confidence: 0.3,
-            format_valid: false,
-            plate_type: None,
-        };
-        let cand2 = ScanResultData {
-            plate: "INVALID2".to_string(),
-            raw_text: "INVALID2".to_string(),
-            confidence: 0.7,
-            format_valid: false,
-            plate_type: None,
-        };
-        let result = pick_best_ensemble(vec![Some(cand1), Some(cand2)]);
-        assert_eq!(result.plate, "INVALID2"); // Higher confidence wins
-        assert!(!result.format_valid);
-
-        // Test with mixed valid/invalid
+    fn pick_best_ensemble_prefers_valid_format_over_confidence() {
         let invalid = ScanResultData {
             plate: "INVALID".to_string(),
             raw_text: "INVALID".to_string(),
@@ -475,34 +320,15 @@ mod tests {
             plate_type: None,
         };
         let result = pick_best_ensemble(vec![Some(invalid), Some(valid)]);
-        assert_eq!(result.plate, "CE128BC"); // Valid format wins regardless of confidence
+        assert_eq!(result.plate, "CE128BC");
         assert!(result.format_valid);
-
-        // Test with same validity, different confidence
-        let valid1 = ScanResultData {
-            plate: "AB123CD".to_string(),
-            raw_text: "AB123CD".to_string(),
-            confidence: 0.6,
-            format_valid: true,
-            plate_type: None,
-        };
-        let valid2 = ScanResultData {
-            plate: "EF456GH".to_string(),
-            raw_text: "EF456GH".to_string(),
-            confidence: 0.8,
-            format_valid: true,
-            plate_type: None,
-        };
-        let result = pick_best_ensemble(vec![Some(valid1), Some(valid2)]);
-        assert_eq!(result.plate, "EF456GH"); // Higher confidence wins when both valid
     }
 
-    // ── scan_plate error handling tests ───────────────────────────────────────
+    // ── scan_plate: error handling on malformed input ───────────────────────
 
     #[test]
-    fn test_scan_plate_invalid_image() {
-        let invalid_bytes = b"not an image";
-        let result = scan_plate(invalid_bytes);
+    fn scan_plate_rejects_undecodable_bytes() {
+        let result = scan_plate(b"not an image");
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -511,49 +337,27 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_plate_empty_input() {
-        let empty_bytes = b"";
-        let result = scan_plate(empty_bytes);
-        assert!(result.is_err());
+    fn scan_plate_rejects_empty_input() {
+        assert!(scan_plate(b"").is_err());
     }
 
-    // ── Constants and utilities tests ─────────────────────────────────────────
+    // ── OcrBudget: the deadline used by every stage checkpoint ──────────────
 
     #[test]
-    fn test_constants() {
-        assert_eq!(ADAPTIVE_RADIUS, 40);
-        assert_eq!(ADAPTIVE_C, 5);
+    fn ocr_budget_reports_exceeded_once_elapsed_time_passes_the_deadline() {
+        let budget = OcrBudget::new(Duration::from_millis(0));
+        assert!(budget.is_exceeded());
+        assert!(budget
+            .check(crate::services::ocr_timings::Stage::Decode)
+            .is_err());
     }
 
     #[test]
-    fn test_tmp_counter() {
-        let initial = TMP_COUNTER.load(Ordering::Relaxed);
-        let next = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-        assert_eq!(next, initial);
-        assert_eq!(TMP_COUNTER.load(Ordering::Relaxed), initial + 1);
-    }
-
-    // ── Integration-style test with mock data ───────────────────────────────────
-
-    #[test]
-    fn test_full_pipeline_with_mock_image() {
-        // Create a simple test image
-        let img = GrayImage::from_pixel(100, 50, Luma([128]));
-
-        // Add some "text" pattern (simplified)
-        let mut test_img = img.clone();
-        for y in 20..30 {
-            for x in 10..90 {
-                test_img.put_pixel(x, y, Luma([255]));
-            }
-        }
-
-        // Save to bytes
-        // Note: This would need proper encoding in a real test
-        // For now, we'll just test that the function handles the input
-
-        // Test with minimal valid PNG bytes (this is a simplified example)
-        // Note: In a real test environment, you would create a proper test image
-        // For now, we'll skip this test as it requires external files
+    fn ocr_budget_reports_not_exceeded_within_the_deadline() {
+        let budget = OcrBudget::new(Duration::from_secs(60));
+        assert!(!budget.is_exceeded());
+        assert!(budget
+            .check(crate::services::ocr_timings::Stage::Decode)
+            .is_ok());
     }
 }

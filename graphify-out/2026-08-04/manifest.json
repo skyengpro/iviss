@@ -1410,8 +1410,8 @@
     "semantic_hash": "036915bb8ad561fb0ad8ad238e63b64a"
   },
   "iviss-backend/src/handlers/photo.rs": {
-    "mtime": 1785845217.8420663,
-    "ast_hash": "febf22f5d1917cc1bcb5629ce94e2fd5",
+    "mtime": 1785745685.2382703,
+    "ast_hash": "2fe55dc96926d56522296ecf94be24ea",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/scan.rs": {
@@ -1570,8 +1570,8 @@
     "semantic_hash": ""
   },
   "iviss-backend/src/services/ocr_service.rs": {
-    "mtime": 1785845178.7356615,
-    "ast_hash": "481af21856ef6b42e55255a95eeb5588",
+    "mtime": 1785838634.927018,
+    "ast_hash": "d30e434a027ed7a64cfb42763139b4d5",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/otp_service.rs": {
@@ -1580,8 +1580,8 @@
     "semantic_hash": "1cf4071159c98fe5dfb3c1bea97d52b9"
   },
   "iviss-backend/src/services/photo_ocr_service.rs": {
-    "mtime": 1785845433.4231303,
-    "ast_hash": "f625cf3eb1701ad40c05452ff003d4af",
+    "mtime": 1785839282.2553227,
+    "ast_hash": "3930ba223247cd789e8c885924d8f901",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/sms_provider.rs": {
@@ -1645,8 +1645,8 @@
     "semantic_hash": "6ca034cd9f973a306ae5c3d6b428757e"
   },
   "iviss-backend/src/tests/ocr_service_tests.rs": {
-    "mtime": 1785849728.2207417,
-    "ast_hash": "17e00bcb830cb7ec7b05280fe42a6c8c",
+    "mtime": 1785832421.7719119,
+    "ast_hash": "e82b24e553b7d600cbf3cd2ec5e9da3f",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/otp_service_tests.rs": {
@@ -1655,27 +1655,27 @@
     "semantic_hash": "06fb97ad918b246018acb2a5030e39da"
   },
   "iviss-backend/src/tests/photo_ocr_service_tests.rs": {
-    "mtime": 1785849285.1125739,
-    "ast_hash": "2bf7e9d1aff8ec4c4cf5191f7fc0ebcd",
+    "mtime": 1785832421.7719119,
+    "ast_hash": "debe860bc0fed77cc04aa48cd6d6dbee",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/plate_format_tests.rs": {
-    "mtime": 1785849620.8204806,
+    "mtime": 1785745685.241882,
     "ast_hash": "8e11b5df94bb0152b9b8b3fdb26ddf39",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/refresh_endpoint_tests.rs": {
-    "mtime": 1785849604.782481,
+    "mtime": 1785412601.1847107,
     "ast_hash": "1f9731231c1bc969d42ae679c1fc2e75",
     "semantic_hash": "1f9731231c1bc969d42ae679c1fc2e75"
   },
   "iviss-backend/src/tests/sms_provider_tests.rs": {
-    "mtime": 1785849596.031756,
+    "mtime": 1784026546.813201,
     "ast_hash": "f18b6b05f7e464ebad13aaef84b746b2",
     "semantic_hash": "f18b6b05f7e464ebad13aaef84b746b2"
   },
   "iviss-backend/src/tests/stats_handler_tests.rs": {
-    "mtime": 1785849367.1930137,
+    "mtime": 1782827387.3758943,
     "ast_hash": "4fcd4938e4bb08f77782dbbc1b3b2504",
     "semantic_hash": "4fcd4938e4bb08f77782dbbc1b3b2504"
   },

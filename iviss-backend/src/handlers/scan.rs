@@ -4,17 +4,13 @@ use tracing::instrument;
 #[allow(unused_imports)]
 use crate::dto::scan::ImageUploadRequest;
 use crate::dto::scan::{ScanErrorData, ScanPlateResponse, ScanResultData};
-use crate::services::ocr_service;
+use crate::services::{ocr_service, ocr_timings};
 
 /// Maximum allowed image size: 5 MB.
 const MAX_IMAGE_SIZE: usize = 5 * 1024 * 1024;
 
 /// Allowed MIME types for the uploaded image.
 const ALLOWED_CONTENT_TYPES: &[&str] = &["image/jpeg", "image/png"];
-
-/// Hard OCR timeout budget (server-side).
-/// This keeps the scan endpoint responsive even if OCR gets slow.
-const OCR_TIMEOUT_MS: u64 = 9000;
 
 // ── POST /api/v1/scan/plate ──────────────────────────────────────────────────
 
@@ -65,15 +61,40 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
     }
 
     // ── 4. Run OCR pipeline ──────────────────────────────────────────────────
+    // A single deadline covers both queueing and work. The permit caps
+    // concurrent OCR at the core count: without it a burst spreads over Tokio's
+    // blocking pool and every timeout degrades the next request.
+    let deadline = tokio::time::Instant::now() + ocr_service::OCR_REQUEST_TIMEOUT;
+
+    let permit = match tokio::time::timeout_at(deadline, ocr_service::acquire_ocr_permit()).await {
+        Ok(Ok(permit)) => permit,
+        Ok(Err(app_err)) => {
+            tracing::error!("Failed to acquire OCR permit: {app_err}");
+            metrics::counter!("iviss_scan_errors_total", "error_type" => "ocr_error").increment(1);
+            return error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "OCR_ERROR",
+                "OCR processing failed",
+            );
+        }
+        Err(_) => {
+            metrics::counter!("iviss_scan_errors_total", "error_type" => "timeout").increment(1);
+            return error_response(
+                StatusCode::GATEWAY_TIMEOUT,
+                "OCR_TIMEOUT",
+                "OCR processing timed out",
+            );
+        }
+    };
+
     // Offload the CPU-heavy work to a blocking thread so we don't starve
-    // the async Tokio runtime.
+    // the async Tokio runtime. The permit is released when the task ends.
     let plate_len = image_bytes.len();
-    let mut handle = tokio::task::spawn_blocking(move || ocr_service::scan_plate(&image_bytes));
-    let result = tokio::time::timeout(
-        std::time::Duration::from_millis(OCR_TIMEOUT_MS),
-        &mut handle,
-    )
-    .await;
+    let mut handle = tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        ocr_service::scan_plate(&image_bytes)
+    });
+    let result = tokio::time::timeout_at(deadline, &mut handle).await;
 
     match result {
         Ok(joined) => match joined {
@@ -81,6 +102,18 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
                 metrics::counter!("iviss_scans_total", "plate_length" => plate_len.to_string())
                     .increment(1);
                 success_response(scan_data)
+            }
+            // The pipeline gives up on its own budget slightly before the
+            // handler deadline, so this is a timeout, not an engine failure.
+            Ok(Err(app_err)) if ocr_timings::is_budget_exceeded(&app_err) => {
+                tracing::warn!("OCR abandoned: {app_err}");
+                metrics::counter!("iviss_scan_errors_total", "error_type" => "timeout")
+                    .increment(1);
+                error_response(
+                    StatusCode::GATEWAY_TIMEOUT,
+                    "OCR_TIMEOUT",
+                    "OCR processing timed out",
+                )
             }
             Ok(Err(app_err)) => {
                 tracing::warn!("OCR processing error: {app_err}");
@@ -103,6 +136,8 @@ pub async fn scan_plate(mut multipart: Multipart) -> impl IntoResponse {
             }
         },
         Err(_) => {
+            // `abort()` cannot stop a `spawn_blocking` task that already
+            // started; the in-pipeline budget check is what actually stops it.
             handle.abort();
             metrics::counter!("iviss_scan_errors_total", "error_type" => "timeout").increment(1);
             error_response(
