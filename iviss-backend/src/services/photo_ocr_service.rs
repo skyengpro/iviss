@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use image::imageops::FilterType;
-use image::GenericImageView;
+use image::{DynamicImage, GenericImageView, Rgb, RgbImage};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
@@ -42,7 +42,8 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
             color_adaptive_crop(&img)
         }
     });
-    let source = cropped.as_ref().unwrap_or(&img);
+    let rectified = cropped.as_ref().map(perspective_rectify_color_crop);
+    let source = rectified.as_ref().unwrap_or(&img);
 
     // 2. Smart upscaling for small crops (keeps characters reasonably tall)
     let (cw, ch) = source.dimensions();
@@ -187,6 +188,184 @@ fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage>
         }
     }
     None
+}
+
+/// Correct a small left/right perspective trapezoid on an already colour-cropped
+/// plate. This deliberately does not guess corners on the whole vehicle image:
+/// if the orange mask is not stable, the original crop is returned unchanged.
+fn perspective_rectify_color_crop(img: &DynamicImage) -> DynamicImage {
+    let rgb = img.to_rgb8();
+    let Some((source_quad, target_quad)) = estimate_plate_trapezoid(&rgb) else {
+        return img.clone();
+    };
+
+    let Some(projection) = projection_from_quad(source_quad, target_quad) else {
+        return img.clone();
+    };
+
+    let warped = imageproc::geometric_transformations::warp(
+        &rgb,
+        &projection,
+        imageproc::geometric_transformations::Interpolation::Bilinear,
+        Rgb([255, 255, 255]),
+    );
+    DynamicImage::ImageRgb8(warped)
+}
+
+/// Estimate only the side-edge slopes from the orange pixels. The top and
+/// bottom edges remain untouched, which keeps this correction conservative.
+fn estimate_plate_trapezoid(rgb: &RgbImage) -> Option<([(f32, f32); 4], [(f32, f32); 4])> {
+    let (width, height) = rgb.dimensions();
+    if width < 80 || height < 30 {
+        return None;
+    }
+
+    let mut rows = Vec::new();
+    for y in 0..height {
+        let mut min_x = width;
+        let mut max_x = 0;
+        let mut count = 0;
+        for x in 0..width {
+            if is_orange_plate_pixel(rgb.get_pixel(x, y)) {
+                count += 1;
+                min_x = min_x.min(x);
+                max_x = max_x.max(x);
+            }
+        }
+        if count >= (width / 10).max(8) {
+            rows.push((y as f32, min_x as f32, max_x as f32));
+        }
+    }
+
+    let (top_y, bottom_y) = match (rows.first(), rows.last()) {
+        (Some(first), Some(last)) if last.0 - first.0 >= height as f32 * 0.20 => (first.0, last.0),
+        _ => return None,
+    };
+
+    let left_top = fit_edge(&rows, true, top_y)?;
+    let left_bottom = fit_edge(&rows, true, bottom_y)?;
+    let right_top = fit_edge(&rows, false, top_y)?;
+    let right_bottom = fit_edge(&rows, false, bottom_y)?;
+    let min_x = rows.iter().map(|row| row.1).fold(f32::INFINITY, f32::min);
+    let max_x = rows
+        .iter()
+        .map(|row| row.2)
+        .fold(f32::NEG_INFINITY, f32::max);
+    let width = max_x - min_x;
+    if width <= 0.0 {
+        return None;
+    }
+
+    let drift = (left_bottom - left_top)
+        .abs()
+        .max((right_bottom - right_top).abs())
+        / width;
+    // Ignore noise and reject a strong perspective that this conservative
+    // correction cannot represent safely.
+    if !(0.02..=0.15).contains(&drift) {
+        return None;
+    }
+
+    let source = [
+        (left_top, top_y),
+        (right_top, top_y),
+        (right_bottom, bottom_y),
+        (left_bottom, bottom_y),
+    ];
+    let target = [
+        (min_x, top_y),
+        (max_x, top_y),
+        (max_x, bottom_y),
+        (min_x, bottom_y),
+    ];
+    Some((source, target))
+}
+
+fn fit_edge(rows: &[(f32, f32, f32)], left: bool, y: f32) -> Option<f32> {
+    let sum_y: f32 = rows.iter().map(|row| row.0).sum();
+    let sum_x: f32 = rows
+        .iter()
+        .map(|row| if left { row.1 } else { row.2 })
+        .sum();
+    let mean_y = sum_y / rows.len() as f32;
+    let mean_x = sum_x / rows.len() as f32;
+    let denominator: f32 = rows.iter().map(|row| (row.0 - mean_y).powi(2)).sum();
+    if denominator <= f32::EPSILON {
+        return None;
+    }
+    let slope: f32 = rows
+        .iter()
+        .map(|row| (row.0 - mean_y) * ((if left { row.1 } else { row.2 }) - mean_x))
+        .sum::<f32>()
+        / denominator;
+    Some(mean_x + slope * (y - mean_y))
+}
+
+fn is_orange_plate_pixel(pixel: &Rgb<u8>) -> bool {
+    let r = pixel[0] as f32 / 255.0;
+    let g = pixel[1] as f32 / 255.0;
+    let b = pixel[2] as f32 / 255.0;
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let delta = max - min;
+    if delta <= 0.0 {
+        return false;
+    }
+    let mut hue = if max == r {
+        60.0 * ((g - b) / delta % 6.0)
+    } else if max == g {
+        60.0 * ((b - r) / delta + 2.0)
+    } else {
+        60.0 * ((r - g) / delta + 4.0)
+    };
+    if hue < 0.0 {
+        hue += 360.0;
+    }
+    let saturation = delta / max;
+    (10.0..=30.0).contains(&hue) && saturation >= 0.4 && max >= 0.4
+}
+
+fn projection_from_quad(
+    source: [(f32, f32); 4],
+    target: [(f32, f32); 4],
+) -> Option<imageproc::geometric_transformations::Projection> {
+    let mut equations = [[0.0f32; 9]; 8];
+    for (index, ((x, y), (u, v))) in source.into_iter().zip(target).enumerate() {
+        let row = index * 2;
+        equations[row] = [x, y, 1.0, 0.0, 0.0, 0.0, -u * x, -u * y, u];
+        equations[row + 1] = [0.0, 0.0, 0.0, x, y, 1.0, -v * x, -v * y, v];
+    }
+
+    for column in 0..8 {
+        let pivot = (column..8).max_by(|&a, &b| {
+            equations[a][column]
+                .abs()
+                .partial_cmp(&equations[b][column].abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })?;
+        if equations[pivot][column].abs() < 1e-6 {
+            return None;
+        }
+        equations.swap(column, pivot);
+        let divisor = equations[column][column];
+        for value in column..=8 {
+            equations[column][value] /= divisor;
+        }
+        for row in 0..8 {
+            if row == column {
+                continue;
+            }
+            let factor = equations[row][column];
+            for value in column..=8 {
+                equations[row][value] -= factor * equations[column][value];
+            }
+        }
+    }
+
+    let mut matrix = [0.0f32; 9];
+    matrix[..8].copy_from_slice(&equations.map(|row| row[8]));
+    matrix[8] = 1.0;
+    imageproc::geometric_transformations::Projection::from_matrix(matrix)
 }
 
 /// Second look at a scan result on the photo path.
