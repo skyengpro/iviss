@@ -353,12 +353,12 @@ fn projection_from_quad(
             *value /= divisor;
         }
         let pivot_row = equations[column];
-        for row in 0..8 {
+        for (row, equation) in equations.iter_mut().enumerate() {
             if row == column {
                 continue;
             }
-            let factor = equations[row][column];
-            for (value, &pivot_value) in equations[row]
+            let factor = equation[column];
+            for (value, &pivot_value) in equation
                 .iter_mut()
                 .skip(column)
                 .zip(pivot_row.iter().skip(column))
