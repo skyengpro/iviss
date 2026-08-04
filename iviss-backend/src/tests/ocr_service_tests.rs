@@ -52,7 +52,11 @@ mod tests {
             ("KECE568LR", "CE568LR"), // K = stray glyph from the CEMAC logo
             ("CE 568 LR", "CE568LR"),
         ] {
-            assert_eq!(extract_plate_fuzzy(raw).as_deref(), Some(expected), "{raw:?}");
+            assert_eq!(
+                extract_plate_fuzzy(raw).as_deref(),
+                Some(expected),
+                "{raw:?}"
+            );
         }
     }
 
@@ -143,7 +147,10 @@ mod tests {
 
         for &gx in &glyph_cols {
             let dark = (0..4).all(|dx| sauvola.get_pixel(gx + dx, 20)[0] == 0);
-            assert!(dark, "Sauvola should keep glyph at x={gx} dark under the gradient");
+            assert!(
+                dark,
+                "Sauvola should keep glyph at x={gx} dark under the gradient"
+            );
         }
     }
 
@@ -160,7 +167,11 @@ mod tests {
 
         let sauvola = sauvola_threshold(&img, 15, 0.35);
         assert_eq!(sauvola.get_pixel(30, 30)[0], 0, "glyph interior stays dark");
-        assert_eq!(sauvola.get_pixel(5, 5)[0], 255, "flat background stays light");
+        assert_eq!(
+            sauvola.get_pixel(5, 5)[0],
+            255,
+            "flat background stays light"
+        );
     }
 
     // ── Polarity: measured on the central region only ──────────────────────
@@ -336,13 +347,17 @@ mod tests {
     fn ocr_budget_reports_exceeded_once_elapsed_time_passes_the_deadline() {
         let budget = OcrBudget::new(Duration::from_millis(0));
         assert!(budget.is_exceeded());
-        assert!(budget.check(crate::services::ocr_timings::Stage::Decode).is_err());
+        assert!(budget
+            .check(crate::services::ocr_timings::Stage::Decode)
+            .is_err());
     }
 
     #[test]
     fn ocr_budget_reports_not_exceeded_within_the_deadline() {
         let budget = OcrBudget::new(Duration::from_secs(60));
         assert!(!budget.is_exceeded());
-        assert!(budget.check(crate::services::ocr_timings::Stage::Decode).is_ok());
+        assert!(budget
+            .check(crate::services::ocr_timings::Stage::Decode)
+            .is_ok());
     }
 }

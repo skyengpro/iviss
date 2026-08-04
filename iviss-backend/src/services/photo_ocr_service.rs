@@ -191,8 +191,7 @@ fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage>
 }
 
 /// Correct a small left/right perspective trapezoid on an already colour-cropped
-/// plate. This deliberately does not guess corners on the whole vehicle image:
-/// if the orange mask is not stable, the original crop is returned unchanged.
+/// plate.
 fn perspective_rectify_color_crop(img: &DynamicImage) -> DynamicImage {
     let rgb = img.to_rgb8();
     let Some((source_quad, target_quad)) = estimate_plate_trapezoid(&rgb) else {
@@ -214,7 +213,9 @@ fn perspective_rectify_color_crop(img: &DynamicImage) -> DynamicImage {
 
 /// Estimate only the side-edge slopes from the orange pixels. The top and
 /// bottom edges remain untouched, which keeps this correction conservative.
-fn estimate_plate_trapezoid(rgb: &RgbImage) -> Option<([(f32, f32); 4], [(f32, f32); 4])> {
+type Quad = [(f32, f32); 4];
+
+fn estimate_plate_trapezoid(rgb: &RgbImage) -> Option<(Quad, Quad)> {
     let (width, height) = rgb.dimensions();
     if width < 80 || height < 30 {
         return None;
@@ -348,16 +349,21 @@ fn projection_from_quad(
         }
         equations.swap(column, pivot);
         let divisor = equations[column][column];
-        for value in column..=8 {
-            equations[column][value] /= divisor;
+        for value in equations[column].iter_mut().skip(column) {
+            *value /= divisor;
         }
+        let pivot_row = equations[column];
         for row in 0..8 {
             if row == column {
                 continue;
             }
             let factor = equations[row][column];
-            for value in column..=8 {
-                equations[row][value] -= factor * equations[column][value];
+            for (value, &pivot_value) in equations[row]
+                .iter_mut()
+                .skip(column)
+                .zip(pivot_row.iter().skip(column))
+            {
+                *value -= factor * pivot_value;
             }
         }
     }
@@ -369,11 +375,6 @@ fn projection_from_quad(
 }
 
 /// Second look at a scan result on the photo path.
-///
-/// It never touches `confidence`: that stays the raw Tesseract measurement, on
-/// this path as on the scan path. Flooring it here would leave any client-side
-/// threshold calibration inoperative for every photo capture, since every
-/// `photo_plate` call goes through this function.
 pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     // If the scan pipeline already extracted a plate, keep it (even if format is invalid).
     // Photo mode should still surface the best candidate to the client.
@@ -389,9 +390,6 @@ pub(crate) fn enhance_photo_result(mut r: ScanResultData) -> ScanResultData {
     // If scan couldn't extract a plate, try a strict extraction from raw_text.
     // This mirrors the intent of the photo service without discarding useful OCR info.
     if let Some(p) = extract_plate_strict(&r.raw_text) {
-        // `extract_plate_strict` cannot guarantee the extracted string
-        // classifies — that invariant belongs to another module — so derive the
-        // flag instead of asserting it.
         let plate_match = plate_format::classify(&p);
         r.format_valid = plate_match.is_some();
         r.plate_type = plate_match.map(|m| m.category.as_str().to_string());
@@ -406,11 +404,6 @@ pub(crate) fn extract_plate_strict(raw: &str) -> Option<String> {
 }
 
 /// Select between two readings.
-///
-/// Selection only ever returns a reading exactly as it was recognised. The
-/// former character-level vote built a third string from the two — a plate no
-/// pass actually read — and then promoted it to `format_valid` whenever the
-/// composite happened to match a pattern.
 pub(crate) fn pick_best(a: ScanResultData, b: ScanResultData) -> ScanResultData {
     // Priority 1: Valid format
     if a.format_valid && !b.format_valid {

@@ -91,10 +91,6 @@ pub async fn acquire_ocr_permit() -> Result<OwnedSemaphorePermit, AppError> {
 
 /// Initialize one Tesseract instance per blocking worker at startup, so the
 /// first real request does not pay for it.
-///
-/// The barrier keeps each warm-up task parked until all of them have started,
-/// which is what forces Tokio to hand them out on distinct threads — the
-/// engine is stored in a thread-local.
 pub fn warm_up_tesseract_pool() {
     let workers = ocr_worker_count();
     let barrier = Arc::new(Barrier::new(workers));
@@ -178,10 +174,6 @@ pub fn decode_image(
 }
 
 /// Run preprocessing and the OCR pass ensemble on an already-decoded image.
-///
-/// Taking a decoded image (rather than bytes) is what lets the photo pipeline
-/// hand its crop straight over, instead of re-encoding to JPEG and losing
-/// detail immediately before recognition.
 pub fn scan_plate_image(
     img: &DynamicImage,
     timings: &mut StageTimings,
@@ -198,11 +190,6 @@ pub fn scan_plate_image(
 }
 
 /// Single exit point for a scan result.
-///
-/// It deliberately does **not** touch `confidence`: that value stays the raw
-/// Tesseract `mean_text_conf`, and `format_valid` stays an independent signal.
-/// Deriving one from the other duplicates a signal and throws the other away,
-/// which makes any client-side threshold calibration meaningless.
 pub fn finalize(res: ScanResultData, timings: &StageTimings) -> Result<ScanResultData, AppError> {
     tracing::info!(
         plate = %res.plate,
@@ -224,10 +211,7 @@ pub fn finalize(res: ScanResultData, timings: &StageTimings) -> Result<ScanResul
 ///
 /// Order matters, and this is not the order it used to be in:
 ///
-/// * The skew search runs on a **binarized, polarity-normalised** image. On
-///   greyscale the projection-profile variance is dominated by large luminance
-///   areas (bodywork, plate background) rather than by text rows, and the angle
-///   it picks is noise.
+/// * The skew search runs on a **binarized, polarity-normalised** image.
 /// * The morphological opening runs **after** polarity normalisation: an
 ///   opening removes *light* structures, so on a light-on-dark plate it would
 ///   otherwise eat the glyphs instead of the noise.
@@ -291,10 +275,6 @@ fn encode_bmp(img: &GrayImage) -> Result<Vec<u8>, AppError> {
 /// well-formed proves nothing, because the post-processing in `plate_format`
 /// can turn noise into something well-formed. Agreement between two independent
 /// segmentations is the actual evidence.
-///
-/// PSM 11 (*sparse text*) only runs when neither pass read any text at all —
-/// the case it is designed for. Run systematically, it reliably recovers
-/// surrounding signage (dealer frames), which then feeds the fuzzy corrector.
 fn run_pass_ensemble(
     tess: &mut TesseractGuard,
     page: &[u8],
@@ -379,10 +359,6 @@ fn tessdata_prefix() -> String {
 /// The OCR engine mode cannot be set here: `leptess 0.14` exposes no OEM
 /// parameter on `LepTess::new`, `tessedit_ocr_engine_mode` is read at Init, and
 /// the underlying `TessApi` is private. The default is already LSTM on `eng`.
-///
-/// `tessedit_do_invert=0` is deprecated upstream and disappears in Tesseract 6
-/// in favour of `invert_threshold`, which `leptess` cannot reach either. The
-/// runtime image ships Tesseract 5.3, where it still works — tracked as debt.
 fn configure_tesseract(tess: &mut LepTess) -> Result<(), AppError> {
     let settings = [
         // A language model over an alphanumeric code bends plates like `CE128BC`
@@ -442,11 +418,6 @@ pub fn try_ocr(tess: &mut LepTess, image: &[u8], label: &str) -> Option<ScanResu
 }
 
 /// Pick the best result from an ensemble of candidates.
-///
-/// Candidates that read text but yielded no plate are considered only when no
-/// candidate holds a plate at all. Otherwise a confident scrap of text (`"200"`
-/// at 0.63) outranks a real plate read at lower confidence and the client gets
-/// an empty plate back.
 pub fn pick_best_ensemble(candidates: Vec<Option<ScanResultData>>) -> ScanResultData {
     let (with_plate, without_plate): (Vec<_>, Vec<_>) = candidates
         .into_iter()
@@ -532,12 +503,6 @@ pub fn contrast_stretch_percentile(img: &GrayImage) -> GrayImage {
 }
 
 /// Sauvola adaptive binarization: `t = m · (1 − k · (1 − s / 128))`.
-///
-/// A local-mean threshold (mean − C) ignores local variance entirely, so on a
-/// weakly contrasted but uniform area — a plate in shade, a reflection, a
-/// partially blown-out capture — the mean alone is enough to tip background
-/// pixels into ink. Sauvola pulls the threshold down as local contrast drops,
-/// which is the right behaviour under uneven lighting.
 ///
 /// Two integral images (sums and sums of squares) keep the cost at O(1) per
 /// pixel, exactly as the local-mean version. Window statistics use `f64`: on a
@@ -703,11 +668,6 @@ fn projection_variance(img: &GrayImage) -> f64 {
 }
 
 /// Rotation correction on a binarized, polarity-normalised image.
-///
-/// Corners exposed by the rotation are filled with background (255), never with
-/// black: dark scan borders are "erroneously picked up as extra characters".
-/// The result is re-binarized because bilinear interpolation leaves greys, and
-/// both the opening and Tesseract expect two strict levels.
 pub fn deskew(binary: &GrayImage) -> GrayImage {
     use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
 
@@ -728,11 +688,6 @@ fn to_bilevel(mut img: GrayImage) -> GrayImage {
 }
 
 /// 3x3 morphological opening (erosion then dilation).
-///
-/// Applied as separable 1x3 then 3x1 passes over the raw buffer: about 6
-/// unchecked accesses per pixel instead of ~36 bounds-checked `get_pixel` /
-/// `put_pixel` calls, for the same result on the interior. The 1px frame is
-/// left untouched, as before.
 pub fn morphology_open(img: &GrayImage) -> GrayImage {
     let (w, h) = img.dimensions();
     if w < 3 || h < 3 {
@@ -791,9 +746,6 @@ pub fn add_border(img: &GrayImage, border: u32, color: u8) -> GrayImage {
 }
 
 /// Extract and correct a Cameroon plate candidate from noisy OCR text.
-///
-/// A reading that does not parse is not a weak plate — it is not a plate. There
-/// is deliberately no "return whatever was normalised" fallback here.
 pub fn extract_plate_fuzzy(raw: &str) -> Option<String> {
     plate_format::fuzzy_correct(raw).map(|found| found.plate)
 }

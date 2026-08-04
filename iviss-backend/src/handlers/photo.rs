@@ -57,8 +57,6 @@ pub async fn photo_plate(mut multipart: Multipart) -> impl IntoResponse {
 
     // Photo is a single-shot high-res capture. We can afford a slightly heavier
     // pipeline than live scanning while still reusing the OCR engine.
-    // A single deadline covers queueing behind the OCR permit and the work
-    // itself, so the endpoint stays responsive under a burst.
     let deadline = tokio::time::Instant::now() + ocr_service::OCR_REQUEST_TIMEOUT;
 
     let permit = match tokio::time::timeout_at(deadline, ocr_service::acquire_ocr_permit()).await {
