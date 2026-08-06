@@ -68,3 +68,30 @@ export function clearTokens(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
+
+/**
+ * Decodes the `exp` claim (seconds since epoch) from a JWT payload WITHOUT
+ * verifying its signature. Suitable only for client-side freshness checks —
+ * the backend is the source of truth for actual token validity.
+ */
+export function getTokenExpiry(token: string): number | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True if the token is expired or will expire within `leewaySecs`.
+ * Treats an undecodable token as expired.
+ */
+export function isTokenExpired(token: string, leewaySecs = 0): boolean {
+  const exp = getTokenExpiry(token);
+  if (exp === null) return true;
+  const nowSecs = Math.floor(Date.now() / 1000);
+  return exp <= nowSecs + leewaySecs;
+}

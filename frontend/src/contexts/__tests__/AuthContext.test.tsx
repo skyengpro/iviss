@@ -20,13 +20,20 @@ vi.mock('@/openapi-rq/requests/services.gen', () => ({
   logoutUser: vi.fn(),
 }));
 
-vi.mock('@/services/auth/tokenManager', () => ({
-  setAccessToken: vi.fn(),
-  setRefreshToken: vi.fn(),
-  getAccessToken: vi.fn().mockReturnValue(null),
-  getRefreshToken: vi.fn().mockReturnValue(null),
-  clearAccessToken: vi.fn(),
-}));
+vi.mock('@/services/auth/tokenManager', async (importOriginal) => {
+  // Keep the real isTokenExpired/getTokenExpiry (pure JWT-decoding helpers)
+  // so the makeJwt()-based fixtures below are evaluated with production
+  // logic; only the storage-touching functions are mocked.
+  const actual = await importOriginal<typeof import('@/services/auth/tokenManager')>();
+  return {
+    ...actual,
+    setAccessToken: vi.fn(),
+    setRefreshToken: vi.fn(),
+    getAccessToken: vi.fn().mockReturnValue(null),
+    getRefreshToken: vi.fn().mockReturnValue(null),
+    clearAccessToken: vi.fn(),
+  };
+});
 
 vi.mock('@/services/device/deviceId', () => ({
   getDeviceId: vi.fn().mockResolvedValue('test-device-id'),

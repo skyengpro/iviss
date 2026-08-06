@@ -13,7 +13,7 @@ use base64::Engine;
 use tracing::instrument;
 
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
-use crate::errors::AppError;
+use crate::errors::{AppError, ErrorCode};
 use crate::middleware::rbac::AuthenticatedAdmin;
 use crate::queries::auth_queries;
 use rand::RngCore;
@@ -34,7 +34,7 @@ pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
         tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
     }
 
-    AppError::unauthorized("Shift ended")
+    AppError::unauthorized_with_code(ErrorCode::ShiftEnded, "Shift ended")
 }
 
 /// Login with email and password (admin / manager only)
@@ -932,7 +932,7 @@ pub async fn verify_daily_login(
 //  Token Refresh — Challenge-Response with Device Signature
 // ─────────────────────────────────────────────────────────────
 
-const NONCE_TTL_SECS: u64 = 60;
+use crate::app_cache::NONCE_TTL_SECS;
 
 // RefreshRequest is already defined at line 171
 
@@ -1016,8 +1016,9 @@ async fn request_refresh_agent(
     .map_err(AppError::Database)?;
 
     if token_row.is_none() {
-        return Err(AppError::Unauthorized(
-            "Invalid or expired refresh token".into(),
+        return Err(AppError::unauthorized_with_code(
+            ErrorCode::SessionRevoked,
+            "Invalid or expired refresh token",
         ));
     }
 
@@ -1029,7 +1030,7 @@ async fn request_refresh_agent(
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw)
     };
 
-    // Store nonce in Moka cache with device_id as key, TTL 60s (handled automatically)
+    // Store nonce in Moka cache with device_id as key, TTL handled automatically
     state
         .app_cache
         .refresh_nonce
@@ -1160,29 +1161,24 @@ pub async fn verify_refresh(
 ) -> Result<impl IntoResponse, AppError> {
     tracing::warn!(device_id = %payload.device_id, "--- [BACKEND] verify_refresh: Processing start ---");
 
-    // Retrieve and consume the nonce from Moka cache (one-time use)
-    let stored_nonce: Option<String> = {
-        // Get the nonce from cache
-        let nonce = state.app_cache.refresh_nonce.get(&payload.device_id).await;
+    // Peek the nonce without consuming it yet: invalidating only happens once
+    // the refresh token and signature are both verified below, so a failed
+    // attempt (bad token, unknown device_id probed by a third party) doesn't
+    // burn a legitimate challenge that the real device could still complete.
+    let expected_nonce = state
+        .app_cache
+        .refresh_nonce
+        .get(&payload.device_id)
+        .await
+        .ok_or_else(|| {
+            tracing::warn!(device_id = %payload.device_id, "Verification failed: Nonce not found or expired");
+            AppError::unauthorized_with_code(
+                ErrorCode::NonceRetry,
+                "Nonce expired or not found — request a new challenge",
+            )
+        })?;
 
-        // Immediately invalidate to ensure single-use (prevent replay)
-        if nonce.is_some() {
-            state
-                .app_cache
-                .refresh_nonce
-                .invalidate(&payload.device_id)
-                .await;
-        }
-
-        nonce
-    };
-
-    let expected_nonce = stored_nonce.ok_or_else(|| {
-        tracing::warn!(device_id = %payload.device_id, "Verification failed: Nonce not found or expired");
-        AppError::Unauthorized("Nonce expired or not found — request a new challenge".into())
-    })?;
-
-    tracing::warn!(nonce = %expected_nonce, "Step 1: Nonce retrieved and consumed from Moka cache");
+    tracing::warn!(nonce = %expected_nonce, "Step 1: Nonce retrieved from Moka cache");
 
     // 2. Validate the refresh token
     let token_hash = {
@@ -1208,7 +1204,7 @@ pub async fn verify_refresh(
     .map_err(AppError::Database)?
     .ok_or_else(|| {
         tracing::warn!(device_id = %payload.device_id, "Verification failed: Invalid or expired refresh token");
-        AppError::Unauthorized("Invalid or expired refresh token".into())
+        AppError::unauthorized_with_code(ErrorCode::SessionRevoked, "Invalid or expired refresh token")
     })?;
 
     let user_id: Uuid = token_row.get("user_id");
@@ -1231,7 +1227,7 @@ pub async fn verify_refresh(
     .map_err(AppError::Database)?
     .ok_or_else(|| {
         tracing::warn!(device_id = %payload.device_id, "Verification failed: Device not found or revoked");
-        AppError::Unauthorized("Device not found or revoked".into())
+        AppError::unauthorized_with_code(ErrorCode::DeviceReactivation, "Device not found or revoked")
     })?;
 
     tracing::warn!("Step 3: Device public key and shift metadata fetched");
@@ -1262,6 +1258,28 @@ pub async fn verify_refresh(
 
     // 4. Verify the JWS compact signature
     verify_es256_jws(&payload.signed_nonce, &expected_nonce, &public_key_b64)?;
+
+    // Nonce fully verified — atomically consume it. `remove()` returns the
+    // previous value if present, or `None` if another concurrent
+    // verify_refresh (or an intervening request_refresh + verify_refresh)
+    // has already consumed it. Returning `None` here means the same
+    // signed_nonce is being replayed concurrently — reject the second
+    // caller with a retriable classification so the client can re-challenge.
+    let consumed = state
+        .app_cache
+        .refresh_nonce
+        .remove(&payload.device_id)
+        .await;
+    if consumed.is_none() {
+        tracing::warn!(
+            device_id = %payload.device_id,
+            "Nonce already consumed — concurrent verify_refresh or replay attempt"
+        );
+        return Err(AppError::unauthorized_with_code(
+            ErrorCode::NonceRetry,
+            "Nonce already consumed — request a new challenge",
+        ));
+    }
 
     // 5. Issue a new access token
     let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
@@ -1315,7 +1333,10 @@ fn verify_es256_jws(
 
     if payload_str != expected_nonce {
         tracing::warn!(actual = %payload_str, expected = %expected_nonce, "Cryptographic failure: Nonce mismatch in JWS payload");
-        return Err(AppError::Unauthorized("Nonce mismatch".into()));
+        return Err(AppError::unauthorized_with_code(
+            ErrorCode::NonceRetry,
+            "Nonce mismatch",
+        ));
     }
 
     tracing::warn!("JWS Payload matches expected nonce");
