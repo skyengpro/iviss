@@ -23,7 +23,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 /// Helper: builds a full AppState + Axum app backed by real Postgres + Moka cache.
-async fn setup_test_app() -> (
+pub(super) async fn setup_test_app() -> (
     axum::Router,
     sqlx::PgPool,
     std::sync::Arc<crate::app_cache::AppCache>,
@@ -112,7 +112,10 @@ fn generate_test_rsa_keypair_pem() -> (String, String) {
 }
 
 /// Helper: seed an organization and admin user with access token.
-async fn seed_admin_user(db: &sqlx::PgPool, jwt_private_key_pem: &str) -> (Uuid, String) {
+pub(super) async fn seed_admin_user(
+    db: &sqlx::PgPool,
+    jwt_private_key_pem: &str,
+) -> (Uuid, String) {
     let org_id = Uuid::new_v4();
     sqlx::query(r#"INSERT INTO organizations (id, name, type, start_work_time, end_work_time) VALUES ($1, $2, $3, $4, $5)"#)
         .bind(org_id)
@@ -167,7 +170,7 @@ async fn seed_admin_user(db: &sqlx::PgPool, jwt_private_key_pem: &str) -> (Uuid,
 }
 
 /// Helper: seed an organization and an org_admin user.
-async fn seed_org_admin(
+pub(super) async fn seed_org_admin(
     db: &sqlx::PgPool,
     jwt_private_key_pem: &str,
     org_name: &str,
@@ -222,7 +225,7 @@ async fn seed_org_admin(
 }
 
 /// Helper: seed an organization and agent with device and refresh token.
-async fn seed_test_data(
+pub(super) async fn seed_test_data(
     db: &sqlx::PgPool,
     jwt_private_key_pem: &str,
 ) -> (Uuid, Uuid, Uuid, String) {

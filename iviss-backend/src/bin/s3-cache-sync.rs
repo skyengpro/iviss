@@ -10,10 +10,10 @@ use iviss_backend::dto::search_vehicle::{OwnerInfo, VehicleInfo};
 use iviss_backend::s3_cache_layer::{self, S3CacheConfig};
 use iviss_backend::s3_cache_layer::types::PLATE_PREFIX_CODES;
 use iviss_backend::s3_cache_layer::s3_writer::write_vehicle_data;
-use iviss_backend::vehicle_client::{
+use iviss_backend::external_services::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiService,
 };
-use iviss_backend::vehicle_client::parser::split_brand_and_model;
+use iviss_backend::external_services::vehicle_client::parser::split_brand_and_model;
 use std::env;
 use std::time::Duration;
 use tokio::time::interval;

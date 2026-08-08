@@ -90,8 +90,8 @@ fn decode_basic_html_entities(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vehicle_client::client::VehicleApiService;
-    use crate::vehicle_client::types::{
+    use crate::external_services::vehicle_client::client::VehicleApiService;
+    use crate::external_services::vehicle_client::types::{
         ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
     };
 

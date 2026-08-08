@@ -2,6 +2,8 @@ pub mod admin_login_and_refresh_token_tests;
 pub mod admin_logout_tests;
 #[cfg(test)]
 pub mod auth_queries_tests;
+pub mod contract_openapi;
+pub mod contract_rbac;
 #[cfg(test)]
 pub mod control_queries_tests;
 pub mod daily_login_flow_tests;

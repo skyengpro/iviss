@@ -6,7 +6,7 @@ use crate::{
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
-    vehicle_client::{VehicleApiError, VehicleApiResponse},
+    external_services::vehicle_client::{VehicleApiError, VehicleApiResponse},
     services::vehicle_status_service::VehicleService,
     utils::plate_format,
 };

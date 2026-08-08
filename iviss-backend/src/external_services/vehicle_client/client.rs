@@ -1,14 +1,16 @@
 use crate::dto::search_vehicle::{OwnerInfo, VehicleInfo};
-use crate::vehicle_client::parser::{
+use crate::external_services::vehicle_client::parser::{
     html_to_text, is_vehicle_not_found_response, parse_inline_customs_status,
     parse_label_value_lines, split_brand_and_model,
 };
-use crate::vehicle_client::types::{
+use crate::external_services::vehicle_client::types::{
     ExternalVehicle, VehicleApiCredentials, VehicleApiError, VehicleApiResponse,
 };
 use anyhow::{anyhow, Context};
 use std::time::Duration;
 use tracing::debug;
+
+const HEALTH_PROBE_PLATE: &str = "CE128BC";
 
 /// HTTP client wrapper for the external vehicle registry API.
 #[derive(Debug, Clone)]
@@ -177,5 +179,39 @@ impl VehicleApiService {
             plate_number: fields.get("IMMAT").cloned(),
             vehicle,
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::external_services::ExternalDataSource for VehicleApiService {
+    fn service_id(&self) -> &'static str {
+        "vehicle_registry"
+    }
+
+    async fn fetch(
+        &self,
+        plate: &str,
+    ) -> Result<crate::external_services::PartnerPayload, crate::external_services::ExternalServiceError>
+    {
+        let response = self.query_plate(plate).await.map_err(|error| match error {
+            VehicleApiError::NotFound => crate::external_services::ExternalServiceError::NotFound,
+            VehicleApiError::Other(error) => {
+                crate::external_services::ExternalServiceError::Unavailable(error.to_string())
+            }
+        })?;
+
+        Ok(crate::external_services::PartnerPayload::Vehicle {
+            plate_number: response.plate_number,
+            vehicle: response.vehicle,
+        })
+    }
+
+    async fn health_probe(&self) -> crate::external_services::HealthStatus {
+        match self.fetch(HEALTH_PROBE_PLATE).await {
+            Ok(_) | Err(crate::external_services::ExternalServiceError::NotFound) => {
+                crate::external_services::HealthStatus::Healthy
+            }
+            Err(error) => crate::external_services::HealthStatus::Unhealthy(error.to_string()),
+        }
     }
 }

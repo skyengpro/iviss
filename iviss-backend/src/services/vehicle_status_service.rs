@@ -3,6 +3,10 @@ use crate::dto::search_vehicle::{
     CustomsStatus, InsuranceStatus, OwnerInfo, PoliceStatus, StatusResults, TechnicalStatus,
     VehicleInfo,
 };
+use crate::external_services::{
+    insurance_client::pending_insurance_status,
+    technical_inspection_client::pending_technical_status,
+};
 use crate::models::search_vehicle::VehicleRow;
 use crate::queries::vehicle_queries::VehicleStatusRow;
 
@@ -51,14 +55,7 @@ impl VehicleService {
     /// external data sources are integrated. Only the customs status is derived
     /// from the vehicle data returned by the registry API.
     pub fn build_status_results_from_api(vehicle_info: &VehicleInfo) -> StatusResults {
-        let insurance = InsuranceStatus {
-            status: Status::Pending,
-            provider: None,
-            policy_number: None,
-            expiry_date: None,
-            coverage_type: None,
-            notes: Some("No insurance data available for the moment".to_string()),
-        };
+        let insurance = pending_insurance_status();
         let police = PoliceStatus {
             status: Status::Pending,
             is_wanted: false,
@@ -68,14 +65,7 @@ impl VehicleService {
             notes: Some("No police data available for the moment".to_string()),
         };
         let customs = Self::build_customs_status_from_api(vehicle_info.customs_status.as_deref());
-        let technical = TechnicalStatus {
-            status: Status::Pending,
-            last_inspection_date: None,
-            expiry_date: None,
-            mileage: None,
-            defects: Vec::new(),
-            notes: Some("No technical inspection data available for the moment".to_string()),
-        };
+        let technical = pending_technical_status();
         let overall_status =
             Self::calculate_overall_status(&insurance, &police, &customs, &technical);
 

@@ -1,7 +1,7 @@
 // ── Shared modules (always compiled) ──
 pub mod dto;
+pub mod external_services;
 pub mod s3_cache_layer;
-pub mod vehicle_client;
 pub mod utils;
 
 // ── API-only modules (gated behind "api" feature) ──

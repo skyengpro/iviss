@@ -11,7 +11,7 @@ pub mod parser;
 pub mod types;
 
 // Flatten the most-used items so callers can do:
-//   use crate::vehicle_client::{VehicleApiService, VehicleApiError, …};
+//   use crate::external_services::vehicle_client::{VehicleApiService, VehicleApiError, …};
 pub use client::VehicleApiService;
 pub use types::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiError, VehicleApiResponse,
