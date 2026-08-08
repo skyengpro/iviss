@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::errors::AppError;
 use crate::queries::auth_queries;
-use crate::services::jwt_service::AccessTokenClaims;
+use crate::services::auth::jwt::AccessTokenClaims;
 use axum::extract::{Request, State};
 use axum::http::header::{HeaderValue, AUTHORIZATION};
 use axum::middleware::Next;

@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::routes;
-use crate::services::otp_service::OTP_TTL_SECS;
-use crate::services::sms_provider::MockSmsProvider;
+use crate::services::auth::otp::OTP_TTL_SECS;
+use crate::services::notifications::sms_provider::MockSmsProvider;
 use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -182,7 +182,7 @@ async fn setup_test_infrastructure() -> (
         db.clone(),
         cache.clone(),
         Arc::new(MockSmsProvider),
-        Arc::new(crate::services::email_provider::MockEmailProvider),
+        Arc::new(crate::services::notifications::email_provider::MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
         None,

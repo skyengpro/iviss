@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::routes;
-use crate::services::email_provider::MockEmailProvider;
-use crate::services::sms_provider::MockSmsProvider;
+use crate::services::notifications::email_provider::MockEmailProvider;
+use crate::services::notifications::sms_provider::MockSmsProvider;
 use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};

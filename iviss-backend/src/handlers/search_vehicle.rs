@@ -7,7 +7,7 @@ use crate::{
     },
     errors::AppError,
     external_services::vehicle_client::{VehicleApiError, VehicleApiResponse},
-    services::vehicle_status_service::VehicleService,
+    services::vehicles::status::VehicleService,
     utils::plate_format,
 };
 use axum::{
@@ -82,7 +82,8 @@ pub async fn search_vehicle(
                             cached_at = %cached.cached_at,
                             "Serving vehicle data from S3 cache"
                         );
-                        let status_results = VehicleService::build_status_results_from_api(&cached.vehicle);
+                        let status_results =
+                            VehicleService::build_status_results_from_api(&cached.vehicle);
                         let response = VehicleSearchResult {
                             plate_number: cached.plate_number,
                             confidence: Some(1.0),
@@ -190,7 +191,6 @@ async fn record_vehicle_search_control(
         e
     });
 }
-
 
 #[utoipa::path(
     post,

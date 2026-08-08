@@ -1,5 +1,5 @@
 use crate::errors::AppError;
-use crate::services::email_provider::EmailProvider;
+use crate::services::notifications::email_provider::EmailProvider;
 use anyhow::Result;
 use std::sync::Arc;
 use tracing::info;

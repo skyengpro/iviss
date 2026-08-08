@@ -1,4 +1,6 @@
-use crate::services::sms_provider::{MockSmsProvider, SmsProvider, TwilioSmsProvider};
+use crate::services::notifications::sms_provider::{
+    MockSmsProvider, SmsProvider, TwilioSmsProvider,
+};
 use anyhow::Result;
 use mockito::Server;
 use std::sync::Arc;

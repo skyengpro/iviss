@@ -1,5 +1,5 @@
 use crate::dto::users::UserRole;
-use crate::services::jwt_service::{AccessTokenClaims, JwtService};
+use crate::services::auth::jwt::{AccessTokenClaims, JwtService};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use uuid::Uuid;
 

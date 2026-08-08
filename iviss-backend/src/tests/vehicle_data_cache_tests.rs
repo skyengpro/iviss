@@ -15,8 +15,8 @@ use crate::dto::search_vehicle::{
     CustomsStatus, InsuranceStatus, OwnerInfo, PoliceStatus, StatusResults, TechnicalStatus,
     VehicleInfo, VehicleSearchResult,
 };
-use crate::services::vehicle_data_cache::{S3VehicleDataCache, VehicleDataCache};
 use crate::s3_cache_layer::{self, S3CacheConfig};
+use crate::services::vehicles::data_cache::{S3VehicleDataCache, VehicleDataCache};
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::minio::MinIO;
 use time::OffsetDateTime;

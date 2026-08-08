@@ -191,8 +191,10 @@ impl crate::external_services::ExternalDataSource for VehicleApiService {
     async fn fetch(
         &self,
         plate: &str,
-    ) -> Result<crate::external_services::PartnerPayload, crate::external_services::ExternalServiceError>
-    {
+    ) -> Result<
+        crate::external_services::PartnerPayload,
+        crate::external_services::ExternalServiceError,
+    > {
         let response = self.query_plate(plate).await.map_err(|error| match error {
             VehicleApiError::NotFound => crate::external_services::ExternalServiceError::NotFound,
             VehicleApiError::Other(error) => {

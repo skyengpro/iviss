@@ -10,13 +10,7 @@ pub async fn read_vehicle_data(
     plate: &str,
 ) -> Result<Option<CachedVehicleData>> {
     let key = object_key(plate)?;
-    let output = match client
-        .get_object()
-        .bucket(bucket)
-        .key(key)
-        .send()
-        .await
-    {
+    let output = match client.get_object().bucket(bucket).key(key).send().await {
         Ok(output) => output,
         Err(err) if err.as_service_error().is_some_and(|e| e.is_no_such_key()) => {
             return Ok(None);

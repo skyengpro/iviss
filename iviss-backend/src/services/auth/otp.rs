@@ -1,7 +1,7 @@
 use crate::app_cache::{AppCache, OtpEntry};
 use crate::errors::AppError;
-use crate::services::email_provider::EmailProvider;
-use crate::services::sms_provider::SmsProvider;
+use crate::services::notifications::email_provider::EmailProvider;
+use crate::services::notifications::sms_provider::SmsProvider;
 use hmac::{Hmac, Mac};
 use rand::Rng;
 use sha2::Sha256;

@@ -14,7 +14,7 @@ pub async fn write_vehicle_data(
     vehicle_info: &VehicleInfo,
 ) -> Result<()> {
     let key = object_key(plate)?;
-    
+
     let entry = CachedEntry {
         plate_number: plate.to_string(),
         vehicle: vehicle_info.clone(),
@@ -22,7 +22,7 @@ pub async fn write_vehicle_data(
             .format(&time::format_description::well_known::Rfc3339)
             .context("failed to format vehicle cache timestamp")?,
     };
-    
+
     let json_bytes =
         serde_json::to_vec(&entry).context("failed to serialize vehicle cache entry")?;
 

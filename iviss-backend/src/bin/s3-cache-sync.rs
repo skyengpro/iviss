@@ -7,13 +7,13 @@
 //! Build: cargo build --bin s3-cache-sync --no-default-features
 
 use iviss_backend::dto::search_vehicle::{OwnerInfo, VehicleInfo};
-use iviss_backend::s3_cache_layer::{self, S3CacheConfig};
-use iviss_backend::s3_cache_layer::types::PLATE_PREFIX_CODES;
-use iviss_backend::s3_cache_layer::s3_writer::write_vehicle_data;
+use iviss_backend::external_services::vehicle_client::parser::split_brand_and_model;
 use iviss_backend::external_services::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiService,
 };
-use iviss_backend::external_services::vehicle_client::parser::split_brand_and_model;
+use iviss_backend::s3_cache_layer::s3_writer::write_vehicle_data;
+use iviss_backend::s3_cache_layer::types::PLATE_PREFIX_CODES;
+use iviss_backend::s3_cache_layer::{self, S3CacheConfig};
 use std::env;
 use std::time::Duration;
 use tokio::time::interval;
@@ -49,7 +49,10 @@ async fn main() -> anyhow::Result<()> {
         .parse::<u64>()
         .unwrap_or(300);
 
-    tracing::info!(interval_seconds = interval_secs, "Starting periodic sync loop...");
+    tracing::info!(
+        interval_seconds = interval_secs,
+        "Starting periodic sync loop..."
+    );
     let mut sync_interval = interval(Duration::from_secs(interval_secs));
 
     loop {
@@ -70,14 +73,16 @@ async fn main() -> anyhow::Result<()> {
 
                     for ext_vehicle in vehicles {
                         // Normalize the plate number (uppercase, spaces removed)
-                        let normalized_plate = ext_vehicle.plate_number.replace(' ', "").to_uppercase();
+                        let normalized_plate =
+                            ext_vehicle.plate_number.replace(' ', "").to_uppercase();
                         if normalized_plate.is_empty() {
                             tracing::warn!("Skipping vehicle with empty plate number");
                             continue;
                         }
 
                         // Map ExternalVehicle to VehicleInfo
-                        let (brand, model) = split_brand_and_model(ext_vehicle.mark_and_type.as_deref());
+                        let (brand, model) =
+                            split_brand_and_model(ext_vehicle.mark_and_type.as_deref());
                         let vehicle_info = VehicleInfo {
                             brand,
                             model,
@@ -166,11 +171,15 @@ fn load_vehicle_api_credentials() -> VehicleApiCredentials {
 fn load_s3_cache_config() -> S3CacheConfig {
     let bucket = env::var("S3_CACHE_BUCKET").ok();
     let region = env::var("S3_CACHE_REGION").unwrap_or_else(|_| "eu-west-1".to_string());
-    let endpoint_url = env::var("S3_CACHE_ENDPOINT_URL").ok().filter(|s| !s.is_empty());
+    let endpoint_url = env::var("S3_CACHE_ENDPOINT_URL")
+        .ok()
+        .filter(|s| !s.is_empty());
     let force_path_style = env::var("S3_CACHE_FORCE_PATH_STYLE")
         .map(|v| v.trim().to_lowercase() == "true")
         .unwrap_or(false);
-    let kms_key_id = env::var("S3_CACHE_KMS_KEY_ID").ok().filter(|s| !s.is_empty());
+    let kms_key_id = env::var("S3_CACHE_KMS_KEY_ID")
+        .ok()
+        .filter(|s| !s.is_empty());
 
     let encryption_key = env::var("S3_CACHE_ENCRYPTION_KEY")
         .ok()

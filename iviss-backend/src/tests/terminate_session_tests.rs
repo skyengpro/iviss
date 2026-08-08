@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::routes;
-use crate::services::sms_provider::MockSmsProvider;
+use crate::services::notifications::sms_provider::MockSmsProvider;
 use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -83,7 +83,7 @@ async fn setup_test_app() -> (
         db.clone(),
         Arc::new(crate::app_cache::AppCache::new()),
         Arc::new(MockSmsProvider),
-        Arc::new(crate::services::email_provider::MockEmailProvider),
+        Arc::new(crate::services::notifications::email_provider::MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
         None,
@@ -196,7 +196,7 @@ async fn seed_users_with_active_session(
     .unwrap();
 
     // Issue a JWT access token for the admin
-    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let jwt_svc = crate::services::auth::jwt::JwtService::new(jwt_private_key_pem).unwrap();
     let admin_access_token = jwt_svc
         .issue_access_token_with_shift(
             admin_id,

@@ -120,8 +120,10 @@ mod tests {
             jwt_public_key_pem: "test_pub".to_string(),
             environment: crate::config::Environment::Local,
             cors_allowed_origins: vec!["http://localhost:8080".to_string()],
-            sms_credentials: crate::services::sms_provider::SmsProviderCredentials::Mock,
-            email_credentials: crate::services::email_provider::EmailProviderCredentials::Mock,
+            sms_credentials:
+                crate::services::notifications::sms_provider::SmsProviderCredentials::Mock,
+            email_credentials:
+                crate::services::notifications::email_provider::EmailProviderCredentials::Mock,
             otp_via_email: false,
             activation_code_pepper: "pepper_longer_than_32_characters_for_test".to_string(),
             admin_bootstrap_email: Some(email.to_string()),

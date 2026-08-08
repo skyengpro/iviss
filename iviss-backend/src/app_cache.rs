@@ -10,8 +10,6 @@ const RATE_LIMIT_TTL_SECS: u64 = 600; // 10 min
 pub const NONCE_TTL_SECS: u64 = 180; // 3 min
 const JTI_BLACKLIST_TTL_SECS: u64 = 180; // 3 min
 
-
-
 #[derive(Clone, Debug)]
 pub struct OtpEntry {
     pub code_hash: String,
@@ -59,7 +57,6 @@ pub struct AppCache {
     /// Key: organization_id (Uuid)
     /// Value: (start_work_time, end_work_time) in minutes
     pub org_work_time: Cache<Uuid, (u32, u32)>,
-
 }
 
 impl AppCache {

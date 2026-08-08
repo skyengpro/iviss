@@ -1,11 +1,4 @@
-pub mod email_provider;
-pub mod email_service;
-pub mod jwt_service;
-pub mod ocr_service;
-pub mod ocr_timings;
-pub mod otp_service;
-pub mod photo_ocr_service;
-pub mod sms_provider;
-// pub mod vehicle_client_service;
-pub mod vehicle_data_cache;
-pub mod vehicle_status_service;
+pub mod auth;
+pub mod notifications;
+pub mod ocr;
+pub mod vehicles;

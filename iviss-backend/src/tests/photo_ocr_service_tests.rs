@@ -1,5 +1,5 @@
 use crate::dto::scan::ScanResultData;
-use crate::services::photo_ocr_service::{enhance_photo_result, extract_plate_strict, pick_best};
+use crate::services::ocr::photo::{enhance_photo_result, extract_plate_strict, pick_best};
 
 #[cfg(test)]
 mod tests {
@@ -24,7 +24,7 @@ mod tests {
     fn enhance_photo_result_never_synthesises_confidence() {
         // The old code floored confidence to 0.90 whenever a strict
         // extraction succeeded. `confidence` must stay exactly what the OCR
-        // pass measured, on this path as on `ocr_service::finalize`.
+        // pass measured, on this path as on `engine::finalize`.
         for confidence in [0.0f32, 0.12, 0.95] {
             let input = ScanResultData {
                 plate: "".to_string(),

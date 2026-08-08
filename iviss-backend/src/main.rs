@@ -6,9 +6,9 @@ use iviss_backend::config::Config;
 use iviss_backend::db::initialize_pool;
 use iviss_backend::db::seed_admin::run_bootstrap_seed;
 use iviss_backend::routes;
-use iviss_backend::services::email_provider::EmailProvider;
-use iviss_backend::services::sms_provider::SmsProvider;
-use iviss_backend::services::vehicle_data_cache::{S3VehicleDataCache, VehicleDataCache};
+use iviss_backend::services::notifications::email_provider::EmailProvider;
+use iviss_backend::services::notifications::sms_provider::SmsProvider;
+use iviss_backend::services::vehicles::data_cache::{S3VehicleDataCache, VehicleDataCache};
 use iviss_backend::telemetry;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -83,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
     let metrics_app = routes::metrics_router(shared_state.clone());
 
     // Pay Tesseract's initialization at startup rather than on the first scan.
-    iviss_backend::services::ocr_service::warm_up_tesseract_pool();
+    iviss_backend::services::ocr::engine::warm_up_tesseract_pool();
 
     let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port).parse()?;
     info!("Listening on {}", addr);

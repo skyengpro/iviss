@@ -1,9 +1,9 @@
-pub use crate::services::email_provider::EmailProviderCredentials;
-pub use crate::services::sms_provider::SmsProviderCredentials;
 pub use crate::external_services::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials,
 };
 pub use crate::s3_cache_layer::S3CacheConfig;
+pub use crate::services::notifications::email_provider::EmailProviderCredentials;
+pub use crate::services::notifications::sms_provider::SmsProviderCredentials;
 use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::env;

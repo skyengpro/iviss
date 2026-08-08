@@ -4,7 +4,7 @@ use tracing::instrument;
 #[allow(unused_imports)]
 use crate::dto::scan::ImageUploadRequest;
 use crate::dto::scan::{ScanErrorData, ScanPlateResponse, ScanResultData};
-use crate::services::{ocr_service, ocr_timings, photo_ocr_service};
+use crate::services::ocr::{engine, photo, timings};
 
 /// Maximum allowed image size: 8 MB (photo captures tend to be larger).
 const MAX_IMAGE_SIZE: usize = 8 * 1024 * 1024;
@@ -57,9 +57,9 @@ pub async fn photo_plate(mut multipart: Multipart) -> impl IntoResponse {
 
     // Photo is a single-shot high-res capture. We can afford a slightly heavier
     // pipeline than live scanning while still reusing the OCR engine.
-    let deadline = tokio::time::Instant::now() + ocr_service::OCR_REQUEST_TIMEOUT;
+    let deadline = tokio::time::Instant::now() + engine::OCR_REQUEST_TIMEOUT;
 
-    let permit = match tokio::time::timeout_at(deadline, ocr_service::acquire_ocr_permit()).await {
+    let permit = match tokio::time::timeout_at(deadline, engine::acquire_ocr_permit()).await {
         Ok(Ok(permit)) => permit,
         Ok(Err(app_err)) => {
             tracing::error!("Failed to acquire OCR permit: {app_err}");
@@ -80,14 +80,14 @@ pub async fn photo_plate(mut multipart: Multipart) -> impl IntoResponse {
 
     let mut handle = tokio::task::spawn_blocking(move || {
         let _permit = permit;
-        photo_ocr_service::photo_plate(&image_bytes)
+        photo::photo_plate(&image_bytes)
     });
     let result = tokio::time::timeout_at(deadline, &mut handle).await;
 
     match result {
         Ok(joined) => match joined {
             Ok(Ok(scan_data)) => success_response(scan_data),
-            Ok(Err(app_err)) if ocr_timings::is_budget_exceeded(&app_err) => {
+            Ok(Err(app_err)) if timings::is_budget_exceeded(&app_err) => {
                 tracing::warn!("Photo OCR abandoned: {app_err}");
                 error_response(
                     StatusCode::GATEWAY_TIMEOUT,

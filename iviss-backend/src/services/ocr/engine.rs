@@ -10,7 +10,7 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
-use crate::services::ocr_timings::{OcrBudget, Stage, StageTimings};
+use crate::services::ocr::timings::{OcrBudget, Stage, StageTimings};
 use crate::utils::plate_format;
 
 /// Sauvola window radius, derived from image height: a fixed radius does not

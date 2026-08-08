@@ -91,8 +91,8 @@ async fn setup_admin_login_test() -> (
     let state = AppState::new(
         db.clone(),
         Arc::new(crate::app_cache::AppCache::new()),
-        Arc::new(crate::services::sms_provider::MockSmsProvider),
-        Arc::new(crate::services::email_provider::MockEmailProvider),
+        Arc::new(crate::services::notifications::sms_provider::MockSmsProvider),
+        Arc::new(crate::services::notifications::email_provider::MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
         None,

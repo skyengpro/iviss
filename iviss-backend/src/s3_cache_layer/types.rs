@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub const S3_CACHE_PREFIX: &str = "vehicle-cache/";
 pub const OTHER_CACHE_PARTITION: &str = "others";
 pub const PLATE_PREFIX_CODES: &[&str] = &[
-    "AD", "CE", "EN", "ES", "LT", "NO", "NW", "OU", "SU", "SW", "SO",
-    "CMD", "CPC", "CD", "CC", "PA", "RT", "IS", "SN", "IT"
+    "AD", "CE", "EN", "ES", "LT", "NO", "NW", "OU", "SU", "SW", "SO", "CMD", "CPC", "CD", "CC",
+    "PA", "RT", "IS", "SN", "IT",
 ];
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

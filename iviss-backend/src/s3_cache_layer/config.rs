@@ -22,14 +22,12 @@ pub async fn build_s3_client(config: &S3CacheConfig) -> Result<(aws_sdk_s3::Clie
         .bucket
         .clone()
         .context("S3_CACHE_BUCKET must be set when S3 cache is enabled")?;
-    
-    let region_provider =
-        RegionProviderChain::first_try(Some(Region::new(config.region.clone())))
-            .or_default_provider()
-            .or_else("eu-west-1");
 
-    let mut aws_config =
-        aws_config::defaults(BehaviorVersion::latest()).region(region_provider);
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(config.region.clone())))
+        .or_default_provider()
+        .or_else("eu-west-1");
+
+    let mut aws_config = aws_config::defaults(BehaviorVersion::latest()).region(region_provider);
     if let Some(endpoint_url) = &config.endpoint_url {
         aws_config = aws_config.endpoint_url(endpoint_url.clone());
     }

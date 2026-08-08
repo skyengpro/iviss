@@ -5,8 +5,8 @@ use image::{DynamicImage, GenericImageView, Rgb, RgbImage};
 
 use crate::dto::scan::ScanResultData;
 use crate::errors::AppError;
-use crate::services::ocr_service;
-use crate::services::ocr_timings::{OcrBudget, Stage, StageTimings};
+use crate::services::ocr::engine;
+use crate::services::ocr::timings::{OcrBudget, Stage, StageTimings};
 use crate::utils::plate_format;
 
 /// A crop at or above this width/height ratio is already plate-shaped: the
@@ -25,10 +25,10 @@ const ENHANCED_PASS_SCALE: f32 = 1.5;
 /// independently (heavier preprocessing, different retry strategies, etc.).
 pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     let started = Instant::now();
-    let budget = OcrBudget::new(ocr_service::OCR_STAGE_BUDGET);
+    let budget = OcrBudget::new(engine::OCR_STAGE_BUDGET);
     let mut timings = StageTimings::default();
 
-    let img = ocr_service::decode_image(image_bytes, &mut timings)?;
+    let img = engine::decode_image(image_bytes, &mut timings)?;
 
     // 1. Colour-adaptive crop, skipped when the frontend already sent a
     //    plate-shaped crop: the orange profile also catches skin, wood and
@@ -60,18 +60,14 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
     // 3. Native pass. The decoded image goes straight to the scan pipeline —
     //    no JPEG round-trip, which would throw away detail right before
     //    recognition.
-    let first = enhance_photo_result(ocr_service::scan_plate_image(
-        base_img,
-        &mut timings,
-        &budget,
-    )?);
+    let first = enhance_photo_result(engine::scan_plate_image(base_img, &mut timings, &budget)?);
 
     // Retry only when the native pass read no text at all. An invalid format is
     // not evidence that a heavier pass would do better; it just doubles the cost.
     if !first.raw_text.trim().is_empty() {
         timings.total = started.elapsed();
         timings.emit("photo");
-        return ocr_service::finalize(first, &timings);
+        return engine::finalize(first, &timings);
     }
 
     let (bw, bh) = base_img.dimensions();
@@ -84,15 +80,11 @@ pub fn photo_plate(image_bytes: &[u8]) -> Result<ScanResultData, AppError> {
         .adjust_contrast(25.0)
         .unsharpen(1.0, 1);
 
-    let second = enhance_photo_result(ocr_service::scan_plate_image(
-        &enhanced,
-        &mut timings,
-        &budget,
-    )?);
+    let second = enhance_photo_result(engine::scan_plate_image(&enhanced, &mut timings, &budget)?);
 
     timings.total = started.elapsed();
     timings.emit("photo");
-    ocr_service::finalize(pick_best(first, second), &timings)
+    engine::finalize(pick_best(first, second), &timings)
 }
 
 fn color_adaptive_crop(img: &image::DynamicImage) -> Option<image::DynamicImage> {

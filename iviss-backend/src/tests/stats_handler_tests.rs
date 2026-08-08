@@ -9,7 +9,7 @@
 
 use crate::app_state::AppState;
 use crate::routes;
-use crate::services::sms_provider::MockSmsProvider;
+use crate::services::notifications::sms_provider::MockSmsProvider;
 use crate::telemetry::TelemetryHandle;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -72,7 +72,7 @@ pub(super) async fn setup_test_app() -> (
         db.clone(),
         cache.clone(),
         Arc::new(MockSmsProvider),
-        Arc::new(crate::services::email_provider::MockEmailProvider),
+        Arc::new(crate::services::notifications::email_provider::MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
         None,
@@ -155,7 +155,7 @@ pub(super) async fn seed_admin_user(
         .as_secs() as i64;
     let shift_end = now_secs + 8 * 3600;
 
-    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let jwt_svc = crate::services::auth::jwt::JwtService::new(jwt_private_key_pem).unwrap();
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             admin_id,
@@ -210,7 +210,7 @@ pub(super) async fn seed_org_admin(
         .as_secs() as i64;
     let shift_end = now_secs + 8 * 3600;
 
-    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let jwt_svc = crate::services::auth::jwt::JwtService::new(jwt_private_key_pem).unwrap();
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             admin_id,
@@ -285,7 +285,7 @@ pub(super) async fn seed_test_data(
     .unwrap();
 
     // Issue a JWT access token
-    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let jwt_svc = crate::services::auth::jwt::JwtService::new(jwt_private_key_pem).unwrap();
     let access_token = jwt_svc
         .issue_access_token_with_shift(
             agent_id,

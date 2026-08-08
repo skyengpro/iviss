@@ -1,8 +1,8 @@
 use image::{GrayImage, Luma};
 
 use crate::dto::scan::ScanResultData;
-use crate::services::ocr_service::*;
-use crate::services::ocr_timings::{OcrBudget, StageTimings};
+use crate::services::ocr::engine::*;
+use crate::services::ocr::timings::{OcrBudget, StageTimings};
 
 #[cfg(test)]
 mod tests {
@@ -348,7 +348,7 @@ mod tests {
         let budget = OcrBudget::new(Duration::from_millis(0));
         assert!(budget.is_exceeded());
         assert!(budget
-            .check(crate::services::ocr_timings::Stage::Decode)
+            .check(crate::services::ocr::timings::Stage::Decode)
             .is_err());
     }
 
@@ -357,7 +357,7 @@ mod tests {
         let budget = OcrBudget::new(Duration::from_secs(60));
         assert!(!budget.is_exceeded());
         assert!(budget
-            .check(crate::services::ocr_timings::Stage::Decode)
+            .check(crate::services::ocr::timings::Stage::Decode)
             .is_ok());
     }
 }

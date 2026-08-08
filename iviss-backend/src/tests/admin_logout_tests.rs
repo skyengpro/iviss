@@ -94,8 +94,8 @@ async fn setup_admin_logout_test() -> (
     let state = AppState::new(
         db.clone(),
         Arc::new(crate::app_cache::AppCache::new()),
-        Arc::new(crate::services::sms_provider::MockSmsProvider),
-        Arc::new(crate::services::email_provider::MockEmailProvider),
+        Arc::new(crate::services::notifications::sms_provider::MockSmsProvider),
+        Arc::new(crate::services::notifications::email_provider::MockEmailProvider),
         &config,
         Arc::new(TelemetryHandle::noop()),
         None,
@@ -198,7 +198,7 @@ fn generate_access_token(
     user_id: Uuid,
     role: crate::dto::users::UserRole,
 ) -> String {
-    let jwt_svc = crate::services::jwt_service::JwtService::new(jwt_private_key_pem).unwrap();
+    let jwt_svc = crate::services::auth::jwt::JwtService::new(jwt_private_key_pem).unwrap();
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()

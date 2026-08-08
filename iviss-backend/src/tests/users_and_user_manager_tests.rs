@@ -17,8 +17,8 @@ use crate::{
     config::{Config, Environment, LogLevel},
     dto::users::{UserRole, UserStatus},
     routes,
-    services::jwt_service::JwtService,
-    services::otp_service::OTP_TTL_SECS,
+    services::auth::jwt::JwtService,
+    services::auth::otp::OTP_TTL_SECS,
     telemetry::TelemetryHandle,
 };
 
@@ -145,10 +145,10 @@ async fn setup_test_app() -> (
     let cache = std::sync::Arc::new(crate::app_cache::AppCache::new());
 
     // Create app state with mock SMS provider
-    let sms_provider: Arc<dyn crate::services::sms_provider::SmsProvider> =
-        Arc::new(crate::services::sms_provider::MockSmsProvider);
-    let email_provider: Arc<dyn crate::services::email_provider::EmailProvider> =
-        Arc::new(crate::services::email_provider::MockEmailProvider);
+    let sms_provider: Arc<dyn crate::services::notifications::sms_provider::SmsProvider> =
+        Arc::new(crate::services::notifications::sms_provider::MockSmsProvider);
+    let email_provider: Arc<dyn crate::services::notifications::email_provider::EmailProvider> =
+        Arc::new(crate::services::notifications::email_provider::MockEmailProvider);
     let state = AppState::new(
         db.clone(),
         cache.clone(),
