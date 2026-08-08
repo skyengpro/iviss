@@ -266,3 +266,42 @@ impl VehicleService {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn api_status_results_preserve_pending_partner_placeholders() {
+        let vehicle = VehicleInfo {
+            brand: None,
+            model: None,
+            year: None,
+            color: None,
+            engine_power: None,
+            fuel_type: None,
+            chassis_number: None,
+            customs_status: Some("CLEARED".to_string()),
+            owner: OwnerInfo {
+                name: None,
+                address: None,
+                national_id: None,
+            },
+        };
+
+        let results = VehicleService::build_status_results_from_api(&vehicle);
+
+        assert_eq!(results.insurance.status, Status::Pending);
+        assert_eq!(
+            results.insurance.notes.as_deref(),
+            Some("No insurance data available for the moment")
+        );
+        assert_eq!(results.technical.status, Status::Pending);
+        assert_eq!(
+            results.technical.notes.as_deref(),
+            Some("No technical inspection data available for the moment")
+        );
+        assert_eq!(results.customs.status, Status::Valid);
+        assert_eq!(results.overall_status, Status::Pending);
+    }
+}
