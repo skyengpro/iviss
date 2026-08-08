@@ -195,7 +195,7 @@ iviss-backend/src/
 │   ├── mod.rs
 │   ├── auth/            mod.rs  jwt.rs  otp.rs
 │   ├── notifications/   mod.rs  email_provider.rs  email_service.rs  sms_provider.rs   (§4.3)
-│   ├── ocr/             mod.rs  engine.rs  photo.rs  timings.rs
+│   ├── ocr/             mod.rs  engine.rs  scan.rs photo.rs  timings.rs
 │   └── vehicles/        mod.rs  status.rs  data_cache.rs
 │
 ├── queries/                     ★ suffixes retirés + destination des 27 SQL extraits
