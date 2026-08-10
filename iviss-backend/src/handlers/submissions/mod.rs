@@ -9,6 +9,8 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub mod router;
+
 // ── Submit (agent-facing) ─────────────────────────────────────────────────────
 
 #[allow(unused_imports)]

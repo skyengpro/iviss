@@ -1,4 +1,5 @@
 pub mod photo;
+pub mod router;
 pub mod scan;
 
 pub use photo::{__path_photo_plate, photo_plate};

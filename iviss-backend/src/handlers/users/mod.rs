@@ -30,6 +30,7 @@ pub mod activation;
 pub mod location;
 pub mod profile;
 pub mod provisioning;
+pub mod router;
 pub mod sessions;
 
 pub use activation::{__path_resend_activation_code, __path_resend_org_admin_password};

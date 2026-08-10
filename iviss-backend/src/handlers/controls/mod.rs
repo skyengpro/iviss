@@ -16,6 +16,8 @@ use crate::{
     errors::AppError,
 };
 
+pub mod router;
+
 #[utoipa::path(
     post,
     path = "/api/v1/controls",

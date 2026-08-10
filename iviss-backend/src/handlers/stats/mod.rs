@@ -10,6 +10,8 @@ use std::sync::Arc;
 
 use crate::errors::AppError;
 
+pub mod router;
+
 // ── GET /stats ────────────────────────────────────────────────────────────────
 
 #[utoipa::path(

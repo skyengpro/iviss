@@ -1,4 +1,5 @@
 pub mod crud;
+pub mod router;
 
 pub use crud::{
     __path_create_organization, __path_delete_organization, __path_get_organization,

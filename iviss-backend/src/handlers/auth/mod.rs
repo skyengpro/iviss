@@ -28,6 +28,7 @@ pub mod daily_login;
 pub mod login;
 pub mod logout;
 pub mod refresh;
+pub mod router;
 
 pub use activate::__path_activate;
 pub use activate::activate;

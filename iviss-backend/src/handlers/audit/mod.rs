@@ -11,6 +11,8 @@ use axum::{
 };
 use std::sync::Arc;
 
+pub mod router;
+
 /// List general system audit logs (admin only)
 #[utoipa::path(
     get,

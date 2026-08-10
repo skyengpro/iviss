@@ -1,3 +1,4 @@
+pub mod router;
 pub mod search;
 
 pub use search::{__path_search_vehicle, __path_search_vehicle_v1};
