@@ -17,11 +17,9 @@ use crate::errors::{AppError, ErrorCode};
 use crate::middleware::rbac::AuthenticatedAdmin;
 use crate::queries::auth;
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub mod activate;
@@ -42,10 +40,7 @@ pub use login::login;
 pub use logout::__path_logout;
 pub use logout::logout;
 pub use refresh::{__path_request_refresh, __path_verify_refresh};
-pub use refresh::{
-    request_refresh, verify_refresh, RefreshChallengeResponse, VerifyRefreshRequest,
-    VerifyRefreshResponse,
-};
+pub use refresh::{request_refresh, verify_refresh};
 
 /// Logic to execute when a shift has ended.
 /// Marks the device as inactive and returns an unauthorized error.

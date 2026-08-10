@@ -2,7 +2,7 @@ use crate::app_state::AppState;
 use crate::{
     dto::{
         common::{IdentificationMode, Status},
-        list_control::ControlResults,
+        controls::ControlResults,
         search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,

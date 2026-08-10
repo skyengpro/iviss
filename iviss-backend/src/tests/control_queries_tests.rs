@@ -5,8 +5,7 @@
 //! - get_control_records
 
 use crate::dto::common::{IdentificationMode, Status};
-use crate::dto::create_control::CreateControlRequest;
-use crate::dto::list_control::{ActionType, ControlResults};
+use crate::dto::controls::{ActionType, ControlResults, CreateControlRequest};
 use crate::queries::controls;
 use sqlx::postgres::PgPoolOptions;
 use testcontainers::runners::AsyncRunner;

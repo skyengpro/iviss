@@ -8,9 +8,7 @@ pub mod audit;
 #[cfg(feature = "api")]
 pub mod auth;
 #[cfg(feature = "api")]
-pub mod create_control;
-#[cfg(feature = "api")]
-pub mod list_control;
+pub mod controls;
 #[cfg(feature = "api")]
 pub mod location;
 #[cfg(feature = "api")]

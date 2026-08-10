@@ -1,8 +1,7 @@
 use crate::dto::common::{IdentificationMode, Status};
-use crate::dto::create_control::CreateControlRequest;
-use crate::dto::list_control::{
+use crate::dto::controls::{
     ActionType, ControlAction, ControlLocation, ControlPagedQuery, ControlResults,
-    ListControlResponse,
+    CreateControlRequest, ListControlResponse,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row};

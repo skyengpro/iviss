@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]
@@ -33,6 +33,31 @@ pub struct ControlActivityPoint {
 pub struct ControlActivityResponse {
     pub range: DashboardRange,
     pub series: Vec<ControlActivityPoint>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityQuery {
+    pub range: Option<DashboardRange>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct TopAgentsQuery {
+    pub range: Option<DashboardRange>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityFeedQuery {
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentAlertsQuery {
+    pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]

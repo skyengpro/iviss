@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::dto::stats::{
-    ActivityFeedResponse, ControlActivityResponse, DashboardRange, RecentAlertsResponse,
-    TopAgentsResponse,
+    ActivityFeedQuery, ActivityFeedResponse, ActivityQuery, ControlActivityResponse,
+    DashboardRange, RecentAlertsQuery, RecentAlertsResponse, TopAgentsQuery, TopAgentsResponse,
 };
 use crate::middleware::rbac::AuthenticatedAdmin;
 use axum::extract::Query;
@@ -31,12 +31,6 @@ pub async fn get_dashboard_stats(
     Ok((StatusCode::OK, Json(stats)))
 }
 
-#[derive(serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-pub struct ActivityQuery {
-    pub range: Option<DashboardRange>,
-}
-
 // ── GET /stats/activity ───────────────────────────────────────────────────────
 
 #[utoipa::path(
@@ -64,13 +58,6 @@ pub async fn get_control_activity(
     ))
 }
 
-#[derive(serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-pub struct TopAgentsQuery {
-    pub range: Option<DashboardRange>,
-    pub limit: Option<i64>,
-}
-
 // ── GET /stats/top-agents ─────────────────────────────────────────────────────
 
 #[utoipa::path(
@@ -96,12 +83,6 @@ pub async fn get_top_agents(
     Ok((StatusCode::OK, Json(TopAgentsResponse { range, agents })))
 }
 
-#[derive(serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-pub struct ActivityFeedQuery {
-    pub limit: Option<i64>,
-}
-
 // ── GET /stats/activity-feed ─────────────────────────────────────────────────
 
 #[utoipa::path(
@@ -124,12 +105,6 @@ pub async fn get_activity_feed(
     let limit = query.limit.unwrap_or(8).clamp(1, 20);
     let items = crate::queries::stats::get_activity_feed_query(&state.db, limit).await?;
     Ok((StatusCode::OK, Json(ActivityFeedResponse { items })))
-}
-
-#[derive(serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-pub struct RecentAlertsQuery {
-    pub limit: Option<i64>,
 }
 
 // ── GET /stats/recent-alerts ─────────────────────────────────────────────────

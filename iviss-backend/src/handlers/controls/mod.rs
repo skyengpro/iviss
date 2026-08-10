@@ -9,9 +9,9 @@ use tracing::instrument;
 
 use crate::{
     app_state::AppState,
-    dto::{
-        create_control::{CreateControlRequest, CreateControlResponse},
-        list_control::{ControlListQuery, ControlPagedQuery, PagedControlsResponse},
+    dto::controls::{
+        ControlListQuery, ControlPagedQuery, CreateControlRequest, CreateControlResponse,
+        PagedControlsResponse,
     },
     errors::AppError,
 };

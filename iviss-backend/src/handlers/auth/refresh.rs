@@ -5,27 +5,7 @@ use super::*;
 // ─────────────────────────────────────────────────────────────
 
 use crate::app_cache::NONCE_TTL_SECS;
-
-// RefreshRequest is already defined at line 171
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct RefreshChallengeResponse {
-    pub nonce: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VerifyRefreshRequest {
-    pub refresh_token: String,
-    pub device_id: Uuid,
-    pub signed_nonce: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct VerifyRefreshResponse {
-    pub access_token: String,
-}
+use crate::dto::auth::{RefreshChallengeResponse, VerifyRefreshRequest, VerifyRefreshResponse};
 
 /// Step 1 of the challenge-response refresh flow.
 ///

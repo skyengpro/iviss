@@ -81,6 +81,25 @@ pub struct RefreshRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct RefreshChallengeResponse {
+    pub nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyRefreshRequest {
+    pub refresh_token: String,
+    pub device_id: Uuid,
+    pub signed_nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyRefreshResponse {
+    pub access_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangePasswordRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
