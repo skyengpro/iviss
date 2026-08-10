@@ -156,35 +156,26 @@ async fn record_vehicle_search_control(
         customs_status: response.status_results.customs.status.clone(),
     };
 
-    let _ = sqlx::query(
-        r#"
-        INSERT INTO control_records (
-            id, plate_number, agent_id, organization_id, timestamp,
-            latitude, longitude, address, identification_mode, ocr_confidence,
-            overall_status, results_json, notes
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        "#,
+    let results_json = serde_json::to_value(&control_results).unwrap_or_else(|error| {
+        tracing::error!("Failed to serialize control results: {}", error);
+        serde_json::json!({})
+    });
+
+    let _ = crate::queries::vehicles::insert_control_record_for_vehicle_search(
+        &state.db,
+        crate::queries::vehicles::VehicleSearchControlRecordInsert {
+            control_id,
+            plate_number: &response.plate_number,
+            agent_id: payload.agent_id.unwrap_or_else(Uuid::new_v4),
+            organization_id: payload.organization_id.unwrap_or_else(Uuid::new_v4),
+            timestamp: current_time,
+            latitude: payload.latitude,
+            longitude: payload.longitude,
+            address: payload.address.clone(),
+            overall_status: status_str,
+            results_json,
+        },
     )
-    .bind(control_id)
-    .bind(&response.plate_number)
-    .bind(payload.agent_id.unwrap_or_else(Uuid::new_v4))
-    .bind(payload.organization_id.unwrap_or_else(Uuid::new_v4))
-    .bind(current_time)
-    .bind(payload.latitude)
-    .bind(payload.longitude)
-    .bind(payload.address.clone())
-    .bind("manual")
-    .bind(1.0)
-    .bind(status_str)
-    .bind(
-        serde_json::to_value(&control_results).unwrap_or_else(|error| {
-            tracing::error!("Failed to serialize control results: {}", error);
-            serde_json::json!({})
-        }),
-    )
-    .bind("Auto-logged via vehicle search")
-    .execute(&state.db)
     .await
     .map_err(|e| {
         tracing::error!("Failed to auto-log control: {}", e);

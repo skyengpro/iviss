@@ -48,10 +48,9 @@ pub async fn logout(
     // Blacklist the JTI in PostgreSQL for persistence (prevents further use of this access token)
     if ttl > 0 {
         let expires_at = time::OffsetDateTime::now_utc() + time::Duration::seconds(ttl as i64);
-        auth_queries::blacklist_jti_db(&state.db, &claims.jti.to_string(), claims.sub, expires_at)
-            .await?;
+        auth::blacklist_jti_db(&state.db, &claims.jti.to_string(), claims.sub, expires_at).await?;
 
-        auth_queries::blacklist_jti_cache(&state.app_cache, &claims.jti.to_string()).await?;
+        auth::blacklist_jti_cache(&state.app_cache, &claims.jti.to_string()).await?;
     } else {
         tracing::warn!(
             target: "audit",
@@ -63,7 +62,7 @@ pub async fn logout(
         );
     }
 
-    revoke_all_user_refresh_tokens(&state.db, claims.sub).await?;
+    auth::revoke_active_refresh_tokens_for_user(&state.db, claims.sub).await?;
 
     // Audit log
     tracing::info!(
@@ -77,25 +76,4 @@ pub async fn logout(
 
     // Return 204 No Content (idempotent - success even if token was already blacklisted)
     Ok(StatusCode::NO_CONTENT)
-}
-
-/// Revoke all refresh tokens for a user
-async fn revoke_all_user_refresh_tokens(
-    pool: &sqlx::PgPool,
-    user_id: Uuid,
-) -> Result<(), AppError> {
-    sqlx::query(
-        r#"
-        UPDATE refresh_tokens
-        SET revoked = TRUE, revoked_at = NOW()
-        WHERE user_id = $1
-          AND revoked = FALSE
-          AND expires_at > NOW()
-        "#,
-    )
-    .bind(user_id)
-    .execute(pool)
-    .await
-    .map(|_| ())
-    .map_err(AppError::database)
 }

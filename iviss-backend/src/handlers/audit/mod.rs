@@ -29,7 +29,7 @@ pub async fn list_audit_logs(
     State(state): State<Arc<AppState>>,
     Query(query): Query<AuditLogQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let logs = crate::queries::audit_queries::get_audit_logs(&state.db, query).await?;
+    let logs = crate::queries::audit::get_audit_logs(&state.db, query).await?;
     Ok((StatusCode::OK, Json(logs)))
 }
 
@@ -49,7 +49,7 @@ pub async fn list_audit_logs(
 pub async fn export_audit_logs(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, AppError> {
-    let csv_data = crate::queries::audit_queries::export_audit_logs_csv(&state.db).await?;
+    let csv_data = crate::queries::audit::export_audit_logs_csv(&state.db).await?;
 
     let response = Response::builder()
         .status(StatusCode::OK)

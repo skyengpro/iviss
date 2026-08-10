@@ -5,7 +5,6 @@ use axum::extract::{Request, State};
 use axum::http::header::AUTHORIZATION;
 use axum::middleware::Next;
 use axum::response::Response;
-use sqlx::Row;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -42,19 +41,8 @@ pub async fn require_auth_web(
     })?;
 
     // Look up the user's organization_id and email from the database
-    let row = sqlx::query(
-        "SELECT organization_id, email FROM users WHERE id = $1 AND deleted_at IS NULL",
-    )
-    .bind(claims.sub)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::database)?;
-
-    let (org_id, email): (Option<Uuid>, Option<String>) = row
-        .map(|r| (r.get("organization_id"), r.get("email")))
-        .ok_or_else(|| AppError::not_found("User not found"))?;
-
-    let email = email.unwrap_or_default();
+    let (org_id, email) =
+        crate::queries::auth::get_web_user_identity(&state.db, claims.sub).await?;
 
     tracing::info!(
         %method,

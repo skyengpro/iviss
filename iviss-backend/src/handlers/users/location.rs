@@ -23,7 +23,7 @@ pub async fn update_location(
         return Err(AppError::forbidden("Only agents can update location"));
     }
 
-    crate::queries::location_queries::update_agent_location_query(
+    crate::queries::users::location::update_agent_location_query(
         &state.db,
         auth.user_id,
         payload.latitude,

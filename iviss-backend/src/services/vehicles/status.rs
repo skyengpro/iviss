@@ -8,7 +8,7 @@ use crate::external_services::{
     technical_inspection_client::pending_technical_status,
 };
 use crate::models::search_vehicle::VehicleRow;
-use crate::queries::vehicle_queries::VehicleStatusRow;
+use crate::queries::vehicles::VehicleStatusRow;
 
 pub struct VehicleService;
 

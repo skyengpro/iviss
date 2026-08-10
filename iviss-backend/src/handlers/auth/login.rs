@@ -47,7 +47,7 @@ pub async fn login(
         .insert(rate_limit_key.clone(), current_attempts + 1)
         .await;
 
-    let user = auth_queries::find_admin_by_identity(&state.db, &payload.email)
+    let user = auth::find_admin_by_identity(&state.db, &payload.email)
         .await?
         .ok_or_else(|| {
             metrics::counter!("iviss_auth_failures_total", "reason" => "user_not_found")
@@ -119,19 +119,7 @@ pub async fn login(
 
     let expires_at = time::OffsetDateTime::now_utc() + time::Duration::days(30);
 
-    sqlx::query(
-        r#"
-        INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
-        VALUES ($1, $2, $3, $4)
-        "#,
-    )
-    .bind(&token_hash)
-    .bind(user.id)
-    .bind(Option::<Uuid>::None) // No device for admin login
-    .bind(expires_at)
-    .execute(&state.db)
-    .await
-    .map_err(AppError::Database)?;
+    auth::insert_web_refresh_token(&state.db, &token_hash, user.id, expires_at).await?;
 
     // Build user profile
     let user_profile = UserProfile {

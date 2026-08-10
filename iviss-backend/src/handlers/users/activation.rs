@@ -19,37 +19,14 @@ pub async fn resend_activation_code(
     Json(payload): Json<ResendActivationRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     // Fetch agent from DB
-    let user_raw = sqlx::query(
-        r#"
-        SELECT u.id,
-               u.phone_number,
-               u.role,
-               u.status,
-               u.organization_id,
-               d.status AS device_status
-        FROM users u
-        LEFT JOIN (
-            SELECT DISTINCT ON (user_id)
-                user_id, status
-            FROM devices
-            ORDER BY user_id, updated_at DESC
-        ) d ON u.id = d.user_id
-        WHERE u.id = $1
-          AND u.deleted_at IS NULL
-        "#,
-    )
-    .bind(payload.user_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+    let user_raw = get_activation_resend_user(&state.db, payload.user_id).await?;
 
-    let user_id: Uuid = user_raw.get("id");
-    let phone_number: String = user_raw.get("phone_number");
-    let role: UserRole = user_raw.get("role");
-    let status: UserStatus = user_raw.get("status");
-    let organization_id: Option<Uuid> = user_raw.get("organization_id");
-    let device_status: Option<crate::dto::users::DeviceStatus> = user_raw.get("device_status");
+    let user_id = user_raw.id;
+    let phone_number = user_raw.phone_number;
+    let role = user_raw.role;
+    let status = user_raw.status;
+    let organization_id = user_raw.organization_id;
+    let device_status = user_raw.device_status;
 
     if requester.role == "org_admin" && requester.organization_id != organization_id {
         return Err(AppError::forbidden(
@@ -78,36 +55,7 @@ pub async fn resend_activation_code(
     }
 
     if status != UserStatus::PendingActivation {
-        let mut tx = state.db.begin().await.map_err(AppError::Database)?;
-
-        sqlx::query(
-            r#"
-            UPDATE users
-            SET status = 'PENDING_ACTIVATION'::user_status
-            WHERE id = $1
-              AND deleted_at IS NULL
-            "#,
-        )
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(AppError::Database)?;
-
-        sqlx::query(
-            r#"
-            UPDATE refresh_tokens
-            SET revoked = TRUE,
-                revoked_at = NOW()
-            WHERE user_id = $1
-              AND revoked = FALSE
-            "#,
-        )
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(AppError::Database)?;
-
-        tx.commit().await.map_err(AppError::Database)?;
+        mark_user_pending_and_revoke_refresh_tokens(&state.db, user_id).await?;
     }
 
     // Build OtpService from shared state resources
@@ -115,7 +63,7 @@ pub async fn resend_activation_code(
 
     // Determine contact based on AppState setting
     let contact = if state.otp_via_email {
-        let profile = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+        let profile = crate::queries::users::get_user_by_id(&state.db, user_id).await?;
         profile
             .email
             .clone()
@@ -163,24 +111,12 @@ pub async fn resend_org_admin_password(
     }
 
     // Fetch org admin from DB
-    let user_raw = sqlx::query(
-        r#"
-        SELECT id, email, role, status
-        FROM users
-        WHERE id = $1
-          AND deleted_at IS NULL
-        "#,
-    )
-    .bind(payload.user_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+    let user_raw = get_org_admin_password_resend_user(&state.db, payload.user_id).await?;
 
-    let user_id: Uuid = user_raw.get("id");
-    let email: Option<String> = user_raw.get("email");
-    let role: UserRole = user_raw.get("role");
-    let status: UserStatus = user_raw.get("status");
+    let user_id = user_raw.id;
+    let email = user_raw.email;
+    let role = user_raw.role;
+    let status = user_raw.status;
 
     // Only org admins can receive a password resend
     if role != UserRole::OrgAdmin {
@@ -205,20 +141,7 @@ pub async fn resend_org_admin_password(
     let password_hash = crate::utils::password::hash_password(&temp_password).await?;
 
     // Update password hash in database
-    sqlx::query(
-        r#"
-        UPDATE users
-        SET password_hash = $1,
-            must_change_password = TRUE
-        WHERE id = $2
-          AND deleted_at IS NULL
-        "#,
-    )
-    .bind(password_hash)
-    .bind(user_id)
-    .execute(&state.db)
-    .await
-    .map_err(AppError::Database)?;
+    update_org_admin_temporary_password(&state.db, user_id, &password_hash).await?;
 
     tracing::info!(
         user_id = %user_id,

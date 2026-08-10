@@ -107,6 +107,53 @@ pub struct VehicleStatusRow {
     pub last_updated: Option<time::OffsetDateTime>,
 }
 
+#[derive(Debug)]
+pub struct VehicleSearchControlRecordInsert<'a> {
+    pub control_id: uuid::Uuid,
+    pub plate_number: &'a str,
+    pub agent_id: uuid::Uuid,
+    pub organization_id: uuid::Uuid,
+    pub timestamp: time::OffsetDateTime,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub address: Option<String>,
+    pub overall_status: &'a str,
+    pub results_json: serde_json::Value,
+}
+
+pub async fn insert_control_record_for_vehicle_search(
+    pool: &PgPool,
+    params: VehicleSearchControlRecordInsert<'_>,
+) -> Result<(), AppError> {
+    sqlx::query(
+        r#"
+        INSERT INTO control_records (
+            id, plate_number, agent_id, organization_id, timestamp,
+            latitude, longitude, address, identification_mode, ocr_confidence,
+            overall_status, results_json, notes
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        "#,
+    )
+    .bind(params.control_id)
+    .bind(params.plate_number)
+    .bind(params.agent_id)
+    .bind(params.organization_id)
+    .bind(params.timestamp)
+    .bind(params.latitude)
+    .bind(params.longitude)
+    .bind(params.address)
+    .bind("manual")
+    .bind(1.0)
+    .bind(params.overall_status)
+    .bind(params.results_json)
+    .bind("Auto-logged via vehicle search")
+    .execute(pool)
+    .await
+    .map(|_| ())
+    .map_err(AppError::Database)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -9,10 +9,12 @@ use crate::dto::users::{
 use crate::errors::AppError;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::middleware::rbac::AuthenticatedAdmin;
-use crate::queries::organization_queries::list_organizations as list_organizations_query;
-use crate::queries::user_queries::{
-    create_org_admin_user_with_temp_password, get_user_by_id, hard_delete_user,
-    list_users as list_users_query, list_users_by_org, update_user as update_user_query,
+use crate::queries::organizations::list_organizations as list_organizations_query;
+use crate::queries::users::{
+    create_org_admin_user_with_temp_password, get_activation_resend_user,
+    get_org_admin_password_resend_user, get_user_by_id, hard_delete_user,
+    list_users as list_users_query, list_users_by_org, mark_user_pending_and_revoke_refresh_tokens,
+    update_org_admin_temporary_password, update_user as update_user_query,
 };
 use axum::{
     extract::{Extension, Path, State},
@@ -21,7 +23,6 @@ use axum::{
     Json,
 };
 use base64::Engine;
-use sqlx::Row;
 use std::sync::Arc;
 use uuid::Uuid;
 

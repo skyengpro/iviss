@@ -1,13 +1,13 @@
-//! Integration tests for auth_queries module.
+//! Integration tests for auth queries.
 //!
-//! Tests the repository functions in `crate::queries::auth_queries`:
+//! Tests the repository functions in `crate::queries::auth`:
 //! - mark_device_inactive
 //! - mark_device_active
 //! - suspend_device_and_revoke_tokens
 //! - blacklist_jti
 //! - has_valid_refresh_token
 
-use crate::queries::auth_queries;
+use crate::queries::auth;
 use base64::Engine;
 use rand::rngs::OsRng;
 use sha2::Digest;
@@ -167,7 +167,7 @@ async fn test_mark_device_inactive_success() {
     assert_eq!(device_before.0, "ACTIVE");
 
     // Call the function under test
-    let result = auth_queries::mark_device_inactive(&db, device_id).await;
+    let result = auth::mark_device_inactive(&db, device_id).await;
     assert!(result.is_ok(), "mark_device_inactive should succeed");
 
     // Verify device is now inactive
@@ -191,7 +191,7 @@ async fn test_mark_device_inactive_nonexistent_device() {
     let nonexistent_id = Uuid::new_v4();
 
     // Should not error - UPDATE just affects 0 rows
-    let result = auth_queries::mark_device_inactive(&db, nonexistent_id).await;
+    let result = auth::mark_device_inactive(&db, nonexistent_id).await;
     assert!(
         result.is_ok(),
         "mark_device_inactive should succeed even for nonexistent device"
@@ -235,7 +235,7 @@ async fn test_mark_device_inactive_already_inactive() {
     let device_id = seed_device(&db, user_id, "INACTIVE").await;
 
     // Should not error - UPDATE just affects 0 rows (WHERE status = 'ACTIVE' fails)
-    let result = auth_queries::mark_device_inactive(&db, device_id).await;
+    let result = auth::mark_device_inactive(&db, device_id).await;
     assert!(
         result.is_ok(),
         "mark_device_inactive should succeed even if already inactive"
@@ -298,7 +298,7 @@ async fn test_mark_device_active_success() {
     let shift_end = now_secs + 8 * 3600;
 
     // Call the function under test
-    let result = auth_queries::mark_device_active(&db, device_id, shift_start, shift_end).await;
+    let result = auth::mark_device_active(&db, device_id, shift_start, shift_end).await;
     assert!(result.is_ok(), "mark_device_active should succeed");
 
     // Verify device is now active with correct metadata
@@ -357,7 +357,7 @@ async fn test_mark_device_active_updates_existing_device() {
     let shift_end = now_secs + 10 * 3600; // Different shift duration
 
     // Call the function under test
-    let result = auth_queries::mark_device_active(&db, device_id, shift_start, shift_end).await;
+    let result = auth::mark_device_active(&db, device_id, shift_start, shift_end).await;
     assert!(result.is_ok(), "mark_device_active should succeed");
 
     // Verify device status changed from SUSPENDED to ACTIVE
@@ -425,7 +425,7 @@ async fn test_suspend_device_and_revoke_tokens_success() {
     assert_eq!(tokens_before.0, 3);
 
     // Call the function under test
-    let result = auth_queries::suspend_device_and_revoke_tokens(&db, device_id).await;
+    let result = auth::suspend_device_and_revoke_tokens(&db, device_id).await;
     assert!(
         result.is_ok(),
         "suspend_device_and_revoke_tokens should succeed"
@@ -499,7 +499,7 @@ async fn test_suspend_device_and_revoke_tokens_no_tokens() {
     let device_id = seed_device(&db, user_id, "ACTIVE").await;
 
     // Call the function under test (no tokens exist for this device)
-    let result = auth_queries::suspend_device_and_revoke_tokens(&db, device_id).await;
+    let result = auth::suspend_device_and_revoke_tokens(&db, device_id).await;
     assert!(
         result.is_ok(),
         "suspend_device_and_revoke_tokens should succeed with no tokens"
@@ -555,7 +555,7 @@ async fn test_suspend_device_and_revoke_tokens_only_revokes_valid_tokens() {
     seed_refresh_token(&db, user_id, device_id, true).await;
 
     // Call the function under test
-    let result = auth_queries::suspend_device_and_revoke_tokens(&db, device_id).await;
+    let result = auth::suspend_device_and_revoke_tokens(&db, device_id).await;
     assert!(
         result.is_ok(),
         "suspend_device_and_revoke_tokens should succeed"
@@ -592,7 +592,7 @@ async fn test_blacklist_jti_success() {
     let jti = Uuid::new_v4().to_string();
 
     // Call the function under test
-    let result = auth_queries::blacklist_jti_cache(&cache, &jti).await;
+    let result = auth::blacklist_jti_cache(&cache, &jti).await;
     assert!(result.is_ok(), "blacklist_jti_cache should succeed");
 
     // Verify the JTI exists in cache
@@ -607,7 +607,7 @@ async fn test_blacklist_jti_expiration() {
     let jti = Uuid::new_v4().to_string();
 
     // Call the function under test
-    let result = auth_queries::blacklist_jti_cache(&cache, &jti).await;
+    let result = auth::blacklist_jti_cache(&cache, &jti).await;
     assert!(result.is_ok(), "blacklist_jti_cache should succeed");
 
     // Verify the key exists immediately
@@ -629,8 +629,8 @@ async fn test_blacklist_jti_multiple_calls() {
     let jti2 = Uuid::new_v4().to_string();
 
     // Call the function under test
-    let result1 = auth_queries::blacklist_jti_cache(&cache, &jti1).await;
-    let result2 = auth_queries::blacklist_jti_cache(&cache, &jti2).await;
+    let result1 = auth::blacklist_jti_cache(&cache, &jti1).await;
+    let result2 = auth::blacklist_jti_cache(&cache, &jti2).await;
     assert!(
         result1.is_ok(),
         "blacklist_jti_cache should succeed for jti1"
@@ -689,7 +689,7 @@ async fn test_has_valid_refresh_token_true() {
     seed_refresh_token(&db, user_id, device_id, false).await;
 
     // Call the function under test
-    let result = auth_queries::has_valid_refresh_token(&db, device_id).await;
+    let result = auth::has_valid_refresh_token(&db, device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
     assert!(
         result.unwrap(),
@@ -735,7 +735,7 @@ async fn test_has_valid_refresh_token_false_no_token() {
     // No refresh token created
 
     // Call the function under test
-    let result = auth_queries::has_valid_refresh_token(&db, device_id).await;
+    let result = auth::has_valid_refresh_token(&db, device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
     assert!(!result.unwrap(), "Should return false when no token exists");
 }
@@ -778,7 +778,7 @@ async fn test_has_valid_refresh_token_false_revoked() {
     seed_refresh_token(&db, user_id, device_id, true).await; // revoked = true
 
     // Call the function under test
-    let result = auth_queries::has_valid_refresh_token(&db, device_id).await;
+    let result = auth::has_valid_refresh_token(&db, device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
     assert!(
         !result.unwrap(),
@@ -793,7 +793,7 @@ async fn test_has_valid_refresh_token_false_nonexistent_device() {
     let nonexistent_device_id = Uuid::new_v4();
 
     // Call the function under test
-    let result = auth_queries::has_valid_refresh_token(&db, nonexistent_device_id).await;
+    let result = auth::has_valid_refresh_token(&db, nonexistent_device_id).await;
     assert!(result.is_ok(), "has_valid_refresh_token should succeed");
     assert!(
         !result.unwrap(),

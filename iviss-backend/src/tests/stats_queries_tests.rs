@@ -1,6 +1,6 @@
-//! Integration tests for stats_queries module.
+//! Integration tests for stats queries.
 //!
-//! Tests the repository functions in `crate::queries::stats_queries`:
+//! Tests the repository functions in `crate::queries::stats`:
 //! - get_control_activity_series_query
 //! - get_top_agents_query
 //! - get_activity_feed_query
@@ -8,7 +8,7 @@
 //! - get_dashboard_stats_query
 
 use crate::dto::stats::DashboardRange;
-use crate::queries::stats_queries;
+use crate::queries::stats;
 use sqlx::postgres::PgPoolOptions;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
@@ -183,7 +183,7 @@ async fn test_get_control_activity_series_h24_with_data() {
     seed_control_record(&db, agent_id, org_id, "EF-456-GH", "valid").await;
     seed_control_record(&db, agent_id, org_id, "IJ-789-KL", "warning").await;
 
-    let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::H24).await;
+    let result = stats::get_control_activity_series_query(&db, DashboardRange::H24).await;
 
     assert!(
         result.is_ok(),
@@ -208,7 +208,7 @@ async fn test_get_control_activity_series_h24_empty() {
     let (db, _pg) = setup_test_infrastructure().await;
 
     // No control records - should still return 24 buckets with 0 counts
-    let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::H24).await;
+    let result = stats::get_control_activity_series_query(&db, DashboardRange::H24).await;
 
     assert!(
         result.is_ok(),
@@ -238,7 +238,7 @@ async fn test_get_control_activity_series_d7_with_data() {
     seed_control_record(&db, agent_id, org_id, "CD-002-CD", "valid").await;
     seed_control_record(&db, agent_id, org_id, "EF-003-EF", "critical").await;
 
-    let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::D7).await;
+    let result = stats::get_control_activity_series_query(&db, DashboardRange::D7).await;
 
     assert!(
         result.is_ok(),
@@ -265,7 +265,7 @@ async fn test_get_control_activity_series_d30_with_data() {
     seed_control_record(&db, agent_id, org_id, "AB-100-AB", "valid").await;
     seed_control_record(&db, agent_id, org_id, "CD-200-CD", "warning").await;
 
-    let result = stats_queries::get_control_activity_series_query(&db, DashboardRange::D30).await;
+    let result = stats::get_control_activity_series_query(&db, DashboardRange::D30).await;
 
     assert!(
         result.is_ok(),
@@ -301,7 +301,7 @@ async fn test_get_top_agents_with_controls() {
     // Agent 2 has fewer controls
     seed_control_record(&db, agent2_id, org_id, "PLATE-A2-001", "valid").await;
 
-    let result = stats_queries::get_top_agents_query(&db, DashboardRange::H24, 10).await;
+    let result = stats::get_top_agents_query(&db, DashboardRange::H24, 10).await;
 
     assert!(result.is_ok(), "get_top_agents_query should succeed");
     let agents = result.unwrap();
@@ -328,7 +328,7 @@ async fn test_get_top_agents_limit() {
     }
 
     // Request only top 3
-    let result = stats_queries::get_top_agents_query(&db, DashboardRange::H24, 3).await;
+    let result = stats::get_top_agents_query(&db, DashboardRange::H24, 3).await;
 
     assert!(result.is_ok(), "get_top_agents_query should succeed");
     let agents = result.unwrap();
@@ -341,7 +341,7 @@ async fn test_get_top_agents_empty() {
     let (db, _pg) = setup_test_infrastructure().await;
 
     // No agents or controls
-    let result = stats_queries::get_top_agents_query(&db, DashboardRange::H24, 10).await;
+    let result = stats::get_top_agents_query(&db, DashboardRange::H24, 10).await;
 
     assert!(
         result.is_ok(),
@@ -367,7 +367,7 @@ async fn test_get_top_agents_with_online_status() {
     // Seed a recent location (agent is online)
     seed_agent_location(&db, agent_id, 4.0511, 9.7679).await;
 
-    let result = stats_queries::get_top_agents_query(&db, DashboardRange::H24, 10).await;
+    let result = stats::get_top_agents_query(&db, DashboardRange::H24, 10).await;
 
     assert!(result.is_ok(), "get_top_agents_query should succeed");
     let agents = result.unwrap();
@@ -395,7 +395,7 @@ async fn test_get_activity_feed_with_records() {
     let _id2 = seed_control_record(&db, agent_id, org_id, "FEED-002", "warning").await;
     let _id3 = seed_control_record(&db, agent_id, org_id, "FEED-003", "critical").await;
 
-    let result = stats_queries::get_activity_feed_query(&db, 10).await;
+    let result = stats::get_activity_feed_query(&db, 10).await;
 
     assert!(result.is_ok(), "get_activity_feed_query should succeed");
     let feed = result.unwrap();
@@ -418,7 +418,7 @@ async fn test_get_activity_feed_with_limit() {
         seed_control_record(&db, agent_id, org_id, &format!("LIMIT-{}", i), "valid").await;
     }
 
-    let result = stats_queries::get_activity_feed_query(&db, 3).await;
+    let result = stats::get_activity_feed_query(&db, 3).await;
 
     assert!(result.is_ok(), "get_activity_feed_query should succeed");
     let feed = result.unwrap();
@@ -431,7 +431,7 @@ async fn test_get_activity_feed_empty() {
     let (db, _pg) = setup_test_infrastructure().await;
 
     // No control records
-    let result = stats_queries::get_activity_feed_query(&db, 10).await;
+    let result = stats::get_activity_feed_query(&db, 10).await;
 
     assert!(
         result.is_ok(),
@@ -463,7 +463,7 @@ async fn test_get_activity_feed_excludes_deleted() {
         .await
         .expect("Failed to soft-delete record");
 
-    let result = stats_queries::get_activity_feed_query(&db, 10).await;
+    let result = stats::get_activity_feed_query(&db, 10).await;
 
     assert!(result.is_ok(), "get_activity_feed_query should succeed");
     let feed = result.unwrap();
@@ -488,7 +488,7 @@ async fn test_get_recent_alerts_with_warnings_and_criticals() {
     seed_control_record(&db, agent_id, org_id, "ALERT-WARN", "warning").await;
     seed_control_record(&db, agent_id, org_id, "ALERT-CRIT", "critical").await;
 
-    let result = stats_queries::get_recent_alerts_query(&db, 10).await;
+    let result = stats::get_recent_alerts_query(&db, 10).await;
 
     assert!(result.is_ok(), "get_recent_alerts_query should succeed");
     let alerts = result.unwrap();
@@ -523,7 +523,7 @@ async fn test_get_recent_alerts_only_ok_records() {
     seed_control_record(&db, agent_id, org_id, "OK-001", "valid").await;
     seed_control_record(&db, agent_id, org_id, "OK-002", "valid").await;
 
-    let result = stats_queries::get_recent_alerts_query(&db, 10).await;
+    let result = stats::get_recent_alerts_query(&db, 10).await;
 
     assert!(result.is_ok(), "get_recent_alerts_query should succeed");
     let alerts = result.unwrap();
@@ -546,7 +546,7 @@ async fn test_get_recent_alerts_with_limit() {
         seed_control_record(&db, agent_id, org_id, &format!("CRIT-{}", i), "critical").await;
     }
 
-    let result = stats_queries::get_recent_alerts_query(&db, 2).await;
+    let result = stats::get_recent_alerts_query(&db, 2).await;
 
     assert!(result.is_ok(), "get_recent_alerts_query should succeed");
     let alerts = result.unwrap();
@@ -563,7 +563,7 @@ async fn test_get_recent_alerts_includes_address() {
 
     seed_control_record(&db, agent_id, org_id, "ALERT-ADDR", "critical").await;
 
-    let result = stats_queries::get_recent_alerts_query(&db, 10).await;
+    let result = stats::get_recent_alerts_query(&db, 10).await;
 
     assert!(result.is_ok(), "get_recent_alerts_query should succeed");
     let alerts = result.unwrap();
@@ -600,7 +600,7 @@ async fn test_get_dashboard_stats_complete() {
     // Seed agent location
     seed_agent_location(&db, agent_id, 4.0511, 9.7679).await;
 
-    let result = stats_queries::get_dashboard_stats_query(&db).await;
+    let result = stats::get_dashboard_stats_query(&db).await;
 
     assert!(result.is_ok(), "get_dashboard_stats_query should succeed");
     let stats = result.unwrap();
@@ -636,7 +636,7 @@ async fn test_get_dashboard_stats_empty_database() {
     let (db, _pg) = setup_test_infrastructure().await;
 
     // No data at all
-    let result = stats_queries::get_dashboard_stats_query(&db).await;
+    let result = stats::get_dashboard_stats_query(&db).await;
 
     assert!(
         result.is_ok(),
@@ -672,7 +672,7 @@ async fn test_get_dashboard_stats_activity_24h_structure() {
     // Seed 1 control record
     seed_control_record(&db, agent_id, org_id, "ACT-001", "valid").await;
 
-    let result = stats_queries::get_dashboard_stats_query(&db).await;
+    let result = stats::get_dashboard_stats_query(&db).await;
 
     assert!(result.is_ok(), "get_dashboard_stats_query should succeed");
     let stats = result.unwrap();
@@ -703,7 +703,7 @@ async fn test_get_dashboard_stats_live_agents_location() {
     // Only agent 1 has a recent location
     seed_agent_location(&db, agent1_id, 4.0511, 9.7679).await;
 
-    let result = stats_queries::get_dashboard_stats_query(&db).await;
+    let result = stats::get_dashboard_stats_query(&db).await;
 
     assert!(result.is_ok(), "get_dashboard_stats_query should succeed");
     let stats = result.unwrap();
@@ -731,7 +731,7 @@ async fn test_get_dashboard_stats_multiple_organizations() {
     seed_control_record(&db, agent1_id, org1_id, "MULTI-001", "valid").await;
     seed_control_record(&db, agent2_id, org2_id, "MULTI-002", "critical").await;
 
-    let result = stats_queries::get_dashboard_stats_query(&db).await;
+    let result = stats::get_dashboard_stats_query(&db).await;
 
     assert!(result.is_ok(), "get_dashboard_stats_query should succeed");
     let stats = result.unwrap();

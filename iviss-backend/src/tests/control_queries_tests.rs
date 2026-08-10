@@ -1,13 +1,13 @@
-//! Integration tests for control_queries module.
+//! Integration tests for control queries.
 //!
-//! Tests the repository functions in `crate::queries::control_queries`:
+//! Tests the repository functions in `crate::queries::controls`:
 //! - create_control_record
 //! - get_control_records
 
 use crate::dto::common::{IdentificationMode, Status};
 use crate::dto::create_control::CreateControlRequest;
 use crate::dto::list_control::{ActionType, ControlResults};
-use crate::queries::control_queries;
+use crate::queries::controls;
 use sqlx::postgres::PgPoolOptions;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
@@ -173,7 +173,7 @@ async fn test_create_control_record_critical_status_wanted() {
         },
     );
 
-    let result = control_queries::create_control_record(&db, req).await;
+    let result = controls::create_control_record(&db, req).await;
 
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
@@ -209,7 +209,7 @@ async fn test_create_control_record_critical_status_insurance() {
         },
     );
 
-    let result = control_queries::create_control_record(&db, req).await;
+    let result = controls::create_control_record(&db, req).await;
 
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
@@ -244,7 +244,7 @@ async fn test_create_control_record_warning_status_technical() {
         },
     );
 
-    let result = control_queries::create_control_record(&db, req).await;
+    let result = controls::create_control_record(&db, req).await;
 
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
@@ -279,7 +279,7 @@ async fn test_create_control_record_warning_status_customs() {
         },
     );
 
-    let result = control_queries::create_control_record(&db, req).await;
+    let result = controls::create_control_record(&db, req).await;
 
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
@@ -314,7 +314,7 @@ async fn test_create_control_record_valid_status() {
         },
     );
 
-    let result = control_queries::create_control_record(&db, req).await;
+    let result = controls::create_control_record(&db, req).await;
 
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
@@ -349,7 +349,7 @@ async fn test_create_control_record_creates_initial_action() {
         },
     );
 
-    let result = control_queries::create_control_record(&db, req).await;
+    let result = controls::create_control_record(&db, req).await;
 
     assert!(result.is_ok(), "create_control_record should succeed");
     let control_id = result.unwrap();
@@ -382,7 +382,7 @@ async fn test_get_control_records_no_filters() {
     seed_control_record_sql(&db, agent_id, org_id, "LIST-002", "warning").await;
     seed_control_record_sql(&db, agent_id, org_id, "LIST-003", "critical").await;
 
-    let result = control_queries::get_control_records(&db, None, None, None, None, None).await;
+    let result = controls::get_control_records(&db, None, None, None, None, None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -404,8 +404,7 @@ async fn test_get_control_records_filter_by_agent_id() {
     // Agent 2 has 1 record
     seed_control_record_sql(&db, agent2_id, org_id, "AGENT2-001", "valid").await;
 
-    let result =
-        control_queries::get_control_records(&db, None, None, Some(agent1_id), None, None).await;
+    let result = controls::get_control_records(&db, None, None, Some(agent1_id), None, None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -429,8 +428,7 @@ async fn test_get_control_records_filter_by_status() {
     seed_control_record_sql(&db, agent_id, org_id, "STAT-004", "valid").await;
 
     let result =
-        control_queries::get_control_records(&db, None, None, None, Some(Status::Critical), None)
-            .await;
+        controls::get_control_records(&db, None, None, None, Some(Status::Critical), None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -451,8 +449,7 @@ async fn test_get_control_records_filter_by_plate() {
     seed_control_record_sql(&db, agent_id, org_id, "ZZ-9999-YY", "valid").await;
 
     let result =
-        control_queries::get_control_records(&db, None, None, None, None, Some("XY".to_string()))
-            .await;
+        controls::get_control_records(&db, None, None, None, None, Some("XY".to_string())).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -475,7 +472,7 @@ async fn test_get_control_records_multiple_filters() {
     seed_control_record_sql(&db, agent_id, org_id, "MULTI-003", "critical").await;
 
     // Filter by status and plate
-    let result = control_queries::get_control_records(
+    let result = controls::get_control_records(
         &db,
         None,
         None,
@@ -503,15 +500,9 @@ async fn test_get_control_records_empty_result() {
     seed_control_record_sql(&db, agent_id, org_id, "EXISTING", "valid").await;
 
     // Search for non-existent plate
-    let result = control_queries::get_control_records(
-        &db,
-        None,
-        None,
-        None,
-        None,
-        Some("NONEXISTENT".to_string()),
-    )
-    .await;
+    let result =
+        controls::get_control_records(&db, None, None, None, None, Some("NONEXISTENT".to_string()))
+            .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -537,7 +528,7 @@ async fn test_get_control_records_excludes_deleted() {
         .await
         .expect("Failed to soft-delete record");
 
-    let result = control_queries::get_control_records(&db, None, None, None, None, None).await;
+    let result = controls::get_control_records(&db, None, None, None, None, None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -560,15 +551,9 @@ async fn test_get_control_records_includes_actions() {
     seed_control_action(&db, control_id, "flag", "Initial check performed").await;
     seed_control_action(&db, control_id, "citation", "Citation issued").await;
 
-    let result = control_queries::get_control_records(
-        &db,
-        None,
-        None,
-        None,
-        None,
-        Some("ACTION-REC".to_string()),
-    )
-    .await;
+    let result =
+        controls::get_control_records(&db, None, None, None, None, Some("ACTION-REC".to_string()))
+            .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -633,8 +618,7 @@ async fn test_get_control_records_with_all_identification_modes() {
     .await
     .expect("Failed to seed");
 
-    let result =
-        control_queries::get_control_records(&db, None, None, Some(agent_id), None, None).await;
+    let result = controls::get_control_records(&db, None, None, Some(agent_id), None, None).await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();
@@ -686,15 +670,9 @@ async fn test_get_control_records_results_parsing() {
     .await
     .expect("Failed to seed");
 
-    let result = control_queries::get_control_records(
-        &db,
-        None,
-        None,
-        None,
-        None,
-        Some("RESULTS".to_string()),
-    )
-    .await;
+    let result =
+        controls::get_control_records(&db, None, None, None, None, Some("RESULTS".to_string()))
+            .await;
 
     assert!(result.is_ok(), "get_control_records should succeed");
     let controls = result.unwrap();

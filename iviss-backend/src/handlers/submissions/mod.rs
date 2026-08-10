@@ -36,14 +36,15 @@ pub async fn submit_vehicle(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let agent_id = resolve_agent_id(&state.db, payload.agent_id).await?;
+    let agent_id =
+        crate::queries::submissions::resolve_agent_id(&state.db, payload.agent_id).await?;
 
     let location = common::SubmissionLocation {
         latitude: payload.latitude,
         longitude: payload.longitude,
         address: None, // address not in DTO yet, pass allowed None
     };
-    let submission_id = crate::queries::submission_queries::create_pending_submission(
+    let submission_id = crate::queries::submissions::create_pending_submission(
         &state.db,
         agent_id,
         payload.plate_number.clone(),
@@ -87,29 +88,6 @@ pub async fn submit_vehicle_v1(
     submit_vehicle(State(state), Json(payload)).await
 }
 
-async fn resolve_agent_id(pool: &sqlx::PgPool, requested: Uuid) -> Result<Uuid, AppError> {
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
-        .bind(requested)
-        .fetch_one(pool)
-        .await
-        .map_err(AppError::database)?;
-
-    if exists {
-        return Ok(requested);
-    }
-
-    let first: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
-            .fetch_optional(pool)
-            .await
-            .map_err(AppError::database)?;
-
-    match first {
-        Some(id) => Ok(id),
-        None => Err(AppError::not_found("No users found in database")),
-    }
-}
-
 // ── List (admin) ──────────────────────────────────────────────────────────────
 
 /// List submissions for admin review, optionally filtered by status
@@ -131,11 +109,9 @@ pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SubmissionListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submissions = crate::queries::submission_queries::get_pending_submissions(
-        &state.db,
-        query.status.as_deref(),
-    )
-    .await?;
+    let submissions =
+        crate::queries::submissions::get_pending_submissions(&state.db, query.status.as_deref())
+            .await?;
     Ok((StatusCode::OK, Json(submissions)))
 }
 
@@ -161,7 +137,7 @@ pub async fn get_pending_submission(
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     let submission: pending_submission::PendingSubmissionDetail =
-        crate::queries::submission_queries::get_submission_by_id(&state.db, id).await?;
+        crate::queries::submissions::get_submission_by_id(&state.db, id).await?;
     Ok((StatusCode::OK, Json(submission)))
 }
 
@@ -186,8 +162,7 @@ pub async fn get_submission_audit_log(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let entries =
-        crate::queries::submission_queries::get_submission_audit_log(&state.db, id).await?;
+    let entries = crate::queries::submissions::get_submission_audit_log(&state.db, id).await?;
     Ok((StatusCode::OK, Json(entries)))
 }
 

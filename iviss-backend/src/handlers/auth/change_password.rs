@@ -27,13 +27,7 @@ pub async fn change_password(
     }
 
     // Fetch user's current state to determine if current password is required
-    let user: (String, bool) = sqlx::query_as(
-        "SELECT password_hash, must_change_password FROM users WHERE id = $1 AND deleted_at IS NULL",
-    )
-    .bind(requester.user_id)
-    .fetch_one(&state.db)
-    .await
-    .map_err(AppError::Database)?;
+    let user = auth::get_password_change_state(&state.db, requester.user_id).await?;
 
     let (user_password_hash, must_change_password) = user;
 
@@ -58,18 +52,7 @@ pub async fn change_password(
 
     let new_hash = crate::utils::password::hash_password(&payload.new_password).await?;
 
-    sqlx::query(
-        r#"
-        UPDATE users
-        SET password_hash = $1, must_change_password = FALSE, status = 'ACTIVE'::user_status
-        WHERE id = $2
-        "#,
-    )
-    .bind(&new_hash)
-    .bind(requester.user_id)
-    .execute(&state.db)
-    .await
-    .map_err(AppError::Database)?;
+    auth::update_password_after_change(&state.db, requester.user_id, &new_hash).await?;
 
     tracing::info!(user_id = %requester.user_id, "Password changed successfully");
 

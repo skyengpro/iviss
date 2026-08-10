@@ -1,6 +1,6 @@
 use crate::errors::AppError;
-use crate::queries::auth_queries;
-use crate::queries::organization_queries;
+use crate::queries::auth;
+use crate::queries::organizations;
 use moka::future::Cache;
 use moka::Expiry;
 use std::time::{Duration, Instant};
@@ -86,8 +86,8 @@ impl AppCache {
         &self,
         db_pool: &sqlx::Pool<sqlx::Postgres>,
     ) -> Result<(), AppError> {
-        auth_queries::load_blacklisted_jtis_to_cache(db_pool, self).await?;
-        organization_queries::load_organizations_work_time_to_cache(db_pool, self).await?;
+        auth::load_blacklisted_jtis_to_cache(db_pool, self).await?;
+        organizations::load_organizations_work_time_to_cache(db_pool, self).await?;
 
         Ok(())
     }

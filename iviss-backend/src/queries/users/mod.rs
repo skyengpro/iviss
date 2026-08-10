@@ -3,6 +3,8 @@ use crate::errors::AppError;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
+pub mod location;
+
 pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<UserProfile, AppError> {
     // 1. Optimisation SQL avec LATERAL
     let row = sqlx::query(
@@ -433,4 +435,143 @@ pub async fn hard_delete_user(pool: &PgPool, user_id: Uuid) -> Result<(), AppErr
     tx.commit().await.map_err(AppError::database)?;
 
     Ok(())
+}
+
+pub struct ActivationResendUserRow {
+    pub id: Uuid,
+    pub phone_number: String,
+    pub role: UserRole,
+    pub status: UserStatus,
+    pub organization_id: Option<Uuid>,
+    pub device_status: Option<DeviceStatus>,
+}
+
+pub async fn get_activation_resend_user(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<ActivationResendUserRow, AppError> {
+    let user_raw = sqlx::query(
+        r#"
+        SELECT u.id,
+               u.phone_number,
+               u.role,
+               u.status,
+               u.organization_id,
+               d.status AS device_status
+        FROM users u
+        LEFT JOIN (
+            SELECT DISTINCT ON (user_id)
+                user_id, status
+            FROM devices
+            ORDER BY user_id, updated_at DESC
+        ) d ON u.id = d.user_id
+        WHERE u.id = $1
+          AND u.deleted_at IS NULL
+        "#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    Ok(ActivationResendUserRow {
+        id: user_raw.get("id"),
+        phone_number: user_raw.get("phone_number"),
+        role: user_raw.get("role"),
+        status: user_raw.get("status"),
+        organization_id: user_raw.get("organization_id"),
+        device_status: user_raw.get("device_status"),
+    })
+}
+
+pub async fn mark_user_pending_and_revoke_refresh_tokens(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    let mut tx = pool.begin().await.map_err(AppError::Database)?;
+
+    sqlx::query(
+        r#"
+            UPDATE users
+            SET status = 'PENDING_ACTIVATION'::user_status
+            WHERE id = $1
+              AND deleted_at IS NULL
+            "#,
+    )
+    .bind(user_id)
+    .execute(&mut *tx)
+    .await
+    .map_err(AppError::Database)?;
+
+    sqlx::query(
+        r#"
+            UPDATE refresh_tokens
+            SET revoked = TRUE,
+                revoked_at = NOW()
+            WHERE user_id = $1
+              AND revoked = FALSE
+            "#,
+    )
+    .bind(user_id)
+    .execute(&mut *tx)
+    .await
+    .map_err(AppError::Database)?;
+
+    tx.commit().await.map_err(AppError::Database)
+}
+
+pub struct OrgAdminPasswordResendRow {
+    pub id: Uuid,
+    pub email: Option<String>,
+    pub role: UserRole,
+    pub status: UserStatus,
+}
+
+pub async fn get_org_admin_password_resend_user(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<OrgAdminPasswordResendRow, AppError> {
+    let user_raw = sqlx::query(
+        r#"
+        SELECT id, email, role, status
+        FROM users
+        WHERE id = $1
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::Database)?
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    Ok(OrgAdminPasswordResendRow {
+        id: user_raw.get("id"),
+        email: user_raw.get("email"),
+        role: user_raw.get("role"),
+        status: user_raw.get("status"),
+    })
+}
+
+pub async fn update_org_admin_temporary_password(
+    pool: &PgPool,
+    user_id: Uuid,
+    password_hash: &str,
+) -> Result<(), AppError> {
+    sqlx::query(
+        r#"
+        UPDATE users
+        SET password_hash = $1,
+            must_change_password = TRUE
+        WHERE id = $2
+          AND deleted_at IS NULL
+        "#,
+    )
+    .bind(password_hash)
+    .bind(user_id)
+    .execute(pool)
+    .await
+    .map(|_| ())
+    .map_err(AppError::Database)
 }

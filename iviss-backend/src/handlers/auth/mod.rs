@@ -15,10 +15,9 @@ use tracing::instrument;
 use crate::dto::users::{UserProfile, UserRole, UserStatus};
 use crate::errors::{AppError, ErrorCode};
 use crate::middleware::rbac::AuthenticatedAdmin;
-use crate::queries::auth_queries;
+use crate::queries::auth;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use time::OffsetDateTime;
@@ -53,7 +52,7 @@ pub use refresh::{
 pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
     tracing::warn!(%device_id, "shift: ended logic triggered");
 
-    if let Err(err) = crate::queries::auth_queries::mark_device_inactive(pool, device_id).await {
+    if let Err(err) = crate::queries::auth::mark_device_inactive(pool, device_id).await {
         tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
     }
 

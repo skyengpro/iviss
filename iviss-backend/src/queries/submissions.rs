@@ -408,3 +408,26 @@ pub async fn get_submission_audit_log(
     }
     Ok(entries)
 }
+
+pub async fn resolve_agent_id(pool: &PgPool, requested: Uuid) -> Result<Uuid, AppError> {
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
+        .bind(requested)
+        .fetch_one(pool)
+        .await
+        .map_err(AppError::database)?;
+
+    if exists {
+        return Ok(requested);
+    }
+
+    let first: Option<Uuid> =
+        sqlx::query_scalar("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
+            .fetch_optional(pool)
+            .await
+            .map_err(AppError::database)?;
+
+    match first {
+        Some(id) => Ok(id),
+        None => Err(AppError::not_found("No users found in database")),
+    }
+}

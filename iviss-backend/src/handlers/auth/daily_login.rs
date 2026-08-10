@@ -21,7 +21,7 @@ pub async fn request_daily_login(
     if payload.badge_id.trim().is_empty() {
         return Err(AppError::bad_request("badgeId is required"));
     }
-    let user = auth_queries::get_user_by_badge(&state.db, &payload.badge_id).await?;
+    let user = auth::get_user_by_badge(&state.db, &payload.badge_id).await?;
 
     // Only agents use the daily OTP flow
     if user.role != "agent" {
@@ -42,26 +42,14 @@ pub async fn request_daily_login(
 
     // Enforce shift hours per organization (Cameroon local time UTC+1)
     // Agents must belong to an organization
-    let user_org_id: Option<Uuid> = sqlx::query_scalar(
-        r#"
-        SELECT organization_id
-        FROM users
-        WHERE id = $1
-          AND deleted_at IS NULL
-        "#,
-    )
-    .bind(user.id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::database)?
-    .flatten();
+    let user_org_id = auth::get_user_org_id(&state.db, user.id).await?;
 
     let org_id = user_org_id.ok_or_else(|| {
         AppError::forbidden("Agent must belong to an organization to request daily login")
     })?;
 
     let (shift_start_minutes, shift_end_minutes) =
-        crate::queries::organization_queries::get_organization_work_time_cached(
+        crate::queries::organizations::get_organization_work_time_cached(
             &state.db,
             &state.app_cache,
             org_id,
@@ -83,13 +71,12 @@ pub async fn request_daily_login(
     }
 
     let device_opt =
-        auth_queries::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
+        auth::get_device_by_user_optional(&state.db, payload.device_id, user.id).await?;
 
     let device = match device_opt {
         Some(d) => d,
         None => {
-            let device_exists =
-                auth_queries::check_device_exists(&state.db, payload.device_id).await?;
+            let device_exists = auth::check_device_exists(&state.db, payload.device_id).await?;
             if device_exists {
                 return Err(AppError::bad_request(
                     " Incompatible Badge ID for this device. Please check your Badge ID.",
@@ -129,7 +116,7 @@ pub async fn request_daily_login(
     // Determine contact (email or phone) based on AppState setting
     let contact = if state.otp_via_email {
         // Fetch full profile to obtain email if configured to use email
-        let profile = crate::queries::user_queries::get_user_by_id(&state.db, user.id).await?;
+        let profile = crate::queries::users::get_user_by_id(&state.db, user.id).await?;
         profile
             .email
             .clone()
@@ -179,32 +166,13 @@ pub async fn verify_daily_login(
         return Err(AppError::bad_request("activationCode is required"));
     }
 
-    let row = sqlx::query(
-        r#"
-        SELECT
-            u.id              AS user_id,
-            u.role            AS user_role,
-            u.status          AS user_status,
-            COALESCE(d.status::TEXT, 'INACTIVE') AS device_status
-        FROM users u
-        LEFT JOIN devices d
-            ON d.user_id = u.id
-           AND d.id      = $2
-        WHERE u.badge_id    = $1
-          AND u.deleted_at IS NULL
-        "#,
-    )
-    .bind(&payload.badge_id)
-    .bind(payload.device_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::not_found("User or device not found"))?;
+    let row =
+        auth::get_daily_login_context(&state.db, &payload.badge_id, payload.device_id).await?;
 
-    let user_id: Uuid = row.get("user_id");
-    let user_role: UserRole = row.get("user_role");
-    let user_status: UserStatus = row.get("user_status");
-    let device_status: String = row.get("device_status");
+    let user_id = row.user_id;
+    let user_role = row.user_role;
+    let user_status = row.user_status;
+    let device_status = row.device_status;
 
     // ── Status checks
     if user_role != UserRole::Agent {
@@ -244,25 +212,13 @@ pub async fn verify_daily_login(
         .date();
 
     // Determine shift hours from the user's organization configuration
-    let user_org_id: Option<Uuid> = sqlx::query_scalar(
-        r#"
-        SELECT organization_id
-        FROM users
-        WHERE id = $1
-          AND deleted_at IS NULL
-        "#,
-    )
-    .bind(user_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::database)?
-    .flatten();
+    let user_org_id = auth::get_user_org_id(&state.db, user_id).await?;
 
     let org_id = user_org_id
         .ok_or_else(|| AppError::forbidden("Agent must belong to an organization to login"))?;
 
     let (shift_start_minutes, shift_end_minutes) =
-        crate::queries::organization_queries::get_organization_work_time_cached(
+        crate::queries::organizations::get_organization_work_time_cached(
             &state.db,
             &state.app_cache,
             org_id,
@@ -301,22 +257,8 @@ pub async fn verify_daily_login(
         )
         .map_err(AppError::Internal)?;
 
-    let device_exists: bool = sqlx::query_scalar(
-        r#"
-        SELECT EXISTS (
-            SELECT 1
-            FROM devices
-            WHERE id = $1
-              AND user_id = $2
-              AND suspended_at IS NULL
-        )
-        "#,
-    )
-    .bind(payload.device_id)
-    .bind(user_id)
-    .fetch_one(&state.db)
-    .await
-    .map_err(AppError::Database)?;
+    let device_exists =
+        auth::is_registered_unsuspended_device(&state.db, payload.device_id, user_id).await?;
 
     if !device_exists {
         return Err(AppError::NotFound(
@@ -326,7 +268,7 @@ pub async fn verify_daily_login(
 
     // ── Check if a valid refresh token already exists for this device
     let has_valid_refresh: bool = if device_exists {
-        auth_queries::has_valid_refresh_token(&state.db, payload.device_id).await?
+        auth::has_valid_refresh_token(&state.db, payload.device_id).await?
     } else {
         false
     };
@@ -353,33 +295,20 @@ pub async fn verify_daily_login(
     // ── Single CTE: optionally insert refresh token + activate device
     match &new_refresh {
         Some((_, hash, expires_at)) => {
-            sqlx::query(
-                r#"
-                WITH insert_refresh AS (
-                    INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
-                    VALUES ($2, $3, $1, $4)
-                )
-                UPDATE devices
-                SET    status       = 'ACTIVE'::device_status,
-                       metadata     = jsonb_build_object('shift_start', $5, 'shift_end', $6),
-                       last_seen_at = NOW()
-                WHERE  id = $1
-                "#,
+            auth::insert_refresh_and_activate_device(
+                &state.db,
+                payload.device_id,
+                hash,
+                user_id,
+                *expires_at,
+                shift_start,
+                shift_end,
             )
-            .bind(payload.device_id) // $1
-            .bind(hash) // $2
-            .bind(user_id) // $3
-            .bind(expires_at) // $4
-            .bind(shift_start) // $5
-            .bind(shift_end) // $6
-            .execute(&state.db)
-            .await
-            .map_err(AppError::Database)?;
+            .await?;
         }
 
         None => {
-            auth_queries::mark_device_active(&state.db, payload.device_id, shift_start, shift_end)
-                .await?;
+            auth::mark_device_active(&state.db, payload.device_id, shift_start, shift_end).await?;
         }
     }
 

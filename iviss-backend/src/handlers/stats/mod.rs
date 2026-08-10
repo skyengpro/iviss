@@ -27,7 +27,7 @@ use crate::errors::AppError;
 pub async fn get_dashboard_stats(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, AppError> {
-    let stats = crate::queries::stats_queries::get_dashboard_stats_query(&state.db).await?;
+    let stats = crate::queries::stats::get_dashboard_stats_query(&state.db).await?;
     Ok((StatusCode::OK, Json(stats)))
 }
 
@@ -57,8 +57,7 @@ pub async fn get_control_activity(
     Query(query): Query<ActivityQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let range = query.range.unwrap_or(DashboardRange::H24);
-    let series =
-        crate::queries::stats_queries::get_control_activity_series_query(&state.db, range).await?;
+    let series = crate::queries::stats::get_control_activity_series_query(&state.db, range).await?;
     Ok((
         StatusCode::OK,
         Json(ControlActivityResponse { range, series }),
@@ -93,8 +92,7 @@ pub async fn get_top_agents(
 ) -> Result<impl IntoResponse, AppError> {
     let range = query.range.unwrap_or(DashboardRange::H24);
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
-    let agents =
-        crate::queries::stats_queries::get_top_agents_query(&state.db, range, limit).await?;
+    let agents = crate::queries::stats::get_top_agents_query(&state.db, range, limit).await?;
     Ok((StatusCode::OK, Json(TopAgentsResponse { range, agents })))
 }
 
@@ -124,7 +122,7 @@ pub async fn get_activity_feed(
     Query(query): Query<ActivityFeedQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let limit = query.limit.unwrap_or(8).clamp(1, 20);
-    let items = crate::queries::stats_queries::get_activity_feed_query(&state.db, limit).await?;
+    let items = crate::queries::stats::get_activity_feed_query(&state.db, limit).await?;
     Ok((StatusCode::OK, Json(ActivityFeedResponse { items })))
 }
 
@@ -154,7 +152,7 @@ pub async fn get_recent_alerts(
     Query(query): Query<RecentAlertsQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
-    let items = crate::queries::stats_queries::get_recent_alerts_query(&state.db, limit).await?;
+    let items = crate::queries::stats::get_recent_alerts_query(&state.db, limit).await?;
     Ok((StatusCode::OK, Json(RecentAlertsResponse { items })))
 }
 
@@ -184,8 +182,7 @@ pub async fn get_org_dashboard_stats(
     let org_id = admin
         .organization_id
         .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
-    let stats =
-        crate::queries::stats_queries::get_org_dashboard_stats_query(&state.db, org_id).await?;
+    let stats = crate::queries::stats::get_org_dashboard_stats_query(&state.db, org_id).await?;
     Ok((StatusCode::OK, Json(stats)))
 }
 
@@ -215,8 +212,7 @@ pub async fn get_org_activity_feed(
         .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
     let items =
-        crate::queries::stats_queries::get_org_activity_feed_query(&state.db, org_id, limit)
-            .await?;
+        crate::queries::stats::get_org_activity_feed_query(&state.db, org_id, limit).await?;
     Ok((StatusCode::OK, Json(ActivityFeedResponse { items })))
 }
 
@@ -246,8 +242,7 @@ pub async fn get_org_recent_alerts(
         .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
     let items =
-        crate::queries::stats_queries::get_org_recent_alerts_query(&state.db, org_id, limit)
-            .await?;
+        crate::queries::stats::get_org_recent_alerts_query(&state.db, org_id, limit).await?;
     Ok((StatusCode::OK, Json(RecentAlertsResponse { items })))
 }
 
@@ -278,8 +273,7 @@ pub async fn get_org_top_agents(
     let range = query.range.unwrap_or(DashboardRange::H24);
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
     let agents =
-        crate::queries::stats_queries::get_org_top_agents_query(&state.db, org_id, range, limit)
-            .await?;
+        crate::queries::stats::get_org_top_agents_query(&state.db, org_id, range, limit).await?;
     Ok((StatusCode::OK, Json(TopAgentsResponse { range, agents })))
 }
 
@@ -308,10 +302,9 @@ pub async fn get_org_control_activity(
         .organization_id
         .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))?;
     let range = query.range.unwrap_or(DashboardRange::H24);
-    let series = crate::queries::stats_queries::get_org_control_activity_series_query(
-        &state.db, org_id, range,
-    )
-    .await?;
+    let series =
+        crate::queries::stats::get_org_control_activity_series_query(&state.db, org_id, range)
+            .await?;
     Ok((
         StatusCode::OK,
         Json(ControlActivityResponse { range, series }),

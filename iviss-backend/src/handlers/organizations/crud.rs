@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::dto::organizations::{CreateOrganizationRequest, UpdateOrganizationRequest};
 use crate::errors::AppError;
-use crate::queries::organization_queries::{
+use crate::queries::organizations::{
     create_organization as create_org_query, delete_organization as delete_org_query,
     get_organization_by_id as get_org_query, update_organization as update_org_query,
 };
@@ -119,7 +119,7 @@ pub async fn update_organization(
             time::OffsetDateTime::new_in_offset(today_local, end_time, local_offset)
                 .unix_timestamp();
 
-        if let Err(e) = crate::queries::organization_queries::update_agents_shift_end_for_org(
+        if let Err(e) = crate::queries::organizations::update_agents_shift_end_for_org(
             &state.db,
             org.id,
             new_shift_end,

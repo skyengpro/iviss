@@ -31,27 +31,12 @@ pub async fn activate(
 
     let mut tx = state.db.begin().await.map_err(AppError::Database)?;
 
-    let user_row = sqlx::query(
-        r#"
-        SELECT id,
-               role,
-               organization_id,
-               status::TEXT AS status
-        FROM users
-        WHERE badge_id = $1
-        AND deleted_at IS NULL
-        "#,
-    )
-    .bind(&payload.badge_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+    let user_row = auth::get_activation_user_by_badge(&mut tx, &payload.badge_id).await?;
 
-    let user_id: Uuid = user_row.get("id");
-    let user_role: UserRole = user_row.get("role");
-    let user_org_id: Option<Uuid> = user_row.get("organization_id");
-    let user_status: String = user_row.get("status");
+    let user_id = user_row.id;
+    let user_role = user_row.role;
+    let user_org_id = user_row.organization_id;
+    let user_status = user_row.status;
 
     if user_role != UserRole::Agent {
         return Err(AppError::BadRequest(
@@ -74,7 +59,7 @@ pub async fn activate(
         .ok_or_else(|| AppError::forbidden("Agent must belong to an organization to activate"))?;
 
     let (shift_start_minutes, shift_end_minutes) =
-        crate::queries::organization_queries::get_organization_work_time_cached(
+        crate::queries::organizations::get_organization_work_time_cached(
             &state.db,
             &state.app_cache,
             org_id,
@@ -107,62 +92,17 @@ pub async fn activate(
         time::OffsetDateTime::new_in_offset(today_local, shift_end_time, localt_time_offset)
             .unix_timestamp();
 
-    sqlx::query(
-        r#"
-        UPDATE users
-        SET status = 'ACTIVE'::user_status
-        WHERE id = $1
-        AND deleted_at IS NULL
-        "#,
-    )
-    .bind(user_id)
-    .execute(&mut *tx)
-    .await
-    .map_err(AppError::Database)?;
+    auth::mark_user_active(&mut tx, user_id).await?;
 
-    // sqlx::query(
-    //     r#"
-    //     UPDATE devices
-    //     SET status = 'SUSPENDED'::device_status,
-    //         revoked_at = NOW()
-    //     WHERE user_id = $1
-    //       AND id <> $2
-    //       AND status != 'SUSPENDED'::device_status
-    //     "#,
-    // )
-    // .bind(user_id)
-    // .bind(payload.device_id)
-    // .execute(&mut *tx)
-    // .await
-    // .map_err(AppError::Database)?;
-
-    sqlx::query(
-        r#"
-        INSERT INTO devices (id, user_id, public_key, status, metadata)
-        VALUES (
-            $1,
-            $2,
-            $3,
-            'ACTIVE'::device_status,
-            jsonb_build_object('shift_start', $4, 'shift_end', $5)
-        )
-        ON CONFLICT (id)
-        DO UPDATE SET
-            user_id = EXCLUDED.user_id,
-            public_key = EXCLUDED.public_key,
-            status = 'ACTIVE'::device_status,
-            metadata = EXCLUDED.metadata,
-            revoked_at = NULL
-        "#,
+    auth::upsert_active_device(
+        &mut tx,
+        payload.device_id,
+        user_id,
+        &payload.public_key_base64,
+        shift_start,
+        shift_end,
     )
-    .bind(payload.device_id)
-    .bind(user_id)
-    .bind(&payload.public_key_base64)
-    .bind(shift_start)
-    .bind(shift_end)
-    .execute(&mut *tx)
-    .await
-    .map_err(AppError::Database)?;
+    .await?;
 
     let refresh_token = {
         let mut raw = [0u8; 32];
@@ -177,23 +117,18 @@ pub async fn activate(
     };
     let refresh_expires_at = OffsetDateTime::now_utc() + time::Duration::days(30);
 
-    sqlx::query(
-        r#"
-        INSERT INTO refresh_tokens (token_hash, user_id, device_id, expires_at)
-        VALUES ($1, $2, $3, $4)
-        "#,
+    auth::insert_refresh_token(
+        &mut tx,
+        &refresh_token_hash,
+        user_id,
+        payload.device_id,
+        refresh_expires_at,
     )
-    .bind(&refresh_token_hash)
-    .bind(user_id)
-    .bind(payload.device_id)
-    .bind(refresh_expires_at)
-    .execute(&mut *tx)
-    .await
-    .map_err(AppError::Database)?;
+    .await?;
 
     tx.commit().await.map_err(AppError::Database)?;
 
-    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+    let user = crate::queries::users::get_user_by_id(&state.db, user_id).await?;
 
     let jwt_svc = &state.jwt_svc;
     let access_token = jwt_svc

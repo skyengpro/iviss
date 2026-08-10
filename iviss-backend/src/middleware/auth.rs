@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::errors::AppError;
-use crate::queries::auth_queries;
+use crate::queries::auth;
 use crate::services::auth::jwt::AccessTokenClaims;
 use axum::extract::{Request, State};
 use axum::http::header::{HeaderValue, AUTHORIZATION};
@@ -78,7 +78,7 @@ pub async fn require_auth(
         return Err(crate::handlers::auth::on_shift_ended(&state.db, claims.device_id).await);
     }
 
-    let validation_context = auth_queries::get_auth_validation_context(
+    let validation_context = auth::get_auth_validation_context(
         &state.db,
         claims.sub,
         claims.device_id,

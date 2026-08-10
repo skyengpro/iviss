@@ -35,7 +35,7 @@ pub async fn create_control(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateControlRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let id = crate::queries::control_queries::create_control_record(&state.db, payload).await?;
+    let id = crate::queries::controls::create_control_record(&state.db, payload).await?;
 
     let response = CreateControlResponse {
         id,
@@ -73,7 +73,7 @@ pub async fn get_list_control(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ControlListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let controls = crate::queries::control_queries::get_control_records(
+    let controls = crate::queries::controls::get_control_records(
         &state.db,
         query.start_date,
         query.end_date,
@@ -107,10 +107,9 @@ pub async fn get_list_control_paged(
     let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(10).clamp(1, 100);
 
-    let (items, total) = crate::queries::control_queries::get_paged_control_records(
-        &state.db, &query, page, page_size,
-    )
-    .await?;
+    let (items, total) =
+        crate::queries::controls::get_paged_control_records(&state.db, &query, page, page_size)
+            .await?;
 
     Ok((
         StatusCode::OK,

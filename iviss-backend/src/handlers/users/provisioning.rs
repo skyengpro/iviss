@@ -282,7 +282,7 @@ pub async fn provision_org_user(
         return Err(AppError::bad_request("phone_number is required"));
     }
 
-    let user = crate::queries::user_queries::create_user(&state.db, req).await?;
+    let user = crate::queries::users::create_user(&state.db, req).await?;
 
     // Send activation OTP so the agent can activate their device
     let contact = if state.otp_via_email {

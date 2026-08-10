@@ -71,23 +71,7 @@ async fn request_refresh_agent(
     };
 
     // Validate refresh token exists, is not revoked, and not expired
-    let token_row = sqlx::query(
-        r#"
-        SELECT user_id, device_id
-        FROM refresh_tokens
-        WHERE token_hash = $1
-          AND device_id = $2
-          AND revoked = FALSE
-          AND expires_at > NOW()
-        "#,
-    )
-    .bind(&token_hash)
-    .bind(device_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?;
-
-    if token_row.is_none() {
+    if !auth::validate_agent_refresh_token(&state.db, &token_hash, device_id).await? {
         return Err(AppError::unauthorized_with_code(
             ErrorCode::SessionRevoked,
             "Invalid or expired refresh token",
@@ -136,36 +120,11 @@ async fn request_refresh_admin(
     };
 
     // Validate refresh token — device_id must be NULL (admin token)
-    let row = sqlx::query(
-        r#"
-        SELECT
-            rt.user_id,
-            role,
-            status
-        FROM refresh_tokens rt
-        JOIN users u ON u.id = rt.user_id
-        WHERE rt.token_hash = $1
-          AND rt.device_id IS NULL
-          AND rt.revoked = FALSE
-          AND rt.expires_at > NOW()
-          AND u.deleted_at IS NULL
-        "#,
-    )
-    .bind(&token_hash)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| {
-        tracing::warn!(error = %e, "admin refresh: database error during token lookup");
-        AppError::Database(e)
-    })?
-    .ok_or_else(|| {
-        tracing::warn!("admin refresh: FAILED — refresh token not found, revoked, or expired");
-        AppError::Unauthorized("Invalid or expired refresh token".into())
-    })?;
+    let row = auth::get_admin_refresh_context(&state.db, &token_hash).await?;
 
-    let user_id: Uuid = row.get("user_id");
-    let role: UserRole = row.get("role");
-    let status: UserStatus = row.get("status");
+    let user_id = row.user_id;
+    let role = row.role;
+    let status = row.status;
 
     // Check account still active
     if status != UserStatus::Active {
@@ -259,53 +218,18 @@ pub async fn verify_refresh(
         format!("{digest:x}")
     };
 
-    let token_row = sqlx::query(
-        r#"
-        SELECT user_id
-        FROM refresh_tokens
-        WHERE token_hash = $1
-          AND device_id = $2
-          AND revoked = FALSE
-          AND expires_at > NOW()
-        "#,
-    )
-    .bind(&token_hash)
-    .bind(payload.device_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| {
-        tracing::warn!(device_id = %payload.device_id, "Verification failed: Invalid or expired refresh token");
-        AppError::unauthorized_with_code(ErrorCode::SessionRevoked, "Invalid or expired refresh token")
-    })?;
-
-    let user_id: Uuid = token_row.get("user_id");
+    let user_id =
+        auth::get_refresh_token_user_id(&state.db, &token_hash, payload.device_id).await?;
     tracing::warn!(user_id = %user_id, "Step 2: Refresh token validated in database");
 
     // 3. Fetch the device's public key & shift metadata
-    let device_row = sqlx::query(
-        r#"
-        SELECT public_key, metadata
-        FROM devices
-        WHERE id = $1
-          AND user_id = $2
-          AND status = 'ACTIVE'::device_status
-        "#,
-    )
-    .bind(payload.device_id)
-    .bind(user_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| {
-        tracing::warn!(device_id = %payload.device_id, "Verification failed: Device not found or revoked");
-        AppError::unauthorized_with_code(ErrorCode::DeviceReactivation, "Device not found or revoked")
-    })?;
+    let device_row =
+        auth::get_active_device_key_metadata(&state.db, payload.device_id, user_id).await?;
 
     tracing::warn!("Step 3: Device public key and shift metadata fetched");
 
-    let public_key_b64: String = device_row.get("public_key");
-    let metadata: serde_json::Value = device_row.get("metadata");
+    let public_key_b64 = device_row.public_key;
+    let metadata = device_row.metadata;
 
     let shift_start = metadata
         .get("shift_start")
@@ -354,7 +278,7 @@ pub async fn verify_refresh(
     }
 
     // 5. Issue a new access token
-    let user = crate::queries::user_queries::get_user_by_id(&state.db, user_id).await?;
+    let user = crate::queries::users::get_user_by_id(&state.db, user_id).await?;
     let jwt_svc = &state.jwt_svc;
     let access_token = jwt_svc
         .issue_access_token_with_shift(
