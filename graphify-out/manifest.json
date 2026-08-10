@@ -1245,362 +1245,312 @@
     "semantic_hash": "c488b4d52ec60a2e96eae66eb58a48ca"
   },
   "iviss-backend/src/api_doc.rs": {
-    "mtime": 1786207456.359606,
+    "mtime": 1786359590.5710459,
     "ast_hash": "b2937a19fc1ff552bd522a5cb6d06ddb",
     "semantic_hash": "b2937a19fc1ff552bd522a5cb6d06ddb"
   },
   "iviss-backend/src/app_cache.rs": {
-    "mtime": 1786208087.5394044,
-    "ast_hash": "3b0c15b966ee1d83fea50f58ddeb786f",
+    "mtime": 1786360732.5024812,
+    "ast_hash": "eea16264f4507a0273157047ea7be280",
     "semantic_hash": ""
   },
   "iviss-backend/src/app_state.rs": {
-    "mtime": 1786207691.2247944,
+    "mtime": 1786359590.5882463,
     "ast_hash": "3f54e42e02cbe3942b1c27655551d573",
     "semantic_hash": ""
   },
   "iviss-backend/src/bin/export_openapi.rs": {
-    "mtime": 1786207456.4024677,
+    "mtime": 1786359590.5885108,
     "ast_hash": "9981c68c70358fafd657987b98efdd4e",
     "semantic_hash": "9981c68c70358fafd657987b98efdd4e"
   },
   "iviss-backend/src/bin/openapi_gen.rs": {
-    "mtime": 1786207456.4023018,
+    "mtime": 1786359590.5884156,
     "ast_hash": "6690d7280ef407ce60e748f584ccb007",
     "semantic_hash": "6690d7280ef407ce60e748f584ccb007"
   },
   "iviss-backend/src/bin/seed.rs": {
-    "mtime": 1786207456.4026313,
+    "mtime": 1786359590.588603,
     "ast_hash": "8f77d8d3e29c32c7bf6cd731fc70e75b",
     "semantic_hash": "8f77d8d3e29c32c7bf6cd731fc70e75b"
   },
   "iviss-backend/src/config.rs": {
-    "mtime": 1786207691.2387965,
+    "mtime": 1786359590.5630233,
     "ast_hash": "c8d05c4228184d18f539b3e6133cbe38",
     "semantic_hash": ""
   },
   "iviss-backend/src/db/mod.rs": {
-    "mtime": 1786207456.3591843,
+    "mtime": 1786359590.5707977,
     "ast_hash": "24a6db1058ec78625298a1a8c38043b1",
     "semantic_hash": "24a6db1058ec78625298a1a8c38043b1"
   },
   "iviss-backend/src/db/pool.rs": {
-    "mtime": 1786207456.3577116,
+    "mtime": 1786359590.5700815,
     "ast_hash": "2f5cda2be09d1e68cf61872963dbd128",
     "semantic_hash": "2f5cda2be09d1e68cf61872963dbd128"
   },
   "iviss-backend/src/db/seed_admin.rs": {
-    "mtime": 1786207691.242797,
+    "mtime": 1786359590.5704033,
     "ast_hash": "144c976bd9aead30383cda4d781be9c0",
     "semantic_hash": ""
   },
   "iviss-backend/src/db/seed_data.rs": {
-    "mtime": 1786207456.358113,
+    "mtime": 1786359590.5702798,
     "ast_hash": "ce2e7cf35394ccb57ef852e54d69aee1",
     "semantic_hash": "ce2e7cf35394ccb57ef852e54d69aee1"
   },
   "iviss-backend/src/dto/audit.rs": {
-    "mtime": 1786207456.4248302,
+    "mtime": 1786359590.6030242,
     "ast_hash": "42399da13971d05c763479b9cd9dcc58",
     "semantic_hash": "42399da13971d05c763479b9cd9dcc58"
   },
   "iviss-backend/src/dto/auth.rs": {
-    "mtime": 1786207456.4230816,
+    "mtime": 1786359590.6017675,
     "ast_hash": "28e126fcd21a607ae6268379efa8fab4",
     "semantic_hash": "28e126fcd21a607ae6268379efa8fab4"
   },
   "iviss-backend/src/dto/common.rs": {
-    "mtime": 1786207456.4234056,
+    "mtime": 1786359590.6020005,
     "ast_hash": "20406bcd0bfa5860719c91c1badc7c0a",
     "semantic_hash": ""
   },
   "iviss-backend/src/dto/create_control.rs": {
-    "mtime": 1786207456.4270341,
+    "mtime": 1786359590.604479,
     "ast_hash": "a2377ef6eee12fb08e6a31e64eb9c6de",
     "semantic_hash": "a2377ef6eee12fb08e6a31e64eb9c6de"
   },
   "iviss-backend/src/dto/list_control.rs": {
-    "mtime": 1786207456.425226,
+    "mtime": 1786359590.6031218,
     "ast_hash": "4f6e625eeab580a9a87fed0bc67391db",
     "semantic_hash": "4f6e625eeab580a9a87fed0bc67391db"
   },
   "iviss-backend/src/dto/location.rs": {
-    "mtime": 1786207456.4241805,
+    "mtime": 1786359590.6024952,
     "ast_hash": "2e96cd2ca832c4bc5a77a41136ecb8cf",
     "semantic_hash": "2e96cd2ca832c4bc5a77a41136ecb8cf"
   },
   "iviss-backend/src/dto/mod.rs": {
-    "mtime": 1786207456.4259357,
+    "mtime": 1786359590.6036315,
     "ast_hash": "92de564a55b9b7f5d69cc9ba7cbdb748",
     "semantic_hash": ""
   },
   "iviss-backend/src/dto/organizations.rs": {
-    "mtime": 1786207456.4238737,
+    "mtime": 1786359590.6023169,
     "ast_hash": "0a65dd4d426f8fdd9b0562ccc7c538f3",
     "semantic_hash": "0a65dd4d426f8fdd9b0562ccc7c538f3"
   },
   "iviss-backend/src/dto/pending_submission.rs": {
-    "mtime": 1786207456.4255316,
+    "mtime": 1786359590.6033309,
     "ast_hash": "4c02994c561d8838712aef8b66c51ee7",
     "semantic_hash": "4c02994c561d8838712aef8b66c51ee7"
   },
   "iviss-backend/src/dto/scan.rs": {
-    "mtime": 1786207456.4236178,
+    "mtime": 1786359590.602143,
     "ast_hash": "3a953d98a213bf358c9d0c568c71b339",
     "semantic_hash": "3a953d98a213bf358c9d0c568c71b339"
   },
   "iviss-backend/src/dto/search_vehicle.rs": {
-    "mtime": 1786207456.4267113,
+    "mtime": 1786359590.60422,
     "ast_hash": "c962ebc1a5933add6c0cb8d82425c5b3",
     "semantic_hash": ""
   },
   "iviss-backend/src/dto/stats.rs": {
-    "mtime": 1786207456.4244292,
+    "mtime": 1786359590.6026156,
     "ast_hash": "16e617a968ff32bffdcfa83c0a2bb161",
     "semantic_hash": "16e617a968ff32bffdcfa83c0a2bb161"
   },
   "iviss-backend/src/dto/users.rs": {
-    "mtime": 1786207456.426151,
+    "mtime": 1786359590.6037765,
     "ast_hash": "df822a3eefad3027fd93e6e555e7dd25",
     "semantic_hash": "df822a3eefad3027fd93e6e555e7dd25"
   },
   "iviss-backend/src/errors.rs": {
-    "mtime": 1786207456.3953767,
+    "mtime": 1786359590.5838284,
     "ast_hash": "9f4419e03e03b4e4e6feaba3beed5bb3",
     "semantic_hash": "9f4419e03e03b4e4e6feaba3beed5bb3"
   },
   "iviss-backend/src/handlers/health.rs": {
-    "mtime": 1786207456.4163933,
+    "mtime": 1786359590.5956488,
     "ast_hash": "8f092ef685287db073ecaa8010cfba17",
     "semantic_hash": "8f092ef685287db073ecaa8010cfba17"
   },
   "iviss-backend/src/handlers/mod.rs": {
-    "mtime": 1786347720.0633337,
+    "mtime": 1786360732.5084815,
     "ast_hash": "c8ba6230d7a786e18fcafa228f33b207",
     "semantic_hash": ""
   },
   "iviss-backend/src/lib.rs": {
-    "mtime": 1786207456.359369,
+    "mtime": 1786359590.570904,
     "ast_hash": "fe92a8759ac0d069b62763ec70549678",
     "semantic_hash": ""
   },
   "iviss-backend/src/main.rs": {
-    "mtime": 1786207456.4272437,
+    "mtime": 1786359590.604627,
     "ast_hash": "c3a8c8749a749a0ba70f1d0bc5391783",
     "semantic_hash": ""
   },
   "iviss-backend/src/middleware/auth.rs": {
-    "mtime": 1786207456.3970466,
-    "ast_hash": "16affb8d7d2211d2c1e4b572a0f6ae35",
+    "mtime": 1786360732.5154817,
+    "ast_hash": "a199e62c357fa99f65e08e250ef0340a",
     "semantic_hash": ""
   },
   "iviss-backend/src/middleware/cors.rs": {
-    "mtime": 1786207456.398265,
+    "mtime": 1786359590.5858505,
     "ast_hash": "e15c1ebbd19083b51b4c9db193209ca0",
     "semantic_hash": "e15c1ebbd19083b51b4c9db193209ca0"
   },
   "iviss-backend/src/middleware/metrics.rs": {
-    "mtime": 1786207456.3980746,
+    "mtime": 1786359590.5857103,
     "ast_hash": "b562a0e592d30db2c75ec90b476b8386",
     "semantic_hash": "b562a0e592d30db2c75ec90b476b8386"
   },
   "iviss-backend/src/middleware/mod.rs": {
-    "mtime": 1786207456.3984349,
+    "mtime": 1786359590.5859735,
     "ast_hash": "3f040c1f0bd02287ad9c8275aa5ddab0",
     "semantic_hash": "3f040c1f0bd02287ad9c8275aa5ddab0"
   },
   "iviss-backend/src/middleware/rbac.rs": {
-    "mtime": 1786207456.39765,
-    "ast_hash": "4befd4d93dcf26fbd833d7c68369494c",
-    "semantic_hash": "4befd4d93dcf26fbd833d7c68369494c"
+    "mtime": 1786366076.0450165,
+    "ast_hash": "588d1d86cb28fd7158a53dd6f42acde4",
+    "semantic_hash": ""
   },
   "iviss-backend/src/models/mod.rs": {
-    "mtime": 1786207456.4125896,
+    "mtime": 1786359590.59371,
     "ast_hash": "0086f52123343f815ca37ac022b84583",
     "semantic_hash": "0086f52123343f815ca37ac022b84583"
   },
   "iviss-backend/src/models/pending_submission.rs": {
-    "mtime": 1786207456.4123728,
+    "mtime": 1786359590.5935638,
     "ast_hash": "b6088fc33e49b0e45c779af19dbb110e",
     "semantic_hash": "b6088fc33e49b0e45c779af19dbb110e"
   },
   "iviss-backend/src/models/search_vehicle.rs": {
-    "mtime": 1786207456.4127326,
+    "mtime": 1786359590.5938008,
     "ast_hash": "f2cef1b44184b03abe9824427c71ccab",
     "semantic_hash": "f2cef1b44184b03abe9824427c71ccab"
   },
-  "iviss-backend/src/queries/audit_queries.rs": {
-    "mtime": 1786207456.352466,
-    "ast_hash": "a68e31d161e70b2dfb266f856e568643",
-    "semantic_hash": "a68e31d161e70b2dfb266f856e568643"
-  },
-  "iviss-backend/src/queries/auth_queries.rs": {
-    "mtime": 1786207456.3496783,
-    "ast_hash": "9f1e63d702bc8e399ea102e80028f44b",
-    "semantic_hash": "9f1e63d702bc8e399ea102e80028f44b"
-  },
-  "iviss-backend/src/queries/control_queries.rs": {
-    "mtime": 1786207456.3538625,
-    "ast_hash": "9592d8c6eb84efda8379243f271beb29",
-    "semantic_hash": "9592d8c6eb84efda8379243f271beb29"
-  },
-  "iviss-backend/src/queries/location_queries.rs": {
-    "mtime": 1786207456.3559673,
-    "ast_hash": "d6724a69d2206bb90156f1966ba34050",
-    "semantic_hash": "d6724a69d2206bb90156f1966ba34050"
-  },
   "iviss-backend/src/queries/mod.rs": {
-    "mtime": 1786207456.3562407,
-    "ast_hash": "11dd6ff1de0fdc031062c860902d3876",
-    "semantic_hash": "11dd6ff1de0fdc031062c860902d3876"
-  },
-  "iviss-backend/src/queries/organization_queries.rs": {
-    "mtime": 1786207456.350834,
-    "ast_hash": "65a799f00760cd63b5fea190acee6891",
-    "semantic_hash": "65a799f00760cd63b5fea190acee6891"
-  },
-  "iviss-backend/src/queries/session_queries.rs": {
-    "mtime": 1786207456.35408,
-    "ast_hash": "37a59d5bfe8862e3fdd4285eed3d76a5",
-    "semantic_hash": "37a59d5bfe8862e3fdd4285eed3d76a5"
-  },
-  "iviss-backend/src/queries/stats_queries.rs": {
-    "mtime": 1786207456.3574176,
-    "ast_hash": "138d443a636dc375e4e029495eeaca92",
-    "semantic_hash": "138d443a636dc375e4e029495eeaca92"
-  },
-  "iviss-backend/src/queries/submission_queries.rs": {
-    "mtime": 1786207456.354482,
-    "ast_hash": "4b1ec44a8f20e31415d35a197d7f807a",
-    "semantic_hash": "4b1ec44a8f20e31415d35a197d7f807a"
-  },
-  "iviss-backend/src/queries/user_queries.rs": {
-    "mtime": 1786207456.3522043,
-    "ast_hash": "f3f6da50996d7de522d2cd2d6189ebd4",
-    "semantic_hash": "f3f6da50996d7de522d2cd2d6189ebd4"
-  },
-  "iviss-backend/src/queries/vehicle_queries.rs": {
-    "mtime": 1786207456.3483813,
-    "ast_hash": "09c0109d7ae4f6672541c893b9756b89",
-    "semantic_hash": "09c0109d7ae4f6672541c893b9756b89"
+    "mtime": 1786360732.5164816,
+    "ast_hash": "6f1dfb89e16a5b12c3ffd1b657df38c7",
+    "semantic_hash": ""
   },
   "iviss-backend/src/routes.rs": {
-    "mtime": 1786207456.4277399,
+    "mtime": 1786359590.6049314,
     "ast_hash": "0bb98ff0c424f9a8404fb120ab0da274",
     "semantic_hash": "0bb98ff0c424f9a8404fb120ab0da274"
   },
   "iviss-backend/src/services/mod.rs": {
-    "mtime": 1786207456.4101663,
+    "mtime": 1786359590.592306,
     "ast_hash": "30d56ebcd68ff95519abae05bc595324",
     "semantic_hash": ""
   },
   "iviss-backend/src/telemetry.rs": {
-    "mtime": 1786207456.3603852,
+    "mtime": 1786359590.571401,
     "ast_hash": "9a2e06ecb6066b29c850e7f04b5ef85d",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/admin_login_and_refresh_token_tests.rs": {
-    "mtime": 1786207456.3800478,
+    "mtime": 1786359590.5784676,
     "ast_hash": "391dc717b51288a8105723d486b9770e",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/admin_logout_tests.rs": {
-    "mtime": 1786207456.3702896,
+    "mtime": 1786359590.575044,
     "ast_hash": "a92b7e3f6f649ae5d96787b040db0273",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/auth_queries_tests.rs": {
-    "mtime": 1786207456.3892548,
-    "ast_hash": "e6cd35ced25c83612f6d9d9baa2c6cca",
-    "semantic_hash": "e6cd35ced25c83612f6d9d9baa2c6cca"
+    "mtime": 1786366066.7429698,
+    "ast_hash": "7a400fab0070a000d249d7f94082ba93",
+    "semantic_hash": ""
   },
   "iviss-backend/src/tests/control_queries_tests.rs": {
-    "mtime": 1786207456.3828232,
-    "ast_hash": "bf02d5ec574deb9e5f4cf3bffa7690ba",
-    "semantic_hash": "bf02d5ec574deb9e5f4cf3bffa7690ba"
+    "mtime": 1786366076.1060169,
+    "ast_hash": "ca8015022710d4afbb7060e3248b6e59",
+    "semantic_hash": ""
   },
   "iviss-backend/src/tests/daily_login_flow_tests.rs": {
-    "mtime": 1786207456.3777552,
+    "mtime": 1786359590.5775719,
     "ast_hash": "b9dcd3059bd255c232ff448c7be21fff",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/jwt_service_tests.rs": {
-    "mtime": 1786207456.3940928,
+    "mtime": 1786359590.58333,
     "ast_hash": "ae23eebc590f42cb02ca8f1bd001c029",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/mod.rs": {
-    "mtime": 1786207456.3863072,
+    "mtime": 1786359590.5803049,
     "ast_hash": "86049a8068b816f58d12fc91eddd3b2b",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/ocr_service_tests.rs": {
-    "mtime": 1786207456.3761404,
+    "mtime": 1786359590.576951,
     "ast_hash": "623d1dcae42143ba3e3683f7a5e0e477",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/otp_service_tests.rs": {
-    "mtime": 1786207691.3968186,
+    "mtime": 1786359590.5805511,
     "ast_hash": "5a11300ce2662b3801c3a6bd2a77f46d",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/photo_ocr_service_tests.rs": {
-    "mtime": 1786207523.6205714,
+    "mtime": 1786359590.5801144,
     "ast_hash": "384460a12e11c40315a35e074c6a1e5f",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/plate_format_tests.rs": {
-    "mtime": 1786207456.392396,
+    "mtime": 1786359590.5824006,
     "ast_hash": "8e11b5df94bb0152b9b8b3fdb26ddf39",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/refresh_endpoint_tests.rs": {
-    "mtime": 1786207456.3937712,
+    "mtime": 1786359590.5826542,
     "ast_hash": "ea447faa3ca93fd074ae11b3d96ee180",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/sms_provider_tests.rs": {
-    "mtime": 1786207691.4148214,
+    "mtime": 1786359590.5798995,
     "ast_hash": "f7bfadc5387c7ddabe588f4a7ecd467f",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/stats_handler_tests.rs": {
-    "mtime": 1786207456.367635,
+    "mtime": 1786359590.5733738,
     "ast_hash": "688f2cb911f8ec0f0ed015a25dd8d274",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/stats_queries_tests.rs": {
-    "mtime": 1786207456.3626132,
-    "ast_hash": "3a1b69fe7162c07fb89422005c605ee0",
-    "semantic_hash": "3a1b69fe7162c07fb89422005c605ee0"
+    "mtime": 1786366067.5009735,
+    "ast_hash": "e1409dcca179b5f6e7f72b128601a1ac",
+    "semantic_hash": ""
   },
   "iviss-backend/src/tests/terminate_session_tests.rs": {
-    "mtime": 1786207456.3912778,
+    "mtime": 1786359590.5818114,
     "ast_hash": "b186d9040104ca1d5c88f47c12181371",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/users_and_user_manager_tests.rs": {
-    "mtime": 1786207456.3743486,
+    "mtime": 1786359590.5764625,
     "ast_hash": "a0f197db4a9a3d5b1f5ad2dd630e57de",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/vehicle_data_cache_tests.rs": {
-    "mtime": 1786207691.4658284,
+    "mtime": 1786359590.5726433,
     "ast_hash": "e51c06052345c8e41d835e01679f85f7",
     "semantic_hash": ""
   },
   "iviss-backend/src/utils/mod.rs": {
-    "mtime": 1786207456.3968728,
+    "mtime": 1786359590.5849414,
     "ast_hash": "a652ef95b911817567e84d57c83a4fe7",
     "semantic_hash": ""
   },
   "iviss-backend/src/utils/password.rs": {
-    "mtime": 1786207456.3964999,
+    "mtime": 1786359590.5843737,
     "ast_hash": "e42e0ad09a8bb171e6a43bca7bbd2170",
     "semantic_hash": "e42e0ad09a8bb171e6a43bca7bbd2170"
   },
   "iviss-backend/src/utils/plate_format.rs": {
-    "mtime": 1786207456.3963292,
+    "mtime": 1786359590.58423,
     "ast_hash": "9654b80d43c7cc380de864410e48f79b",
     "semantic_hash": ""
   },
@@ -2035,152 +1985,152 @@
     "semantic_hash": ""
   },
   "iviss-backend/src/bin/s3-cache-sync.rs": {
-    "mtime": 1786208087.413394,
+    "mtime": 1786359590.5887475,
     "ast_hash": "e1ea07eb1c00b1045d82af85e9bf442e",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/insurance_client/mod.rs": {
-    "mtime": 1786207456.4000666,
+    "mtime": 1786359590.5869567,
     "ast_hash": "a266c26034ec64e8df22b92e6d4585e3",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/mod.rs": {
-    "mtime": 1786207456.4003766,
+    "mtime": 1786359590.587171,
     "ast_hash": "f6513302c10d2cc45efb85d336f30bd7",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/technical_inspection_client/mod.rs": {
-    "mtime": 1786207456.400235,
+    "mtime": 1786359590.5870664,
     "ast_hash": "dc4107a588e9b65caf961c9abeaccfc4",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/vehicle_client/client.rs": {
-    "mtime": 1786208087.5654063,
+    "mtime": 1786359590.58607,
     "ast_hash": "6e05722cf2f4fa4719f088f5a730f0b5",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/vehicle_client/mod.rs": {
-    "mtime": 1786208087.5654063,
+    "mtime": 1786359590.5865548,
     "ast_hash": "46d7821fe5363a47c4c31dac78b96d78",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/vehicle_client/parser.rs": {
-    "mtime": 1786207456.3999093,
+    "mtime": 1786359590.5866654,
     "ast_hash": "1fc9679f3d641413fe9ad3fbd39e0c20",
     "semantic_hash": ""
   },
   "iviss-backend/src/external_services/vehicle_client/types.rs": {
-    "mtime": 1786207456.399191,
+    "mtime": 1786359590.586409,
     "ast_hash": "687237ed63ad4c2ca27fb3463f0d5652",
     "semantic_hash": ""
   },
   "iviss-backend/src/s3_cache_layer/config.rs": {
-    "mtime": 1786208087.6054096,
+    "mtime": 1786359590.5873065,
     "ast_hash": "a0f8eae1fcdda8bf8f84343ac654c51e",
     "semantic_hash": ""
   },
   "iviss-backend/src/s3_cache_layer/crypto.rs": {
-    "mtime": 1786207456.401715,
+    "mtime": 1786359590.5880728,
     "ast_hash": "03be3a201b69a6982ec5ff575cfe2f87",
     "semantic_hash": ""
   },
   "iviss-backend/src/s3_cache_layer/mod.rs": {
-    "mtime": 1786207456.4015749,
+    "mtime": 1786359590.5879784,
     "ast_hash": "85b3d31a5290a27d481fa357132fdc66",
     "semantic_hash": ""
   },
   "iviss-backend/src/s3_cache_layer/s3_reader.rs": {
-    "mtime": 1786208087.6054096,
+    "mtime": 1786359590.5874453,
     "ast_hash": "dea1f28e11ecc7fd1271f6375d57ea28",
     "semantic_hash": ""
   },
   "iviss-backend/src/s3_cache_layer/s3_writer.rs": {
-    "mtime": 1786208087.6064098,
+    "mtime": 1786359590.587824,
     "ast_hash": "cca09ac94bb24f0629b1ce0476550d97",
     "semantic_hash": ""
   },
   "iviss-backend/src/s3_cache_layer/types.rs": {
-    "mtime": 1786208087.6064098,
+    "mtime": 1786359590.5875988,
     "ast_hash": "7d764649ec9425783b5c4f8b27dccb93",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/auth/jwt.rs": {
-    "mtime": 1786207456.4035606,
+    "mtime": 1786359590.5891254,
     "ast_hash": "08596af222b6b323075dd909f5b91701",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/auth/mod.rs": {
-    "mtime": 1786207456.4045002,
+    "mtime": 1786359590.589409,
     "ast_hash": "f8b688e98f398bb538e25034a86f6b57",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/auth/otp.rs": {
-    "mtime": 1786207456.40466,
+    "mtime": 1786359590.5894985,
     "ast_hash": "e015ebead649480ca030ff02ee94f67d",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/notifications/email_provider.rs": {
-    "mtime": 1786207456.4114337,
+    "mtime": 1786359590.5930548,
     "ast_hash": "3a5e95df571fb765d405ee99a6e6b167",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/notifications/email_service.rs": {
-    "mtime": 1786207456.4103234,
+    "mtime": 1786359590.5924025,
     "ast_hash": "13fcdff7c0724f0e5d747df10ab97dcd",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/notifications/mod.rs": {
-    "mtime": 1786207456.4122052,
+    "mtime": 1786359590.5934649,
     "ast_hash": "d1ea191054b8fa92ece281898266e063",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/notifications/sms_provider.rs": {
-    "mtime": 1786207456.4105177,
+    "mtime": 1786359590.5925143,
     "ast_hash": "0466dc94e5a61fa8ad773338e4f742a9",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/ocr/engine.rs": {
-    "mtime": 1786207456.4077487,
+    "mtime": 1786359590.590641,
     "ast_hash": "0bd54c622e1f405791997363855e0321",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/ocr/mod.rs": {
-    "mtime": 1786207456.4086883,
+    "mtime": 1786359590.5915282,
     "ast_hash": "ec32817f4fb332bac3534cadd4709e0e",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/ocr/photo.rs": {
-    "mtime": 1786207691.3238084,
+    "mtime": 1786359590.5897815,
     "ast_hash": "e3036df2925ed3e74ef07afdeb9ec359",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/ocr/timings.rs": {
-    "mtime": 1786207456.406202,
+    "mtime": 1786359590.5903215,
     "ast_hash": "e7545adde38702f0fddf67c1e85fe1bc",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/vehicles/data_cache.rs": {
-    "mtime": 1786207456.408874,
+    "mtime": 1786359590.5916293,
     "ast_hash": "ec35377e71074744f4c8bc4f30fdf4d5",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/vehicles/mod.rs": {
-    "mtime": 1786207456.4100127,
+    "mtime": 1786359590.5922067,
     "ast_hash": "24a8afbcb1c59e5d9c5b02e63db68822",
     "semantic_hash": ""
   },
   "iviss-backend/src/services/vehicles/status.rs": {
-    "mtime": 1786207456.4092028,
-    "ast_hash": "2d5293c38b1661ed6695257011dbe094",
+    "mtime": 1786360732.5184817,
+    "ast_hash": "2cfb45889882b7159f7890654c7738ae",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/contract_openapi.rs": {
-    "mtime": 1786207456.386666,
+    "mtime": 1786359590.5804324,
     "ast_hash": "f16e2967b921b277577ea23aabb49d37",
     "semantic_hash": ""
   },
   "iviss-backend/src/tests/contract_rbac.rs": {
-    "mtime": 1786207456.3685298,
+    "mtime": 1786359590.5743268,
     "ast_hash": "662461106d63a17890514b549f6a5f54",
     "semantic_hash": ""
   },
@@ -2250,123 +2200,173 @@
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/audit/mod.rs": {
-    "mtime": 1786207456.4191508,
-    "ast_hash": "c09cff525b1a4e75290787ec0b8ba222",
+    "mtime": 1786360732.5044813,
+    "ast_hash": "0e1a68d172c881a52923086637e0674c",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/activate.rs": {
-    "mtime": 1786347621.7275188,
-    "ast_hash": "cdbc753ee803ba069ed6e366336a7036",
+    "mtime": 1786360732.505387,
+    "ast_hash": "e3e91d3777e613fbb2f97a5569761c64",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/change_password.rs": {
-    "mtime": 1786347621.72816,
-    "ast_hash": "12ef7c8b9f026aaf35a8062af20c1668",
+    "mtime": 1786360732.5054812,
+    "ast_hash": "6b121e663d9879db26c28a1859ba4ffe",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/daily_login.rs": {
-    "mtime": 1786347621.7277484,
-    "ast_hash": "5517c5a484c9d387c3225388126c819c",
+    "mtime": 1786366076.0320165,
+    "ast_hash": "6fc51a0ce3b722126389775aa95da224",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/login.rs": {
-    "mtime": 1786347621.7271566,
-    "ast_hash": "5a7508a853cb15ef7c3feb7390c42dd5",
+    "mtime": 1786360732.5064814,
+    "ast_hash": "8de9c0b1017695f09b58e4aa3fad9df2",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/logout.rs": {
-    "mtime": 1786347621.7273672,
-    "ast_hash": "2307dfafa88ef24b2eef1646c1adddb0",
+    "mtime": 1786366076.0330164,
+    "ast_hash": "ff96e471d3419cd8bb0607501f982500",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/mod.rs": {
-    "mtime": 1786347683.7212365,
-    "ast_hash": "5fa03193cfdddad3e2e49dce2660daaf",
+    "mtime": 1786360732.5074813,
+    "ast_hash": "667cf95f6fc92cdd04551d51274ea396",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/auth/refresh.rs": {
-    "mtime": 1786347621.7279706,
-    "ast_hash": "14732fe74f181b37fb93c4d047952701",
+    "mtime": 1786360732.5084815,
+    "ast_hash": "8e37c991d640d5f8500f0df5e9794615",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/controls/mod.rs": {
-    "mtime": 1786207456.4194138,
-    "ast_hash": "fdb867e96cede8e3a21da4b84f346c18",
+    "mtime": 1786366076.0360165,
+    "ast_hash": "1b5cf84004c8f00ecda37961655939a5",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/ocr/mod.rs": {
-    "mtime": 1786347685.1102781,
+    "mtime": 1786359590.5995789,
     "ast_hash": "d9a2235fedc434a568fde4062e5bc567",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/ocr/photo.rs": {
-    "mtime": 1786207501.4304261,
+    "mtime": 1786359590.5991962,
     "ast_hash": "6f8e48a7e28b6397297d3e2b4bbc1774",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/ocr/scan.rs": {
-    "mtime": 1786207501.709428,
+    "mtime": 1786359590.5987427,
     "ast_hash": "9fc172a9f204186445159996df89a1a9",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/organizations/crud.rs": {
-    "mtime": 1786207456.4225376,
-    "ast_hash": "758319ee9adc24dbc1e93fe18b9a8ff0",
+    "mtime": 1786360732.5084815,
+    "ast_hash": "5777264b9f772b7aef870030c4a2d029",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/organizations/mod.rs": {
-    "mtime": 1786347720.0713341,
+    "mtime": 1786359590.594199,
     "ast_hash": "8ece091f1cebb9b4a7f421f031deb019",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/stats/mod.rs": {
-    "mtime": 1786207456.417081,
-    "ast_hash": "af7e725cc32f21b0f20b097d225a657d",
+    "mtime": 1786366076.0390165,
+    "ast_hash": "8cc2eefaf3e9d15759a5badc5788ae69",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/submissions/mod.rs": {
-    "mtime": 1786207456.4203527,
-    "ast_hash": "036915bb8ad561fb0ad8ad238e63b64a",
+    "mtime": 1786366076.0390165,
+    "ast_hash": "81748abebdc926f47a1b613a704f0989",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/users/activation.rs": {
-    "mtime": 1786347621.7392344,
-    "ast_hash": "19a791d471dca2a8b217475483fdb0df",
+    "mtime": 1786360732.5134816,
+    "ast_hash": "6e8209623703358f5ca12188c2579573",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/users/location.rs": {
-    "mtime": 1786347621.7326396,
-    "ast_hash": "11a29c5bfa6f1d273bbc682a8e22b82c",
+    "mtime": 1786360732.5134816,
+    "ast_hash": "f139a54b7a9a2e8a2e79ac1c007480f0",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/users/mod.rs": {
-    "mtime": 1786347684.0232456,
-    "ast_hash": "10f663b702320035ebf27440fb134ebb",
+    "mtime": 1786360732.5134816,
+    "ast_hash": "10e55641ef552e3be24e0c9ff4f74477",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/users/profile.rs": {
-    "mtime": 1786347621.73239,
-    "ast_hash": "c88098d54cb291e082fcf8f72c7d370c",
+    "mtime": 1786360732.5144815,
+    "ast_hash": "70a8f3ec7664e954515fcb413bb8f827",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/users/provisioning.rs": {
-    "mtime": 1786347621.7384164,
-    "ast_hash": "e7f25bdb022d23d997cadf45b0152b5e",
+    "mtime": 1786360732.515154,
+    "ast_hash": "3562890ee88fdf74d42735eb87b96e1a",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/users/sessions.rs": {
-    "mtime": 1786347621.7388363,
-    "ast_hash": "0053a7bbe65b2e647e80c9f57bb69b93",
+    "mtime": 1786360732.515154,
+    "ast_hash": "d58864cb598378e2c8fd5327afeed78c",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/vehicles/mod.rs": {
-    "mtime": 1786347684.7602675,
+    "mtime": 1786359590.6009715,
     "ast_hash": "837a2c44d57ac60b3e03567dbc916377",
     "semantic_hash": ""
   },
   "iviss-backend/src/handlers/vehicles/search.rs": {
-    "mtime": 1786207691.2597995,
-    "ast_hash": "bd4a4e2f3abc36c7b8014811ffd0d5ec",
+    "mtime": 1786370239.850763,
+    "ast_hash": "deafc26556638c4872676031f43aefbc",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/audit.rs": {
+    "mtime": 1786360732.5154817,
+    "ast_hash": "a68e31d161e70b2dfb266f856e568643",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/auth/mod.rs": {
+    "mtime": 1786366076.0470166,
+    "ast_hash": "3d13350f1af28216bca508b969919496",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/auth/sessions.rs": {
+    "mtime": 1786360732.5164816,
+    "ast_hash": "37a59d5bfe8862e3fdd4285eed3d76a5",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/controls.rs": {
+    "mtime": 1786360732.5164816,
+    "ast_hash": "9592d8c6eb84efda8379243f271beb29",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/organizations.rs": {
+    "mtime": 1786360732.5164816,
+    "ast_hash": "65a799f00760cd63b5fea190acee6891",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/stats.rs": {
+    "mtime": 1786360732.5174818,
+    "ast_hash": "138d443a636dc375e4e029495eeaca92",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/submissions.rs": {
+    "mtime": 1786360732.5174818,
+    "ast_hash": "3802f86040c1df1797d08ca0427633a0",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/users/location.rs": {
+    "mtime": 1786360732.5180435,
+    "ast_hash": "d6724a69d2206bb90156f1966ba34050",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/users/mod.rs": {
+    "mtime": 1786360732.5181777,
+    "ast_hash": "0a04aa2279ad6a7b72a5320a9bcce7f1",
+    "semantic_hash": ""
+  },
+  "iviss-backend/src/queries/vehicles.rs": {
+    "mtime": 1786370224.425997,
+    "ast_hash": "10e338e14e9525748db1330275135215",
     "semantic_hash": ""
   }
 }
