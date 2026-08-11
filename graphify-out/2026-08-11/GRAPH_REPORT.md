@@ -1,16 +1,16 @@
-# Graph Report - iviss  (2026-08-11)
+# Graph Report - iviss  (2026-08-10)
 
 ## Corpus Check
-- 470 files · ~274,559 words
+- 459 files · ~274,377 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3231 nodes · 6597 edges · 222 communities (206 shown, 16 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 222 edges (avg confidence: 0.85)
+- 3191 nodes · 6577 edges · 216 communities (201 shown, 15 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 220 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `87a13dde`
+- Built from commit: `8b6d8df3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,9 +23,9 @@
 - admin_login_and_refresh_token_tests.rs
 - services/ocr/photo.rs
 - users.rs
-- devices.rs
+- queries/auth/mod.rs
 - UserManagement.tsx
-- submissions/submissions.rs
+- submissions/mod.rs
 - users_and_user_manager_tests.rs
 - useAuth
 - search.rs
@@ -33,15 +33,15 @@
 - batch_by_prefix
 - use-toast.ts
 - Step 2 — Populate `s3_cache_layer` shared module + simplify `vehicle_data_cache`
-- BackOfficeLayout.tsx
+- auth_queries_tests.rs
 - update_organization
 - routes.ts
-- dto/stats.rs
+- AuthenticatedAdmin
 - sidebar.tsx
 - request_refresh
 - Config
 - stats_queries_tests.rs
-- AppCache
+- setup_test_infrastructure
 - stats_handler_tests.rs
 - StageTimings
 - list_audit_logs
@@ -52,32 +52,32 @@
 - plate_format.rs
 - button.tsx
 - vehicles.rs
-- VehicleApiService
+- parser.rs
 - storeKey.ts
-- useUsers.test.ts
+- MobileCarteGrise.tsx
 - sms_provider_tests.rs
 - Backend CI Report Job
-- credentials.rs
+- Settings.tsx
 - admin_logout_tests.rs
 - Shared backend-environment Anchor
-- EmailProvider
+- email_provider.rs
 - hcloud_server.control_plane
 - extract_image_field
-- captureFrame.ts
-- authInterceptor.test.ts
+- useCamera.ts
+- src/config.rs
 - compilerOptions
 - ListControlResponse
 - submissions.rs
 - users table
 - components.json
-- PendingVehicles.tsx
+- fetchWithAuth
 - Status
 - middleware/auth.rs
-- parser.rs
+- use-proactive-refresh.ts
 - tokenManager.ts
 - Docker Rules Skill
 - Moka AppCache (otp_store, rate_limit, refresh_nonce, jti_blacklist, org_work_time)
-- refresh_tokens.rs
+- AppCache
 - JwtService (RS256 access token issuance)
 - queries/organizations.rs
 - var.project_name
@@ -97,7 +97,7 @@
 - AWS Secrets Manager Secret Groups (app-secrets, provider-keys, cloudfront-origin-secret)
 - OpenAPI Frontend Codegen (openapi-rq queries/requests)
 - change_password
-- Admin-Only RBAC
+- IVISS Docker Compose Stack
 - API Route Groups (public, web-auth, agent-protected, admin, org-admin)
 - metrics-server.js
 - mockExternalAPIs.ts
@@ -114,15 +114,15 @@
 - SmsProvider trait
 - html_builder.rs
 - hash_password
-- s3_cache_layer/types.rs
+- Core Database Tables and Domains
 - Partner API Integration Flow
-- RequireAuth.tsx
+- getAccessToken
 - Project Graphify Integration Rules
 - OtpService
 - mockAuth.ts
 - authInterceptor.ts
 - Plan d'implémentation — Service de synchronisation du cache S3
-- IVISS Docker Compose Stack
+- Semantic Release Automation
 - PendingSubmission
 - AppError
 - Install Banner Component
@@ -137,7 +137,7 @@
 - gh-artifacts.sh
 - try_seed
 - Compte-rendu de session — Évaluation d'architecture et recadrage du backend par domaine
-- write_vehicle_data
+- S3VehicleDataCache
 - fetch_openapi.mjs
 - cors_layer
 - coverage.sh
@@ -157,6 +157,7 @@
 - Extraction Subagent Prompt
 - activate
 - Graphify Pipeline
+- get_list_control
 - pre-commit
 - engine.rs
 - init_db.sh
@@ -167,10 +168,10 @@
 - errors.rs
 - Incremental Update Flow
 - Sync Server (Rust/Axum intermediary binary)
-- viewfinder.ts
+- imageProcessor.ts
 - 2. État des lieux mesuré
-- AppState
-- useCamera.ts
+- EmailProvider
+- MobileScan.tsx
 - stats/router.rs
 - 6. Arbitrages tranchés
 - useCaptureCoaching.test.ts
@@ -187,25 +188,22 @@
 - graphify query/path/explain commands
 - graphify update . (AST-only refresh)
 - Conventional Commits + Semantic Release
-- usePhotoCapture.ts
+- ScanResultCard.tsx
 - users/router.rs
 - restart_user_session
-- keyManagement.ts
+- usePhotoCapture.ts
 - auth/router.rs
-- VehicleApiCredentials
+- handlers/auth/mod.rs
 - controls/router.rs
 - submissions/router.rs
-- get_list_control
+- .cache_necessary_data_from_database
 - admin_routes
 - protected_routes
 - admin_routes
 - protected_routes
-- SimpleStorage
-- get_dashboard_stats
-- main
 
 ## God Nodes (most connected - your core abstractions)
-1. `AppError` - 201 edges
+1. `AppError` - 196 edges
 2. `cn()` - 80 edges
 3. `useAuth()` - 43 edges
 4. `Button` - 37 edges
@@ -246,15 +244,15 @@
 - **Real-Time Dashboard Widget Family (Live-Polled Surfaces)** — frontend_public_screenshot_desktop_kpi_stat_card_row, frontend_public_screenshot_desktop_live_control_map, frontend_public_screenshot_desktop_recent_alerts_panel, frontend_public_screenshot_desktop_control_activity_chart, frontend_public_screenshot_desktop_top_agents_today, frontend_public_screenshot_mobile_todays_activity_summary [INFERRED 0.85]
 - **PWA Installable Asset Set (Icons + Store Screenshots)** — frontend_public_pwa_64x64_pwa_icon_64, frontend_public_pwa_192x192_pwa_icon_192, frontend_public_pwa_512x512_pwa_icon_512, frontend_public_screenshot_desktop_back_office_dashboard, frontend_public_screenshot_mobile_agent_mobile_dashboard [INFERRED 0.95]
 
-## Communities (222 total, 16 thin omitted)
+## Communities (216 total, 15 thin omitted)
 
 ### Community 0 - "login"
-Cohesion: 0.18
+Cohesion: 0.29
 Nodes (7): login(), AppState, Arc, IntoResponse, Json, Result, State
 
 ### Community 1 - "cn"
-Cohesion: 0.05
-Nodes (41): NavLink(), ScanActionButtons(), ScanActionButtonsProps, ScanResultCard(), ScanTopControls(), ScanTopControlsProps, NavLink, NavLinkCompatProps (+33 more)
+Cohesion: 0.04
+Nodes (54): BackOfficeHeader(), BackOfficeHeaderProps, BackOfficeLayoutInner(), BackOfficeLayoutProps, BackOfficeSidebar(), NavLink(), MobileHeader(), MobileHeaderProps (+46 more)
 
 ### Community 2 - "control_queries_tests.rs"
 Cohesion: 0.28
@@ -266,7 +264,7 @@ Nodes (12): From, get_user_profile(), AppState, Arc, Extension, IntoResponse, Re
 
 ### Community 4 - "Button"
 Cohesion: 0.09
-Nodes (29): ControlActivityChart(), ControlActivityChartProps, agentIcon, DEFAULT_CENTER, leafletIconProto, LiveControlMap(), LiveControlMapProps, BackOfficeLayout() (+21 more)
+Nodes (31): ControlActivityChart(), ControlActivityChartProps, agentIcon, DEFAULT_CENTER, leafletIconProto, LiveControlMap(), LiveControlMapProps, BackOfficeLayout() (+23 more)
 
 ### Community 5 - "admin_login_and_refresh_token_tests.rs"
 Cohesion: 0.18
@@ -277,18 +275,18 @@ Cohesion: 0.13
 Nodes (21): color_adaptive_crop(), enhance_photo_result(), estimate_plate_trapezoid(), extract_plate_strict(), fit_edge(), is_orange_plate_pixel(), perspective_rectify_color_crop(), photo_plate() (+13 more)
 
 ### Community 7 - "users.rs"
-Cohesion: 0.05
-Nodes (95): DeviceStatus, ProvisionUserRequest, ProvisionUserResponse, ResendActivationRequest, ResendActivationResponse, ResendOrgAdminPasswordRequest, ResendOrgAdminPasswordResponse, RestartSessionRequest (+87 more)
+Cohesion: 0.06
+Nodes (77): DeviceStatus, ProvisionUserRequest, ProvisionUserResponse, ResendActivationRequest, ResendActivationResponse, ResendOrgAdminPasswordRequest, ResendOrgAdminPasswordResponse, RestartSessionRequest (+69 more)
 
-### Community 8 - "devices.rs"
-Cohesion: 0.22
-Nodes (19): ActiveDeviceKeyMetadata, check_device_exists(), DeviceForLogin, get_active_device_key_metadata(), get_device_by_user_optional(), is_registered_unsuspended_device(), mark_device_active(), mark_device_inactive() (+11 more)
+### Community 8 - "queries/auth/mod.rs"
+Cohesion: 0.14
+Nodes (48): ActivationUserRow, ActiveDeviceKeyMetadata, AdminAuthRow, AdminRefreshRow, AuthValidationContext, blacklist_jti_cache(), blacklist_jti_db(), check_device_exists() (+40 more)
 
 ### Community 9 - "UserManagement.tsx"
-Cohesion: 0.06
-Nodes (62): formSchema, FormValues, minutesToTimeValue(), OrganizationForm(), OrganizationFormProps, timeValueToMinutes(), FormMode, formSchema (+54 more)
+Cohesion: 0.07
+Nodes (58): formSchema, FormValues, minutesToTimeValue(), OrganizationForm(), OrganizationFormProps, timeValueToMinutes(), FormMode, formSchema (+50 more)
 
-### Community 10 - "submissions/submissions.rs"
+### Community 10 - "submissions/mod.rs"
 Cohesion: 0.11
 Nodes (36): CreatePendingSubmissionRequest, DataEntryResponse, PendingSubmissionDetail, PendingSubmissionListItem, ReviewSubmissionRequest, ReviewSubmissionResponse, Option, Self (+28 more)
 
@@ -297,8 +295,8 @@ Cohesion: 0.13
 Nodes (44): create_test_organization(), create_test_user(), generate_test_public_key_base64(), generate_test_rsa_keypair_pem(), hash_otp_code(), issue_admin_token(), Arc, Box (+36 more)
 
 ### Community 12 - "useAuth"
-Cohesion: 0.06
-Nodes (36): MobileLayout(), MobileLayoutProps, MobileNavigation(), MobileSidebar(), MobileSidebarProps, Textarea, TextareaProps, isValidPlate() (+28 more)
+Cohesion: 0.07
+Nodes (29): MobileLayout(), MobileLayoutProps, MobileNavigation(), MobileSidebar(), MobileSidebarProps, StatusBadge(), StatusBadgeProps, statusBadgeVariants (+21 more)
 
 ### Community 13 - "search.rs"
 Cohesion: 0.12
@@ -314,15 +312,15 @@ Nodes (32): AsRef, Bytes, FromRequestParts, ApiCredentials, AuthError, IntoRespo
 
 ### Community 16 - "use-toast.ts"
 Cohesion: 0.09
-Nodes (29): Toast, ToastAction, ToastActionElement, ToastClose, ToastDescription, ToastProps, ToastTitle, toastVariants (+21 more)
+Nodes (28): Toast, ToastAction, ToastActionElement, ToastClose, ToastDescription, ToastProps, ToastTitle, toastVariants (+20 more)
 
 ### Community 17 - "Step 2 — Populate `s3_cache_layer` shared module + simplify `vehicle_data_cache`"
 Cohesion: 0.05
 Nodes (38): Automated Tests, [DELETE] [vehicle_client_service.rs](file:///home/lonsti-ws/Documents/iviss/iviss-backend/src/services/vehicle_client_service.rs), Key Design Decisions (Confirmed), Manual Verification, [MODIFY] [app_cache.rs](file:///home/lonsti-ws/Documents/iviss/iviss-backend/src/app_cache.rs), [MODIFY] [app_state.rs](file:///home/lonsti-ws/Documents/iviss/iviss-backend/src/app_state.rs), [MODIFY] [bin/s3-cache-sync.rs](file:///home/lonsti-ws/Documents/iviss/iviss-backend/src/bin/s3-cache-sync.rs), [MODIFY] [Cargo.toml](file:///home/lonsti-ws/Documents/iviss/iviss-backend/Cargo.toml) (+30 more)
 
-### Community 18 - "BackOfficeLayout.tsx"
-Cohesion: 0.10
-Nodes (21): BackOfficeHeader(), BackOfficeHeaderProps, BackOfficeLayoutInner(), BackOfficeLayoutProps, BackOfficeSidebar(), MobileHeader(), MobileHeaderProps, mockNavigate (+13 more)
+### Community 18 - "auth_queries_tests.rs"
+Cohesion: 0.20
+Nodes (24): generate_test_rsa_keypair_pem(), ContainerAsync, PgPool, Postgres, String, Uuid, seed_device(), seed_refresh_token() (+16 more)
 
 ### Community 19 - "update_organization"
 Cohesion: 0.41
@@ -330,31 +328,31 @@ Nodes (12): create_organization(), delete_organization(), get_organization(), Ap
 
 ### Community 20 - "routes.ts"
 Cohesion: 0.07
-Nodes (32): AppRouter(), Activate, AdminLogin, AppRoute, AuditLogPage, BackOfficeDashboard, BackOfficeReports, backOfficeRoutes (+24 more)
+Nodes (31): Activate, AdminLogin, AppRoute, AuditLogPage, BackOfficeDashboard, BackOfficeReports, backOfficeRoutes, catchAllRoute (+23 more)
 
-### Community 21 - "dto/stats.rs"
+### Community 21 - "AuthenticatedAdmin"
 Cohesion: 0.12
-Nodes (46): ActivityData, ActivityFeedItemDto, ActivityFeedQuery, ActivityFeedResponse, ActivityQuery, AgentLocationDto, ControlActivityPoint, ControlActivityResponse (+38 more)
+Nodes (56): ActivityData, ActivityFeedItemDto, ActivityFeedQuery, ActivityFeedResponse, ActivityQuery, AgentLocationDto, ControlActivityPoint, ControlActivityResponse (+48 more)
 
 ### Community 22 - "sidebar.tsx"
-Cohesion: 0.07
-Nodes (28): SheetContent, Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupAction, SidebarGroupContent, SidebarGroupLabel (+20 more)
+Cohesion: 0.05
+Nodes (35): SheetContent, SheetContentProps, SheetDescription, SheetFooter(), SheetHeader(), SheetOverlay, SheetTitle, sheetVariants (+27 more)
 
 ### Community 23 - "request_refresh"
-Cohesion: 0.26
-Nodes (16): on_shift_ended(), request_refresh(), request_refresh_admin(), request_refresh_agent(), AppState, Arc, IntoResponse, Json (+8 more)
+Cohesion: 0.35
+Nodes (13): request_refresh(), request_refresh_admin(), request_refresh_agent(), AppState, Arc, IntoResponse, Json, Response (+5 more)
 
 ### Community 24 - "Config"
-Cohesion: 0.11
-Nodes (17): Config, Environment, LogLevel, mock_vehicle_api_credentials(), FromStr, Option, Result, Self (+9 more)
+Cohesion: 0.19
+Nodes (9): Config, Environment, Option, Result, Self, String, Vec, EmailProviderCredentials (+1 more)
 
 ### Community 25 - "stats_queries_tests.rs"
 Cohesion: 0.23
 Nodes (32): ContainerAsync, PgPool, Postgres, Uuid, seed_agent(), seed_agent_location(), seed_control_record(), seed_organization() (+24 more)
 
-### Community 26 - "AppCache"
-Cohesion: 0.05
-Nodes (68): Default, Expiry, AppCache, OtpEntry, OtpExpiry, Cache, Duration, Instant (+60 more)
+### Community 26 - "setup_test_infrastructure"
+Cohesion: 0.12
+Nodes (29): generate_test_rsa_keypair_pem(), hash_otp_code(), Arc, Box, ContainerAsync, Error, PgPool, Postgres (+21 more)
 
 ### Community 27 - "stats_handler_tests.rs"
 Cohesion: 0.15
@@ -369,8 +367,8 @@ Cohesion: 0.11
 Nodes (25): AuditAction, AuditLogEntry, AuditLogQuery, Err, FromStr, Option, Result, Self (+17 more)
 
 ### Community 30 - "vehicle_data_cache_tests.rs"
-Cohesion: 0.16
-Nodes (16): Client, Option, Result, Self, String, S3VehicleDataCache, get_missing_plate_returns_none(), make_test_vehicle() (+8 more)
+Cohesion: 0.32
+Nodes (10): get_missing_plate_returns_none(), make_test_vehicle(), ContainerAsync, FnOnce, start_minio_cache(), store_and_get_no_encryption(), store_and_get_option_e_client_layer_verified(), store_and_get_with_client_side_encryption() (+2 more)
 
 ### Community 31 - "IVISS Back Office Desktop Dashboard"
 Cohesion: 0.12
@@ -378,35 +376,35 @@ Nodes (25): IVISS PWA App Icon 192x192, IVISS Brand Identity (Shield + Vehicle +
 
 ### Community 32 - "sms_provider.rs"
 Cohesion: 0.15
-Nodes (14): MockSmsProvider, OrangeSmsProvider, OrangeTokenResponse, Arc, Cache, Client, Instant, Result (+6 more)
+Nodes (16): MockSmsProvider, OrangeSmsProvider, OrangeTokenResponse, Arc, Cache, Client, Instant, Result (+8 more)
 
 ### Community 33 - "TelemetryHandle"
 Cohesion: 0.05
 Nodes (50): ApiDoc, SecurityAddon, ensure_database_exists(), initialize_pool(), DbPool, Result, main(), Result (+42 more)
 
 ### Community 34 - "plate_format.rs"
-Cohesion: 0.14
-Nodes (16): classify(), classify_compact(), correct_digit(), correct_letter(), correct_with_mask(), extract_first(), find_candidate(), format_display() (+8 more)
+Cohesion: 0.05
+Nodes (45): load_s3_cache_config(), load_vehicle_api_credentials(), main(), Result, decrypt(), decrypt_rejects_short_payload(), decrypt_with_wrong_key_fails(), encrypt() (+37 more)
 
 ### Community 35 - "button.tsx"
-Cohesion: 0.07
-Nodes (24): VehicleActionFooterProps, VehicleHeader(), VehicleHeaderProps, VehicleImageCollapsible(), VehicleImageCollapsibleProps, VehicleNotFound(), VehicleNotFoundProps, VehicleErrorState() (+16 more)
+Cohesion: 0.11
+Nodes (13): VehicleActionFooterProps, VehicleHeader(), VehicleHeaderProps, VehicleImageCollapsible(), VehicleImageCollapsibleProps, VehicleNotFound(), VehicleNotFoundProps, VehicleErrorState() (+5 more)
 
 ### Community 36 - "vehicles.rs"
 Cohesion: 0.09
 Nodes (20): Option, String, VehicleRow, create_test_status_row(), create_test_vehicle_row(), get_vehicle_status_by_plate(), get_vehicle_with_owner_by_plate(), insert_control_record_for_vehicle_search() (+12 more)
 
-### Community 37 - "VehicleApiService"
-Cohesion: 0.13
-Nodes (15): ExternalDataSource, ExternalServiceError, HealthStatus, PartnerPayload, Option, Send, String, Sync (+7 more)
+### Community 37 - "parser.rs"
+Cohesion: 0.07
+Nodes (38): HashMap, ExternalDataSource, ExternalServiceError, HealthStatus, PartnerPayload, Option, Send, String (+30 more)
 
 ### Community 38 - "storeKey.ts"
-Cohesion: 0.17
-Nodes (8): signNonce(), decryptPrivateKey(), encryptPrivateKey(), generateKeyPair(), PasswordManager, retrieveKeyPair(), storeKeyPair(), mockedRetrieveKeyPair
+Cohesion: 0.07
+Nodes (21): AppInitializer(), AppInitializerProps, tryInitializeKeys(), mockedKeyManagement, resetDeviceId(), checkKeyPairExists(), decryptPrivateKey(), encryptPrivateKey() (+13 more)
 
-### Community 39 - "useUsers.test.ts"
-Cohesion: 0.53
-Nodes (3): useUser(), useUsers(), createQueryWrapper()
+### Community 39 - "MobileCarteGrise.tsx"
+Cohesion: 0.13
+Nodes (13): Textarea, TextareaProps, mockGeolocation, useUser(), useUsers(), GeoLocation, getBrowserLocation(), reverseGeocode() (+5 more)
 
 ### Community 40 - "sms_provider_tests.rs"
 Cohesion: 0.18
@@ -416,21 +414,21 @@ Nodes (14): Result, test_twilio_authentication_headers(), test_twilio_form_param
 Cohesion: 0.13
 Nodes (20): General Coding Guidelines, Modular Design Principle, Preserve Repository Architecture, Security-First Approach, Test Coverage Requirement, Rust Testing and Quality Gate, graph.json Shrink Guard, Backend Security Audit Job (+12 more)
 
-### Community 42 - "credentials.rs"
-Cohesion: 0.21
-Nodes (28): ActivationUserRow, AdminAuthRow, AuthValidationContext, blacklist_jti_cache(), blacklist_jti_db(), DailyLoginContextRow, find_admin_by_email(), find_admin_by_identity() (+20 more)
+### Community 42 - "Settings.tsx"
+Cohesion: 0.14
+Nodes (11): Avatar, AvatarFallback, AvatarImage, Badge(), BadgeProps, badgeVariants, Separator, TabsContent (+3 more)
 
 ### Community 43 - "admin_logout_tests.rs"
 Cohesion: 0.23
 Nodes (21): create_admin_user(), create_refresh_token(), generate_access_token(), generate_test_rsa_keypair_pem(), hash_password(), ContainerAsync, Option, PgPool (+13 more)
 
 ### Community 44 - "Shared backend-environment Anchor"
-Cohesion: 0.14
-Nodes (17): Image Version Pinning, SHA-Pinned GitHub Actions, Build & Push Docker Images Job, GHCR Image Registry, Determine Release Version Job, Semantic Release Action, Dual-Key OIDC Trust Hardening, PEM Key and Secret Parsing Hardening (+9 more)
+Cohesion: 0.12
+Nodes (19): Image Version Pinning, SHA-Pinned GitHub Actions, Build & Push Docker Images Job, GHCR Image Registry, Determine Release Version Job, Semantic Release Action, Dual-Key OIDC Trust Hardening, PEM Key and Secret Parsing Hardening (+11 more)
 
-### Community 45 - "EmailProvider"
-Cohesion: 0.16
-Nodes (14): AsyncSmtpTransport, EmailProvider, EmailProviderCredentials, LettreEmailProvider, MockEmailProvider, ResendEmailProvider, Arc, Client (+6 more)
+### Community 45 - "email_provider.rs"
+Cohesion: 0.19
+Nodes (10): AsyncSmtpTransport, LettreEmailProvider, MockEmailProvider, ResendEmailProvider, Arc, Client, Result, Self (+2 more)
 
 ### Community 46 - "hcloud_server.control_plane"
 Cohesion: 0.16
@@ -440,13 +438,13 @@ Nodes (23): hcloud_firewall.k3s, hcloud_server.control_plane, hcloud_server.work
 Cohesion: 0.27
 Nodes (13): error_response(), error_response_tuple(), extract_image_field(), IntoResponse, Json, Multipart, Option, Result (+5 more)
 
-### Community 48 - "captureFrame.ts"
-Cohesion: 0.18
-Nodes (10): bitmapToDataUrl(), blobToDataUrl(), captureFrame(), getImageCaptureCtor(), ImageCapture, ImageCaptureConstructor, Window, withTimeout() (+2 more)
+### Community 48 - "useCamera.ts"
+Cohesion: 0.11
+Nodes (14): FacingMode, MediaTrackCapabilities, MediaTrackConstraintSet, UseCameraProps, bitmapToDataUrl(), blobToDataUrl(), captureFrame(), getImageCaptureCtor() (+6 more)
 
-### Community 49 - "authInterceptor.test.ts"
-Cohesion: 0.13
-Nodes (12): mockedGetDeviceId, mockedRequestRefresh, mockedSignNonce, mockedVerifyRefresh, getDeviceId(), resetDeviceId(), clearAllStoredData(), MyDatabase (+4 more)
+### Community 49 - "src/config.rs"
+Cohesion: 0.16
+Nodes (10): LogLevel, mock_vehicle_api_credentials(), FromStr, test_config_helpers(), test_parse_allowed_origins_accepts_explicit_origin_list(), test_parse_allowed_origins_rejects_path_or_trailing_slash(), test_parse_allowed_origins_rejects_wildcard(), test_s3_cache_requires_bucket_when_enabled() (+2 more)
 
 ### Community 50 - "compilerOptions"
 Cohesion: 0.06
@@ -468,9 +466,9 @@ Nodes (21): Environment-Seeded Admin Bootstrap, Back-Office Sidebar Admin Nav Ga
 Cohesion: 0.12
 Nodes (16): aliases, components, hooks, lib, ui, utils, rsc, $schema (+8 more)
 
-### Community 55 - "PendingVehicles.tsx"
-Cohesion: 0.20
-Nodes (15): ControlHistory(), FILTER_TABS, FilterTab, PendingVehicles(), statusVariantMap, fetchWithAuth(), getSubmissionAuditLog(), getSubmissionById() (+7 more)
+### Community 55 - "fetchWithAuth"
+Cohesion: 0.18
+Nodes (15): ControlHistory(), PendingVehicles(), fetchWithAuth(), getBaseUrl(), isBackendUrl(), getSubmissionAuditLog(), getSubmissionById(), getSubmissions() (+7 more)
 
 ### Community 56 - "Status"
 Cohesion: 0.42
@@ -480,13 +478,13 @@ Nodes (13): Status, CustomsStatus, InsuranceStatus, OwnerInfo, PoliceStatus, Opt
 Cohesion: 0.17
 Nodes (18): HeaderValue, decode_access_token_rs256(), extract_bearer_token(), extracts_bearer_token(), is_user_status_allowed(), rejects_non_bearer_header(), require_auth(), AppState (+10 more)
 
-### Community 58 - "parser.rs"
-Cohesion: 0.23
-Nodes (12): HashMap, clean_value(), decode_basic_html_entities(), html_to_text(), make_service(), parse_inline_customs_status(), parse_label_value_lines(), Option (+4 more)
+### Community 58 - "use-proactive-refresh.ts"
+Cohesion: 0.24
+Nodes (7): defaultFocusSetup(), useProactiveRefresh(), mockedPerformRefresh, SetupFn, performTokenRefresh(), getTokenExpiry(), isTokenExpired()
 
 ### Community 59 - "tokenManager.ts"
-Cohesion: 0.17
-Nodes (19): applyAuthTokenToApiClient(), AuthProvider(), humanizeActivationError(), requiresDeviceReactivation(), AuthContext, AuthContextType, defaultFocusSetup(), useProactiveRefresh() (+11 more)
+Cohesion: 0.26
+Nodes (10): applyAuthTokenToApiClient(), AuthProvider(), humanizeActivationError(), requiresDeviceReactivation(), AuthContext, AuthContextType, clearAccessToken(), clearTokens() (+2 more)
 
 ### Community 60 - "Docker Rules Skill"
 Cohesion: 0.21
@@ -496,13 +494,13 @@ Nodes (15): Custom Bridge Network, Docker Rules Skill, HEALTHCHECK on All Servic
 Cohesion: 0.14
 Nodes (15): Activation vs Daily Login Distinction, Testing Guide: Admin Session Management & Authentication, Browser-Persisted Device ID (iviss_device_id in localStorage), BE-08 Daily Login Flow (Agent), Moka AppCache (otp_store, rate_limit, refresh_nonce, jti_blacklist, org_work_time), Redis-to-Moka In-Process Cache Migration, Backend Startup Sequence (config → pool → migrations → bootstrap seed → dev seed → AppCache), IVISS Database Development Guide (+7 more)
 
-### Community 62 - "refresh_tokens.rs"
-Cohesion: 0.30
-Nodes (16): AdminRefreshRow, get_admin_refresh_context(), get_refresh_token_user_id(), has_valid_refresh_token(), insert_refresh_and_activate_device(), insert_refresh_token(), insert_web_refresh_token(), revoke_active_refresh_tokens_for_user() (+8 more)
+### Community 62 - "AppCache"
+Cohesion: 0.24
+Nodes (12): Default, Expiry, AppCache, OtpEntry, OtpExpiry, Cache, Duration, Instant (+4 more)
 
 ### Community 63 - "JwtService (RS256 access token issuance)"
-Cohesion: 0.14
-Nodes (15): Testing Guide: Admin Session Termination & Auth Fixes, Forced Logout with EventKeyStorage IndexedDB Wipe, JWT RSA Key Pair Generation and .env Setup, Access & Refresh Tokens (Backend), AccessTokenClaims (sub, device_id, role, exp, jti), AuthUser Extractor (FromRequestParts bearer verification), JwtService (RS256 access token issuance), Stateless Access Token (never stored server-side) (+7 more)
+Cohesion: 0.17
+Nodes (13): Testing Guide: Admin Session Termination & Auth Fixes, Forced Logout with EventKeyStorage IndexedDB Wipe, JWT RSA Key Pair Generation and .env Setup, Access & Refresh Tokens (Backend), AccessTokenClaims (sub, device_id, role, exp, jti), AuthUser Extractor (FromRequestParts bearer verification), JwtService (RS256 access token issuance), Stateless Access Token (never stored server-side) (+5 more)
 
 ### Community 64 - "queries/organizations.rs"
 Cohesion: 0.24
@@ -561,24 +559,24 @@ Cohesion: 0.25
 Nodes (8): logout(), AppState, Arc, Body, IntoResponse, Request, Result, State
 
 ### Community 78 - "IVISS Platform"
-Cohesion: 0.11
-Nodes (19): Robust Error Handling and Logging, Concurrency and Async Discipline, Rust Error Handling (thiserror/anyhow), Ownership and Type Modeling, Rust General Rules, Backend Build Job, Frontend ESLint Job, Frontend Prettier Job (+11 more)
+Cohesion: 0.17
+Nodes (13): Robust Error Handling and Logging, Concurrency and Async Discipline, Rust Error Handling (thiserror/anyhow), Ownership and Type Modeling, Rust General Rules, Backend Build Job, metrics Service, Backend Architecture (Rust/Axum/SQLx) (+5 more)
 
 ### Community 79 - "AWS Secrets Manager Secret Groups (app-secrets, provider-keys, cloudfront-origin-secret)"
-Cohesion: 0.15
-Nodes (13): Mock SMS Provider (OTP retrieved from backend logs), AWS Secrets Manager Secret Groups (app-secrets, provider-keys, cloudfront-origin-secret), Temporary Debug SSH Profile (port 22 open to 0.0.0.0/0), infra/scripts/deploy.sh Deployment Pipeline, Cost-Aware Edge-and-Origin Architecture (CloudFront → Lightsail), Edge Lockdown (CloudFront CIDR restriction, default enabled), IVISS Master Deployment & Infrastructure Guide (v3.3), SMS/Email Provider Configuration (mock, twilio, vonage, orange, resend, lettre) (+5 more)
+Cohesion: 0.14
+Nodes (14): Mock SMS Provider (OTP retrieved from backend logs), AWS Secrets Manager Secret Groups (app-secrets, provider-keys, cloudfront-origin-secret), Temporary Debug SSH Profile (port 22 open to 0.0.0.0/0), infra/scripts/deploy.sh Deployment Pipeline, Cost-Aware Edge-and-Origin Architecture (CloudFront → Lightsail), Edge Lockdown (CloudFront CIDR restriction, default enabled), IVISS Master Deployment & Infrastructure Guide (v3.3), SMS/Email Provider Configuration (mock, twilio, vonage, orange, resend, lettre) (+6 more)
 
 ### Community 80 - "OpenAPI Frontend Codegen (openapi-rq queries/requests)"
-Cohesion: 0.17
-Nodes (13): API Gateway (JWT + Rate Limit + CORS), IVISS WebService (Rust + Axum + Tokio), Endpoint Change Order (DTO → handler → query → route → api_doc → tests → codegen), OpenAPI Frontend Codegen (openapi-rq queries/requests), Generated Artifacts Must Not Be Hand-Edited, OpenAPI and Codegen Drift Symptom/Fix, predev OpenAPI Fetch with Local Snapshot Fallback, Backend Layering (main/routes/handlers/services/queries/dto/models/middleware/db) (+5 more)
+Cohesion: 0.25
+Nodes (9): OpenAPI Frontend Codegen (openapi-rq queries/requests), Generated Artifacts Must Not Be Hand-Edited, OpenAPI and Codegen Drift Symptom/Fix, predev OpenAPI Fetch with Local Snapshot Fallback, Generated and Derived Artifacts (openapi-rq, openapi.json, .sqlx, build outputs), Codegen Migration to @hey-api/openapi-ts, Frontend Build and CI Workflow Fix, Managed Generated Directory vs Stable Compatibility Layer (+1 more)
 
 ### Community 81 - "change_password"
 Cohesion: 0.25
 Nodes (8): change_password(), AppState, Arc, Extension, IntoResponse, Json, Result, State
 
-### Community 82 - "Admin-Only RBAC"
-Cohesion: 0.18
-Nodes (11): Admin Login Flow (email + password), Admin-Only RBAC, require_auth JWT Middleware, RequireAuth Route Guard (allowedRoles), Backend RBAC Enforcement Matrix (401/403/200), Manual RBAC Test Plan, Admin Creates Member (Hierarchy Enforcement), argon2 Hashing on spawn_blocking (+3 more)
+### Community 82 - "IVISS Docker Compose Stack"
+Cohesion: 0.14
+Nodes (14): Development Hot-Reload Services, IVISS Docker Compose Stack, Admin Login Flow (email + password), Admin-Only RBAC, require_auth JWT Middleware, RequireAuth Route Guard (allowedRoles), Backend RBAC Enforcement Matrix (401/403/200), Manual RBAC Test Plan (+6 more)
 
 ### Community 83 - "API Route Groups (public, web-auth, agent-protected, admin, org-admin)"
 Cohesion: 0.14
@@ -601,8 +599,8 @@ Cohesion: 0.39
 Nodes (8): request_daily_login(), AppState, Arc, IntoResponse, Json, Result, State, verify_daily_login()
 
 ### Community 88 - "ControlRecord Interface"
-Cohesion: 0.18
-Nodes (12): Partner Compliance APIs (Insurance, Customs, Inspection, Wanted), ControlRecord Interface, VehicleStatus Enum (valid/warning/critical/pending), Core Database Tables and Domains, Query Layer Modules (auth/user/organization/vehicle/control/submission/stats/audit/location/session), Mock External Providers in Tests (no real SMS/email/OCR calls), Control Logging (frontend feature), Mock API Services Layer (mockAuth, mockVehicles, mockControls, mockExternalAPIs) (+4 more)
+Cohesion: 0.29
+Nodes (8): Partner Compliance APIs (Insurance, Customs, Inspection, Wanted), ControlRecord Interface, Identification Modes (manual/photo/live), VehicleStatus Enum (valid/warning/critical/pending), Control Logging (frontend feature), License Plate OCR Pipeline (react-webcam + ImageProcessor + Tesseract.js), Mock API Services Layer (mockAuth, mockVehicles, mockControls, mockExternalAPIs), Vehicle Status Check (parallel 4-API aggregation)
 
 ### Community 89 - "Prometheus Metrics Server (port 9091)"
 Cohesion: 0.18
@@ -621,8 +619,8 @@ Cohesion: 0.23
 Nodes (18): ActivateRequest, ActivateResponse, AuthResponse, ChangePasswordRequest, ChangePasswordResponse, LoginRequest, LogoutRequestHeaders, RefreshChallengeResponse (+10 more)
 
 ### Community 93 - "IVISS Frontend Architecture"
-Cohesion: 0.20
-Nodes (10): Identification Modes (manual/photo/live), Frontend Layering (main/App/router/pages/components/hooks/services/openapi-rq/i18n), Frontend Test Helpers (setup.ts, createQueryWrapper, MemoryRouter), AuthProvider (React Auth Context), IVISS Design System (CSS Variables, Navy/Teal, status colors), IVISS Frontend Architecture, License Plate OCR Pipeline (react-webcam + ImageProcessor + Tesseract.js), ProtectedRoute / RequireAuth Guard (+2 more)
+Cohesion: 0.25
+Nodes (8): Frontend Layering (main/App/router/pages/components/hooks/services/openapi-rq/i18n), Frontend Test Helpers (setup.ts, createQueryWrapper, MemoryRouter), AuthProvider (React Auth Context), IVISS Design System (CSS Variables, Navy/Teal, status colors), IVISS Frontend Architecture, ProtectedRoute / RequireAuth Guard, Role-Based Route Access (agent / supervisor / admin), Three-Tier Routing Setup (AppRouter / ProtectedRoute / routes.ts)
 
 ### Community 94 - "IVISS Developer Documentation Index"
 Cohesion: 0.22
@@ -644,41 +642,41 @@ Nodes (14): build_found_response(), build_html(), build_not_found_response(), cl
 Cohesion: 0.38
 Nodes (9): hash_password(), Result, String, test_hash_is_different_each_time(), test_hash_password_generates_valid_hash(), test_verify_password_correct_password(), test_verify_password_malformed_hash(), test_verify_password_wrong_password() (+1 more)
 
-### Community 99 - "s3_cache_layer/types.rs"
-Cohesion: 0.17
-Nodes (12): read_vehicle_data(), Client, Option, Result, cache_partition_for_plate(), CachedEntry, CachedVehicleData, object_key() (+4 more)
+### Community 99 - "Core Database Tables and Domains"
+Cohesion: 0.13
+Nodes (15): API Gateway (JWT + Rate Limit + CORS), IVISS WebService (Rust + Axum + Tokio), Opaque Refresh Token stored as SHA-256 hash, refresh_tokens Table (token_hash, user_id, device_id, expires_at), AppError / AppErrorResponse Shared Error Shape, Endpoint Change Order (DTO → handler → query → route → api_doc → tests → codegen), Repository Ownership Boundaries (handlers/services/queries/dto layering), Security Standards (no secrets, hash refresh tokens, no token logging) (+7 more)
 
 ### Community 100 - "Partner API Integration Flow"
 Cohesion: 0.13
 Nodes (17): Cameroon License Plate Formats, isValidPlate Validation Utility, PlateInput Flexible Auto-Formatting, vehicle_owners table, vehicle_statuses table, vehicles table, Agent Login and Vehicle Lookup Flow, API Gateway (JWT extraction and claim forwarding) (+9 more)
 
-### Community 101 - "RequireAuth.tsx"
-Cohesion: 0.32
-Nodes (4): ProtectedRoute(), ProtectedRouteProps, RequireAuth(), mockNavigate
+### Community 101 - "getAccessToken"
+Cohesion: 0.22
+Nodes (7): AppRouter(), ProtectedRoute(), ProtectedRouteProps, RequireAuth(), mockNavigate, getAccessToken(), getRefreshToken()
 
 ### Community 102 - "Project Graphify Integration Rules"
-Cohesion: 0.24
-Nodes (10): Agent-Crawlable Wiki Export, Native CLAUDE.md Integration, BFS Traversal Mode, Explain Node Flow, Inline NetworkX Traversal Fallback, Constrained Query Expansion, Shortest Path Between Concepts, Cluster-Only Rebuild (+2 more)
+Cohesion: 0.28
+Nodes (9): Deterministic Node ID Format, Native CLAUDE.md Integration, BFS Traversal Mode, Explain Node Flow, Inline NetworkX Traversal Fallback, Constrained Query Expansion, Shortest Path Between Concepts, Graph Health Check (+1 more)
 
 ### Community 103 - "OtpService"
-Cohesion: 0.25
-Nodes (9): OtpService, Arc, Result, Self, String, Uuid, Send, Sync (+1 more)
+Cohesion: 0.32
+Nodes (6): OtpService, Arc, Result, Self, String, Uuid
 
 ### Community 104 - "mockAuth.ts"
 Cohesion: 0.25
 Nodes (5): AuthSession, mockAuthService, mockUsers, User, UserRole
 
 ### Community 105 - "authInterceptor.ts"
-Cohesion: 0.14
-Nodes (19): mockedPerformRefresh, SetupFn, AuthErrorCategory, classifyAuthError(), classifyAuthErrorMessage(), extractErrorCode(), extractErrorMessage(), HeyApiClient (+11 more)
+Cohesion: 0.12
+Nodes (21): AuthErrorCategory, classifyAuthError(), classifyAuthErrorMessage(), extractErrorCode(), extractErrorMessage(), HeyApiClient, isAdminSession(), isDeviceReactivationMessage() (+13 more)
 
 ### Community 106 - "Plan d'implémentation — Service de synchronisation du cache S3"
 Cohesion: 0.17
 Nodes (12): Architecture cible, Contexte, Décisions actées, Plan d'implémentation — Service de synchronisation du cache S3, Points signalés, hors périmètre, Vérification, Étape 0 — Réparer `services/vehicle_data_cache.rs`, Étape 1 — Étendre `s3_cache_layer` aux nouveaux préfixes (+4 more)
 
-### Community 107 - "IVISS Docker Compose Stack"
-Cohesion: 0.18
-Nodes (11): Development Hot-Reload Services, IVISS Docker Compose Stack, GHCR Image Publishing via GitHub Actions, Prod Compose Profile (backend-prod / frontend-prod), Conventional Commit Prefixes, dev-Branch Release Trigger, Semantic Release Automation, Semantic Versioning (MAJOR.MINOR.PATCH) (+3 more)
+### Community 107 - "Semantic Release Automation"
+Cohesion: 0.25
+Nodes (8): GHCR Image Publishing via GitHub Actions, Prod Compose Profile (backend-prod / frontend-prod), Conventional Commit Prefixes, dev-Branch Release Trigger, Semantic Release Automation, Semantic Versioning (MAJOR.MINOR.PATCH), Version Tag Reset Procedure, Terraform + Ansible + GitHub Actions Deployment to AWS Lightsail
 
 ### Community 108 - "PendingSubmission"
 Cohesion: 0.50
@@ -732,9 +730,9 @@ Nodes (4): PgPool, Result, run_seed_data(), try_seed()
 Cohesion: 0.20
 Nodes (10): 1. Demande initiale, 3. Recherche — état de l'art du monolithe modulaire, 4. Première proposition (monolithe modulaire complet) — écartée, 5.1 Pourquoi c'est le bon appel, 5.2 Coût comparé, 5.3 Le levier de réduction de risque — l'astuce des re-exports, 5. Contre-proposition retenue — package-by-layer-then-feature, 7. Points signalés, hors périmètre (+2 more)
 
-### Community 122 - "write_vehicle_data"
-Cohesion: 0.21
-Nodes (13): decrypt(), decrypt_rejects_short_payload(), decrypt_with_wrong_key_fails(), encrypt(), encrypt_decrypt_round_trip(), Result, Vec, Client (+5 more)
+### Community 122 - "S3VehicleDataCache"
+Cohesion: 0.31
+Nodes (6): Client, Option, Result, Self, String, S3VehicleDataCache
 
 ### Community 123 - "fetch_openapi.mjs"
 Cohesion: 0.60
@@ -781,8 +779,8 @@ Cohesion: 0.67
 Nodes (5): assembly(), metrics_router(), AppState, Arc, Router
 
 ### Community 139 - "Extraction Subagent Prompt"
-Cohesion: 0.18
-Nodes (12): Discrete Confidence Score Rubric, Hyperedge Extraction Rule, Deterministic Node ID Format, Extraction Subagent Prompt, EXTRACTED/INFERRED/AMBIGUOUS Audit Trail, Cumulative Token Cost Tracker, Semantic Extraction Cache, Graph Health Check (+4 more)
+Cohesion: 0.15
+Nodes (14): Discrete Confidence Score Rubric, Hyperedge Extraction Rule, Extraction Subagent Prompt, EXTRACTED/INFERRED/AMBIGUOUS Audit Trail, Cumulative Token Cost Tracker, Semantic Extraction Cache, Graphify Honesty Rules, No API Key Required Policy (+6 more)
 
 ### Community 140 - "activate"
 Cohesion: 0.25
@@ -791,6 +789,10 @@ Nodes (7): activate(), AppState, Arc, IntoResponse, Json, Result, State
 ### Community 141 - "Graphify Pipeline"
 Cohesion: 0.21
 Nodes (13): Graphify Skill Trigger, Folder Watch Auto-Rebuild, Graphify MCP Stdio Server, Token Reduction Benchmark, Cross-Repo Graph Merge, GitHub Repo Clone, Post-Commit Auto-Rebuild Hook, Code-Only Change Shortcut (+5 more)
+
+### Community 142 - "get_list_control"
+Cohesion: 0.44
+Nodes (10): create_control(), get_list_control(), get_list_control_paged(), AppState, Arc, IntoResponse, Json, Query (+2 more)
 
 ### Community 145 - "engine.rs"
 Cohesion: 0.12
@@ -805,36 +807,36 @@ Cohesion: 0.38
 Nodes (6): build_s3_client(), Client, Option, Result, String, S3CacheConfig
 
 ### Community 150 - "App.tsx"
-Cohesion: 0.32
-Nodes (5): queryClient, BeforeInstallPromptEvent, PWAInstallPrompt(), Toaster(), ToasterProps
+Cohesion: 0.28
+Nodes (6): queryClient, BeforeInstallPromptEvent, PWAInstallPrompt(), Toaster(), ToasterProps, Toaster()
 
 ### Community 169 - "errors.rs"
 Cohesion: 0.35
 Nodes (10): get_body_json(), Response, Value, test_bad_request_response(), test_database_error_response(), test_external_api_failure_response(), test_forbidden_response(), test_internal_error_response() (+2 more)
 
 ### Community 170 - "Incremental Update Flow"
-Cohesion: 0.25
-Nodes (9): URL Ingestion into Corpus, Verbatim source_file Rule, save-result Work Memory Loop, Whisper Domain Hint Prompt, Whisper Video/Audio Transcription, build_merge Replace-on-Re-extract, Incremental Update Flow, God Nodes (+1 more)
+Cohesion: 0.18
+Nodes (12): URL Ingestion into Corpus, Agent-Crawlable Wiki Export, Verbatim source_file Rule, save-result Work Memory Loop, Whisper Domain Hint Prompt, Whisper Video/Audio Transcription, build_merge Replace-on-Re-extract, Cluster-Only Rebuild (+4 more)
 
 ### Community 171 - "Sync Server (Rust/Axum intermediary binary)"
 Cohesion: 0.25
 Nodes (8): Data Schema & Constants, Vehicle Interface, Cold Start Challenge (plate never cached in S3), Plate-Indexed JSON Object Model (vehicles/{PLATE}.json), Responsibility Boundary (IVISS App never touches External DB or S3), S3 Fallback Cache Strategy, Sync Server (Rust/Axum intermediary binary), IVISS Sync Server Architecture
 
-### Community 172 - "viewfinder.ts"
-Cohesion: 0.17
-Nodes (6): ScanViewfinder(), ScanViewfinderProps, expectedCropOutput(), mockT, computeViewfinderCrop(), ViewfinderCrop
+### Community 172 - "imageProcessor.ts"
+Cohesion: 0.22
+Nodes (5): CameroonPlateClassification, expectedCropOutput(), mockT, computeViewfinderCrop(), ViewfinderCrop
 
 ### Community 173 - "2. État des lieux mesuré"
 Cohesion: 0.40
 Nodes (5): 2.1 Structure réelle, 2.2 Ce qui est bon, 2.3 Ce qui coûte — chiffres, pas impressions, 2.4 Note attribuée, 2. État des lieux mesuré
 
-### Community 174 - "AppState"
-Cohesion: 0.16
-Nodes (15): AppState, Arc, DbPool, Option, Result, Self, String, Vec (+7 more)
+### Community 174 - "EmailProvider"
+Cohesion: 0.15
+Nodes (18): AppState, Arc, DbPool, Option, Result, Self, String, Vec (+10 more)
 
-### Community 175 - "useCamera.ts"
-Cohesion: 0.20
-Nodes (6): FacingMode, MediaTrackCapabilities, MediaTrackConstraintSet, useCamera(), UseCameraProps, MobileScan()
+### Community 175 - "MobileScan.tsx"
+Cohesion: 0.23
+Nodes (7): ScanActionButtons(), ScanActionButtonsProps, ScanViewfinder(), ScanViewfinderProps, useCamera(), MobileScan(), ScanMode
 
 ### Community 176 - "stats/router.rs"
 Cohesion: 0.67
@@ -865,20 +867,20 @@ Cohesion: 0.50
 Nodes (4): Code à réutiliser tel quel — ne pas réécrire, Contraintes transverses, Fichiers critiques, PARTIE 6 — Plan d'exécution
 
 ### Community 185 - "useScanPlate.ts"
-Cohesion: 0.29
-Nodes (6): useScanPlate(), UseScanPlateProps, DetectionResult, useStabilityDetection(), UseStabilityDetectionProps, CameroonPlateClassification
+Cohesion: 0.36
+Nodes (5): useScanPlate(), UseScanPlateProps, DetectionResult, useStabilityDetection(), UseStabilityDetectionProps
 
 ### Community 186 - "otp_service_tests.rs"
 Cohesion: 0.52
 Nodes (6): setup_otp_service(), test_rate_limit_blocks_after_3_requests(), test_rate_limit_is_per_phone_number(), test_request_otp_succeeds(), test_validate_otp_no_key_fails(), test_validate_otp_wrong_code_fails()
 
 ### Community 187 - "Admin Terminate Session Endpoint (/api/v1/admin/terminate-session)"
-Cohesion: 0.13
-Nodes (15): Admin Session Restart, Same-Day Re-Entry Block After Termination, Re-Activation Regression Check (agents not permanently blocked), Opaque Refresh Token stored as SHA-256 hash, refresh_tokens Table (token_hash, user_id, device_id, expires_at), Admin Terminate Session Endpoint (/api/v1/admin/terminate-session), Device Status Lifecycle (INACTIVE/ACTIVE/SUSPENDED/REVOKED/PENDING), End-of-Shift Device Revocation (+7 more)
+Cohesion: 0.18
+Nodes (11): Admin Session Restart, Same-Day Re-Entry Block After Termination, Re-Activation Regression Check (agents not permanently blocked), Admin Terminate Session Endpoint (/api/v1/admin/terminate-session), Device Status Lifecycle (INACTIVE/ACTIVE/SUSPENDED/REVOKED/PENDING), End-of-Shift Device Revocation, OTP Rate Limiting and Attempt Throttling, Admin Revocation Kill-Switch (+3 more)
 
-### Community 203 - "usePhotoCapture.ts"
-Cohesion: 0.24
-Nodes (10): ScanDetectionsList(), ScanDetectionsListProps, ScanResultCardProps, extractPlateFromAny(), findPlateInText(), normalizePlateCandidate(), PhotoCaptureState, UsePhotoCaptureProps (+2 more)
+### Community 203 - "ScanResultCard.tsx"
+Cohesion: 0.32
+Nodes (6): ScanDetectionsList(), ScanDetectionsListProps, ScanResultCard(), ScanResultCardProps, UsePhotoCaptureProps, DetectedPlate
 
 ### Community 204 - "users/router.rs"
 Cohesion: 0.67
@@ -888,17 +890,17 @@ Nodes (6): admin_routes(), org_admin_routes(), protected_routes(), AppState, Arc
 Cohesion: 0.52
 Nodes (6): restart_user_session(), Duration, PgPool, Result, Uuid, terminate_user_sessions()
 
-### Community 206 - "keyManagement.ts"
-Cohesion: 0.29
-Nodes (6): AppInitializer(), AppInitializerProps, tryInitializeKeys(), mockedKeyManagement, checkKeyPairExists(), KeyManagement()
+### Community 206 - "usePhotoCapture.ts"
+Cohesion: 0.53
+Nodes (5): extractPlateFromAny(), findPlateInText(), normalizePlateCandidate(), PhotoCaptureState, PlateStatus
 
 ### Community 207 - "auth/router.rs"
 Cohesion: 0.67
 Nodes (5): public_routes(), AppState, Arc, Router, web_auth_routes()
 
-### Community 208 - "VehicleApiCredentials"
-Cohesion: 0.29
-Nodes (11): ApiUserAuth, ExternalApiHeaderParms, ExternalVehicle, Error, Option, String, VehicleInfo, VehicleApiCredentials (+3 more)
+### Community 208 - "handlers/auth/mod.rs"
+Cohesion: 0.33
+Nodes (3): on_shift_ended(), PgPool, Uuid
 
 ### Community 209 - "controls/router.rs"
 Cohesion: 0.67
@@ -908,9 +910,9 @@ Nodes (5): admin_routes(), protected_routes(), AppState, Arc, Router
 Cohesion: 0.67
 Nodes (5): admin_routes(), protected_routes(), AppState, Arc, Router
 
-### Community 211 - "get_list_control"
-Cohesion: 0.44
-Nodes (10): create_control(), get_list_control(), get_list_control_paged(), AppState, Arc, IntoResponse, Json, Query (+2 more)
+### Community 211 - ".cache_necessary_data_from_database"
+Cohesion: 0.40
+Nodes (3): Postgres, Result, Pool
 
 ### Community 212 - "admin_routes"
 Cohesion: 0.60
@@ -928,14 +930,6 @@ Nodes (4): admin_routes(), AppState, Arc, Router
 Cohesion: 0.60
 Nodes (4): protected_routes(), AppState, Arc, Router
 
-### Community 217 - "get_dashboard_stats"
-Cohesion: 0.38
-Nodes (6): get_dashboard_stats(), AppState, Arc, IntoResponse, Result, State
-
-### Community 218 - "main"
-Cohesion: 0.60
-Nodes (4): load_s3_cache_config(), load_vehicle_api_credentials(), main(), Result
-
 ## Ambiguous Edges - Review These
 - `Modular Design Principle` → `Community Detection and Labeling`  [AMBIGUOUS]
   .claude/rules/general-coding.md · relation: conceptually_related_to
@@ -951,7 +945,7 @@ Nodes (4): load_s3_cache_config(), load_vehicle_api_credentials(), main(), Resul
 ## Knowledge Gaps
 - **487 isolated node(s):** `@modelcontextprotocol/server-filesystem`, `postgres-mcp`, `DATABASE_URI`, `mcp-server-git`, `@upstash/context7-mcp` (+482 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -966,7 +960,7 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `Pending Validation Review Workflow` and `Audit Logs View`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `AppError` connect `AppError` to `login`, `get_user_profile`, `get_control_records`, `services/ocr/photo.rs`, `users.rs`, `devices.rs`, `submissions/submissions.rs`, `activate`, `search.rs`, `engine.rs`, `update_organization`, `dto/stats.rs`, `request_refresh`, `AppCache`, `StageTimings`, `list_audit_logs`, `vehicles.rs`, `errors.rs`, `credentials.rs`, `submissions.rs`, `middleware/auth.rs`, `refresh_tokens.rs`, `queries/organizations.rs`, `update_location`, `logout`, `restart_user_session`, `change_password`, `get_list_control`, `preprocess`, `request_daily_login`, `get_dashboard_stats`, `hash_password`, `OtpService`, `require_auth_web`, `queries/users/location.rs`?**
-  _High betweenness centrality (0.144) - this node is a cross-community bridge._
-- **Why does `TelemetryHandle` connect `TelemetryHandle` to `admin_login_and_refresh_token_tests.rs`, `admin_logout_tests.rs`, `AppState`, `AppCache`, `stats_handler_tests.rs`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
+- **Why does `AppError` connect `AppError` to `login`, `get_user_profile`, `get_control_records`, `services/ocr/photo.rs`, `users.rs`, `queries/auth/mod.rs`, `submissions/mod.rs`, `activate`, `search.rs`, `get_list_control`, `engine.rs`, `update_organization`, `AuthenticatedAdmin`, `request_refresh`, `StageTimings`, `list_audit_logs`, `vehicles.rs`, `errors.rs`, `submissions.rs`, `middleware/auth.rs`, `AppCache`, `queries/organizations.rs`, `update_location`, `logout`, `restart_user_session`, `handlers/auth/mod.rs`, `change_password`, `.cache_necessary_data_from_database`, `preprocess`, `request_daily_login`, `hash_password`, `OtpService`, `require_auth_web`, `queries/users/location.rs`?**
+  _High betweenness centrality (0.130) - this node is a cross-community bridge._
+- **Why does `TelemetryHandle` connect `TelemetryHandle` to `admin_login_and_refresh_token_tests.rs`, `admin_logout_tests.rs`, `EmailProvider`, `setup_test_infrastructure`, `stats_handler_tests.rs`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
