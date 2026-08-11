@@ -1,144 +1,236 @@
 //! S3 Cache Sync Service
 //!
-//! Periodically fetches vehicle data from the external API and populates
-//! the S3 cache layer. Designed to run as a long-lived service that runs
-//! every 5 minutes (configured for development/schedule test time).
+//! Drains `retry-queue/` markers left behind by write-through failures on
+//! Backend A: on each ping it checks the queue and the external API's health,
+//! then — only when both are non-empty and healthy — drains the queue against
+//! `ExternalDataSource`, writing hits to `vehicle-cache/` and misses to
+//! `unregistered/`.
 //!
 //! Build: cargo build --bin s3-cache-sync --no-default-features
 
-use iviss_backend::dto::search_vehicle::{OwnerInfo, VehicleInfo};
-use iviss_backend::external_services::vehicle_client::parser::split_brand_and_model;
 use iviss_backend::external_services::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiService,
 };
+use iviss_backend::external_services::{ExternalDataSource, ExternalServiceError, HealthStatus};
 use iviss_backend::s3_cache_layer::s3_writer::write_vehicle_data;
-use iviss_backend::s3_cache_layer::types::PLATE_PREFIX_CODES;
+use iviss_backend::s3_cache_layer::types::RETRY_QUEUE_PREFIX;
 use iviss_backend::s3_cache_layer::{self, S3CacheConfig};
 use std::env;
 use std::time::Duration;
-use tokio::time::interval;
+use tokio::time::Instant;
+
+const DRAIN_WINDOW: Duration = Duration::from_secs(60 * 60);
+const IDLE_BETWEEN_WINDOWS: Duration = Duration::from_secs(2 * 60 * 60);
+const PING_INTERVAL: Duration = Duration::from_secs(5 * 60);
+const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+
+/// How many retry-queue markers to list per page while draining.
+const DRAIN_PAGE_SIZE: usize = 100;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // 1. Init tracing (minimal, stdout only — no OpenTelemetry)
     tracing_subscriber::fmt::init();
     tracing::info!("Starting S3 Cache Sync Service...");
 
     dotenvy::dotenv().ok();
 
-    // 2. Load VehicleApiCredentials from env vars
     let api_credentials = load_vehicle_api_credentials();
-    let api_base_url = api_credentials.base_url.clone();
-    tracing::info!(base_url = %api_base_url, "Vehicle API Service base URL loaded");
-
-    // 3. Build VehicleApiService (shared module)
+    tracing::info!(base_url = %api_credentials.base_url, "Vehicle API Service base URL loaded");
     let vehicle_api_svc = VehicleApiService::new(api_credentials)?;
 
-    // 4. Load S3CacheConfig from env vars
     let s3_config = load_s3_cache_config();
     let kms_key_id = s3_config.kms_key_id.clone();
     let encryption_key = s3_config.encryption_key;
-
-    // 5. Build S3 client via s3_cache_layer::build_s3_client()
     let (s3_client, bucket_name) = s3_cache_layer::build_s3_client(&s3_config).await?;
     tracing::info!(bucket = %bucket_name, "S3 Client successfully initialized");
 
-    // 6. Set up tokio interval for periodic execution (every 5 minutes)
-    let interval_secs = env::var("SYNC_INTERVAL_SECS")
-        .unwrap_or_else(|_| "300".to_string())
-        .parse::<u64>()
-        .unwrap_or(300);
+    let drain_window = duration_from_env("SYNC_WINDOW_SECS", DRAIN_WINDOW);
+    let idle_between_windows = duration_from_env("SYNC_IDLE_SECS", IDLE_BETWEEN_WINDOWS);
+    let ping_interval = duration_from_env("SYNC_PING_INTERVAL_SECS", PING_INTERVAL);
+    let max_consecutive_failures =
+        u32_from_env("SYNC_MAX_CONSECUTIVE_FAILURES", MAX_CONSECUTIVE_FAILURES);
 
     tracing::info!(
-        interval_seconds = interval_secs,
-        "Starting periodic sync loop..."
+        drain_window_secs = drain_window.as_secs(),
+        idle_secs = idle_between_windows.as_secs(),
+        ping_interval_secs = ping_interval.as_secs(),
+        max_consecutive_failures,
+        "Starting sync cycle..."
     );
-    let mut sync_interval = interval(Duration::from_secs(interval_secs));
 
     loop {
-        sync_interval.tick().await;
-        tracing::info!("Beginning S3 cache sync cycle...");
+        tracing::info!("Entering drain window");
+        let window_deadline = Instant::now() + drain_window;
 
-        let mut total_fetched = 0;
-        let mut total_saved = 0;
-        let mut total_errors = 0;
+        while Instant::now() < window_deadline {
+            tokio::time::sleep(ping_interval).await;
 
-        for prefix in PLATE_PREFIX_CODES {
-            tracing::debug!(prefix = %prefix, "Requesting batch for prefix");
-            match vehicle_api_svc.fetch_batch(prefix).await {
-                Ok(vehicles) => {
-                    let count = vehicles.len();
-                    total_fetched += count;
-                    tracing::info!(prefix = %prefix, count = count, "Successfully fetched batch");
-
-                    for ext_vehicle in vehicles {
-                        // Normalize the plate number (uppercase, spaces removed)
-                        let normalized_plate =
-                            ext_vehicle.plate_number.replace(' ', "").to_uppercase();
-                        if normalized_plate.is_empty() {
-                            tracing::warn!("Skipping vehicle with empty plate number");
-                            continue;
-                        }
-
-                        // Map ExternalVehicle to VehicleInfo
-                        let (brand, model) =
-                            split_brand_and_model(ext_vehicle.mark_and_type.as_deref());
-                        let vehicle_info = VehicleInfo {
-                            brand,
-                            model,
-                            year: None,
-                            color: None,
-                            engine_power: ext_vehicle.engine_power.clone(),
-                            fuel_type: None,
-                            chassis_number: ext_vehicle.chassis_number.clone(),
-                            customs_status: ext_vehicle.customs_status.clone(),
-                            owner: OwnerInfo {
-                                name: ext_vehicle.owner_name.clone(),
-                                address: None,
-                                national_id: None,
-                            },
-                        };
-
-                        // Write to S3 cache
-                        match write_vehicle_data(
-                            &s3_client,
-                            &bucket_name,
-                            &kms_key_id,
-                            &encryption_key,
-                            &normalized_plate,
-                            &vehicle_info,
-                        )
-                        .await
-                        {
-                            Ok(_) => {
-                                total_saved += 1;
-                                tracing::debug!(plate = %normalized_plate, "Cached vehicle successfully in S3");
-                            }
-                            Err(e) => {
-                                total_errors += 1;
-                                tracing::error!(
-                                    plate = %normalized_plate,
-                                    error = %e,
-                                    "Failed to save vehicle data to S3 cache"
-                                );
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    total_errors += 1;
-                    tracing::error!(prefix = %prefix, error = %e, "Failed to fetch batch for prefix");
-                }
-            }
+            run_ping_cycle(
+                &vehicle_api_svc,
+                &s3_client,
+                &bucket_name,
+                &kms_key_id,
+                &encryption_key,
+                max_consecutive_failures,
+            )
+            .await;
         }
 
         tracing::info!(
-            fetched = total_fetched,
-            saved = total_saved,
-            errors = total_errors,
-            "S3 cache sync cycle complete."
+            idle_seconds = idle_between_windows.as_secs(),
+            "Drain window elapsed; idling"
         );
+        tokio::time::sleep(idle_between_windows).await;
     }
+}
+
+/// One ping tick: skip the health probe entirely when the queue is empty.
+async fn run_ping_cycle(
+    source: &impl ExternalDataSource,
+    s3_client: &aws_sdk_s3::Client,
+    bucket: &str,
+    kms_key_id: &Option<String>,
+    encryption_key: &Option<[u8; 32]>,
+    max_consecutive_failures: u32,
+) {
+    let queue_peek =
+        s3_cache_layer::list_queued_plates(s3_client, bucket, RETRY_QUEUE_PREFIX, 1).await;
+    match queue_peek {
+        Ok(plates) if plates.is_empty() => {
+            tracing::debug!("Retry queue empty; no probe emitted");
+            return;
+        }
+        Ok(_) => {}
+        Err(error) => {
+            tracing::warn!(error = %error, "failed to peek retry queue; skipping this ping");
+            return;
+        }
+    }
+
+    match source.health_probe().await {
+        HealthStatus::Unhealthy(reason) => {
+            tracing::warn!(reason = %reason, "external API unhealthy; deferring drain");
+        }
+        HealthStatus::Healthy => {
+            drain_queue(
+                source,
+                s3_client,
+                bucket,
+                kms_key_id,
+                encryption_key,
+                max_consecutive_failures,
+            )
+            .await;
+        }
+    }
+}
+
+/// Drains the retry queue until empty or `max_consecutive_failures` external
+/// fetch failures in a row — a guard against "server up but /query broken",
+/// which the health probe alone cannot detect.
+async fn drain_queue(
+    source: &impl ExternalDataSource,
+    s3_client: &aws_sdk_s3::Client,
+    bucket: &str,
+    kms_key_id: &Option<String>,
+    encryption_key: &Option<[u8; 32]>,
+    max_consecutive_failures: u32,
+) {
+    let mut consecutive_failures = 0u32;
+
+    loop {
+        let plates = match s3_cache_layer::list_queued_plates(
+            s3_client,
+            bucket,
+            RETRY_QUEUE_PREFIX,
+            DRAIN_PAGE_SIZE,
+        )
+        .await
+        {
+            Ok(plates) => plates,
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to list retry queue during drain");
+                return;
+            }
+        };
+
+        if plates.is_empty() {
+            tracing::info!("Retry queue drained");
+            return;
+        }
+
+        for plate in plates {
+            match source.fetch(&plate).await {
+                Ok(iviss_backend::external_services::PartnerPayload::Vehicle {
+                    vehicle, ..
+                }) => {
+                    consecutive_failures = 0;
+                    if let Err(error) = write_vehicle_data(
+                        s3_client,
+                        bucket,
+                        kms_key_id,
+                        encryption_key,
+                        &plate,
+                        &vehicle,
+                    )
+                    .await
+                    {
+                        tracing::error!(plate = %plate, error = %error, "failed to write drained vehicle to cache; marker kept for retry");
+                        continue;
+                    }
+                    if let Err(error) =
+                        s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
+                            .await
+                    {
+                        tracing::error!(plate = %plate, error = %error, "failed to remove retry marker after successful write");
+                    }
+                }
+                Err(ExternalServiceError::NotFound) => {
+                    consecutive_failures = 0;
+                    if let Err(error) =
+                        s3_cache_layer::mark_unregistered(s3_client, bucket, &plate).await
+                    {
+                        tracing::error!(plate = %plate, error = %error, "failed to mark plate unregistered; marker kept for retry");
+                        continue;
+                    }
+                    if let Err(error) =
+                        s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
+                            .await
+                    {
+                        tracing::error!(plate = %plate, error = %error, "failed to remove retry marker after marking unregistered");
+                    }
+                }
+                Err(ExternalServiceError::Unavailable(reason))
+                | Err(ExternalServiceError::Protocol(reason)) => {
+                    consecutive_failures += 1;
+                    tracing::warn!(plate = %plate, reason = %reason, consecutive_failures, "external fetch failed during drain; marker kept for retry");
+
+                    if consecutive_failures >= max_consecutive_failures {
+                        tracing::warn!(
+                            consecutive_failures,
+                            "aborting drain cycle after too many consecutive failures"
+                        );
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn duration_from_env(var: &str, default: Duration) -> Duration {
+    env::var(var)
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(Duration::from_secs)
+        .unwrap_or(default)
+}
+
+fn u32_from_env(var: &str, default: u32) -> u32 {
+    env::var(var)
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(default)
 }
 
 fn load_vehicle_api_credentials() -> VehicleApiCredentials {

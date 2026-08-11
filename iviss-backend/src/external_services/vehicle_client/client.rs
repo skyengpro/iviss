@@ -4,7 +4,7 @@ use crate::external_services::vehicle_client::parser::{
     parse_label_value_lines, split_brand_and_model,
 };
 use crate::external_services::vehicle_client::types::{
-    ExternalVehicle, VehicleApiCredentials, VehicleApiError, VehicleApiResponse,
+    VehicleApiCredentials, VehicleApiError, VehicleApiResponse,
 };
 use anyhow::{anyhow, Context};
 use std::time::Duration;
@@ -98,46 +98,6 @@ impl VehicleApiService {
         self.parse_html_response(&html).map_err(Into::into)
     }
 
-    /// Fetch all vehicles matching a prefix from the external registry.
-    pub async fn fetch_batch(&self, prefix: &str) -> anyhow::Result<Vec<ExternalVehicle>> {
-        debug!("Fetching batch from vehicle API for prefix: {}", prefix);
-        let url = format!("{}/batch", self.credentials.base_url.trim_end_matches('/'));
-        let response = self
-            .client
-            .get(&url)
-            .query(&[("prefix", prefix)])
-            .basic_auth(
-                &self.credentials.user_auth.username,
-                Some(&self.credentials.user_auth.password),
-            )
-            .header("user", &self.credentials.header_parms.user)
-            .header("lockNdia", &self.credentials.header_parms.lock_ndia)
-            .header("kindia", &self.credentials.header_parms.kindia)
-            .header("client", &self.credentials.header_parms.client)
-            .header("ctr", &self.credentials.header_parms.ctr)
-            .send()
-            .await
-            .context("failed to call vehicle API batch endpoint")?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!(
-                "vehicle API batch endpoint returned HTTP {} for prefix '{}': {}",
-                status,
-                prefix,
-                body.trim()
-            ));
-        }
-
-        let vehicles = response
-            .json::<Vec<ExternalVehicle>>()
-            .await
-            .context("failed to deserialize batch vehicle list")?;
-
-        Ok(vehicles)
-    }
-
     pub fn parse_html_response(&self, html: &str) -> anyhow::Result<VehicleApiResponse> {
         let text = html_to_text(html);
         let fields = parse_label_value_lines(&text);
@@ -215,5 +175,16 @@ impl crate::external_services::ExternalDataSource for VehicleApiService {
             }
             Err(error) => crate::external_services::HealthStatus::Unhealthy(error.to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::plate_format;
+
+    #[test]
+    fn health_probe_plate_is_a_valid_plate_format() {
+        assert!(plate_format::is_valid(HEALTH_PROBE_PLATE));
     }
 }

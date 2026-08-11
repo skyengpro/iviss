@@ -14,6 +14,5 @@ pub mod types;
 //   use crate::external_services::vehicle_client::{VehicleApiService, VehicleApiError, …};
 pub use client::VehicleApiService;
 pub use types::{
-    ApiUserAuth, ExternalApiHeaderParms, ExternalVehicle, VehicleApiCredentials, VehicleApiError,
-    VehicleApiResponse,
+    ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiError, VehicleApiResponse,
 };

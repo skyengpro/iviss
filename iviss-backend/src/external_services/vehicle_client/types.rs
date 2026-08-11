@@ -41,15 +41,3 @@ pub struct VehicleApiResponse {
     pub plate_number: Option<String>,
     pub vehicle: VehicleInfo,
 }
-
-/// A vehicle record returned in bulk/batch formats from the external vehicle API.
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct ExternalVehicle {
-    pub plate_number: String,
-    pub chassis_number: Option<String>,
-    pub mark_and_type: Option<String>,
-    pub engine_power: Option<String>,
-    pub owner_name: Option<String>,
-    pub nps_status: Option<String>,
-    pub customs_status: Option<String>,
-}
