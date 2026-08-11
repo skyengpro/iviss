@@ -95,6 +95,14 @@ pub struct StatusResults {
 
 //  Response
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum VehicleDataSource {
+    Live,
+    Cache,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "api", derive(utoipa::ToSchema))]
 pub struct VehicleSearchResult {
@@ -103,6 +111,8 @@ pub struct VehicleSearchResult {
     pub identification_mode: Option<IdentificationMode>,
     pub vehicle: VehicleInfo,
     pub status_results: StatusResults,
+    pub source: Option<VehicleDataSource>,
+    pub cached_at: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -31,6 +31,8 @@ fn make_test_vehicle(plate: &str) -> VehicleSearchResult {
         plate_number: plate.to_string(),
         confidence: Some(0.99),
         identification_mode: None,
+        source: None,
+        cached_at: None,
         vehicle: VehicleInfo {
             brand: Some("Toyota".into()),
             model: Some("Corolla".into()),

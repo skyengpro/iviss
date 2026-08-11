@@ -3,7 +3,7 @@ use crate::{
     dto::{
         common::{IdentificationMode, Status},
         controls::ControlResults,
-        search_vehicle::{VehicleSearchRequest, VehicleSearchResult},
+        search_vehicle::{VehicleDataSource, VehicleSearchRequest, VehicleSearchResult},
     },
     errors::AppError,
     external_services::vehicle_client::{VehicleApiError, VehicleApiResponse},
@@ -56,6 +56,7 @@ pub async fn search_vehicle(
         Ok(api_response) => {
             let response = build_search_result(api_response, &plate);
 
+            spawn_write_through(&state, &plate, &response.vehicle);
             record_vehicle_search_control(&state, &payload, &response).await;
 
             Ok((StatusCode::OK, Json(response)))
@@ -84,12 +85,18 @@ pub async fn search_vehicle(
                         );
                         let status_results =
                             VehicleService::build_status_results_from_api(&cached.vehicle);
+                        let cached_at = cached
+                            .cached_at
+                            .format(&time::format_description::well_known::Rfc3339)
+                            .ok();
                         let response = VehicleSearchResult {
                             plate_number: cached.plate_number,
                             confidence: Some(1.0),
                             identification_mode: Some(IdentificationMode::Manual),
                             vehicle: cached.vehicle,
                             status_results,
+                            source: Some(VehicleDataSource::Cache),
+                            cached_at,
                         };
                         record_vehicle_search_control(&state, &payload, &response).await;
                         return Ok((StatusCode::OK, Json(response)));
@@ -104,12 +111,41 @@ pub async fn search_vehicle(
                         tracing::warn!("Vehicle S3 cache read timed out");
                     }
                 }
+
+                spawn_enqueue_retry(&state, &plate);
             }
 
             Err(AppError::external_api_failure(
                 "Vehicle registry lookup failed",
             ))
         }
+    }
+}
+
+/// Detached: never blocks or degrades the agent's response.
+fn spawn_write_through(
+    state: &AppState,
+    plate: &str,
+    vehicle: &crate::dto::search_vehicle::VehicleInfo,
+) {
+    if let Some(cache) = &state.s3_data_cache {
+        let (cache, plate, vehicle) = (cache.clone(), plate.to_string(), vehicle.clone());
+        tokio::spawn(async move {
+            if let Err(e) = cache.store_vehicle_data(&plate, &vehicle).await {
+                tracing::warn!(error = %e, "write-through S3 échoué");
+            }
+        });
+    }
+}
+
+fn spawn_enqueue_retry(state: &AppState, plate: &str) {
+    if let Some(cache) = &state.s3_data_cache {
+        let (cache, plate) = (cache.clone(), plate.to_string());
+        tokio::spawn(async move {
+            if let Err(e) = cache.enqueue_retry(&plate).await {
+                tracing::warn!(error = %e, "échec de mise en file de retry S3");
+            }
+        });
     }
 }
 
@@ -129,6 +165,8 @@ fn build_search_result(
         identification_mode: Some(IdentificationMode::Manual),
         vehicle: vehicle_info,
         status_results,
+        source: Some(VehicleDataSource::Live),
+        cached_at: None,
     }
 }
 
