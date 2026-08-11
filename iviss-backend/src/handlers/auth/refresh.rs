@@ -282,6 +282,18 @@ pub async fn verify_refresh(
     ))
 }
 
+/// Logic to execute when a shift has ended.
+/// Marks the device as inactive and returns an unauthorized error.
+pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
+    tracing::warn!(%device_id, "shift: ended logic triggered");
+
+    if let Err(err) = auth::mark_device_inactive(pool, device_id).await {
+        tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
+    }
+
+    AppError::unauthorized_with_code(ErrorCode::ShiftEnded, "Shift ended")
+}
+
 /// Verifies an ES256 (ECDSA P-256) compact JWS against a Base64-encoded public key.
 fn verify_es256_jws(
     jws_compact: &str,

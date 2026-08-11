@@ -41,16 +41,4 @@ pub use login::login;
 pub use logout::__path_logout;
 pub use logout::logout;
 pub use refresh::{__path_request_refresh, __path_verify_refresh};
-pub use refresh::{request_refresh, verify_refresh};
-
-/// Logic to execute when a shift has ended.
-/// Marks the device as inactive and returns an unauthorized error.
-pub async fn on_shift_ended(pool: &sqlx::PgPool, device_id: Uuid) -> AppError {
-    tracing::warn!(%device_id, "shift: ended logic triggered");
-
-    if let Err(err) = crate::queries::auth::mark_device_inactive(pool, device_id).await {
-        tracing::error!(%device_id, error = %err, "shift: failed to mark device inactive");
-    }
-
-    AppError::unauthorized_with_code(ErrorCode::ShiftEnded, "Shift ended")
-}
+pub use refresh::{on_shift_ended, request_refresh, verify_refresh};

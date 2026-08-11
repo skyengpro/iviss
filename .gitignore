@@ -53,6 +53,7 @@ iviss-backend/lcov.info
 .codex
 .agents
 graphify-out/cost.json
+graphify-out/2026-08-11/cost.json
 graphify-out/cache/
 iviss-backend/scripts/start-ngrok.sh
 docs/developer_documentation_guide.md

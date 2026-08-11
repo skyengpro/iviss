@@ -30,7 +30,7 @@ pub async fn terminate_session(
         ));
     }
 
-    crate::queries::auth::sessions::terminate_user_sessions(&state.db, payload.user_id).await?;
+    crate::queries::auth::terminate_user_sessions(&state.db, payload.user_id).await?;
 
     Ok((
         StatusCode::OK,
@@ -68,7 +68,7 @@ pub async fn restart_session(
     }
 
     // Refresh the device status and shift_end (default to 8 hours for restart)
-    crate::queries::auth::sessions::restart_user_session(
+    crate::queries::auth::restart_user_session(
         &state.db,
         payload.user_id,
         std::time::Duration::from_secs(8 * 3600),
