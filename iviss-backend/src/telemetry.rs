@@ -1,11 +1,16 @@
 use anyhow::Result;
-use metrics_exporter_prometheus::PrometheusBuilder;
+use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::trace::TracerProvider;
 use opentelemetry_sdk::Resource;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
+/// `metrics::set_global_recorder` can only succeed once per process. Test
+/// binaries run many `#[tokio::test]`s in one process, each wanting its own
+/// `TelemetryHandle`, so the recorder is installed once and reused.
+static TEST_METRICS_RECORDER: OnceLock<PrometheusHandle> = OnceLock::new();
 
 pub struct TelemetryHandle {
     pub metrics_recorder: Arc<metrics_exporter_prometheus::PrometheusHandle>,
@@ -14,9 +19,13 @@ pub struct TelemetryHandle {
 
 impl TelemetryHandle {
     pub fn noop() -> Self {
-        let recorder = PrometheusBuilder::new()
-            .install_recorder()
-            .expect("failed to install noop metrics recorder");
+        let recorder = TEST_METRICS_RECORDER
+            .get_or_init(|| {
+                PrometheusBuilder::new()
+                    .install_recorder()
+                    .expect("failed to install noop metrics recorder")
+            })
+            .clone();
         Self {
             metrics_recorder: Arc::new(recorder),
             tracer_provider: None,
