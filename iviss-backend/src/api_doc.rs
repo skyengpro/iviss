@@ -132,6 +132,7 @@ impl Modify for SecurityAddon {
             // ── vehicle ──
             VehicleSearchRequest,
             VehicleSearchResult,
+            VehicleDataSource,
             VehicleInfo,
             OwnerInfo,
             StatusResults,
@@ -154,6 +155,7 @@ impl Modify for SecurityAddon {
             PendingSubmissionDetail,
             PendingSubmissionListItem,
             SubmissionStatus,
+            SubmissionSource,
             DataEntryResponse,
             VehicleDataEntry,
             SubmissionAuditLogEntry,

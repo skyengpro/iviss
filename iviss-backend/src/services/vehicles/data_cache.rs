@@ -1,11 +1,14 @@
 use crate::dto::search_vehicle::VehicleInfo;
-use crate::s3_cache_layer::{self, types::UNREGISTERED_PREFIX, CachedVehicleData, S3CacheConfig};
+use crate::s3_cache_layer::{self, CachedVehicleData, S3CacheConfig};
 use anyhow::Result;
 use async_trait::async_trait;
 
 #[derive(Clone, Debug)]
 pub struct UnregisteredPlate {
     pub plate_number: String,
+    /// S3 object `last_modified` of the marker — markers are write-once, so
+    /// this is effectively when the plate was marked unregistered.
+    pub marked_at: Option<time::OffsetDateTime>,
 }
 
 #[async_trait]
@@ -66,17 +69,16 @@ impl VehicleDataCache for S3VehicleDataCache {
     }
 
     async fn list_unregistered(&self) -> Result<Vec<UnregisteredPlate>> {
-        let plates = s3_cache_layer::list_queued_plates(
-            &self.client,
-            &self.bucket,
-            UNREGISTERED_PREFIX,
-            usize::MAX,
-        )
-        .await?;
+        let markers =
+            s3_cache_layer::list_unregistered_markers(&self.client, &self.bucket, usize::MAX)
+                .await?;
 
-        Ok(plates
+        Ok(markers
             .into_iter()
-            .map(|plate_number| UnregisteredPlate { plate_number })
+            .map(|marker| UnregisteredPlate {
+                plate_number: marker.plate_number,
+                marked_at: marker.last_modified,
+            })
             .collect())
     }
 }

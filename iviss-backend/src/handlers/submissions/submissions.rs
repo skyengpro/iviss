@@ -109,10 +109,54 @@ pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SubmissionListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let submissions =
+    let mut submissions =
         crate::queries::submissions::get_pending_submissions(&state.db, query.status.as_deref())
             .await?;
+
+    // unregistered/ plates have no review status of their own; only fold them
+    // in when the caller isn't filtering for approved/rejected submissions.
+    let include_unregistered = query
+        .status
+        .as_deref()
+        .is_none_or(|status| status.eq_ignore_ascii_case("pending"));
+
+    if include_unregistered {
+        if let Some(s3_data_cache) = &state.s3_data_cache {
+            match s3_data_cache.list_unregistered().await {
+                Ok(unregistered) => {
+                    submissions.extend(unregistered.into_iter().map(unregistered_to_list_item));
+                }
+                Err(error) => {
+                    tracing::warn!(error = %error, "failed to list unregistered plates from S3; serving submissions from DB only");
+                }
+            }
+        }
+    }
+
+    submissions.sort_by(|a, b| b.submitted_at.cmp(&a.submitted_at));
+
     Ok((StatusCode::OK, Json(submissions)))
+}
+
+fn unregistered_to_list_item(
+    plate: crate::services::vehicles::data_cache::UnregisteredPlate,
+) -> pending_submission::PendingSubmissionListItem {
+    let submitted_at = plate
+        .marked_at
+        .and_then(|dt| {
+            dt.format(&time::format_description::well_known::Rfc3339)
+                .ok()
+        })
+        .unwrap_or_default();
+
+    pending_submission::PendingSubmissionListItem {
+        id: None,
+        plate_number: plate.plate_number,
+        agent_name: None,
+        status: pending_submission::SubmissionStatus::Pending,
+        submitted_at,
+        source: pending_submission::SubmissionSource::S3Unregistered,
+    }
 }
 
 // ── Detail (admin) ────────────────────────────────────────────────────────────

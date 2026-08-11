@@ -4,12 +4,16 @@ import { fetchWithAuth } from './backendFetch';
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 
+export type SubmissionSource = 'submission' | 's3_unregistered';
+
 export interface PendingSubmissionListItem {
-  id: string;
+  /** `null` for an S3 `unregistered/` entry — no detail to fetch. */
+  id: string | null;
   plateNumber: string;
   agentName: string | null;
   status: SubmissionStatus;
   submittedAt: string;
+  source: SubmissionSource;
 }
 
 export interface SubmissionLocation {

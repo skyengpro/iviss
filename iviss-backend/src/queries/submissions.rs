@@ -1,7 +1,7 @@
 use crate::dto::common::SubmissionLocation;
 use crate::dto::pending_submission::{
-    PendingSubmissionDetail, PendingSubmissionListItem, SubmissionAuditLogEntry, SubmissionStatus,
-    VehicleDataEntry,
+    PendingSubmissionDetail, PendingSubmissionListItem, SubmissionAuditLogEntry, SubmissionSource,
+    SubmissionStatus, VehicleDataEntry,
 };
 use crate::errors::AppError;
 use sqlx::{PgPool, Row};
@@ -96,13 +96,14 @@ pub async fn get_pending_submissions(
             row.try_get("created_at").map_err(AppError::database)?;
 
         items.push(PendingSubmissionListItem {
-            id: row.try_get("id").map_err(AppError::database)?,
+            id: Some(row.try_get("id").map_err(AppError::database)?),
             plate_number: row.try_get("plate_number").map_err(AppError::database)?,
             agent_name: row.try_get("agent_name").ok(),
             status: SubmissionStatus::from_db_str(&status_str),
             submitted_at: created_at
                 .format(&time::format_description::well_known::Rfc3339)
                 .unwrap_or_default(),
+            source: SubmissionSource::Submission,
         });
     }
     Ok(items)

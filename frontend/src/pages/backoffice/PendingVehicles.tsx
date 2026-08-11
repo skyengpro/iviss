@@ -193,37 +193,50 @@ export default function PendingVehicles() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[calc(100vh-20rem)] overflow-y-auto">
-                  {submissions.map((sub) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => loadDetail(sub.id)}
-                      className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                        selectedDetail?.id === sub.id
-                          ? 'border-accent bg-accent/5'
-                          : 'border-border hover:bg-muted'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold tracking-wider text-sm">
-                          {sub.plateNumber}
-                        </span>
-                        <StatusBadge variant={statusVariantMap[sub.status]} size="sm">
-                          {t(`pendingValidation.status_${sub.status}`)}
-                        </StatusBadge>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        <span>{sub.agentName ?? t('pendingValidation.unknownAgent')}</span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(sub.submittedAt)}
-                        </span>
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </div>
-                    </button>
-                  ))}
+                  {submissions.map((sub) => {
+                    const hasDetail = sub.source === 'submission' && sub.id !== null;
+                    return (
+                      <button
+                        key={sub.id ?? sub.plateNumber}
+                        onClick={hasDetail ? () => loadDetail(sub.id as string) : undefined}
+                        disabled={!hasDetail}
+                        title={hasDetail ? undefined : t('pendingValidation.noDetailAvailable')}
+                        className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                          !hasDetail
+                            ? 'border-border opacity-70 cursor-not-allowed'
+                            : selectedDetail?.id === sub.id
+                              ? 'border-accent bg-accent/5'
+                              : 'border-border hover:bg-muted'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold tracking-wider text-sm">
+                            {sub.plateNumber}
+                          </span>
+                          {hasDetail ? (
+                            <StatusBadge variant={statusVariantMap[sub.status]} size="sm">
+                              {t(`pendingValidation.status_${sub.status}`)}
+                            </StatusBadge>
+                          ) : (
+                            <StatusBadge variant="pending" size="sm">
+                              {t('pendingValidation.unregisteredSource')}
+                            </StatusBadge>
+                          )}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          <span>{sub.agentName ?? t('pendingValidation.unknownAgent')}</span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(sub.submittedAt)}
+                          </span>
+                          {hasDetail && <ChevronRight className="h-3.5 w-3.5" />}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

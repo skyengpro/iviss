@@ -368,7 +368,9 @@
     "auditAction_rejected": "Soumission rejetée",
     "toastError": "Erreur",
     "loadError": "Échec du chargement des soumissions.",
-    "detailLoadError": "Échec du chargement des détails de la soumission."
+    "detailLoadError": "Échec du chargement des détails de la soumission.",
+    "unregisteredSource": "Absent du registre",
+    "noDetailAvailable": "Aucun détail disponible pour cette plaque"
   },
   "backOfficeUserManagement": {
     "title": "Gestion des utilisateurs",

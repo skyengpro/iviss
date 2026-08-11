@@ -4084,10 +4084,10 @@
         "type": "object",
         "description": "Lightweight list item for admin dashboard",
         "required": [
-          "id",
           "plateNumber",
           "status",
-          "submittedAt"
+          "submittedAt",
+          "source"
         ],
         "properties": {
           "agentName": {
@@ -4096,10 +4096,15 @@
           },
           "id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "`None` for an S3 `unregistered/` entry — no row in `pending_submissions`.",
+            "nullable": true
           },
           "plateNumber": {
             "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SubmissionSource"
           },
           "status": {
             "$ref": "#/components/schemas/SubmissionStatus"
@@ -4525,6 +4530,14 @@
           }
         }
       },
+      "SubmissionSource": {
+        "type": "string",
+        "description": "Origin of a [`PendingSubmissionListItem`] entry.",
+        "enum": [
+          "submission",
+          "s3_unregistered"
+        ]
+      },
       "SubmissionStatus": {
         "type": "string",
         "enum": [
@@ -4898,6 +4911,13 @@
           }
         }
       },
+      "VehicleDataSource": {
+        "type": "string",
+        "enum": [
+          "live",
+          "cache"
+        ]
+      },
       "VehicleInfo": {
         "type": "object",
         "required": [
@@ -4985,6 +5005,10 @@
           "status_results"
         ],
         "properties": {
+          "cached_at": {
+            "type": "string",
+            "nullable": true
+          },
           "confidence": {
             "type": "number",
             "format": "double",
@@ -5000,6 +5024,14 @@
           },
           "plate_number": {
             "type": "string"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleDataSource"
+              }
+            ],
+            "nullable": true
           },
           "status_results": {
             "$ref": "#/components/schemas/StatusResults"

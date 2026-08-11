@@ -6,5 +6,8 @@ pub mod s3_writer;
 pub mod types;
 
 pub use config::{build_s3_client, S3CacheConfig};
-pub use s3_queue::{enqueue_plate, list_queued_plates, mark_unregistered, remove_marker};
+pub use s3_queue::{
+    enqueue_plate, list_queued_plates, list_unregistered_markers, mark_unregistered, remove_marker,
+    ListedMarker,
+};
 pub use types::CachedVehicleData;

@@ -77,11 +77,13 @@ pub struct PendingSubmissionDetail {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingSubmissionListItem {
-    pub id: Uuid,
+    /// `None` for an S3 `unregistered/` entry — no row in `pending_submissions`.
+    pub id: Option<Uuid>,
     pub plate_number: String,
     pub agent_name: Option<String>,
     pub status: SubmissionStatus,
     pub submitted_at: String,
+    pub source: SubmissionSource,
 }
 
 /// Response after a review action
@@ -152,4 +154,12 @@ impl SubmissionStatus {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct SubmissionListQuery {
     pub status: Option<String>,
+}
+
+/// Origin of a [`PendingSubmissionListItem`] entry.
+#[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum SubmissionSource {
+    Submission,
+    S3Unregistered,
 }

@@ -366,7 +366,9 @@
     "auditAction_rejected": "Submission rejected",
     "toastError": "Error",
     "loadError": "Failed to load submissions.",
-    "detailLoadError": "Failed to load submission details."
+    "detailLoadError": "Failed to load submission details.",
+    "unregisteredSource": "Not in registry",
+    "noDetailAvailable": "No details available for this plate"
   },
   "backOfficeUserManagement": {
     "title": "User Management",
