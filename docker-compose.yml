@@ -51,7 +51,7 @@ x-backend-environment: &backend-environment
   S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
   S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-}
   S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-false}
-  S3_CACHE_SSE_KMS_KEY_ID: ${S3_CACHE_SSE_KMS_KEY_ID:-}
+  S3_CACHE_KMS_KEY_ID: ${S3_CACHE_KMS_KEY_ID:-}
   S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -173,20 +173,21 @@ services:
       EXTERNAL_API_CLIENT: ""
       EXTERNAL_API_CTR: ""
       EXTERNAL_API_TLS_CERT_B64: ""
-      EXTERNAL_API_HEADER_USER: ""
-      EXTERNAL_API_HEADER_LOCK_NDIA: ""
-      EXTERNAL_API_HEADER_KINDIA: ""
-      EXTERNAL_API_HEADER_CLIENT: ""
-      EXTERNAL_API_HEADER_CTR: ""
       # S3 cache config
       S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-iviss-vehicle-cache}
       S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
       S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-http://minio:9000}
       S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-true}
-      S3_CACHE_KMS_KEY_ID: ${S3_CACHE_SSE_KMS_KEY_ID:-}
+      S3_CACHE_KMS_KEY_ID: ${S3_CACHE_KMS_KEY_ID:-}
       S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # Drain cycle timing — short overrides here so local dev doesn't wait
+      # out the 1h/2h production defaults to see the sync cycle run.
+      SYNC_WINDOW_SECS: ${SYNC_WINDOW_SECS:-120}
+      SYNC_IDLE_SECS: ${SYNC_IDLE_SECS:-60}
+      SYNC_PING_INTERVAL_SECS: ${SYNC_PING_INTERVAL_SECS:-10}
+      SYNC_MAX_CONSECUTIVE_FAILURES: ${SYNC_MAX_CONSECUTIVE_FAILURES:-5}
       # Logging
       RUST_LOG: ${LOG_LEVEL:-info}
     # Required on Linux: maps host.docker.internal → host's loopback so the
@@ -243,7 +244,7 @@ services:
       S3_CACHE_ENABLED: "true"
       S3_CACHE_ENDPOINT_URL: http://minio:9000
       S3_CACHE_FORCE_PATH_STYLE: "true"
-      S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-vehicle-data-cache}
+      S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-iviss-vehicle-cache}
     # Required on Linux: maps host.docker.internal → host's loopback so the
     # container can reach the manually-run mock API server.
     extra_hosts:

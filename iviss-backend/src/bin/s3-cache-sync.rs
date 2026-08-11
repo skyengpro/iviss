@@ -239,11 +239,11 @@ fn load_vehicle_api_credentials() -> VehicleApiCredentials {
     let username = env::var("EXTERNAL_API_USERNAME").unwrap_or_default();
     let password = env::var("EXTERNAL_API_PASSWORD").unwrap_or_default();
 
-    let header_user = env::var("EXTERNAL_API_HEADER_USER").unwrap_or_default();
-    let header_lock_ndia = env::var("EXTERNAL_API_HEADER_LOCK_NDIA").unwrap_or_default();
-    let header_kindia = env::var("EXTERNAL_API_HEADER_KINDIA").unwrap_or_default();
-    let header_client = env::var("EXTERNAL_API_HEADER_CLIENT").unwrap_or_default();
-    let header_ctr = env::var("EXTERNAL_API_HEADER_CTR").unwrap_or_default();
+    let header_user = env::var("EXTERNAL_API_USER").unwrap_or_default();
+    let header_lock_ndia = env::var("EXTERNAL_API_LOCK_NDIA").unwrap_or_default();
+    let header_kindia = env::var("EXTERNAL_API_KINDIA").unwrap_or_default();
+    let header_client = env::var("EXTERNAL_API_CLIENT").unwrap_or_default();
+    let header_ctr = env::var("EXTERNAL_API_CTR").unwrap_or_default();
     let tls_cert_b64 = env::var("EXTERNAL_API_TLS_CERT_B64").unwrap_or_default();
 
     VehicleApiCredentials {
