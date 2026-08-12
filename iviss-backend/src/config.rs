@@ -106,6 +106,8 @@ pub struct Config {
     pub admin_bootstrap_username: Option<String>,
     // Vehicle API
     pub vehicle_api_credentials: VehicleApiCredentials,
+    // Kill switch: when false, no outbound calls to the vehicle API partner service are made
+    pub enable_vehicle_api: bool,
     // S3-compatible vehicle data cache
     pub s3_cache: S3CacheConfig,
 }
@@ -190,6 +192,9 @@ impl Config {
         let vehicle_api_credentials = Self::get_vehicle_api_credentials()
             .context("Failed to configure Vehicle API credentials")?;
 
+        // Vehicle API kill switch (default: enabled)
+        let enable_vehicle_api = Self::parse_bool_env("ENABLE_VEHICLE_API", true);
+
         // OTP delivery via email toggle (default: false)
         let otp_via_email = env::var("OTP_VIA_EMAIL")
             .ok()
@@ -219,6 +224,7 @@ impl Config {
             admin_bootstrap_phone,
             admin_bootstrap_username,
             vehicle_api_credentials,
+            enable_vehicle_api,
             s3_cache,
         })
     }
@@ -674,6 +680,7 @@ mod tests {
             admin_bootstrap_phone: None,
             admin_bootstrap_username: None,
             vehicle_api_credentials: mock_vehicle_api_credentials(),
+            enable_vehicle_api: true,
             s3_cache: S3CacheConfig::default(),
         };
 
@@ -703,6 +710,7 @@ mod tests {
             admin_bootstrap_phone: Some("+237600000000".into()),
             admin_bootstrap_username: Some("admin".into()),
             vehicle_api_credentials: mock_vehicle_api_credentials(),
+            enable_vehicle_api: true,
             s3_cache: S3CacheConfig::default(),
         };
         assert!(config.validate().is_ok());
@@ -735,6 +743,7 @@ mod tests {
             admin_bootstrap_phone: None,
             admin_bootstrap_username: None,
             vehicle_api_credentials: mock_vehicle_api_credentials(),
+            enable_vehicle_api: true,
             s3_cache: S3CacheConfig {
                 enabled: true,
                 bucket: None,

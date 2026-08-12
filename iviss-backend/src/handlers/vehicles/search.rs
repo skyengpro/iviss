@@ -52,6 +52,11 @@ pub async fn search_vehicle(
 
     log_search_location(&payload);
 
+    if !state.vehicle_api_enabled {
+        tracing::warn!("Vehicle API disabled via ENABLE_VEHICLE_API; using cache fallback");
+        return handle_vehicle_api_unavailable(&state, &plate, &payload).await;
+    }
+
     match state.vehicle_api_svc.query_plate(&plate).await {
         Ok(api_response) => {
             let response = build_search_result(api_response, &plate);
@@ -70,56 +75,62 @@ pub async fn search_vehicle(
         }
         Err(error) => {
             tracing::error!("Vehicle API lookup failed: {}", error);
-
-            if let Some(s3_data_cache) = &state.s3_data_cache {
-                match tokio::time::timeout(
-                    S3_CACHE_READ_TIMEOUT,
-                    s3_data_cache.get_vehicle_data(&plate),
-                )
-                .await
-                {
-                    Ok(Ok(Some(cached))) => {
-                        tracing::info!(
-                            cached_at = %cached.cached_at,
-                            "Serving vehicle data from S3 cache"
-                        );
-                        let status_results =
-                            VehicleService::build_status_results_from_api(&cached.vehicle);
-                        let cached_at = cached
-                            .cached_at
-                            .format(&time::format_description::well_known::Rfc3339)
-                            .ok();
-                        let response = VehicleSearchResult {
-                            plate_number: cached.plate_number,
-                            confidence: Some(1.0),
-                            identification_mode: Some(IdentificationMode::Manual),
-                            vehicle: cached.vehicle,
-                            status_results,
-                            source: Some(VehicleDataSource::Cache),
-                            cached_at,
-                        };
-                        record_vehicle_search_control(&state, &payload, &response).await;
-                        return Ok((StatusCode::OK, Json(response)));
-                    }
-                    Ok(Ok(None)) => {
-                        tracing::warn!("Vehicle S3 cache miss");
-                    }
-                    Ok(Err(cache_error)) => {
-                        tracing::warn!("Vehicle S3 cache lookup failed: {}", cache_error);
-                    }
-                    Err(_) => {
-                        tracing::warn!("Vehicle S3 cache read timed out");
-                    }
-                }
-
-                spawn_enqueue_retry(&state, &plate);
-            }
-
-            Err(AppError::external_api_failure(
-                "Vehicle registry lookup failed",
-            ))
+            handle_vehicle_api_unavailable(&state, &plate, &payload).await
         }
     }
+}
+
+/// Shared fallback when the vehicle API cannot be reached — either because it
+/// failed, or because it was disabled via `ENABLE_VEHICLE_API`. Tries the S3
+/// cache, enqueueing a retry marker on miss.
+async fn handle_vehicle_api_unavailable(
+    state: &AppState,
+    plate: &str,
+    payload: &VehicleSearchRequest,
+) -> Result<(StatusCode, Json<VehicleSearchResult>), AppError> {
+    if let Some(s3_data_cache) = &state.s3_data_cache {
+        match tokio::time::timeout(S3_CACHE_READ_TIMEOUT, s3_data_cache.get_vehicle_data(plate))
+            .await
+        {
+            Ok(Ok(Some(cached))) => {
+                tracing::info!(
+                    cached_at = %cached.cached_at,
+                    "Serving vehicle data from S3 cache"
+                );
+                let status_results = VehicleService::build_status_results_from_api(&cached.vehicle);
+                let cached_at = cached
+                    .cached_at
+                    .format(&time::format_description::well_known::Rfc3339)
+                    .ok();
+                let response = VehicleSearchResult {
+                    plate_number: cached.plate_number,
+                    confidence: Some(1.0),
+                    identification_mode: Some(IdentificationMode::Manual),
+                    vehicle: cached.vehicle,
+                    status_results,
+                    source: Some(VehicleDataSource::Cache),
+                    cached_at,
+                };
+                record_vehicle_search_control(state, payload, &response).await;
+                return Ok((StatusCode::OK, Json(response)));
+            }
+            Ok(Ok(None)) => {
+                tracing::warn!("Vehicle S3 cache miss");
+            }
+            Ok(Err(cache_error)) => {
+                tracing::warn!("Vehicle S3 cache lookup failed: {}", cache_error);
+            }
+            Err(_) => {
+                tracing::warn!("Vehicle S3 cache read timed out");
+            }
+        }
+
+        spawn_enqueue_retry(state, plate);
+    }
+
+    Err(AppError::external_api_failure(
+        "Vehicle registry lookup failed",
+    ))
 }
 
 /// Detached: never blocks or degrades the agent's response.

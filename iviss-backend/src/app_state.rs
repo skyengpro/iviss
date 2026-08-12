@@ -22,6 +22,7 @@ pub struct AppState {
     pub cors_allowed_origins: Vec<String>,
     pub otp_via_email: bool,
     pub vehicle_api_svc: Arc<VehicleApiService>,
+    pub vehicle_api_enabled: bool,
     pub telemetry: Arc<TelemetryHandle>,
     pub s3_data_cache: Option<Arc<dyn VehicleDataCache>>,
 }
@@ -60,6 +61,7 @@ impl AppState {
             cors_allowed_origins: config.cors_allowed_origins.clone(),
             otp_via_email: config.otp_via_email,
             vehicle_api_svc: Arc::new(vehicle_api_svc),
+            vehicle_api_enabled: config.enable_vehicle_api,
             telemetry,
             s3_data_cache,
         })

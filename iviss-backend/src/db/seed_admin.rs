@@ -131,6 +131,7 @@ mod tests {
             admin_bootstrap_phone: Some(phone.to_string()),
             admin_bootstrap_username: Some(username.to_string()),
             vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
+            enable_vehicle_api: true,
             s3_cache: crate::config::S3CacheConfig::default(),
         }
     }

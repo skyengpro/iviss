@@ -88,6 +88,7 @@ async fn setup_admin_logout_test() -> (
         admin_bootstrap_phone: Some("+237600000000".to_string()),
         admin_bootstrap_username: Some("admin".to_string()),
         vehicle_api_credentials: crate::config::mock_vehicle_api_credentials(),
+        enable_vehicle_api: true,
         s3_cache: crate::config::S3CacheConfig::default(),
     };
 

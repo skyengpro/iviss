@@ -20,9 +20,13 @@ use std::env;
 use std::time::Duration;
 use tokio::time::Instant;
 
+/// How long each drain window stays open per cycle.
 const DRAIN_WINDOW: Duration = Duration::from_secs(60 * 60);
+/// How long to sleep between drain windows.
 const IDLE_BETWEEN_WINDOWS: Duration = Duration::from_secs(2 * 60 * 60);
+/// How often to check the queue/health during a drain window.
 const PING_INTERVAL: Duration = Duration::from_secs(5 * 60);
+/// Consecutive failures allowed before aborting the current drain cycle.
 const MAX_CONSECUTIVE_FAILURES: u32 = 5;
 
 /// How many retry-queue markers to list per page while draining.
@@ -34,6 +38,11 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Starting S3 Cache Sync Service...");
 
     dotenvy::dotenv().ok();
+
+    let vehicle_api_enabled = bool_from_env("ENABLE_VEHICLE_API", true);
+    if !vehicle_api_enabled {
+        tracing::warn!("Vehicle API disabled via ENABLE_VEHICLE_API; sync cycle will idle");
+    }
 
     let api_credentials = load_vehicle_api_credentials();
     tracing::info!(base_url = %api_credentials.base_url, "Vehicle API Service base URL loaded");
@@ -65,8 +74,10 @@ async fn main() -> anyhow::Result<()> {
 
         while Instant::now() < window_deadline {
             tokio::time::sleep(ping_interval).await;
+            tracing::info!("Ping interval elapsed; checking queue and external API health");
 
             run_ping_cycle(
+                vehicle_api_enabled,
                 &vehicle_api_svc,
                 &s3_client,
                 &bucket_name,
@@ -85,8 +96,10 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-/// One ping tick: skip the health probe entirely when the queue is empty.
+/// One ping tick: skip the health probe entirely when the queue is empty,
+/// or entirely when the vehicle API is disabled via `ENABLE_VEHICLE_API`.
 async fn run_ping_cycle(
+    vehicle_api_enabled: bool,
     source: &impl ExternalDataSource,
     s3_client: &aws_sdk_s3::Client,
     bucket: &str,
@@ -94,6 +107,11 @@ async fn run_ping_cycle(
     encryption_key: &Option<[u8; 32]>,
     max_consecutive_failures: u32,
 ) {
+    if !vehicle_api_enabled {
+        tracing::debug!("Vehicle API disabled; skipping ping cycle");
+        return;
+    }
+
     let queue_peek =
         s3_cache_layer::list_queued_plates(s3_client, bucket, RETRY_QUEUE_PREFIX, 1).await;
     match queue_peek {
@@ -187,12 +205,14 @@ async fn drain_queue(
                         continue;
                     }
                     consecutive_failures = 0;
+                    tracing::info!(plate = %plate, "successfully drained vehicle to cache");
                     if let Err(error) =
                         s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
                             .await
                     {
                         tracing::error!(plate = %plate, error = %error, "failed to remove retry marker after successful write");
                     }
+                    tracing::info!(plate = %plate, "retry marker removed after successful write");
                 }
                 Err(ExternalServiceError::NotFound) => {
                     if let Err(error) =
@@ -209,6 +229,7 @@ async fn drain_queue(
                         }
                         continue;
                     }
+                    tracing::info!(plate = %plate, "successfully marked plate unregistered");
                     consecutive_failures = 0;
                     if let Err(error) =
                         s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
@@ -216,6 +237,7 @@ async fn drain_queue(
                     {
                         tracing::error!(plate = %plate, error = %error, "failed to remove retry marker after marking unregistered");
                     }
+                    tracing::info!(plate = %plate, "retry marker removed after marking unregistered");
                 }
                 Err(ExternalServiceError::Unavailable(reason))
                 | Err(ExternalServiceError::Protocol(reason)) => {
@@ -247,6 +269,18 @@ fn u32_from_env(var: &str, default: u32) -> u32 {
     env::var(var)
         .ok()
         .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(default)
+}
+
+fn bool_from_env(var: &str, default: bool) -> bool {
+    env::var(var)
+        .ok()
+        .map(|v| {
+            matches!(
+                v.trim().to_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
         .unwrap_or(default)
 }
 

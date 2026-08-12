@@ -15,6 +15,7 @@ x-backend-environment: &backend-environment
   EXTERNAL_API_CLIENT: ${EXTERNAL_API_CLIENT:?EXTERNAL_API_CLIENT must be set}
   EXTERNAL_API_CTR: ${EXTERNAL_API_CTR:?EXTERNAL_API_CTR must be set}
   EXTERNAL_API_TLS_CERT_B64: ${EXTERNAL_API_TLS_CERT_B64:-}
+  ENABLE_VEHICLE_API: ${ENABLE_VEHICLE_API:-true}
   SQLX_OFFLINE: "true"
   JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
   JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
@@ -88,6 +89,7 @@ services:
     restart: unless-stopped
     environment:
       <<: *dev-service-defaults
+      ENABLE_VEHICLE_API: ${ENABLE_VEHICLE_API:-true}
       S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
       S3_CACHE_KMS_KEY_ID: ${S3_CACHE_KMS_KEY_ID:-}
       S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
