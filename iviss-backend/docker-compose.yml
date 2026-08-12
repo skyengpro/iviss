@@ -1,0 +1,192 @@
+x-default-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-environment: &backend-environment
+  DATABASE_URL: postgres://${POSTGRES_USER:-iviss_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@iviss-db:5432/${POSTGRES_DB:-iviss_dev}
+  EXTERNAL_API_BASE_URL: ${EXTERNAL_API_BASE_URL:?EXTERNAL_API_BASE_URL must be set}
+  EXTERNAL_API_USERNAME: ${EXTERNAL_API_USERNAME:?EXTERNAL_API_USERNAME must be set}
+  EXTERNAL_API_PASSWORD: ${EXTERNAL_API_PASSWORD:?EXTERNAL_API_PASSWORD must be set}
+  EXTERNAL_API_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA:?EXTERNAL_API_LOCK_NDIA must be set}
+  EXTERNAL_API_KINDIA: ${EXTERNAL_API_KINDIA:?EXTERNAL_API_KINDIA must be set}
+  EXTERNAL_API_USER: ${EXTERNAL_API_USER:?EXTERNAL_API_USER must be set}
+  EXTERNAL_API_CLIENT: ${EXTERNAL_API_CLIENT:?EXTERNAL_API_CLIENT must be set}
+  EXTERNAL_API_CTR: ${EXTERNAL_API_CTR:?EXTERNAL_API_CTR must be set}
+  EXTERNAL_API_TLS_CERT_B64: ${EXTERNAL_API_TLS_CERT_B64:-}
+  SQLX_OFFLINE: "true"
+  JWT_PRIVATE_KEY_PEM: ${JWT_PRIVATE_KEY_PEM}
+  JWT_PUBLIC_KEY_PEM: ${JWT_PUBLIC_KEY_PEM}
+  ACTIVATION_CODE_PEPPER: ${ACTIVATION_CODE_PEPPER:-dev_activation_code_pepper_must_be_32_chars_min}
+  ENVIRONMENT: ${ENVIRONMENT:-local}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+  SERVER_HOST: 0.0.0.0
+  SERVER_PORT: 3000
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+  VONAGE_API_KEY: ${VONAGE_API_KEY:-mock}
+  VONAGE_API_SECRET: ${VONAGE_API_SECRET:-mock}
+  TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-mock}
+  TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-mock}
+  TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-mock}
+  ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID:-mock}
+  ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET:-mock}
+  ORANGE_SENDER_NUMBER: ${ORANGE_SENDER_NUMBER:-mock}
+  EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+  OTP_VIA_EMAIL: ${OTP_VIA_EMAIL:-false}
+  RESEND_API_KEY: ${RESEND_API_KEY:-mock}
+  RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-mock@example.com}
+  SMTP_HOST: ${SMTP_HOST:-localhost}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-user}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-password}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@iviss.local}
+  ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL}
+  ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD}
+  ADMIN_BOOTSTRAP_PHONE: ${ADMIN_BOOTSTRAP_PHONE}
+  ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME}
+  S3_CACHE_ENABLED: ${S3_CACHE_ENABLED:-false}
+  S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-}
+  S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
+  S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-}
+  S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-false}
+  S3_CACHE_KMS_KEY_ID: ${S3_CACHE_KMS_KEY_ID:-}
+  S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+  AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-eu-west-1}
+
+# Defaults to the local iviss-mock-ext-api / MinIO; set EXTERNAL_API_*, S3_CACHE_* in .env to use the real API.
+x-dev-service-defaults: &dev-service-defaults
+  EXTERNAL_API_BASE_URL: ${EXTERNAL_API_BASE_URL:-http://host.docker.internal:3001}
+  EXTERNAL_API_USERNAME: ${EXTERNAL_API_USERNAME:-test}
+  EXTERNAL_API_PASSWORD: ${EXTERNAL_API_PASSWORD:-test}
+  EXTERNAL_API_LOCK_NDIA: ${EXTERNAL_API_LOCK_NDIA:-}
+  EXTERNAL_API_KINDIA: ${EXTERNAL_API_KINDIA:-}
+  EXTERNAL_API_USER: ${EXTERNAL_API_USER:-}
+  EXTERNAL_API_CLIENT: ${EXTERNAL_API_CLIENT:-}
+  EXTERNAL_API_CTR: ${EXTERNAL_API_CTR:-}
+  EXTERNAL_API_TLS_CERT_B64: ${EXTERNAL_API_TLS_CERT_B64:-}
+  S3_CACHE_ENDPOINT_URL: ${S3_CACHE_ENDPOINT_URL:-http://minio:9000}
+  S3_CACHE_FORCE_PATH_STYLE: ${S3_CACHE_FORCE_PATH_STYLE:-true}
+  S3_CACHE_BUCKET: ${S3_CACHE_BUCKET:-iviss-vehicle-cache}
+
+x-dev-extra-hosts: &dev-extra-hosts
+  - "host.docker.internal:host-gateway"
+
+services:
+  # S3 cache sync service — fetches vehicle data from the external API and
+  # populates the S3 cache. Shares the minio instance for local dev.
+  # Opt-in with: docker compose --profile dev up s3-cache-sync
+  s3-cache-sync:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: Dockerfile.s3-cache-sync
+    container_name: iviss-s3-cache-sync
+    restart: unless-stopped
+    environment:
+      <<: *dev-service-defaults
+      S3_CACHE_REGION: ${S3_CACHE_REGION:-eu-west-1}
+      S3_CACHE_KMS_KEY_ID: ${S3_CACHE_KMS_KEY_ID:-}
+      S3_CACHE_ENCRYPTION_KEY: ${S3_CACHE_ENCRYPTION_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # Drain cycle timing — short overrides here so local dev doesn't wait
+      # out the 1h/2h production defaults to see the sync cycle run.
+      SYNC_WINDOW_SECS: ${SYNC_WINDOW_SECS:-120}
+      SYNC_IDLE_SECS: ${SYNC_IDLE_SECS:-60}
+      SYNC_PING_INTERVAL_SECS: ${SYNC_PING_INTERVAL_SECS:-10}
+      SYNC_MAX_CONSECUTIVE_FAILURES: ${SYNC_MAX_CONSECUTIVE_FAILURES:-5}
+      RUST_LOG: ${LOG_LEVEL:-info}
+    extra_hosts: *dev-extra-hosts
+    depends_on:
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+    networks:
+      - iviss-network
+
+  # Development backend with cargo-watch and source mounts
+  backend:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: iviss-backend
+    restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      <<: [*backend-environment, *dev-service-defaults]
+      S3_CACHE_ENABLED: "true"
+    extra_hosts: *dev-extra-hosts
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src:ro
+      - ./Cargo.toml:/app/Cargo.toml:ro
+      - ./Cargo.lock:/app/Cargo.lock:ro
+      - ./migrations:/app/migrations:ro
+      - ./.sqlx:/app/.sqlx:ro
+      - ./seeds:/app/seeds:ro
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/app/target
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 180s
+    logging: *default-logging
+    networks:
+      - iviss-network
+
+  # Production-like backend, opt-in with: docker compose --profile prod up backend-prod
+  backend-prod:
+    profiles: ["prod"]
+    image: ghcr.io/${DOCKER_ORG:-skyengpro}/iviss/backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *backend-environment
+    ports:
+      - "3004:3000"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    networks:
+      iviss-network:
+        aliases:
+          - iviss-api
