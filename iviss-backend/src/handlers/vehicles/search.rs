@@ -132,7 +132,7 @@ fn spawn_write_through(
         let (cache, plate, vehicle) = (cache.clone(), plate.to_string(), vehicle.clone());
         tokio::spawn(async move {
             if let Err(e) = cache.store_vehicle_data(&plate, &vehicle).await {
-                tracing::warn!(error = %e, "write-through S3 échoué");
+                tracing::warn!(error = %e, "S3 write-through failed");
             }
         });
     }
@@ -143,7 +143,7 @@ fn spawn_enqueue_retry(state: &AppState, plate: &str) {
         let (cache, plate) = (cache.clone(), plate.to_string());
         tokio::spawn(async move {
             if let Err(e) = cache.enqueue_retry(&plate).await {
-                tracing::warn!(error = %e, "échec de mise en file de retry S3");
+                tracing::warn!(error = %e, "failed to enqueue S3 retry marker");
             }
         });
     }

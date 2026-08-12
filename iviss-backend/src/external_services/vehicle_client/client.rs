@@ -95,7 +95,8 @@ impl VehicleApiService {
             body
         };
 
-        self.parse_html_response(&html).map_err(Into::into)
+        self.parse_html_response(&html)
+            .map_err(VehicleApiError::InvalidResponse)
     }
 
     pub fn parse_html_response(&self, html: &str) -> anyhow::Result<VehicleApiResponse> {
@@ -157,6 +158,9 @@ impl crate::external_services::ExternalDataSource for VehicleApiService {
     > {
         let response = self.query_plate(plate).await.map_err(|error| match error {
             VehicleApiError::NotFound => crate::external_services::ExternalServiceError::NotFound,
+            VehicleApiError::InvalidResponse(error) => {
+                crate::external_services::ExternalServiceError::Protocol(error.to_string())
+            }
             VehicleApiError::Other(error) => {
                 crate::external_services::ExternalServiceError::Unavailable(error.to_string())
             }

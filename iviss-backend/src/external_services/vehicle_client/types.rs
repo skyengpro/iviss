@@ -31,6 +31,10 @@ pub struct ExternalApiHeaderParms {
 pub enum VehicleApiError {
     #[error("Vehicle not found")]
     NotFound,
+    /// Server responded but the payload didn't parse — distinct from `Other`
+    /// so it maps to `Protocol`, not `Unavailable`.
+    #[error("failed to parse vehicle API response: {0}")]
+    InvalidResponse(anyhow::Error),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }

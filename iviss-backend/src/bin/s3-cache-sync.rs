@@ -8,6 +8,7 @@
 //!
 //! Build: cargo build --bin s3-cache-sync --no-default-features
 
+use anyhow::Context;
 use iviss_backend::external_services::vehicle_client::{
     ApiUserAuth, ExternalApiHeaderParms, VehicleApiCredentials, VehicleApiService,
 };
@@ -38,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(base_url = %api_credentials.base_url, "Vehicle API Service base URL loaded");
     let vehicle_api_svc = VehicleApiService::new(api_credentials)?;
 
-    let s3_config = load_s3_cache_config();
+    let s3_config = load_s3_cache_config()?;
     let kms_key_id = s3_config.kms_key_id.clone();
     let encryption_key = s3_config.encryption_key;
     let (s3_client, bucket_name) = s3_cache_layer::build_s3_client(&s3_config).await?;
@@ -125,9 +126,9 @@ async fn run_ping_cycle(
     }
 }
 
-/// Drains the retry queue until empty or `max_consecutive_failures` external
-/// fetch failures in a row — a guard against "server up but /query broken",
-/// which the health probe alone cannot detect.
+/// Drains the retry queue until empty or `max_consecutive_failures` failures
+/// in a row — fetch or S3 write side both count, guarding against both
+/// "server up but /query broken" and a stuck S3 write path.
 async fn drain_queue(
     source: &impl ExternalDataSource,
     s3_client: &aws_sdk_s3::Client,
@@ -164,7 +165,6 @@ async fn drain_queue(
                 Ok(iviss_backend::external_services::PartnerPayload::Vehicle {
                     vehicle, ..
                 }) => {
-                    consecutive_failures = 0;
                     if let Err(error) = write_vehicle_data(
                         s3_client,
                         bucket,
@@ -175,9 +175,18 @@ async fn drain_queue(
                     )
                     .await
                     {
-                        tracing::error!(plate = %plate, error = %error, "failed to write drained vehicle to cache; marker kept for retry");
+                        consecutive_failures += 1;
+                        tracing::error!(plate = %plate, error = %error, consecutive_failures, "failed to write drained vehicle to cache; marker kept for retry");
+                        if consecutive_failures >= max_consecutive_failures {
+                            tracing::warn!(
+                                consecutive_failures,
+                                "aborting drain cycle after too many consecutive failures"
+                            );
+                            return;
+                        }
                         continue;
                     }
+                    consecutive_failures = 0;
                     if let Err(error) =
                         s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
                             .await
@@ -186,13 +195,21 @@ async fn drain_queue(
                     }
                 }
                 Err(ExternalServiceError::NotFound) => {
-                    consecutive_failures = 0;
                     if let Err(error) =
                         s3_cache_layer::mark_unregistered(s3_client, bucket, &plate).await
                     {
-                        tracing::error!(plate = %plate, error = %error, "failed to mark plate unregistered; marker kept for retry");
+                        consecutive_failures += 1;
+                        tracing::error!(plate = %plate, error = %error, consecutive_failures, "failed to mark plate unregistered; marker kept for retry");
+                        if consecutive_failures >= max_consecutive_failures {
+                            tracing::warn!(
+                                consecutive_failures,
+                                "aborting drain cycle after too many consecutive failures"
+                            );
+                            return;
+                        }
                         continue;
                     }
+                    consecutive_failures = 0;
                     if let Err(error) =
                         s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
                             .await
@@ -260,7 +277,7 @@ fn load_vehicle_api_credentials() -> VehicleApiCredentials {
     }
 }
 
-fn load_s3_cache_config() -> S3CacheConfig {
+fn load_s3_cache_config() -> anyhow::Result<S3CacheConfig> {
     let bucket = env::var("S3_CACHE_BUCKET").ok();
     let region = env::var("S3_CACHE_REGION").unwrap_or_else(|_| "eu-west-1".to_string());
     let endpoint_url = env::var("S3_CACHE_ENDPOINT_URL")
@@ -277,18 +294,19 @@ fn load_s3_cache_config() -> S3CacheConfig {
         .ok()
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
-        .map(|b64| {
+        .map(|b64| -> anyhow::Result<[u8; 32]> {
             use base64::Engine;
             let bytes = base64::engine::general_purpose::STANDARD
                 .decode(&b64)
-                .expect("S3_CACHE_ENCRYPTION_KEY is not valid base64");
-            let key: [u8; 32] = bytes
-                .try_into()
-                .expect("S3_CACHE_ENCRYPTION_KEY must decode to exactly 32 bytes");
-            key
-        });
+                .context("S3_CACHE_ENCRYPTION_KEY is not valid base64")?;
+            let key: [u8; 32] = bytes.try_into().map_err(|_| {
+                anyhow::anyhow!("S3_CACHE_ENCRYPTION_KEY must decode to exactly 32 bytes")
+            })?;
+            Ok(key)
+        })
+        .transpose()?;
 
-    S3CacheConfig {
+    Ok(S3CacheConfig {
         enabled: true,
         bucket,
         region,
@@ -296,5 +314,5 @@ fn load_s3_cache_config() -> S3CacheConfig {
         force_path_style,
         kms_key_id,
         encryption_key,
-    }
+    })
 }
