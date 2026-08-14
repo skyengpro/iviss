@@ -7,7 +7,7 @@ on:
       - "iviss-backend/**"
       - ".github/workflows/backend-ci.yml"
   push:
-    branches: [aws-dev-test]
+    branches: [aws-dev-test, 298-implement-s3-cache-layer-provisioning-service]
     paths:
       - "iviss-backend/**"
       - ".github/workflows/backend-ci.yml"

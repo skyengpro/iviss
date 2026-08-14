@@ -1,13 +1,13 @@
 x-default-logging: &default-logging
-  driver: "json-file"
+  driver: 'json-file'
   options:
-    max-size: "10m"
-    max-file: "3"
+    max-size: '10m'
+    max-file: '3'
 
 services:
   # Development frontend with Vite and bind mounts
   frontend:
-    profiles: ["dev"]
+    profiles: ['dev']
     build:
       context: .
       dockerfile: Dockerfile
@@ -18,10 +18,10 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       NODE_ENV: development
-      VITE_API_URL: ""
+      VITE_API_URL: ''
       BACKEND_OPENAPI_URL: http://iviss-backend:3000/api-doc/openapi.json
     volumes:
       - .:/app
@@ -29,15 +29,7 @@ services:
       - ../scripts:/scripts
     command: npm run dev -- --host
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080",
-        ]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -47,7 +39,7 @@ services:
 
   # Production-like frontend, opt-in with: docker compose --profile prod up frontend-prod
   frontend-prod:
-    profiles: ["prod"]
+    profiles: ['prod']
     image: ghcr.io/${DOCKER_ORG:-skyengpro}/iviss/frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -56,17 +48,9 @@ services:
       backend-prod:
         condition: service_healthy
     ports:
-      - "8080:80"
+      - '8080:80'
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://127.0.0.1",
-        ]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -75,23 +59,23 @@ services:
       - iviss-network
 
   metrics:
-    profiles: ["dev"]
+    profiles: ['dev']
     build:
       context: .
       dockerfile: Dockerfile.metrics
     container_name: iviss-metrics-server
     restart: unless-stopped
     ports:
-      - "9091:9091"
+      - '9091:9091'
     environment:
       NODE_ENV: production
       METRICS_PORT: 9091
     healthcheck:
       test:
         [
-          "CMD",
-          "node",
-          "-e",
+          'CMD',
+          'node',
+          '-e',
           "fetch('http://localhost:9091/health').then(r => r.ok ? process.exit(0) : process.exit(1))",
         ]
       interval: 30s

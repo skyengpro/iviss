@@ -158,7 +158,10 @@ fn spawn_write_through(
 
 fn spawn_enqueue_retry(state: &AppState, org_id: Option<Uuid>, plate: &str) {
     let Some(org_id) = org_id else {
-        tracing::warn!(plate, "skipping retry marker: caller has no organization_id");
+        tracing::warn!(
+            plate,
+            "skipping retry marker: caller has no organization_id"
+        );
         return;
     };
     if let Some(cache) = &state.s3_data_cache {

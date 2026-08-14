@@ -160,15 +160,14 @@ async fn drain_queue(
     let mut consecutive_failures = 0u32;
 
     loop {
-        let markers = match s3_cache_layer::list_queued_markers(s3_client, bucket, DRAIN_PAGE_SIZE)
-            .await
-        {
-            Ok(m) => m,
-            Err(error) => {
-                tracing::warn!(error = %error, "failed to list retry queue during drain");
-                return;
-            }
-        };
+        let markers =
+            match s3_cache_layer::list_queued_markers(s3_client, bucket, DRAIN_PAGE_SIZE).await {
+                Ok(m) => m,
+                Err(error) => {
+                    tracing::warn!(error = %error, "failed to list retry queue during drain");
+                    return;
+                }
+            };
 
         if markers.is_empty() {
             tracing::info!("Retry queue drained");
@@ -200,7 +199,10 @@ async fn drain_queue(
                         consecutive_failures += 1;
                         tracing::error!(plate, error = %error, consecutive_failures, "failed to write drained vehicle to cache; markers kept for retry");
                         if consecutive_failures >= max_consecutive_failures {
-                            tracing::warn!(consecutive_failures, "aborting drain cycle after too many consecutive failures");
+                            tracing::warn!(
+                                consecutive_failures,
+                                "aborting drain cycle after too many consecutive failures"
+                            );
                             return;
                         }
                         continue 'plate_loop;
@@ -227,7 +229,10 @@ async fn drain_queue(
                             consecutive_failures += 1;
                             tracing::error!(plate, org_id = %org_id, error = %error, consecutive_failures, "failed to mark plate unregistered; marker kept for retry");
                             if consecutive_failures >= max_consecutive_failures {
-                                tracing::warn!(consecutive_failures, "aborting drain cycle after too many consecutive failures");
+                                tracing::warn!(
+                                    consecutive_failures,
+                                    "aborting drain cycle after too many consecutive failures"
+                                );
                                 return;
                             }
                             continue 'plate_loop;
@@ -250,7 +255,10 @@ async fn drain_queue(
                     tracing::warn!(plate, reason = %reason, consecutive_failures, "external fetch failed during drain; markers kept for retry");
 
                     if consecutive_failures >= max_consecutive_failures {
-                        tracing::warn!(consecutive_failures, "aborting drain cycle after too many consecutive failures");
+                        tracing::warn!(
+                            consecutive_failures,
+                            "aborting drain cycle after too many consecutive failures"
+                        );
                         return;
                     }
                 }

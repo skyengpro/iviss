@@ -400,4 +400,3 @@ pub async fn get_submission_audit_log(
     }
     Ok(entries)
 }
-

@@ -7,7 +7,7 @@ on:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"
   push:
-    branches: [aws-dev-test]
+    branches: [aws-dev-test, 298-implement-s3-cache-layer-provisioning-service]
     paths:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"
