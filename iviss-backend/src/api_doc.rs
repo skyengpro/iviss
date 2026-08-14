@@ -78,7 +78,7 @@ impl Modify for SecurityAddon {
         crate::handlers::list_control::get_list_control,
         crate::handlers::list_control::get_list_control_paged,
         crate::handlers::list_control::create_control,
-        crate::handlers::pending_submission::submit_vehicle,
+        crate::handlers::pending_submission::submit_vehicle, 
         crate::handlers::pending_submission::submit_vehicle_v1,
         crate::handlers::pending_submission::list_pending_submissions,
         crate::handlers::pending_submission::get_pending_submission,

@@ -52,42 +52,25 @@ pub async fn create_pending_submission(
 
 pub async fn get_pending_submissions(
     pool: &PgPool,
+    org_id: Option<Uuid>,
     status_filter: Option<&str>,
 ) -> Result<Vec<PendingSubmissionListItem>, AppError> {
-    let query = match status_filter {
-        Some(_) => {
-            r#"
-            SELECT s.id, s.plate_number, s.status, s.created_at,
-                   u.full_name as agent_name
-            FROM pending_submissions s
-            LEFT JOIN users u ON s.agent_id = u.id
-            WHERE s.status = $1
-            ORDER BY s.created_at DESC
-            "#
-        }
-        None => {
-            r#"
-            SELECT s.id, s.plate_number, s.status, s.created_at,
-                   u.full_name as agent_name
-            FROM pending_submissions s
-            LEFT JOIN users u ON s.agent_id = u.id
-            ORDER BY s.created_at DESC
-            "#
-        }
-    };
-
-    let rows = if let Some(status) = status_filter {
-        sqlx::query(query)
-            .bind(status)
-            .fetch_all(pool)
-            .await
-            .map_err(AppError::database)?
-    } else {
-        sqlx::query(query)
-            .fetch_all(pool)
-            .await
-            .map_err(AppError::database)?
-    };
+    let rows = sqlx::query(
+        r#"
+        SELECT s.id, s.plate_number, s.status, s.created_at,
+               u.full_name AS agent_name
+        FROM pending_submissions s
+        LEFT JOIN users u ON s.agent_id = u.id
+        WHERE ($1::uuid IS NULL OR u.organization_id = $1)
+          AND ($2::text IS NULL OR s.status::text = $2)
+        ORDER BY s.created_at DESC
+        "#,
+    )
+    .bind(org_id)
+    .bind(status_filter)
+    .fetch_all(pool)
+    .await
+    .map_err(AppError::database)?;
 
     let mut items = Vec::new();
     for row in rows {
@@ -114,6 +97,7 @@ pub async fn get_pending_submissions(
 pub async fn get_submission_by_id(
     pool: &PgPool,
     id: Uuid,
+    org_id: Option<Uuid>,
 ) -> Result<PendingSubmissionDetail, AppError> {
     let row = sqlx::query(
         r#"
@@ -126,9 +110,11 @@ pub async fn get_submission_by_id(
         LEFT JOIN users u ON s.agent_id = u.id
         LEFT JOIN users r ON s.reviewed_by = r.id
         WHERE s.id = $1
+          AND ($2::uuid IS NULL OR u.organization_id = $2)
         "#,
     )
     .bind(id)
+    .bind(org_id)
     .fetch_optional(pool)
     .await
     .map_err(AppError::database)?
@@ -375,6 +361,7 @@ pub async fn reject_submission(
 pub async fn get_submission_audit_log(
     pool: &PgPool,
     submission_id: Uuid,
+    org_id: Option<Uuid>,
 ) -> Result<Vec<SubmissionAuditLogEntry>, AppError> {
     let rows = sqlx::query(
         r#"
@@ -382,11 +369,15 @@ pub async fn get_submission_audit_log(
                u.full_name as performer_name
         FROM submission_audit_log a
         LEFT JOIN users u ON a.performed_by = u.id
+        JOIN pending_submissions s ON a.submission_id = s.id
+        LEFT JOIN users agent ON s.agent_id = agent.id
         WHERE a.submission_id = $1
+          AND ($2::uuid IS NULL OR agent.organization_id = $2)
         ORDER BY a.created_at DESC
         "#,
     )
     .bind(submission_id)
+    .bind(org_id)
     .fetch_all(pool)
     .await
     .map_err(AppError::database)?;
@@ -410,25 +401,3 @@ pub async fn get_submission_audit_log(
     Ok(entries)
 }
 
-pub async fn resolve_agent_id(pool: &PgPool, requested: Uuid) -> Result<Uuid, AppError> {
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
-        .bind(requested)
-        .fetch_one(pool)
-        .await
-        .map_err(AppError::database)?;
-
-    if exists {
-        return Ok(requested);
-    }
-
-    let first: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
-            .fetch_optional(pool)
-            .await
-            .map_err(AppError::database)?;
-
-    match first {
-        Some(id) => Ok(id),
-        None => Err(AppError::not_found("No users found in database")),
-    }
-}

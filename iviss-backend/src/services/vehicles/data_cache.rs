@@ -2,21 +2,28 @@ use crate::dto::search_vehicle::VehicleInfo;
 use crate::s3_cache_layer::{self, CachedVehicleData, S3CacheConfig};
 use anyhow::Result;
 use async_trait::async_trait;
+use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct UnregisteredPlate {
+    pub organization_id: Uuid,
     pub plate_number: String,
     /// S3 object `last_modified` of the marker — markers are write-once, so
     /// this is effectively when the plate was marked unregistered.
     pub marked_at: Option<time::OffsetDateTime>,
 }
 
+pub enum UnregisteredScope {
+    Organization(Uuid),
+    AllTenants,
+}
+
 #[async_trait]
 pub trait VehicleDataCache: Send + Sync {
     async fn get_vehicle_data(&self, plate: &str) -> Result<Option<CachedVehicleData>>;
     async fn store_vehicle_data(&self, plate: &str, vehicle: &VehicleInfo) -> Result<()>;
-    async fn enqueue_retry(&self, plate: &str) -> Result<()>;
-    async fn list_unregistered(&self) -> Result<Vec<UnregisteredPlate>>;
+    async fn enqueue_retry(&self, org_id: Uuid, plate: &str) -> Result<()>;
+    async fn list_unregistered(&self, scope: UnregisteredScope) -> Result<Vec<UnregisteredPlate>>;
 }
 
 pub struct S3VehicleDataCache {
@@ -27,7 +34,6 @@ pub struct S3VehicleDataCache {
 }
 
 impl S3VehicleDataCache {
-    /// Build from configuration.
     pub async fn from_config(config: &S3CacheConfig) -> Result<Self> {
         let (client, bucket) = s3_cache_layer::build_s3_client(config).await?;
 
@@ -64,20 +70,37 @@ impl VehicleDataCache for S3VehicleDataCache {
         .await
     }
 
-    async fn enqueue_retry(&self, plate: &str) -> Result<()> {
-        s3_cache_layer::enqueue_plate(&self.client, &self.bucket, plate).await
+    async fn enqueue_retry(&self, org_id: Uuid, plate: &str) -> Result<()> {
+        s3_cache_layer::enqueue_plate(&self.client, &self.bucket, org_id, plate).await
     }
 
-    async fn list_unregistered(&self) -> Result<Vec<UnregisteredPlate>> {
-        let markers =
-            s3_cache_layer::list_unregistered_markers(&self.client, &self.bucket, usize::MAX)
-                .await?;
+    async fn list_unregistered(&self, scope: UnregisteredScope) -> Result<Vec<UnregisteredPlate>> {
+        let markers = match scope {
+            UnregisteredScope::Organization(org_id) => {
+                s3_cache_layer::list_unregistered_markers(
+                    &self.client,
+                    &self.bucket,
+                    org_id,
+                    usize::MAX,
+                )
+                .await?
+            }
+            UnregisteredScope::AllTenants => {
+                s3_cache_layer::list_all_unregistered_markers(
+                    &self.client,
+                    &self.bucket,
+                    usize::MAX,
+                )
+                .await?
+            }
+        };
 
         Ok(markers
             .into_iter()
-            .map(|marker| UnregisteredPlate {
-                plate_number: marker.plate_number,
-                marked_at: marker.last_modified,
+            .map(|m| UnregisteredPlate {
+                organization_id: m.organization_id,
+                plate_number: m.plate_number,
+                marked_at: m.last_modified,
             })
             .collect())
     }

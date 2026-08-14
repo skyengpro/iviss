@@ -9,6 +9,7 @@ use uuid::Uuid;
 pub struct AuthValidationContext {
     pub is_blacklisted: bool,
     pub user_status: Option<String>,
+    pub organization_id: Option<Uuid>,
     pub device_is_active: bool,
 }
 
@@ -48,6 +49,12 @@ pub async fn get_auth_validation_context(
                 WHERE u.id = $1
                   AND u.deleted_at IS NULL
             ) AS user_status,
+            (
+                SELECT u.organization_id
+                FROM users u
+                WHERE u.id = $1
+                  AND u.deleted_at IS NULL
+            ) AS organization_id,
             EXISTS(
                 SELECT 1
                 FROM devices d

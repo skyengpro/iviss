@@ -1,9 +1,10 @@
 use crate::s3_cache_layer::types::{
-    plate_from_key, retry_queue_key, unregistered_key, QueueMarker, RETRY_QUEUE_PREFIX,
-    UNREGISTERED_PREFIX,
+    org_plate_from_key, org_prefix, retry_queue_key, unregistered_key, QueueMarker,
+    RETRY_QUEUE_PREFIX, UNREGISTERED_PREFIX,
 };
 use anyhow::{Context, Result};
 use aws_sdk_s3::primitives::ByteStream;
+use uuid::Uuid;
 
 async fn put_marker(
     client: &aws_sdk_s3::Client,
@@ -32,28 +33,34 @@ async fn put_marker(
     Ok(())
 }
 
-pub async fn enqueue_plate(client: &aws_sdk_s3::Client, bucket: &str, plate: &str) -> Result<()> {
-    put_marker(client, bucket, retry_queue_key(plate)?, plate).await
+pub async fn enqueue_plate(
+    client: &aws_sdk_s3::Client,
+    bucket: &str,
+    org_id: Uuid,
+    plate: &str,
+) -> Result<()> {
+    put_marker(client, bucket, retry_queue_key(org_id, plate)?, plate).await
 }
 
 pub async fn mark_unregistered(
     client: &aws_sdk_s3::Client,
     bucket: &str,
+    org_id: Uuid,
     plate: &str,
 ) -> Result<()> {
-    put_marker(client, bucket, unregistered_key(plate)?, plate).await
+    put_marker(client, bucket, unregistered_key(org_id, plate)?, plate).await
 }
 
-/// A listed marker: the plate parsed from its key, plus the object's S3
-/// `last_modified` — markers are write-once, so this doubles as `queued_at`
-/// without needing a `GetObject` per entry.
+/// A listed marker parsed from an org-partitioned key.
 pub struct ListedMarker {
+    pub organization_id: Uuid,
     pub plate_number: String,
     pub last_modified: Option<time::OffsetDateTime>,
 }
 
-/// Paginated `ListObjectsV2` over a flat prefix, returning up to `max` entries.
-async fn list_markers(
+/// Paginated `ListObjectsV2` over `prefix`, parsing every key with `org_plate_from_key`.
+/// Keys that do not match the org-partitioned format are silently skipped.
+async fn list_markers_org_partitioned(
     client: &aws_sdk_s3::Client,
     bucket: &str,
     prefix: &str,
@@ -75,17 +82,19 @@ async fn list_markers(
 
         for object in output.contents() {
             let Some(key) = object.key() else { continue };
-            if let Some(plate_number) = plate_from_key(key, prefix) {
-                let last_modified = object
-                    .last_modified()
-                    .and_then(|dt| time::OffsetDateTime::from_unix_timestamp(dt.secs()).ok());
-                markers.push(ListedMarker {
-                    plate_number,
-                    last_modified,
-                });
-                if markers.len() >= max {
-                    return Ok(markers);
-                }
+            let Some((organization_id, plate_number)) = org_plate_from_key(key, prefix) else {
+                continue;
+            };
+            let last_modified = object
+                .last_modified()
+                .and_then(|dt| time::OffsetDateTime::from_unix_timestamp(dt.secs()).ok());
+            markers.push(ListedMarker {
+                organization_id,
+                plate_number,
+                last_modified,
+            });
+            if markers.len() >= max {
+                return Ok(markers);
             }
         }
 
@@ -98,26 +107,42 @@ async fn list_markers(
     Ok(markers)
 }
 
-/// Paginated `ListObjectsV2` over a flat prefix, returning up to `max` plate numbers.
-pub async fn list_queued_plates(
+pub async fn list_unregistered_markers(
     client: &aws_sdk_s3::Client,
     bucket: &str,
-    prefix: &str,
+    org_id: Uuid,
     max: usize,
-) -> Result<Vec<String>> {
-    Ok(list_markers(client, bucket, prefix, max)
-        .await?
-        .into_iter()
-        .map(|marker| marker.plate_number)
-        .collect())
+) -> Result<Vec<ListedMarker>> {
+    list_markers_org_partitioned(
+        client,
+        bucket,
+        &org_prefix(UNREGISTERED_PREFIX, org_id),
+        max,
+    )
+    .await
 }
 
-pub async fn list_unregistered_markers(
+pub async fn list_all_unregistered_markers(
     client: &aws_sdk_s3::Client,
     bucket: &str,
     max: usize,
 ) -> Result<Vec<ListedMarker>> {
-    list_markers(client, bucket, UNREGISTERED_PREFIX, max).await
+    list_markers_org_partitioned(client, bucket, UNREGISTERED_PREFIX, max).await
+}
+
+/// Lists the retry queue across all orgs; returns `(org_id, plate)` pairs.
+pub async fn list_queued_markers(
+    client: &aws_sdk_s3::Client,
+    bucket: &str,
+    max: usize,
+) -> Result<Vec<(Uuid, String)>> {
+    Ok(
+        list_markers_org_partitioned(client, bucket, RETRY_QUEUE_PREFIX, max)
+            .await?
+            .into_iter()
+            .map(|m| (m.organization_id, m.plate_number))
+            .collect(),
+    )
 }
 
 async fn delete_marker(client: &aws_sdk_s3::Client, bucket: &str, key: String) -> Result<()> {
@@ -132,47 +157,16 @@ async fn delete_marker(client: &aws_sdk_s3::Client, bucket: &str, key: String) -
     Ok(())
 }
 
-/// `prefix` must be [`RETRY_QUEUE_PREFIX`] — never `vehicle-cache/`, which has no delete IAM grant.
+/// Deletes a retry-queue marker. Only targets `retry-queue/` — no delete IAM grant on `vehicle-cache/`.
 pub async fn remove_marker(
     client: &aws_sdk_s3::Client,
     bucket: &str,
-    prefix: &str,
+    org_id: Uuid,
     plate: &str,
 ) -> Result<()> {
-    debug_assert_eq!(
-        prefix, RETRY_QUEUE_PREFIX,
-        "remove_marker must only target the retry queue"
+    debug_assert!(
+        !plate.contains('/'),
+        "remove_marker: plate must not contain path separators"
     );
-    delete_marker(client, bucket, format!("{prefix}{plate}.json")).await
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::s3_cache_layer::types::{object_key, UNREGISTERED_PREFIX};
-
-    #[test]
-    fn plate_from_key_round_trips_through_retry_queue_key() {
-        let key = retry_queue_key("LT893DK").unwrap();
-        assert_eq!(
-            plate_from_key(&key, RETRY_QUEUE_PREFIX),
-            Some("LT893DK".to_string())
-        );
-    }
-
-    #[test]
-    fn plate_from_key_round_trips_through_unregistered_key() {
-        let key = unregistered_key("CE128BC").unwrap();
-        assert_eq!(
-            plate_from_key(&key, UNREGISTERED_PREFIX),
-            Some("CE128BC".to_string())
-        );
-    }
-
-    #[test]
-    fn plate_from_key_rejects_partitioned_vehicle_cache_keys() {
-        // vehicle-cache/ keys have a partition segment; the flat parser must not match them.
-        let key = object_key("LT893DK").unwrap();
-        assert_eq!(plate_from_key(&key, RETRY_QUEUE_PREFIX), None);
-    }
+    delete_marker(client, bucket, retry_queue_key(org_id, plate)?).await
 }

@@ -14,11 +14,12 @@ use iviss_backend::external_services::vehicle_client::{
 };
 use iviss_backend::external_services::{ExternalDataSource, ExternalServiceError, HealthStatus};
 use iviss_backend::s3_cache_layer::s3_writer::write_vehicle_data;
-use iviss_backend::s3_cache_layer::types::RETRY_QUEUE_PREFIX;
 use iviss_backend::s3_cache_layer::{self, S3CacheConfig};
+use std::collections::HashMap;
 use std::env;
 use std::time::Duration;
 use tokio::time::Instant;
+use uuid::Uuid;
 
 /// How long each drain window stays open per cycle.
 const DRAIN_WINDOW: Duration = Duration::from_secs(60 * 60);
@@ -112,10 +113,8 @@ async fn run_ping_cycle(
         return;
     }
 
-    let queue_peek =
-        s3_cache_layer::list_queued_plates(s3_client, bucket, RETRY_QUEUE_PREFIX, 1).await;
-    match queue_peek {
-        Ok(plates) if plates.is_empty() => {
+    match s3_cache_layer::list_queued_markers(s3_client, bucket, 1).await {
+        Ok(markers) if markers.is_empty() => {
             tracing::debug!("Retry queue empty; no probe emitted");
             return;
         }
@@ -145,8 +144,11 @@ async fn run_ping_cycle(
 }
 
 /// Drains the retry queue until empty or `max_consecutive_failures` failures
-/// in a row — fetch or S3 write side both count, guarding against both
-/// "server up but /query broken" and a stuck S3 write path.
+/// in a row.
+///
+/// Markers are grouped by plate before fetching: if multiple orgs queued the
+/// same plate, the external API is called once and the result is fanned out
+/// to each org's prefix.
 async fn drain_queue(
     source: &impl ExternalDataSource,
     s3_client: &aws_sdk_s3::Client,
@@ -158,27 +160,29 @@ async fn drain_queue(
     let mut consecutive_failures = 0u32;
 
     loop {
-        let plates = match s3_cache_layer::list_queued_plates(
-            s3_client,
-            bucket,
-            RETRY_QUEUE_PREFIX,
-            DRAIN_PAGE_SIZE,
-        )
-        .await
+        let markers = match s3_cache_layer::list_queued_markers(s3_client, bucket, DRAIN_PAGE_SIZE)
+            .await
         {
-            Ok(plates) => plates,
+            Ok(m) => m,
             Err(error) => {
                 tracing::warn!(error = %error, "failed to list retry queue during drain");
                 return;
             }
         };
 
-        if plates.is_empty() {
+        if markers.is_empty() {
             tracing::info!("Retry queue drained");
             return;
         }
 
-        for plate in plates {
+        // Group by plate so each unique plate generates one external API call,
+        // regardless of how many orgs queued it.
+        let mut by_plate: HashMap<String, Vec<Uuid>> = HashMap::new();
+        for (org_id, plate) in markers {
+            by_plate.entry(plate).or_default().push(org_id);
+        }
+
+        'plate_loop: for (plate, orgs) in by_plate {
             match source.fetch(&plate).await {
                 Ok(iviss_backend::external_services::PartnerPayload::Vehicle {
                     vehicle, ..
@@ -194,61 +198,59 @@ async fn drain_queue(
                     .await
                     {
                         consecutive_failures += 1;
-                        tracing::error!(plate = %plate, error = %error, consecutive_failures, "failed to write drained vehicle to cache; marker kept for retry");
+                        tracing::error!(plate, error = %error, consecutive_failures, "failed to write drained vehicle to cache; markers kept for retry");
                         if consecutive_failures >= max_consecutive_failures {
-                            tracing::warn!(
-                                consecutive_failures,
-                                "aborting drain cycle after too many consecutive failures"
-                            );
+                            tracing::warn!(consecutive_failures, "aborting drain cycle after too many consecutive failures");
                             return;
                         }
-                        continue;
+                        continue 'plate_loop;
                     }
+
                     consecutive_failures = 0;
-                    tracing::info!(plate = %plate, "successfully drained vehicle to cache");
-                    if let Err(error) =
-                        s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
-                            .await
-                    {
-                        tracing::error!(plate = %plate, error = %error, "failed to remove retry marker after successful write");
+                    tracing::info!(plate, "successfully drained vehicle to cache");
+
+                    for org_id in orgs {
+                        if let Err(error) =
+                            s3_cache_layer::remove_marker(s3_client, bucket, org_id, &plate).await
+                        {
+                            tracing::error!(plate, org_id = %org_id, error = %error, "failed to remove retry marker after successful write");
+                        }
                     }
-                    tracing::info!(plate = %plate, "retry marker removed after successful write");
                 }
+
                 Err(ExternalServiceError::NotFound) => {
-                    if let Err(error) =
-                        s3_cache_layer::mark_unregistered(s3_client, bucket, &plate).await
-                    {
-                        consecutive_failures += 1;
-                        tracing::error!(plate = %plate, error = %error, consecutive_failures, "failed to mark plate unregistered; marker kept for retry");
-                        if consecutive_failures >= max_consecutive_failures {
-                            tracing::warn!(
-                                consecutive_failures,
-                                "aborting drain cycle after too many consecutive failures"
-                            );
-                            return;
+                    for org_id in orgs {
+                        if let Err(error) =
+                            s3_cache_layer::mark_unregistered(s3_client, bucket, org_id, &plate)
+                                .await
+                        {
+                            consecutive_failures += 1;
+                            tracing::error!(plate, org_id = %org_id, error = %error, consecutive_failures, "failed to mark plate unregistered; marker kept for retry");
+                            if consecutive_failures >= max_consecutive_failures {
+                                tracing::warn!(consecutive_failures, "aborting drain cycle after too many consecutive failures");
+                                return;
+                            }
+                            continue 'plate_loop;
                         }
-                        continue;
+
+                        consecutive_failures = 0;
+                        tracing::info!(plate, org_id = %org_id, "successfully marked plate unregistered");
+
+                        if let Err(error) =
+                            s3_cache_layer::remove_marker(s3_client, bucket, org_id, &plate).await
+                        {
+                            tracing::error!(plate, org_id = %org_id, error = %error, "failed to remove retry marker after marking unregistered");
+                        }
                     }
-                    tracing::info!(plate = %plate, "successfully marked plate unregistered");
-                    consecutive_failures = 0;
-                    if let Err(error) =
-                        s3_cache_layer::remove_marker(s3_client, bucket, RETRY_QUEUE_PREFIX, &plate)
-                            .await
-                    {
-                        tracing::error!(plate = %plate, error = %error, "failed to remove retry marker after marking unregistered");
-                    }
-                    tracing::info!(plate = %plate, "retry marker removed after marking unregistered");
                 }
+
                 Err(ExternalServiceError::Unavailable(reason))
                 | Err(ExternalServiceError::Protocol(reason)) => {
                     consecutive_failures += 1;
-                    tracing::warn!(plate = %plate, reason = %reason, consecutive_failures, "external fetch failed during drain; marker kept for retry");
+                    tracing::warn!(plate, reason = %reason, consecutive_failures, "external fetch failed during drain; markers kept for retry");
 
                     if consecutive_failures >= max_consecutive_failures {
-                        tracing::warn!(
-                            consecutive_failures,
-                            "aborting drain cycle after too many consecutive failures"
-                        );
+                        tracing::warn!(consecutive_failures, "aborting drain cycle after too many consecutive failures");
                         return;
                     }
                 }

@@ -1,4 +1,5 @@
 use crate::app_state::AppState;
+use crate::middleware::auth::AuthenticatedUser;
 use crate::{
     dto::{
         common::{IdentificationMode, Status},
@@ -11,7 +12,7 @@ use crate::{
     utils::plate_format,
 };
 use axum::{
-    extract::{Json, State},
+    extract::{Extension, Json, State},
     http::StatusCode,
     response::IntoResponse,
 };
@@ -42,19 +43,27 @@ const S3_CACHE_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_sec
      ),
     security(("bearer_auth" = []))
 )]
-#[tracing::instrument(name = "vehicle.search", skip(state, payload))]
+#[tracing::instrument(name = "vehicle.search", skip(state, user, payload))]
 pub async fn search_vehicle(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(payload): Json<VehicleSearchRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Validate plate format
+    search_inner(state, user, payload).await
+}
+
+async fn search_inner(
+    state: Arc<AppState>,
+    user: AuthenticatedUser,
+    payload: VehicleSearchRequest,
+) -> Result<impl IntoResponse, AppError> {
     let plate = validate_plate_format(&payload.plate)?;
 
     log_search_location(&payload);
 
     if !state.vehicle_api_enabled {
         tracing::warn!("Vehicle API disabled via ENABLE_VEHICLE_API; using cache fallback");
-        return handle_vehicle_api_unavailable(&state, &plate, &payload).await;
+        return handle_vehicle_api_unavailable(&state, &user, &plate, &payload).await;
     }
 
     match state.vehicle_api_svc.query_plate(&plate).await {
@@ -62,7 +71,7 @@ pub async fn search_vehicle(
             let response = build_search_result(api_response, &plate);
 
             spawn_write_through(&state, &plate, &response.vehicle);
-            record_vehicle_search_control(&state, &payload, &response).await;
+            record_vehicle_search_control(&state, &user, &payload, &response).await;
 
             Ok((StatusCode::OK, Json(response)))
         }
@@ -75,16 +84,14 @@ pub async fn search_vehicle(
         }
         Err(error) => {
             tracing::error!("Vehicle API lookup failed: {}", error);
-            handle_vehicle_api_unavailable(&state, &plate, &payload).await
+            handle_vehicle_api_unavailable(&state, &user, &plate, &payload).await
         }
     }
 }
 
-/// Shared fallback when the vehicle API cannot be reached — either because it
-/// failed, or because it was disabled via `ENABLE_VEHICLE_API`. Tries the S3
-/// cache, enqueueing a retry marker on miss.
 async fn handle_vehicle_api_unavailable(
     state: &AppState,
+    user: &AuthenticatedUser,
     plate: &str,
     payload: &VehicleSearchRequest,
 ) -> Result<(StatusCode, Json<VehicleSearchResult>), AppError> {
@@ -111,7 +118,7 @@ async fn handle_vehicle_api_unavailable(
                     source: Some(VehicleDataSource::Cache),
                     cached_at,
                 };
-                record_vehicle_search_control(state, payload, &response).await;
+                record_vehicle_search_control(state, user, payload, &response).await;
                 return Ok((StatusCode::OK, Json(response)));
             }
             Ok(Ok(None)) => {
@@ -125,7 +132,7 @@ async fn handle_vehicle_api_unavailable(
             }
         }
 
-        spawn_enqueue_retry(state, plate);
+        spawn_enqueue_retry(state, user.organization_id, plate);
     }
 
     Err(AppError::external_api_failure(
@@ -149,11 +156,15 @@ fn spawn_write_through(
     }
 }
 
-fn spawn_enqueue_retry(state: &AppState, plate: &str) {
+fn spawn_enqueue_retry(state: &AppState, org_id: Option<Uuid>, plate: &str) {
+    let Some(org_id) = org_id else {
+        tracing::warn!(plate, "skipping retry marker: caller has no organization_id");
+        return;
+    };
     if let Some(cache) = &state.s3_data_cache {
         let (cache, plate) = (cache.clone(), plate.to_string());
         tokio::spawn(async move {
-            if let Err(e) = cache.enqueue_retry(&plate).await {
+            if let Err(e) = cache.enqueue_retry(org_id, &plate).await {
                 tracing::warn!(error = %e, "failed to enqueue S3 retry marker");
             }
         });
@@ -191,6 +202,7 @@ fn log_search_location(payload: &VehicleSearchRequest) {
 
 async fn record_vehicle_search_control(
     state: &AppState,
+    user: &AuthenticatedUser,
     payload: &VehicleSearchRequest,
     response: &VehicleSearchResult,
 ) {
@@ -215,8 +227,8 @@ async fn record_vehicle_search_control(
         crate::queries::vehicles::VehicleSearchControlRecordInsert {
             control_id,
             plate_number: &response.plate_number,
-            agent_id: payload.agent_id.unwrap_or_else(Uuid::new_v4),
-            organization_id: payload.organization_id.unwrap_or_else(Uuid::new_v4),
+            agent_id: user.user_id,
+            organization_id: user.organization_id.unwrap_or_else(Uuid::new_v4),
             timestamp: current_time,
             latitude: payload.latitude,
             longitude: payload.longitude,
@@ -251,12 +263,13 @@ async fn record_vehicle_search_control(
     ),
     security(("bearer_auth" = []))
 )]
-#[tracing::instrument(name = "vehicle.search_v1", skip(state, payload))]
+#[tracing::instrument(name = "vehicle.search_v1", skip(state, user, payload))]
 pub async fn search_vehicle_v1(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(payload): Json<VehicleSearchRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    search_vehicle(State(state), Json(payload)).await
+    search_inner(state, user, payload).await
 }
 
 pub fn validate_plate_format(plate: &str) -> Result<String, AppError> {

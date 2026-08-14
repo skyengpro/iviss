@@ -16,16 +16,7 @@ pub struct AuthenticatedUser {
     pub user_id: Uuid,
     pub device_id: Uuid,
     pub role: String,
-}
-
-impl From<&AccessTokenClaims> for AuthenticatedUser {
-    fn from(claims: &AccessTokenClaims) -> Self {
-        Self {
-            user_id: claims.sub,
-            device_id: claims.device_id,
-            role: claims.role.clone(),
-        }
-    }
+    pub organization_id: Option<Uuid>,
 }
 
 pub async fn require_auth(
@@ -152,9 +143,12 @@ pub async fn require_auth(
         "auth: accepted"
     );
 
-    request
-        .extensions_mut()
-        .insert(AuthenticatedUser::from(&claims));
+    request.extensions_mut().insert(AuthenticatedUser {
+        user_id: claims.sub,
+        device_id: claims.device_id,
+        role: claims.role.clone(),
+        organization_id: validation_context.organization_id,
+    });
 
     Ok(next.run(request).await)
 }

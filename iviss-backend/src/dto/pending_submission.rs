@@ -10,7 +10,9 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct CreatePendingSubmissionRequest {
     pub plate_number: String,
+    /// Deprecated — the server resolves the agent from the auth token; this field is ignored.
     pub agent_id: Uuid,
+
     #[serde(alias = "frontImage")]
     pub front_image_url: String,
     #[serde(alias = "backImage")]

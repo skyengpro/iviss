@@ -1,8 +1,11 @@
 use crate::app_state::AppState;
 use crate::dto::{common, pending_submission};
 use crate::errors::AppError;
+use crate::middleware::auth::AuthenticatedUser;
+use crate::middleware::rbac::AuthenticatedAdmin;
+use crate::services::vehicles::data_cache::UnregisteredScope;
 use axum::{
-    extract::{Json, Path, Query, State},
+    extract::{Extension, Json, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
 };
@@ -34,19 +37,17 @@ use crate::dto::pending_submission::SubmissionListQuery;
 )]
 pub async fn submit_vehicle(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let agent_id =
-        crate::queries::submissions::resolve_agent_id(&state.db, payload.agent_id).await?;
-
     let location = common::SubmissionLocation {
         latitude: payload.latitude,
         longitude: payload.longitude,
-        address: None, // address not in DTO yet, pass allowed None
+        address: None,
     };
     let submission_id = crate::queries::submissions::create_pending_submission(
         &state.db,
-        agent_id,
+        user.user_id,
         payload.plate_number.clone(),
         payload.front_image_url,
         payload.back_image_url,
@@ -83,9 +84,10 @@ pub async fn submit_vehicle(
 )]
 pub async fn submit_vehicle_v1(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(payload): Json<pending_submission::CreatePendingSubmissionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    submit_vehicle(State(state), Json(payload)).await
+    submit_vehicle(State(state), Extension(user), Json(payload)).await
 }
 
 // ── List (admin) ──────────────────────────────────────────────────────────────
@@ -107,14 +109,18 @@ pub async fn submit_vehicle_v1(
 )]
 pub async fn list_pending_submissions(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
     Query(query): Query<SubmissionListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let mut submissions =
-        crate::queries::submissions::get_pending_submissions(&state.db, query.status.as_deref())
-            .await?;
+    let org_scope = admin_org_scope(&admin)?;
 
-    // unregistered/ plates have no review status of their own; only fold them
-    // in when the caller isn't filtering for approved/rejected submissions.
+    let mut submissions = crate::queries::submissions::get_pending_submissions(
+        &state.db,
+        org_scope,
+        query.status.as_deref(),
+    )
+    .await?;
+
     let include_unregistered = query
         .status
         .as_deref()
@@ -122,7 +128,11 @@ pub async fn list_pending_submissions(
 
     if include_unregistered {
         if let Some(s3_data_cache) = &state.s3_data_cache {
-            match s3_data_cache.list_unregistered().await {
+            let s3_scope = match org_scope {
+                None => UnregisteredScope::AllTenants,
+                Some(id) => UnregisteredScope::Organization(id),
+            };
+            match s3_data_cache.list_unregistered(s3_scope).await {
                 Ok(unregistered) => {
                     submissions.extend(unregistered.into_iter().map(unregistered_to_list_item));
                 }
@@ -178,10 +188,12 @@ fn unregistered_to_list_item(
 )]
 pub async fn get_pending_submission(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
+    let org_scope = admin_org_scope(&admin)?;
     let submission: pending_submission::PendingSubmissionDetail =
-        crate::queries::submissions::get_submission_by_id(&state.db, id).await?;
+        crate::queries::submissions::get_submission_by_id(&state.db, id, org_scope).await?;
     Ok((StatusCode::OK, Json(submission)))
 }
 
@@ -204,10 +216,23 @@ pub async fn get_pending_submission(
 )]
 pub async fn get_submission_audit_log(
     State(state): State<Arc<AppState>>,
+    Extension(admin): Extension<AuthenticatedAdmin>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
-    let entries = crate::queries::submissions::get_submission_audit_log(&state.db, id).await?;
+    let org_scope = admin_org_scope(&admin)?;
+    let entries =
+        crate::queries::submissions::get_submission_audit_log(&state.db, id, org_scope).await?;
     Ok((StatusCode::OK, Json(entries)))
+}
+
+fn admin_org_scope(admin: &AuthenticatedAdmin) -> Result<Option<Uuid>, AppError> {
+    match admin.role.as_str() {
+        "admin" => Ok(None),
+        _ => admin
+            .organization_id
+            .ok_or_else(|| AppError::forbidden("Org admin must belong to an organization"))
+            .map(Some),
+    }
 }
 
 #[cfg(test)]
